@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ isset($minisite) ? 'Customize Mini-Storefront' : 'Create Mini-Storefront' }} - VyaparIndia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="bg-gray-100 text-gray-800 antialiased min-h-screen">
+
+    <!-- Top Seller Nav -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-xs">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-4">
+                    <a href="{{ route('seller.dashboard') }}" class="text-gray-500 hover:text-gray-700">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </a>
+                    <div>
+                        <h1 class="font-extrabold text-lg text-gray-900 leading-tight">Mini-Website Storefront Builder</h1>
+                        <p class="text-xs text-gray-500">Design your standalone D2C ecommerce storefront</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    @if(isset($minisite) && $minisite->slug)
+                        <a href="{{ route('minisite.show', $minisite->slug) }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 font-bold text-xs transition-colors shadow-xs">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            <span>View Live Storefront</span>
+                        </a>
+                    @endif
+                    <a href="{{ route('seller.dashboard') }}" class="px-3.5 py-2 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold text-xs transition-colors">
+                        Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Success Alert -->
+        @if(session('success'))
+            <div class="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-xs">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
+                    <span>{{ session('success') }}</span>
+                </div>
+                @if(isset($minisite) && $minisite->slug)
+                    <a href="{{ route('minisite.show', $minisite->slug) }}" target="_blank" class="underline font-bold">
+                        Open Store &rarr;
+                    </a>
+                @endif
+            </div>
+        @endif
+
+        <!-- Validation Errors -->
+        @if($errors->any())
+            <div class="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs space-y-1">
+                <div class="font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>Please fix the following issues:</span>
+                </div>
+                <ul class="list-disc pl-5">
+                    @foreach($errors->all() as $err)
+                        <li>{{ $err }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <form action="{{ isset($minisite) ? route('seller.minisite.update') : route('seller.minisite.store') }}" method="POST" enctype="multipart/form-data" class="space-y-8">
+            @csrf
+            @if(isset($minisite))
+                @method('PUT')
+            @endif
+
+            <!-- 1. Store Identity & URL -->
+            <div class="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
+                <div class="flex items-center gap-2.5 pb-4 border-b border-gray-100">
+                    <div class="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                        1
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-base text-gray-900">Store Identity & Custom Web Address</h2>
+                        <p class="text-xs text-gray-500">Your store's name, public URL, and branding slogan</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Store / Business Name <span class="text-red-500">*</span></label>
+                        <input type="text" name="page_title" value="{{ old('page_title', $minisite->page_title ?? '') }}" required placeholder="e.g. Royal Handlooms & Crafts" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Store URL Slug <span class="text-red-500">*</span></label>
+                        <div class="flex items-center">
+                            <span class="px-3 py-2.5 text-xs bg-gray-200 border border-r-0 border-gray-300 rounded-l-xl text-gray-500 font-mono">/</span>
+                            <input type="text" name="slug" value="{{ old('slug', $minisite->slug ?? '') }}" required placeholder="royal-handlooms" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-r-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">
+                        </div>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Tagline / Subheading</label>
+                        <input type="text" name="tagline" value="{{ old('tagline', $minisite->tagline ?? '') }}" placeholder="e.g. Direct Wholesaler of Authentic Handcrafted Silk & Cotton" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Welcome Message (Hero Banner)</label>
+                        <textarea name="welcome_message" rows="2" placeholder="Welcome buyers with a compelling greeting or discount notice" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">{{ old('welcome_message', $minisite->welcome_message ?? '') }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Visual Media: Logo & Hero Banner -->
+            <div class="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
+                <div class="flex items-center gap-2.5 pb-4 border-b border-gray-100">
+                    <div class="h-8 w-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm">
+                        2
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-base text-gray-900">Visual Media & Theme Colors</h2>
+                        <p class="text-xs text-gray-500">Upload your logo, custom hero banner, and primary brand color</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <!-- Logo Upload -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Store Logo (Square format)</label>
+                        <input type="file" name="logo" accept="image/*" class="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
+                        @if(isset($minisite) && $minisite->logo_url)
+                            <div class="mt-2 flex items-center gap-2">
+                                <img src="{{ $minisite->logo_url }}" alt="Logo" class="h-10 w-10 object-contain rounded-lg border border-gray-200">
+                                <span class="text-[11px] text-gray-500">Current Logo</span>
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- Banner Upload -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Hero Banner Image (Wide 16:9)</label>
+                        <input type="file" name="banner_image" accept="image/*" class="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
+                        @if(isset($minisite) && $minisite->banner_url)
+                            <div class="mt-2 flex items-center gap-2">
+                                <img src="{{ $minisite->banner_url }}" alt="Banner" class="h-10 w-24 object-cover rounded-lg border border-gray-200">
+                                <span class="text-[11px] text-gray-500">Current Banner</span>
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- Theme Color Picker -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Brand Theme Color</label>
+                        <div class="flex items-center gap-3">
+                            <input type="color" name="theme_color" value="{{ old('theme_color', $minisite->theme_color ?? '#2563eb') }}" class="h-10 w-16 p-1 rounded-xl border border-gray-300 cursor-pointer">
+                            <span class="text-xs text-gray-500">Buttons, badges, and accents will use this color</span>
+                        </div>
+                    </div>
+
+                    <!-- Theme Style -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Storefront Style</label>
+                        <select name="theme_style" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="modern" {{ (old('theme_style', $minisite->theme_style ?? '') == 'modern') ? 'selected' : '' }}>Modern Clean</option>
+                            <option value="minimal" {{ (old('theme_style', $minisite->theme_style ?? '') == 'minimal') ? 'selected' : '' }}>Minimalist</option>
+                            <option value="vibrant" {{ (old('theme_style', $minisite->theme_style ?? '') == 'vibrant') ? 'selected' : '' }}>Vibrant Marketplace</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. WhatsApp & Contact Channels -->
+            <div class="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
+                <div class="flex items-center gap-2.5 pb-4 border-b border-gray-100">
+                    <div class="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
+                        3
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-base text-gray-900">WhatsApp & Direct Ordering Channels</h2>
+                        <p class="text-xs text-gray-500">Enable 1-Click WhatsApp orders and buyer assistance</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">WhatsApp Number (For Direct Orders)</label>
+                        <div class="flex items-center">
+                            <span class="px-3 py-2.5 text-xs bg-emerald-100 text-emerald-800 border border-r-0 border-emerald-300 rounded-l-xl font-bold">
+                                <i class="fa-brands fa-whatsapp"></i> +91
+                            </span>
+                            <input type="text" name="whatsapp_number" value="{{ old('whatsapp_number', $minisite->whatsapp_number ?? '') }}" placeholder="9876543210" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-r-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Customer Support Phone</label>
+                        <input type="tel" name="support_phone" value="{{ old('support_phone', $minisite->support_phone ?? '') }}" placeholder="011-XXXXXXXX / Mobile" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Support Email</label>
+                        <input type="email" name="support_email" value="{{ old('support_email', $minisite->support_email ?? '') }}" placeholder="support@yourbrand.com" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Instagram Profile URL</label>
+                        <input type="url" name="instagram_link" value="{{ old('instagram_link', $minisite->instagram_link ?? '') }}" placeholder="https://instagram.com/yourhandle" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Location & Store Policies -->
+            <div class="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
+                <div class="flex items-center gap-2.5 pb-4 border-b border-gray-100">
+                    <div class="h-8 w-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center font-bold text-sm">
+                        4
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-base text-gray-900">Address & Store Policies</h2>
+                        <p class="text-xs text-gray-500">Specify physical warehouse location, COD support & return terms</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div class="sm:col-span-3">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Street Address</label>
+                        <input type="text" name="address" value="{{ old('address', $minisite->address ?? '') }}" placeholder="Plot 12, Industrial Area, Phase 2" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">City</label>
+                        <input type="text" name="city" value="{{ old('city', $minisite->city ?? '') }}" placeholder="Jaipur / Surat" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">PIN Code</label>
+                        <input type="text" name="pincode" value="{{ old('pincode', $minisite->pincode ?? '') }}" placeholder="302001" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Currency Symbol</label>
+                        <input type="text" name="currency" value="{{ old('currency', $minisite->currency ?? 'INR') }}" placeholder="INR" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <!-- Toggles -->
+                    <div class="sm:col-span-3 pt-2 space-y-3">
+                        <label class="flex items-center gap-3 p-3.5 rounded-2xl bg-gray-50 border border-gray-200 cursor-pointer">
+                            <input type="checkbox" name="enable_cod" value="1" {{ old('enable_cod', $minisite->enable_cod ?? true) ? 'checked' : '' }} class="h-4 w-4 text-blue-600 rounded">
+                            <div>
+                                <div class="text-xs font-bold text-gray-900">Enable Cash on Delivery (COD) on Store</div>
+                                <div class="text-[11px] text-gray-500">Allow buyers to place orders without paying in advance</div>
+                            </div>
+                        </label>
+
+                        <label class="flex items-center gap-3 p-3.5 rounded-2xl bg-gray-50 border border-gray-200 cursor-pointer">
+                            <input type="checkbox" name="enable_whatsapp_order" value="1" {{ old('enable_whatsapp_order', $minisite->enable_whatsapp_order ?? true) ? 'checked' : '' }} class="h-4 w-4 text-emerald-600 rounded">
+                            <div>
+                                <div class="text-xs font-bold text-gray-900">Enable Instant "Order on WhatsApp" Button</div>
+                                <div class="text-[11px] text-gray-500">Show WhatsApp order triggers on product cards and cart drawer</div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="sm:col-span-3">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Custom Store Policies (Shipping, Returns, Warranty)</label>
+                        <textarea name="policies" rows="3" placeholder="Enter terms for return, replacement, and delivery timelines" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">{{ old('policies', $minisite->policies ?? '') }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Action -->
+            <div class="flex items-center justify-end gap-4 pt-4">
+                <a href="{{ route('seller.dashboard') }}" class="px-6 py-3 rounded-2xl bg-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-300 transition-colors">
+                    Cancel
+                </a>
+                <button type="submit" class="px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm shadow-md hover:shadow-lg transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span>{{ isset($minisite) ? 'Save & Update Storefront' : 'Publish My Storefront' }}</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
