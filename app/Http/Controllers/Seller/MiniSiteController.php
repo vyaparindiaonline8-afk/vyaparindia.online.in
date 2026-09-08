@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Seller;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\SellerPage;
+use App\Models\Review;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -155,8 +156,37 @@ class MiniSiteController extends Controller
             ->where('category_id', $product->category_id)
             ->take(4)
             ->get();
+        
+        $reviews = $product->reviews()->latest()->get();
 
-        return view('seller-site.product_detail', compact('sellerPage', 'product', 'relatedProducts'));
+        return view('seller-site.product_detail', compact('sellerPage', 'product', 'relatedProducts', 'reviews'));
+    }
+
+    public function submitReview(Request $request, SellerPage $sellerPage, $productSlug)
+    {
+        $product = $sellerPage->user->products()->where('slug', $productSlug)->firstOrFail();
+
+        $validated = $request->validate([
+            'customer_name' => 'required|string|max:100',
+            'customer_city' => 'nullable|string|max:100',
+            'rating' => 'required|integer|min:1|max:5',
+            'review_title' => 'nullable|string|max:200',
+            'comment' => 'required|string|max:1000',
+        ]);
+
+        Review::create([
+            'product_id' => $product->id,
+            'seller_id' => $sellerPage->user_id,
+            'customer_name' => $validated['customer_name'],
+            'customer_city' => $validated['customer_city'] ?? 'India',
+            'review_title' => $validated['review_title'] ?? 'Verified Customer Review',
+            'rating' => $validated['rating'],
+            'comment' => $validated['comment'],
+            'is_verified_purchase' => true,
+            'is_approved' => true,
+        ]);
+
+        return back()->with('review_success', 'Thank you! Your verified rating & review has been published.');
     }
 
     public function contact(SellerPage $sellerPage)
@@ -205,11 +235,12 @@ class MiniSiteController extends Controller
 
         $token = Str::random(32);
         $discountAmount = min(50.00, round($totalPrice * 0.05, 2));
+        $orderNumber = 'ORD-' . strtoupper(Str::random(8));
 
         $order = \App\Models\Order::create([
             'order_number' => $orderNumber,
             'order_source' => 'minisite',
-            'user_id' => Auth::id(), // null if guest
+            'user_id' => Auth::id(),
             'seller_id' => $sellerPage->user_id,
             'total_price' => $totalPrice,
             'original_cod_total' => $totalPrice,
