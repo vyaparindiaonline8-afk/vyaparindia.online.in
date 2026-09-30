@@ -19,9 +19,11 @@ use App\Http\Controllers\Seller\PayoutController;
 use App\Http\Controllers\Seller\CatalogIngestionController;
 use App\Http\Controllers\Seller\DropshipPartnerController;
 use App\Http\Controllers\Seller\PhotoStudioController;
+use App\Http\Controllers\Seller\AnalyticsController;
 
 Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');
     Route::resource('products', ProductController::class);
     Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');

@@ -180,11 +180,8 @@ class MiniSiteController extends Controller
     public function product(SellerPage $sellerPage, $productSlug)
     {
         $product = $sellerPage->user->products()->where('slug', $productSlug)->firstOrFail();
-        $relatedProducts = $sellerPage->user->products()
-            ->where('id', '!=', $product->id)
-            ->where('category_id', $product->category_id)
-            ->take(4)
-            ->get();
+        $product->recordView(Auth::id(), request()->ip(), request()->userAgent());
+        $relatedProducts = $product->similarProducts(4);
         
         $reviews = $product->reviews()->latest()->get();
 

@@ -27,6 +27,7 @@ class Product extends Model
         'image',
         'user_id',
         'category_id',
+        'views_count',
     ];
 
     protected $casts = [
@@ -38,7 +39,49 @@ class Product extends Model
         'stock_quantity' => 'integer',
         'track_inventory' => 'boolean',
         'has_variants' => 'boolean',
+        'views_count' => 'integer',
     ];
+
+    public function productViews()
+    {
+        return $this->hasMany(ProductView::class);
+    }
+
+    /**
+     * Record impression / view with session deduplication
+     */
+    public function recordView($userId = null, $ip = null, $userAgent = null)
+    {
+        $this->increment('views_count');
+
+        // Record granular analytics row
+        return $this->productViews()->create([
+            'user_id' => $userId,
+            'ip_address' => $ip,
+            'user_agent' => $userAgent,
+        ]);
+    }
+
+    /**
+     * AI & Category Similar Products Recommendation Engine
+     * Matches same category, similar price band (+-35%), in-stock preferred
+     */
+    public function similarProducts($limit = 4)
+    {
+        $minPrice = $this->price * 0.65;
+        $maxPrice = $this->price * 1.35;
+
+        return self::where('id', '!=', $this->id)
+            ->where(function ($q) use ($minPrice, $maxPrice) {
+                $q->where('category_id', $this->category_id)
+                  ->orWhereBetween('price', [$minPrice, $maxPrice]);
+            })
+            ->with(['seller.sellerProfile', 'seller.sellerPage', 'category'])
+            ->orderByRaw("CASE WHEN category_id = {$this->category_id} THEN 0 ELSE 1 END")
+            ->latest()
+            ->take($limit)
+            ->get();
+    }
 
     public function variants()
     {

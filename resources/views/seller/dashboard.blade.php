@@ -134,6 +134,20 @@
                 </h3>
 
                 <div class="space-y-2">
+                    <a href="{{ route('seller.analytics') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-purple-500/10 to-indigo-500/10 hover:from-purple-500/20 hover:to-indigo-500/20 border border-purple-300 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-chart-line text-purple-600 text-lg"></i>
+                            <div>
+                                <div class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                                    <span>AI Performance Analytics</span>
+                                    <span class="text-[9px] font-bold bg-purple-600 text-white px-1.5 py-0.5 rounded-full">New</span>
+                                </div>
+                                <div class="text-[11px] text-gray-500">Daily/Monthly views, top products & conversion</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+                    </a>
+
                     <a href="{{ route('seller.catalog.upload') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-blue-500/10 to-indigo-500/10 hover:from-blue-500/20 hover:to-indigo-500/20 border border-blue-200 transition-colors">
                         <div class="flex items-center gap-3">
                             <i class="fa-solid fa-file-pdf text-blue-600 text-lg"></i>

@@ -18,6 +18,7 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/product/{product:slug}', [HomeController::class, 'showProduct'])->name('product.show');
 Route::get('/search', [HomeController::class, 'search'])->name('search');
 Route::get('/search-sellers-by-city', [HomeController::class, 'searchSellersByCity'])->name('search_sellers_by_city');
+Route::view('/how-it-works/algorithm', 'public.algorithm')->name('marketplace.algorithm');
 
 // Public WhatsApp Order Verification & Instant Prepaid Conversion Routes
 Route::prefix('order-verify')->name('verification.')->group(function () {
