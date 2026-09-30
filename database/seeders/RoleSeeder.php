@@ -15,7 +15,7 @@ class RoleSeeder extends Seeder
      */
     public function run()
     {
-        DB::table('roles')->insert([
+        DB::table('roles')->insertOrIgnore([
             ['name' => 'admin'],
             ['name' => 'seller'],
             ['name' => 'buyer'],

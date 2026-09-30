@@ -5,7 +5,11 @@ set -e
 php artisan storage:link || true
 
 # Run database migrations
-php artisan migrate --force || true
+echo "=== Running Database Migrations ==="
+php artisan migrate --force
+
+echo "=== Seeding Base Roles ==="
+php artisan db:seed --class=RoleSeeder --force || true
 
 # Cache routes and views for production speed
 php artisan config:cache || true
