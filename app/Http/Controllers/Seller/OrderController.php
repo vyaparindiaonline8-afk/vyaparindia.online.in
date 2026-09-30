@@ -48,7 +48,18 @@ class OrderController extends Controller
             'status' => 'required|in:pending,processing,shipped,delivered,cancelled',
         ]);
 
+        $oldStatus = $order->status;
         $order->update(['status' => $request->status]);
+
+        // Auto-Restock if order is cancelled
+        if ($request->status === 'cancelled' && $oldStatus !== 'cancelled') {
+            foreach ($order->products as $prod) {
+                $qty = $prod->pivot->quantity ?? 1;
+                if ($prod->track_inventory) {
+                    $prod->addStock($qty, "Restored due to Order #{$order->order_number} cancellation", 'order_cancel', $order->id);
+                }
+            }
+        }
 
         return redirect()->route('seller.orders.show', $order)->with('success', 'Order status updated successfully.');
     }

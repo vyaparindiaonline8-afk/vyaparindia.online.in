@@ -134,6 +134,31 @@
                 </h3>
 
                 <div class="space-y-2">
+                    <a href="{{ route('seller.catalog.upload') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-blue-500/10 to-indigo-500/10 hover:from-blue-500/20 hover:to-indigo-500/20 border border-blue-200 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-file-pdf text-blue-600 text-lg"></i>
+                            <div>
+                                <div class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                                    <span>AI PDF Catalog & Brochure Ingestion</span>
+                                    <span class="text-[9px] font-bold bg-blue-600 text-white px-1.5 py-0.5 rounded-full">New</span>
+                                </div>
+                                <div class="text-[11px] text-gray-500">Auto-parse rate lists, sizes & GST costing</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+                    </a>
+
+                    <a href="{{ route('seller.inventory.index') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-boxes-stacked text-emerald-600 text-lg"></i>
+                            <div>
+                                <div class="text-xs font-bold text-gray-900">Inventory & 1-Click Restock</div>
+                                <div class="text-[11px] text-gray-500">Live stock tracking, +10/+50 restock & alerts</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+                    </a>
+
                     <a href="{{ route('seller.shipping.index') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors">
                         <div class="flex items-center gap-3">
                             <i class="fa-solid fa-truck-fast text-emerald-600 text-lg"></i>

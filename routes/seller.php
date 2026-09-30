@@ -16,6 +16,7 @@ use App\Http\Controllers\Seller\MarketingController;
 use App\Http\Controllers\Seller\CustomDomainController;
 use App\Http\Controllers\Seller\GstInvoiceController;
 use App\Http\Controllers\Seller\PayoutController;
+use App\Http\Controllers\Seller\CatalogIngestionController;
 
 Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -107,4 +108,18 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
     Route::get('/orders/{order}/tax-invoice', [GstInvoiceController::class, 'show'])->name('orders.taxInvoice');
     Route::get('/products/{product}/pricing-tiers', [GstInvoiceController::class, 'pricingTiers'])->name('products.pricing_tiers');
     Route::post('/products/{product}/pricing-tiers', [GstInvoiceController::class, 'storeTier'])->name('products.store_tier');
+
+    // 📑 PDF Catalog & Brochure AI Ingestion Routes
+    Route::prefix('catalog')->name('catalog.')->group(function () {
+        Route::get('/upload', [CatalogIngestionController::class, 'uploadForm'])->name('upload');
+        Route::post('/upload', [CatalogIngestionController::class, 'upload'])->name('store');
+        Route::get('/review/{job}', [CatalogIngestionController::class, 'review'])->name('review');
+        Route::post('/publish/{job}', [CatalogIngestionController::class, 'publish'])->name('publish');
+    });
+
+    // 📦 Inventory & 1-Click Restock Manager
+    Route::prefix('inventory')->name('inventory.')->group(function () {
+        Route::get('/', [CatalogIngestionController::class, 'inventory'])->name('index');
+        Route::post('/restock', [CatalogIngestionController::class, 'restock'])->name('restock');
+    });
 });

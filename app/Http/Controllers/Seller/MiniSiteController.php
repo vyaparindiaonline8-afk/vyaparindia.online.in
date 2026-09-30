@@ -264,6 +264,20 @@ class MiniSiteController extends Controller
 
         $order->products()->attach($orderItems);
 
+        // Deduct inventory stock if tracked ("dale to thik, na dale to thik")
+        foreach ($validated['cart'] as $item) {
+            $prod = \App\Models\Product::find($item['id']);
+            if ($prod && $prod->track_inventory) {
+                $prod->deductStock(
+                    intval($item['quantity']),
+                    "Order #{$orderNumber} placed via Mini-Site",
+                    'order_placed',
+                    $order->id,
+                    $item['variant_id'] ?? null
+                );
+            }
+        }
+
         // Auto-Route Dropship Products to Wholesalers
         foreach ($validated['cart'] as $item) {
             $product = \App\Models\Product::find($item['id']);

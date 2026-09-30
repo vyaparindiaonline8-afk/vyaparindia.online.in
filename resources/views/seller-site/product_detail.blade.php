@@ -54,10 +54,11 @@
 
                 <!-- Price Box -->
                 <div class="mt-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 flex items-baseline gap-3">
-                    <span class="text-3xl font-black text-gray-900">₹{{ number_format($product->price, 2) }}</span>
-                    <span class="text-sm text-gray-400 line-through">₹{{ number_format($product->price * 1.35, 2) }}</span>
-                    <span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-md">SAVE 35%</span>
+                    <span class="text-3xl font-black text-gray-900" id="display-price">₹{{ number_format($product->price, 2) }}</span>
+                    <span class="text-sm text-gray-400 line-through" id="display-mrp">₹{{ number_format($product->mrp ?? ($product->price * 1.35), 2) }}</span>
+                    <span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-md" id="display-discount">SAVE 35%</span>
                 </div>
+
 
                 <!-- B2B Volume Slabs if configured -->
                 @if($product->pricingTiers && $product->pricingTiers->isNotEmpty())
@@ -71,6 +72,31 @@
                                 <span class="text-gray-600">{{ $tier->min_quantity }}{{ $tier->max_quantity ? '-'.$tier->max_quantity : '+' }} units:</span>
                                 <strong class="text-indigo-700">₹{{ number_format($tier->unit_price, 2) }}/ea</strong>
                             </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+                <!-- Dynamic Sizes & Variants Matrix -->
+                @if($product->variants && $product->variants->count() > 0)
+                <div class="mt-5 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-700">
+                            Select Size / Variant Option:
+                        </label>
+                        <span id="variant-stock-status" class="text-xs font-bold text-emerald-600">
+                            In Stock
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="variant-selector-grid">
+                        @foreach($product->variants as $idx => $v)
+                            <button type="button" 
+                                onclick="selectVariant({{ $idx }})"
+                                id="var-btn-{{ $idx }}"
+                                class="variant-chip p-2.5 rounded-xl border-2 text-left transition-all {{ $idx === 0 ? 'border-indigo-600 bg-indigo-50/50 text-indigo-950 font-black' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300' }}">
+                                <div class="text-xs font-bold truncate">{{ $v->variant_name }}</div>
+                                <div class="text-[11px] text-gray-500 font-mono mt-0.5">₹{{ number_format($v->retail_price ?? $v->wholesale_price ?? $product->price, 2) }}</div>
+                            </button>
                         @endforeach
                     </div>
                 </div>
@@ -287,6 +313,57 @@
 @push('scripts')
 <script>
     const currentProduct = @json($product);
+    const productVariants = @json($product->variants ?? []);
+    let selectedVariant = productVariants && productVariants.length > 0 ? productVariants[0] : null;
+
+    function selectVariant(idx) {
+        if (!productVariants || !productVariants[idx]) return;
+        selectedVariant = productVariants[idx];
+
+        // Update Button Styles
+        document.querySelectorAll('.variant-chip').forEach((btn, i) => {
+            if (i === idx) {
+                btn.className = 'variant-chip p-2.5 rounded-xl border-2 text-left transition-all border-indigo-600 bg-indigo-50/50 text-indigo-950 font-black';
+            } else {
+                btn.className = 'variant-chip p-2.5 rounded-xl border-2 text-left transition-all border-gray-200 bg-white text-gray-700 hover:border-gray-300';
+            }
+        });
+
+        // Update Prices
+        const price = parseFloat(selectedVariant.retail_price || selectedVariant.wholesale_price || currentProduct.price);
+        const mrp = parseFloat(selectedVariant.mrp || (price * 1.35));
+        
+        document.getElementById('display-price').textContent = '₹' + price.toFixed(2);
+        document.getElementById('display-mrp').textContent = '₹' + mrp.toFixed(2);
+
+        // Update Stock status badge
+        const stockEl = document.getElementById('variant-stock-status');
+        if (stockEl) {
+            if (!selectedVariant.track_inventory || selectedVariant.stock_quantity === null) {
+                stockEl.textContent = 'Made to Order / In Stock';
+                stockEl.className = 'text-xs font-bold text-slate-600';
+            } else if (selectedVariant.stock_quantity <= 0) {
+                stockEl.textContent = 'Out of Stock';
+                stockEl.className = 'text-xs font-bold text-rose-600';
+            } else if (selectedVariant.stock_quantity <= 5) {
+                stockEl.textContent = `Only ${selectedVariant.stock_quantity} left in stock!`;
+                stockEl.className = 'text-xs font-bold text-amber-600';
+            } else {
+                stockEl.textContent = `In Stock (${selectedVariant.stock_quantity} units)`;
+                stockEl.className = 'text-xs font-bold text-emerald-600';
+            }
+        }
+
+        // Update product reference for Cart / WhatsApp
+        currentProduct.price = price;
+        currentProduct.name = @json($product->name) + ' (' + selectedVariant.variant_name + ')';
+        currentProduct.variant_id = selectedVariant.id;
+    }
+
+    // Initialize first variant if exists
+    if (productVariants && productVariants.length > 0) {
+        selectVariant(0);
+    }
 
     function changeDetailQty(delta) {
         let input = document.getElementById('detail-qty');
@@ -314,8 +391,9 @@
         }
         let qty = parseInt(document.getElementById('detail-qty').value) || 1;
         let total = currentProduct.price * qty;
+        let varText = selectedVariant ? ` (${selectedVariant.variant_name})` : '';
         let text = `*New Order Inquiry from ${STORE_NAME}*\n\n` +
-                   `🛍️ *Product:* ${currentProduct.name}\n` +
+                   `🛍️ *Product:* ${currentProduct.name}${varText}\n` +
                    `🔢 *Quantity:* ${qty}\n` +
                    `💰 *Unit Price:* ₹${currentProduct.price}\n` +
                    `💵 *Total Amount:* ₹${total.toFixed(2)}\n` +
