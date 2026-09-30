@@ -155,12 +155,26 @@ class MiniSiteController extends Controller
             $query->where('category_id', $request->input('category'));
         }
 
-        $products = $query->latest()->paginate(12);
+        // Smart Category & Sales Sorting
+        $sort = $request->input('sort', 'latest');
+        if ($sort === 'popular') {
+            $query->withCount('orders')->orderByDesc('orders_count');
+        } elseif ($sort === 'price_asc') {
+            $query->orderBy('price', 'asc');
+        } elseif ($sort === 'price_desc') {
+            $query->orderBy('price', 'desc');
+        } elseif ($sort === 'oldest') {
+            $query->oldest();
+        } else {
+            $query->latest();
+        }
+
+        $products = $query->paginate(16)->withQueryString();
         $categories = \App\Models\Category::whereHas('products', function ($q) use ($sellerPage) {
             $q->where('user_id', $sellerPage->user_id);
         })->get();
 
-        return view('seller-site.products', compact('sellerPage', 'products', 'categories'));
+        return view('seller-site.products', compact('sellerPage', 'products', 'categories', 'sort'));
     }
 
     public function product(SellerPage $sellerPage, $productSlug)

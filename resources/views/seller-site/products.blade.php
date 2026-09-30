@@ -29,19 +29,44 @@
         </form>
     </div>
 
-    <!-- Category Filter Pills -->
-    @if(isset($categories) && $categories->isNotEmpty())
-        <div class="flex items-center gap-2 overflow-x-auto py-4 scrollbar-none">
-            <a href="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('category', 'page'))) }}" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors {{ !request('category') ? 'bg-gray-900 text-white shadow-xs' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50' }}">
-                All Items
-            </a>
-            @foreach($categories as $cat)
-                <a href="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('page'), ['category' => $cat->id])) }}" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors {{ request('category') == $cat->id ? 'bg-gray-900 text-white shadow-xs' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50' }}">
-                    {{ $cat->name }}
+    <!-- Category Filter Pills & Smart Sort -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-4 border-b border-gray-100">
+        @if(isset($categories) && $categories->isNotEmpty())
+            <div class="flex items-center gap-2 overflow-x-auto scrollbar-none flex-1">
+                <a href="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('category', 'page'))) }}" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors {{ !request('category') ? 'bg-gray-900 text-white shadow-xs' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50' }}">
+                    All Items ({{ $sellerPage->user->products()->count() }})
                 </a>
-            @endforeach
+                @foreach($categories as $cat)
+                    <a href="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('page'), ['category' => $cat->id])) }}" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors {{ request('category') == $cat->id ? 'bg-gray-900 text-white shadow-xs' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50' }}">
+                        {{ $cat->name }}
+                    </a>
+                @endforeach
+            </div>
+        @endif
+
+        <!-- Sorting Selector -->
+        <div class="flex items-center gap-2 shrink-0">
+            <span class="text-xs font-bold text-gray-500"><i class="fa-solid fa-arrow-down-short-wide mr-1"></i> Sort:</span>
+            <select onchange="window.location.href=this.value" class="text-xs font-bold bg-white border border-gray-300 rounded-xl px-3 py-1.5 focus:outline-hidden shadow-xs cursor-pointer">
+                @php $s = request('sort', 'latest'); @endphp
+                <option value="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('page'), ['sort' => 'latest'])) }}" {{ $s === 'latest' ? 'selected' : '' }}>
+                    🆕 Newly Added First
+                </option>
+                <option value="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('page'), ['sort' => 'popular'])) }}" {{ $s === 'popular' ? 'selected' : '' }}>
+                    🔥 Top Selling / Most Popular
+                </option>
+                <option value="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('page'), ['sort' => 'price_asc'])) }}" {{ $s === 'price_asc' ? 'selected' : '' }}>
+                    💰 Price: Low to High
+                </option>
+                <option value="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('page'), ['sort' => 'price_desc'])) }}" {{ $s === 'price_desc' ? 'selected' : '' }}>
+                    💎 Price: High to Low
+                </option>
+                <option value="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('page'), ['sort' => 'oldest'])) }}" {{ $s === 'oldest' ? 'selected' : '' }}>
+                    📅 Oldest First
+                </option>
+            </select>
         </div>
-    @endif
+    </div>
 
     <!-- Product Grid -->
     <div class="mt-6">
