@@ -18,6 +18,7 @@ use App\Http\Controllers\Seller\GstInvoiceController;
 use App\Http\Controllers\Seller\PayoutController;
 use App\Http\Controllers\Seller\CatalogIngestionController;
 use App\Http\Controllers\Seller\DropshipPartnerController;
+use App\Http\Controllers\Seller\PhotoStudioController;
 
 Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -130,5 +131,13 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
     Route::prefix('inventory')->name('inventory.')->group(function () {
         Route::get('/', [CatalogIngestionController::class, 'inventory'])->name('index');
         Route::post('/restock', [CatalogIngestionController::class, 'restock'])->name('restock');
+    });
+
+    // 📸 Bulk Photo Studio & Quick Listing Canvas Routes
+    Route::prefix('studio')->name('studio.')->group(function () {
+        Route::get('/', [PhotoStudioController::class, 'index'])->name('index');
+        Route::post('/upload', [PhotoStudioController::class, 'uploadMedia'])->name('upload');
+        Route::post('/publish', [PhotoStudioController::class, 'publishProduct'])->name('publish');
+        Route::post('/ai-assist', [PhotoStudioController::class, 'aiAssist'])->name('aiAssist');
     });
 });

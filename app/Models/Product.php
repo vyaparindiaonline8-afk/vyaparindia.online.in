@@ -65,6 +65,17 @@ class Product extends Model
         return $this->belongsTo(Category::class);
     }
 
+    public function categories()
+    {
+        return $this->belongsToMany(Category::class, 'category_product');
+    }
+
+    public function images()
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('sort_order');
+    }
+
+
     public function enquiries()
     {
         return $this->hasMany(Enquiry::class);

@@ -159,6 +159,21 @@
                         <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
                     </a>
 
+                    <a href="{{ route('seller.studio.index') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-camera-retro text-indigo-600 text-lg"></i>
+                            <div>
+                                <div class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                                    <span>Bulk Photo Studio & Quick Listing</span>
+                                    <span class="text-[9px] font-bold bg-indigo-600 text-white px-1.5 py-0.5 rounded-full">Fast</span>
+                                </div>
+                                <div class="text-[11px] text-gray-500">Drop 20-30 photos & 1-click publish products</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+                    </a>
+
+
                     <a href="{{ route('seller.shipping.index') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors">
                         <div class="flex items-center gap-3">
                             <i class="fa-solid fa-truck-fast text-emerald-600 text-lg"></i>
