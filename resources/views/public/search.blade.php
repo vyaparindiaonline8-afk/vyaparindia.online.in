@@ -26,6 +26,10 @@
 
                 <!-- Navigation Actions -->
                 <div class="flex items-center gap-3">
+                    <a href="{{ route('wishlist.index') }}" class="px-3 py-2 text-xs font-bold text-gray-700 hover:text-rose-600 transition flex items-center gap-1.5" title="My Wishlist">
+                        <i class="fa-solid fa-heart text-rose-500"></i>
+                        <span class="hidden sm:inline">Wishlist</span>
+                    </a>
                     @guest
                         <a href="{{ route('login') }}" class="px-4 py-2 text-xs font-bold text-gray-700 hover:text-blue-600 transition">
                             Login
@@ -234,7 +238,17 @@
                         <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-lg transition flex flex-col group">
                             <!-- Image -->
                             <div class="relative bg-gray-100 aspect-square overflow-hidden">
-                                <img src="{{ $imgSrc }}" alt="{{ $product->name }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                <a href="{{ route('product.show', $product->slug) }}">
+                                    <img src="{{ $imgSrc }}" alt="{{ $product->name }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                </a>
+                                <!-- Wishlist heart button -->
+                                <form action="{{ route('wishlist.toggle', $product) }}" method="POST" class="absolute top-2 right-2 z-10">
+                                    @csrf
+                                    @php $isFav = auth()->check() && auth()->user()->hasWishlisted($product); @endphp
+                                    <button type="submit" title="{{ $isFav ? 'Remove from Wishlist' : 'Save to Wishlist' }}" class="h-7 w-7 rounded-full bg-white/90 hover:bg-white text-{{ $isFav ? 'rose-600' : 'gray-400' }} hover:text-rose-600 flex items-center justify-center shadow-xs backdrop-blur-xs transition">
+                                        <i class="fa-{{ $isFav ? 'solid' : 'regular' }} fa-heart text-[11px]"></i>
+                                    </button>
+                                </form>
                                 @if($product->category)
                                     <span class="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-white/90 backdrop-blur-xs text-[10px] font-bold text-gray-800 shadow-xs">
                                         {{ $product->category->name }}

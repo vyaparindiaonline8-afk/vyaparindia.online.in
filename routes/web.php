@@ -20,6 +20,13 @@ Route::get('/search', [HomeController::class, 'search'])->name('search');
 Route::get('/search-sellers-by-city', [HomeController::class, 'searchSellersByCity'])->name('search_sellers_by_city');
 Route::view('/how-it-works/algorithm', 'public.algorithm')->name('marketplace.algorithm');
 
+// Authenticated Wishlist Routes
+Route::middleware('auth')->group(function () {
+    Route::get('/wishlist', [\App\Http\Controllers\Buyer\WishlistController::class, 'index'])->name('wishlist.index');
+    Route::post('/wishlist/toggle/{product}', [\App\Http\Controllers\Buyer\WishlistController::class, 'toggle'])->name('wishlist.toggle');
+    Route::delete('/wishlist/{product}', [\App\Http\Controllers\Buyer\WishlistController::class, 'destroy'])->name('wishlist.destroy');
+});
+
 // Public WhatsApp Order Verification & Instant Prepaid Conversion Routes
 Route::prefix('order-verify')->name('verification.')->group(function () {
     Route::get('/{token}', [\App\Http\Controllers\OrderVerificationController::class, 'show'])->name('show');

@@ -94,6 +94,21 @@ class User extends Authenticatable
         return $this->hasMany(DropshipPartnership::class, 'retailer_id');
     }
 
+    public function wishlists()
+    {
+        return $this->hasMany(Wishlist::class);
+    }
+
+    public function wishlistProducts()
+    {
+        return $this->belongsToMany(Product::class, 'wishlists');
+    }
+
+    public function hasWishlisted(Product $product)
+    {
+        return $this->wishlists()->where('product_id', $product->id)->exists();
+    }
+
     public function receivedPartnershipRequests()
     {
         return $this->hasMany(DropshipPartnership::class, 'wholesaler_id');

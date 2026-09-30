@@ -28,6 +28,10 @@
                         <i class="fa-solid fa-magnifying-glass"></i>
                         <span>Search Catalog</span>
                     </a>
+                    <a href="{{ route('wishlist.index') }}" class="text-xs font-bold text-gray-700 hover:text-rose-600 transition flex items-center gap-1" title="My Saved Wishlist">
+                        <i class="fa-solid fa-heart text-rose-500"></i>
+                        <span class="hidden sm:inline">Wishlist</span>
+                    </a>
                     @auth
                         @if(Auth::user()->is_seller())
                             <a href="{{ route('seller.dashboard') }}" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold shadow-sm">
@@ -74,8 +78,16 @@
         <div class="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-xs grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
             <!-- Product Image -->
             <div class="space-y-4">
-                <div class="aspect-square bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 flex items-center justify-center">
+                <div class="aspect-square bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 flex items-center justify-center relative group">
                     <img src="{{ $imgSrc }}" alt="{{ $product->name }}" class="w-full h-full object-cover">
+                    <!-- Floating Wishlist Heart Button -->
+                    <form action="{{ route('wishlist.toggle', $product) }}" method="POST" class="absolute top-3 right-3 z-10">
+                        @csrf
+                        @php $isFav = auth()->check() && auth()->user()->hasWishlisted($product); @endphp
+                        <button type="submit" title="{{ $isFav ? 'Remove from Wishlist' : 'Save to Wishlist' }}" class="h-10 w-10 rounded-full bg-white/90 hover:bg-white text-{{ $isFav ? 'rose-600' : 'gray-400' }} hover:text-rose-600 flex items-center justify-center shadow-md backdrop-blur-xs transition">
+                            <i class="fa-{{ $isFav ? 'solid' : 'regular' }} fa-heart text-base"></i>
+                        </button>
+                    </form>
                 </div>
             </div>
 
@@ -155,9 +167,19 @@
                         @if($sellerPhoneClean)
                             <a href="https://wa.me/91{{ $sellerPhoneClean }}?text=Hello%20{{ urlencode($sp->company_name ?? 'Seller') }},%20I%20am%20interested%20in%20buying%20*{{ urlencode($product->name) }}*%20(Price:%20INR%20{{ $product->price }})%20on%20VyaparIndia.%20Please%20confirm%20availability." target="_blank" class="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition">
                                 <i class="fa-brands fa-whatsapp text-base"></i>
-                                <span>Order Directly on WhatsApp</span>
+                                <span>Order on WhatsApp</span>
                             </a>
                         @endif
+
+                        <!-- Wishlist Action Button -->
+                        <form action="{{ route('wishlist.toggle', $product) }}" method="POST" class="inline">
+                            @csrf
+                            @php $isFav = auth()->check() && auth()->user()->hasWishlisted($product); @endphp
+                            <button type="submit" class="w-full sm:w-auto py-3 px-4 rounded-xl border border-rose-200 {{ $isFav ? 'bg-rose-50 text-rose-600' : 'bg-white text-gray-700 hover:bg-rose-50 hover:text-rose-600' }} font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition">
+                                <i class="fa-{{ $isFav ? 'solid' : 'regular' }} fa-heart text-sm"></i>
+                                <span>{{ $isFav ? 'Wishlisted' : 'Save to Wishlist' }}</span>
+                            </button>
+                        </form>
 
                         @if($site && $site->slug)
                             <a href="{{ route('minisite.product', ['sellerPage' => $site->slug, 'productSlug' => $product->slug]) }}" class="py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition">

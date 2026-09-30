@@ -248,4 +248,9 @@ class Product extends Model
 
         return $newStock;
     }
+
+    public function wishlists()
+    {
+        return $this->hasMany(Wishlist::class);
+    }
 }
