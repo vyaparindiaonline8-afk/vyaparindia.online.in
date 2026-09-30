@@ -66,15 +66,15 @@
                     <input type="text" name="query" value="{{ $query ?? '' }}" placeholder="Search products, materials, plumbing, hardware..." class="w-full text-sm outline-hidden font-medium placeholder-gray-400">
                 </div>
 
-                <!-- Category dropdown -->
-                <div class="flex items-center gap-2 w-full md:w-60 px-3 py-2 border-b md:border-b-0 md:border-r border-gray-200">
+                <!-- Category search & datalist input -->
+                <div class="flex items-center gap-2 w-full md:w-64 px-3 py-2 border-b md:border-b-0 md:border-r border-gray-200">
                     <i class="fa-solid fa-tags text-gray-400"></i>
-                    <select name="category_id" class="w-full text-xs font-bold bg-transparent outline-hidden text-gray-700">
-                        <option value="">All Categories</option>
+                    <input list="category_datalist" name="category" value="{{ $categoryName ?? '' }}" placeholder="Type / Pick Category..." class="w-full text-xs font-bold bg-transparent outline-hidden text-gray-800 placeholder-gray-400">
+                    <datalist id="category_datalist">
                         @foreach($categories as $cat)
-                            <option value="{{ $cat->id }}" {{ ($categoryId ?? '') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                            <option value="{{ $cat->name }}">({{ $cat->products_count ?? $cat->products()->count() }} items)</option>
                         @endforeach
-                    </select>
+                    </datalist>
                 </div>
 
                 <!-- GPS / Location Input -->
@@ -100,10 +100,13 @@
                     @if(!empty($query))
                         <span class="bg-white/10 px-2 py-1 rounded-md text-white">Keyword: "{{ $query }}"</span>
                     @endif
+                    @if(!empty($categoryName))
+                        <span class="bg-white/10 px-2 py-1 rounded-md text-amber-300"><i class="fa-solid fa-tag mr-1"></i> Category: "{{ $categoryName }}"</span>
+                    @endif
                     @if(!empty($location))
                         <span class="bg-white/10 px-2 py-1 rounded-md text-emerald-300"><i class="fa-solid fa-location-dot mr-1"></i> Near: {{ $location }}</span>
                     @endif
-                    @if(empty($query) && empty($location) && empty($categoryId))
+                    @if(empty($query) && empty($location) && empty($categoryId) && empty($categoryName))
                         <span class="text-blue-300">Showing all verified suppliers & listings</span>
                     @endif
                 </div>

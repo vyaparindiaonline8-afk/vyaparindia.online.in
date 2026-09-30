@@ -81,14 +81,14 @@
                     <input type="text" name="query" placeholder="Product, CPVC pipe, saree..." class="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500">
                 </div>
 
-                <!-- Category Dropdown -->
+                <!-- Category Input with Datalist -->
                 <div class="sm:col-span-3">
-                    <select name="category_id" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white">
-                        <option value="">All Categories</option>
+                    <input list="home_category_datalist" name="category" placeholder="All Categories (Type / Pick)" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white">
+                    <datalist id="home_category_datalist">
                         @foreach($categories as $cat)
-                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                            <option value="{{ $cat->name }}">({{ $cat->products_count }} items)</option>
                         @endforeach
-                    </select>
+                    </datalist>
                 </div>
 
                 <!-- Location / Pincode / GPS -->

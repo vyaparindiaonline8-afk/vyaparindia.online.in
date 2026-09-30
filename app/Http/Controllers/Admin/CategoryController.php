@@ -11,8 +11,42 @@ class CategoryController extends Controller
 {
     public function index()
     {
-        $categories = Category::all();
+        $categories = Category::withCount('products')->orderBy('name')->get();
         return view('admin.categories.index', compact('categories'));
+    }
+
+    public function merge(Request $request)
+    {
+        $request->validate([
+            'source_category_id' => 'required|exists:categories,id',
+            'target_category_id' => 'required|exists:categories,id|different:source_category_id',
+        ]);
+
+        $source = Category::findOrFail($request->source_category_id);
+        $target = Category::findOrFail($request->target_category_id);
+
+        $sourceName = $source->name;
+        $targetName = $target->name;
+
+        // Reassign products to target category
+        $updatedCount = \App\Models\Product::where('category_id', $source->id)->update([
+            'category_id' => $target->id
+        ]);
+
+        // If many-to-many pivot exists, update pivot too
+        if (\Illuminate\Support\Facades\Schema::hasTable('category_product')) {
+            \Illuminate\Support\Facades\DB::table('category_product')
+                ->where('category_id', $source->id)
+                ->update(['category_id' => $target->id]);
+        }
+
+        // Delete the merged duplicate category
+        $source->delete();
+
+        return redirect()->route('admin.categories.index')->with(
+            'success',
+            "Category '{$sourceName}' successfully merged into '{$targetName}'. ({$updatedCount} products reassigned)"
+        );
     }
 
     public function create()

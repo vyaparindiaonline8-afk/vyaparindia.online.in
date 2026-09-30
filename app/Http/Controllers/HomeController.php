@@ -11,7 +11,7 @@ class HomeController extends Controller
 {
     public function index()
     {
-        $categories = Category::withCount('products')->get();
+        $categories = Category::withCount('products')->orderBy('name')->get();
         $products = Product::with(['seller.sellerProfile', 'seller.sellerPage', 'category'])->latest()->take(16)->get();
         $featuredSellers = User::whereHas('sellerProfile')->with(['sellerProfile', 'sellerPage'])->take(8)->get();
 
@@ -29,9 +29,10 @@ class HomeController extends Controller
     {
         $query = $request->input('query');
         $categoryId = $request->input('category_id');
+        $categoryName = trim($request->input('category', ''));
         $location = trim($request->input('location', ''));
 
-        $categories = Category::all();
+        $categories = Category::withCount('products')->orderBy('name')->get();
 
         $prodQuery = Product::with(['seller.sellerProfile', 'seller.sellerPage', 'category']);
 
@@ -51,6 +52,12 @@ class HomeController extends Controller
                   ->orWhereHas('categories', function ($cq) use ($categoryId) {
                       $cq->where('categories.id', $categoryId);
                   });
+            });
+        }
+
+        if (!empty($categoryName)) {
+            $prodQuery->whereHas('category', function ($cq) use ($categoryName) {
+                $cq->where('name', 'like', "%{$categoryName}%");
             });
         }
 
@@ -85,7 +92,7 @@ class HomeController extends Controller
         }
         $shops = $sellerQuery->with(['sellerProfile', 'sellerPage'])->take(6)->get();
 
-        return view('public.search', compact('products', 'shops', 'categories', 'query', 'categoryId', 'location'));
+        return view('public.search', compact('products', 'shops', 'categories', 'query', 'categoryId', 'categoryName', 'location'));
     }
 
     public function searchSellersByCity(Request $request)

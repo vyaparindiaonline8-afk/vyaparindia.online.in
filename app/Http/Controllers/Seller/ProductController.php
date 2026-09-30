@@ -41,9 +41,24 @@ class ProductController extends Controller
             'name' => 'required|string|max:255|unique:products,name',
             'description' => 'required|string',
             'price' => 'required|numeric',
-            'category_id' => 'required|exists:categories,id',
+            'category_id' => 'nullable|exists:categories,id',
+            'new_category_name' => 'nullable|string|max:100',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
+
+        $categoryId = $request->category_id;
+        if ($request->filled('new_category_name')) {
+            $catName = trim($request->new_category_name);
+            $cat = Category::firstOrCreate(
+                ['name' => ucwords($catName)],
+                ['slug' => Str::slug($catName) ?: ('cat-' . time())]
+            );
+            $categoryId = $cat->id;
+        }
+
+        if (!$categoryId) {
+            return back()->withErrors(['category_id' => 'Please select an existing category or enter a new category name.'])->withInput();
+        }
 
         $imageName = null;
         if ($request->hasFile('image')) {
@@ -56,11 +71,11 @@ class ProductController extends Controller
             'slug' => Str::slug($request->name),
             'description' => $request->description,
             'price' => $request->price,
-            'category_id' => $request->category_id,
+            'category_id' => $categoryId,
             'image' => $imageName,
         ]);
 
-        return redirect()->route('seller.products.index')->with('success', 'Product created successfully.');
+        return redirect()->route('seller.products.index')->with('success', 'Product created successfully with category.');
     }
 
     public function edit(Product $product)
@@ -83,9 +98,24 @@ class ProductController extends Controller
             'name' => 'required|string|max:255|unique:products,name,' . $product->id,
             'description' => 'required|string',
             'price' => 'required|numeric',
-            'category_id' => 'required|exists:categories,id',
+            'category_id' => 'nullable|exists:categories,id',
+            'new_category_name' => 'nullable|string|max:100',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
+
+        $categoryId = $request->category_id;
+        if ($request->filled('new_category_name')) {
+            $catName = trim($request->new_category_name);
+            $cat = Category::firstOrCreate(
+                ['name' => ucwords($catName)],
+                ['slug' => Str::slug($catName) ?: ('cat-' . time())]
+            );
+            $categoryId = $cat->id;
+        }
+
+        if (!$categoryId) {
+            $categoryId = $product->category_id;
+        }
 
         $imageName = $product->image;
         if ($request->hasFile('image')) {
@@ -98,7 +128,7 @@ class ProductController extends Controller
             'slug' => Str::slug($request->name),
             'description' => $request->description,
             'price' => $request->price,
-            'category_id' => $request->category_id,
+            'category_id' => $categoryId,
             'image' => $imageName,
         ]);
 
