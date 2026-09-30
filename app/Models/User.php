@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role_id',
+        'business_tier',
     ];
 
     /**
@@ -87,4 +88,38 @@ class User extends Authenticatable
     {
         return $this->hasOne(SellerPage::class);
     }
+
+    public function sentPartnershipRequests()
+    {
+        return $this->hasMany(DropshipPartnership::class, 'retailer_id');
+    }
+
+    public function receivedPartnershipRequests()
+    {
+        return $this->hasMany(DropshipPartnership::class, 'wholesaler_id');
+    }
+
+    /**
+     * Check if user is on Profile-Only Tier (Capped at 50 products)
+     */
+    public function isProfileOnly(): bool
+    {
+        // If user has created an active Mini-Website or Dropship tier, they are not profile-only
+        if ($this->sellerPage()->exists()) {
+            return false;
+        }
+        return ($this->business_tier === 'profile_only' || empty($this->business_tier));
+    }
+
+    /**
+     * Check if user is eligible to add another product
+     */
+    public function canAddProduct(): bool
+    {
+        if (!$this->isProfileOnly()) {
+            return true; // Unlimited for Mini-Website & Dropshipping
+        }
+        return $this->products()->count() < 50;
+    }
 }
+

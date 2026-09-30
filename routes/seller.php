@@ -17,6 +17,7 @@ use App\Http\Controllers\Seller\CustomDomainController;
 use App\Http\Controllers\Seller\GstInvoiceController;
 use App\Http\Controllers\Seller\PayoutController;
 use App\Http\Controllers\Seller\CatalogIngestionController;
+use App\Http\Controllers\Seller\DropshipPartnerController;
 
 Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -61,6 +62,9 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::get('/payout-settings', [PayoutController::class, 'settings'])->name('payouts.settings');
         Route::post('/payout-account', [PayoutController::class, 'storeAccount'])->name('payouts.storeAccount');
         Route::post('/payout-request', [PayoutController::class, 'requestPayout'])->name('payouts.request');
+        
+        // Partner Request
+        Route::post('/request-partner', [DropshipPartnerController::class, 'requestPartnership'])->name('requestPartner');
     });
 
     // 🏢 Wholesaler Supplier Fulfillment Routes
@@ -72,7 +76,12 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/orders/{dsOrder}/deliver', [WholesalerFulfillmentController::class, 'markDelivered'])->name('markDelivered');
         Route::post('/orders/{dsOrder}/cod-status', [WholesalerFulfillmentController::class, 'updateCodStatus'])->name('updateCodStatus');
         Route::get('/orders/{dsOrder}/invoice', [WholesalerFulfillmentController::class, 'invoice'])->name('invoice');
+
+        // Wholesaler Dropship Partner Management
+        Route::get('/partners', [DropshipPartnerController::class, 'wholesalerPartners'])->name('partners');
+        Route::post('/partners/{partnership}/status', [DropshipPartnerController::class, 'updatePartnershipStatus'])->name('updatePartnership');
     });
+
 
     // 🤖 Multi-Channel E-Commerce & AI Listing Routes
     Route::prefix('channels')->name('channels.')->group(function () {

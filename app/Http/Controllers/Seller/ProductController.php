@@ -19,12 +19,24 @@ class ProductController extends Controller
 
     public function create()
     {
+        $user = Auth::user();
+        if (!$user->canAddProduct()) {
+            return redirect()->route('seller.products.index')
+                ->with('error', 'Aapka Basic Profile plan hai jisme maximum 50 products hi allow hain. Unlimited products ke liye Mini-Website ya Dropshipping me upgrade karein.');
+        }
+
         $categories = Category::all();
         return view('seller.products.create', compact('categories'));
     }
 
     public function store(Request $request)
     {
+        $user = Auth::user();
+        if (!$user->canAddProduct()) {
+            return redirect()->route('seller.products.index')
+                ->with('error', 'Aapka 50 products ka quota poora ho chuka hai. Unlimited items list karne ke liye Mini-Website activate karein.');
+        }
+
         $request->validate([
             'name' => 'required|string|max:255|unique:products,name',
             'description' => 'required|string',

@@ -81,7 +81,11 @@
                 </form>
 
                 <!-- Actions: WhatsApp + Cart -->
-                <div class="flex items-center gap-3">
+                    <a href="{{ route('minisite.materialScanner', $sellerPage->slug) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition">
+                        <i class="fa-solid fa-camera text-indigo-600"></i>
+                        <span class="hidden sm:inline">Slip Scanner</span>
+                    </a>
+
                     @if($sellerPage->whatsapp_number)
                         <a href="https://wa.me/{{ $sellerPage->clean_whatsapp_number }}?text=Hello%2C%20I%20have%20an%20inquiry%20about%20your%20products%20on%20{{ urlencode(route('minisite.show', $sellerPage->slug)) }}" target="_blank" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors">
                             <i class="fa-brands fa-whatsapp text-sm text-emerald-600"></i>
@@ -116,9 +120,81 @@
         @yield('content')
     </main>
 
+    <!-- Sticky Bottom Quick Cart Bar (Single-Page Multi-Product Order) -->
+    <div id="sticky-bottom-cart-bar" class="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md text-white py-3 px-4 shadow-2xl border-t border-slate-800 hidden transform transition-all duration-300">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="toggleCartDrawer(true)">
+                <div class="h-10 w-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-sm shadow-sm shrink-0">
+                    <i class="fa-solid fa-bag-shopping"></i>
+                </div>
+                <div>
+                    <div class="text-xs font-bold text-slate-300">
+                        <span id="sticky-cart-count" class="text-white font-black text-sm">0</span> Items in Cart
+                    </div>
+                    <div class="text-sm font-black text-amber-400" id="sticky-cart-total">₹0.00</div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="toggleCartDrawer(true)" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition">
+                    View Bag
+                </button>
+                <button onclick="openQuickOrderModal()" class="px-4 sm:px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 transition">
+                    <i class="fa-brands fa-whatsapp text-sm"></i>
+                    <span>1-Click Order</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick WhatsApp Order Modal with Automatic Database Save -->
+    <div id="quick-order-modal" class="fixed inset-0 z-50 overflow-hidden hidden flex items-center justify-center p-4">
+        <div onclick="closeQuickOrderModal()" class="absolute inset-0 bg-gray-900/60 backdrop-blur-xs"></div>
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl relative z-10">
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div>
+                    <h3 class="font-black text-gray-900 text-sm">Quick Multi-Item WhatsApp Order</h3>
+                    <p class="text-[11px] text-gray-400">Order will be saved in store & sent to WhatsApp</p>
+                </div>
+                <button onclick="closeQuickOrderModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="quickOrderForm" onsubmit="submitQuickOrder(event)" class="space-y-3">
+                <div>
+                    <label class="text-xs font-bold text-gray-700 block mb-1">Your Name <span class="text-rose-500">*</span></label>
+                    <input type="text" id="qo_name" required placeholder="e.g. Rajesh Sharma" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-bold focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-700 block mb-1">WhatsApp Mobile <span class="text-rose-500">*</span></label>
+                    <input type="tel" id="qo_phone" required placeholder="e.g. 9876543210" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-bold focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-700 block mb-1">Delivery Address & Area <span class="text-rose-500">*</span></label>
+                    <input type="text" id="qo_address" required placeholder="Shop/House No, Street, City" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-bold focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-700 block mb-1">Payment Method</label>
+                    <select id="qo_payment" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-bold">
+                        <option value="cod">Cash on Delivery (COD)</option>
+                        <option value="online">Online Payment / UPI</option>
+                    </select>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" id="qo_submit_btn" class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-2">
+                        <i class="fa-brands fa-whatsapp text-base"></i>
+                        <span id="qo_btn_text">Confirm & Send to WhatsApp</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Floating WhatsApp Action Button -->
     @if($sellerPage->whatsapp_number)
-        <a href="https://wa.me/{{ $sellerPage->clean_whatsapp_number }}?text=Hello%20{{ urlencode($sellerPage->page_title) }}%2C%20I%20am%20visiting%20your%20store%20and%20need%20assistance." target="_blank" class="fixed bottom-6 right-6 z-30 flex items-center justify-center h-14 w-14 rounded-full bg-emerald-500 text-white shadow-xl hover:bg-emerald-600 hover:scale-105 active:scale-95 transition-all group" title="Chat on WhatsApp">
+        <a href="https://wa.me/{{ $sellerPage->clean_whatsapp_number }}?text=Hello%20{{ urlencode($sellerPage->page_title) }}%2C%20I%20am%20visiting%20your%20store%20and%20need%20assistance." target="_blank" class="fixed bottom-20 sm:bottom-6 right-6 z-30 flex items-center justify-center h-14 w-14 rounded-full bg-emerald-500 text-white shadow-xl hover:bg-emerald-600 hover:scale-105 active:scale-95 transition-all group" title="Chat on WhatsApp">
             <i class="fa-brands fa-whatsapp text-3xl"></i>
             <span class="absolute right-16 bg-slate-900 text-white text-xs py-1.5 px-3 rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none hidden sm:block">
                 Chat on WhatsApp
@@ -345,6 +421,21 @@
                 subtotalEl.innerText = '₹' + subtotal.toFixed(2);
             }
 
+            // Update Sticky Bottom Quick Bar
+            const stickyBar = document.getElementById('sticky-bottom-cart-bar');
+            const stickyCount = document.getElementById('sticky-cart-count');
+            const stickyTotal = document.getElementById('sticky-cart-total');
+
+            if (stickyBar && stickyCount && stickyTotal) {
+                if (totalCount > 0) {
+                    stickyCount.innerText = totalCount;
+                    stickyTotal.innerText = '₹' + subtotal.toFixed(2);
+                    stickyBar.classList.remove('hidden');
+                } else {
+                    stickyBar.classList.add('hidden');
+                }
+            }
+
             if (container) {
                 if (cart.length === 0) {
                     container.innerHTML = `
@@ -419,9 +510,103 @@
             window.open(url, '_blank');
         }
 
+        function openQuickOrderModal() {
+            const cart = getCart();
+            if (cart.length === 0) {
+                alert('Pehle bag me kam se kam 1 item add karein.');
+                return;
+            }
+            document.getElementById('quick-order-modal').classList.remove('hidden');
+        }
+
+        function closeQuickOrderModal() {
+            document.getElementById('quick-order-modal').classList.add('hidden');
+        }
+
+        function submitQuickOrder(e) {
+            e.preventDefault();
+            const cart = getCart();
+            if (cart.length === 0) return;
+
+            const name = document.getElementById('qo_name').value.trim();
+            const phone = document.getElementById('qo_phone').value.trim();
+            const address = document.getElementById('qo_address').value.trim();
+            const payment = document.getElementById('qo_payment').value;
+
+            const submitBtn = document.getElementById('qo_submit_btn');
+            const btnText = document.getElementById('qo_btn_text');
+            submitBtn.disabled = true;
+            btnText.innerText = "Order Save Ho Raha Hai...";
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+            // Step 1: Save order to database via AJAX
+            fetch("{{ route('minisite.quickOrder', $sellerPage->slug) }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-CSRF-TOKEN": csrfToken
+                },
+                body: JSON.stringify({
+                    customer_name: name,
+                    customer_phone: phone,
+                    customer_address: address,
+                    payment_method: payment,
+                    cart: cart
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const orderNumber = data.order_number;
+                    const totalAmt = data.total_amount;
+
+                    // Step 2: Format rich WhatsApp message with Confirmed Order Number
+                    let waText = `🛍️ *Naya Order (#${orderNumber}) - ${STORE_NAME}*\n\n` +
+                                 `👤 *Customer:* ${name}\n` +
+                                 `📞 *Mobile:* ${phone}\n` +
+                                 `📍 *Address:* ${address}\n` +
+                                 `💳 *Payment:* ${payment.toUpperCase()}\n\n` +
+                                 `📦 *Items List (${cart.length} items):*\n`;
+
+                    cart.forEach((item, i) => {
+                        let line = item.price * item.quantity;
+                        waText += `${i+1}. *${item.name}* (x${item.quantity}) - ₹${line.toFixed(2)}\n`;
+                    });
+
+                    waText += `\n💰 *Total Bill:* ₹${totalAmt}\n\n` +
+                              `✅ *Order Saved in System!*\nPlease confirm payment & dispatch time.`;
+
+                    // Step 3: Clear local cart
+                    saveCart([]);
+                    closeQuickOrderModal();
+
+                    // Step 4: Open WhatsApp directly
+                    if (WHATSAPP_NUM) {
+                        const url = `https://wa.me/${WHATSAPP_NUM}?text=${encodeURIComponent(waText)}`;
+                        window.open(url, '_blank');
+                    } else {
+                        alert(`🎉 Order #${orderNumber} successfully placed! We will contact you on ${phone}.`);
+                    }
+                } else {
+                    alert('Order create karne me dikkat aayi. Please dobara koshish karein.');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Order save request failed.');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                btnText.innerText = "Confirm & Send to WhatsApp";
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             updateCartUI();
         });
+
     </script>
     @stack('scripts')
 </body>

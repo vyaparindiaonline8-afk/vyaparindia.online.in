@@ -214,6 +214,18 @@
                         <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
                     </a>
 
+                    <a href="{{ route('seller.wholesaler.partners') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-handshake text-purple-600 text-lg"></i>
+                            <div>
+                                <div class="text-xs font-bold text-gray-900">Dropship Partner Approvals</div>
+                                <div class="text-[11px] text-gray-500">Approve retailers to sell your stock</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+                    </a>
+
+
                     <a href="{{ route('seller.dropship.wallet') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors">
                         <div class="flex items-center gap-3">
                             <i class="fa-solid fa-wallet text-emerald-600 text-lg"></i>
