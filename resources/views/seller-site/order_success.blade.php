@@ -74,14 +74,35 @@
                 </div>
                 
                 @if($sellerUpi)
-                    <div class="bg-white p-3 rounded-xl border border-emerald-200 flex items-center justify-between mb-2">
-                        <div>
-                            <span class="text-[11px] font-bold text-gray-500 block">UPI ID:</span>
-                            <span class="text-xs font-mono font-black text-gray-900">{{ $sellerUpi }}</span>
+                    @php
+                        $upiUrl = "upi://pay?pa={$sellerUpi}&pn=" . urlencode($sellerPage->page_title) . "&am=" . number_format($order->total_price, 2, '.', '') . "&cu=INR&tn=" . urlencode("Order " . $order->order_number);
+                        $qrCodeImg = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=" . urlencode($upiUrl);
+                    @endphp
+                    <div class="bg-white p-4 rounded-2xl border border-emerald-200 flex flex-col sm:flex-row items-center gap-4 mb-3">
+                        <!-- Dynamic QR Code with exact bill amount -->
+                        <div class="bg-gray-50 p-2 rounded-xl border border-gray-200 text-center shrink-0">
+                            <img src="{{ $qrCodeImg }}" alt="Scan UPI QR" class="w-32 h-32 mx-auto rounded-lg shadow-xs">
+                            <span class="text-[10px] font-bold text-gray-500 mt-1 block">Scan with Any UPI App</span>
                         </div>
-                        <a href="upi://pay?pa={{ $sellerUpi }}&pn={{ urlencode($sellerPage->page_title) }}&am={{ $order->total_price }}&cu=INR&tn=Order%20{{ $order->order_number }}" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition">
-                            Pay via UPI
-                        </a>
+
+                        <!-- Amount & Pay Button -->
+                        <div class="flex-1 space-y-2 text-center sm:text-left">
+                            <div>
+                                <span class="text-[11px] font-bold text-gray-500 block">Exact Bill to Pay:</span>
+                                <span class="text-xl font-black text-emerald-700">₹{{ number_format($order->total_price, 2) }}</span>
+                                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full ml-1">Auto-Filled</span>
+                            </div>
+                            <div class="text-xs text-gray-600">
+                                <strong>UPI ID:</strong> <span class="font-mono font-bold text-gray-900">{{ $sellerUpi }}</span>
+                            </div>
+                            <p class="text-[11px] text-gray-500">Amount aur Seller details pehle se filled hain, bas apna UPI PIN daalein.</p>
+                            <div>
+                                <a href="{{ $upiUrl }}" class="inline-flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm">
+                                    <i class="fa-solid fa-mobile-screen"></i>
+                                    <span>Pay ₹{{ number_format($order->total_price, 2) }} on Mobile UPI</span>
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 @endif
 
