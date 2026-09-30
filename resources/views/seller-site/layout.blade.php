@@ -562,21 +562,30 @@
                     const orderNumber = data.order_number;
                     const totalAmt = data.total_amount;
 
-                    // Step 2: Format rich WhatsApp message with Confirmed Order Number
+                    // Step 2: Format rich WhatsApp message with Confirmed Order Number & Single Link
                     let waText = `🛍️ *Naya Order (#${orderNumber}) - ${STORE_NAME}*\n\n` +
                                  `👤 *Customer:* ${name}\n` +
                                  `📞 *Mobile:* ${phone}\n` +
                                  `📍 *Address:* ${address}\n` +
-                                 `💳 *Payment:* ${payment.toUpperCase()}\n\n` +
-                                 `📦 *Items List (${cart.length} items):*\n`;
+                                 `💳 *Payment Mode:* ${payment === 'online' ? 'Online / UPI' : 'Cash on Delivery (COD)'}\n\n` +
+                                 `📦 *Ordered Items (${cart.length}):*\n`;
 
                     cart.forEach((item, i) => {
                         let line = item.price * item.quantity;
                         waText += `${i+1}. *${item.name}* (x${item.quantity}) - ₹${line.toFixed(2)}\n`;
                     });
 
-                    waText += `\n💰 *Total Bill:* ₹${totalAmt}\n\n` +
-                              `✅ *Order Saved in System!*\nPlease confirm payment & dispatch time.`;
+                    waText += `\n💰 *Total Bill:* ₹${totalAmt}\n`;
+
+                    if (data.upi_id) {
+                        waText += `\n📲 *Pay via UPI:* ${data.upi_id}\n`;
+                    }
+                    if (data.bank_acc) {
+                        waText += `🏦 *Bank:* ${data.bank_name || ''} | A/c: ${data.bank_acc} | IFSC: ${data.bank_ifsc || ''}\n`;
+                    }
+
+                    waText += `\n🔗 *View Full Order Slip & Details:*\n${data.order_view_url}\n\n` +
+                              `✅ *Order Saved in System!* Please review & confirm dispatch.`;
 
                     // Step 3: Clear local cart
                     saveCart([]);

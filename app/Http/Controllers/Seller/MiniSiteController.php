@@ -42,6 +42,12 @@ class MiniSiteController extends Controller
             'currency' => 'nullable|string|max:10',
             'enable_cod' => 'nullable|boolean',
             'enable_whatsapp_order' => 'nullable|boolean',
+            'upi_id' => 'nullable|string|max:100',
+            'bank_name' => 'nullable|string|max:150',
+            'bank_account_number' => 'nullable|string|max:50',
+            'bank_ifsc' => 'nullable|string|max:20',
+            'bank_account_holder' => 'nullable|string|max:150',
+            'show_payment_details_to_buyer' => 'nullable|boolean',
             'policies' => 'nullable|string',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,webp,svg|max:2048',
             'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
@@ -56,6 +62,7 @@ class MiniSiteController extends Controller
 
         $validated['enable_cod'] = $request->has('enable_cod');
         $validated['enable_whatsapp_order'] = $request->has('enable_whatsapp_order');
+        $validated['show_payment_details_to_buyer'] = $request->has('show_payment_details_to_buyer');
 
         Auth::user()->sellerPage()->create($validated);
 
@@ -97,6 +104,12 @@ class MiniSiteController extends Controller
             'currency' => 'nullable|string|max:10',
             'enable_cod' => 'nullable|boolean',
             'enable_whatsapp_order' => 'nullable|boolean',
+            'upi_id' => 'nullable|string|max:100',
+            'bank_name' => 'nullable|string|max:150',
+            'bank_account_number' => 'nullable|string|max:50',
+            'bank_ifsc' => 'nullable|string|max:20',
+            'bank_account_holder' => 'nullable|string|max:150',
+            'show_payment_details_to_buyer' => 'nullable|boolean',
             'policies' => 'nullable|string',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,webp,svg|max:2048',
             'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
@@ -111,6 +124,7 @@ class MiniSiteController extends Controller
 
         $validated['enable_cod'] = $request->has('enable_cod');
         $validated['enable_whatsapp_order'] = $request->has('enable_whatsapp_order');
+        $validated['show_payment_details_to_buyer'] = $request->has('show_payment_details_to_buyer');
 
         $minisite->update($validated);
 
@@ -405,10 +419,27 @@ class MiniSiteController extends Controller
             }
         }
 
+        $sellerUser = $sellerPage->user;
+        $sellerProf = $sellerUser ? $sellerUser->sellerProfile : null;
+        $upiId = $sellerPage->upi_id ?: ($sellerProf->upi_id ?? null);
+        $bankName = $sellerPage->bank_name ?: ($sellerProf->bank_name ?? null);
+        $bankAcc = $sellerPage->bank_account_number ?: ($sellerProf->bank_account_number ?? null);
+        $bankIfsc = $sellerPage->bank_ifsc ?: ($sellerProf->bank_ifsc ?? null);
+        $bankHolder = $sellerPage->bank_account_holder ?: ($sellerProf->bank_account_holder ?? null);
+
+        $orderViewUrl = route('minisite.orderSuccess', ['sellerPage' => $sellerPage->slug, 'order' => $order->id]);
+
         return response()->json([
             'success' => true,
+            'order_id' => $order->id,
             'order_number' => $orderNumber,
             'total_amount' => number_format($totalPrice, 2, '.', ''),
+            'order_view_url' => $orderViewUrl,
+            'upi_id' => $upiId,
+            'bank_name' => $bankName,
+            'bank_acc' => $bankAcc,
+            'bank_ifsc' => $bankIfsc,
+            'bank_holder' => $bankHolder,
             'message' => 'Order created in database successfully!',
         ]);
     }

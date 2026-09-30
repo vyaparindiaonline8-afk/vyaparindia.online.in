@@ -41,6 +41,64 @@
             </div>
         </div>
 
+        <!-- Ordered Items Table -->
+        <div class="mt-6 bg-white border border-gray-200 rounded-2xl p-5 text-left shadow-xs">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Order Items</h3>
+            <div class="divide-y divide-gray-100 text-xs">
+                @foreach($order->products as $item)
+                    @php
+                        $price = $item->pivot->price ?? $item->price;
+                        $qty = $item->pivot->quantity ?? 1;
+                    @endphp
+                    <div class="py-2 flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-gray-900">{{ $item->name }}</span>
+                            <span class="text-gray-500 ml-2">x{{ $qty }}</span>
+                        </div>
+                        <span class="font-mono font-bold text-gray-800">₹{{ number_format($price * $qty, 2) }}</span>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        <!-- Seller UPI & Bank Details (for direct payment) -->
+        @php
+            $sellerUpi = $sellerPage->upi_id ?: ($sellerPage->user->sellerProfile->upi_id ?? null);
+            $sellerBank = $sellerPage->bank_account_number ?: ($sellerPage->user->sellerProfile->bank_account_number ?? null);
+        @endphp
+        @if($sellerUpi || $sellerBank)
+            <div class="mt-6 bg-emerald-50/70 border border-emerald-200 rounded-2xl p-5 text-left">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fa-solid fa-qrcode text-emerald-600 text-base"></i>
+                    <h3 class="text-xs font-bold text-emerald-950 uppercase tracking-wider">Pay Seller Directly</h3>
+                </div>
+                
+                @if($sellerUpi)
+                    <div class="bg-white p-3 rounded-xl border border-emerald-200 flex items-center justify-between mb-2">
+                        <div>
+                            <span class="text-[11px] font-bold text-gray-500 block">UPI ID:</span>
+                            <span class="text-xs font-mono font-black text-gray-900">{{ $sellerUpi }}</span>
+                        </div>
+                        <a href="upi://pay?pa={{ $sellerUpi }}&pn={{ urlencode($sellerPage->page_title) }}&am={{ $order->total_price }}&cu=INR&tn=Order%20{{ $order->order_number }}" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition">
+                            Pay via UPI
+                        </a>
+                    </div>
+                @endif
+
+                @if($sellerBank)
+                    @php
+                        $bName = $sellerPage->bank_name ?: ($sellerPage->user->sellerProfile->bank_name ?? 'Bank');
+                        $bIfsc = $sellerPage->bank_ifsc ?: ($sellerPage->user->sellerProfile->bank_ifsc ?? '');
+                        $bHolder = $sellerPage->bank_account_holder ?: ($sellerPage->user->sellerProfile->bank_account_holder ?? '');
+                    @endphp
+                    <div class="text-[11px] text-gray-600 mt-2 space-y-0.5">
+                        <div><strong>Bank:</strong> {{ $bName }} | <strong>A/c No:</strong> {{ $sellerBank }}</div>
+                        <div><strong>IFSC:</strong> {{ $bIfsc }} | <strong>Holder:</strong> {{ $bHolder }}</div>
+                    </div>
+                @endif
+            </div>
+        @endif
+
         <!-- WhatsApp Confirmation Trigger -->
         @if($sellerPage->whatsapp_number)
             <div class="mt-8 p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-center space-y-3">

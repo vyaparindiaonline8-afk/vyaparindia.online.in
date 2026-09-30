@@ -31,12 +31,19 @@ class SellerPage extends Model
         'currency',
         'enable_cod',
         'enable_whatsapp_order',
+        'upi_id',
+        'bank_name',
+        'bank_account_number',
+        'bank_ifsc',
+        'bank_account_holder',
+        'show_payment_details_to_buyer',
         'policies',
     ];
 
     protected $casts = [
         'enable_cod' => 'boolean',
         'enable_whatsapp_order' => 'boolean',
+        'show_payment_details_to_buyer' => 'boolean',
     ];
 
     public function user()

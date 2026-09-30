@@ -270,6 +270,59 @@
                 </div>
             </div>
 
+            <!-- 5. Payment & Banking Setup (UPI / Bank Transfer) -->
+            <div class="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
+                <div class="flex items-center gap-2.5 pb-4 border-b border-gray-100">
+                    <div class="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
+                        5
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-base text-gray-900">UPI ID & Bank Account for Customer Payments</h2>
+                        <p class="text-xs text-gray-500">Provide your UPI ID or Bank account so customers can pay directly on order confirmation and WhatsApp</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="sm:col-span-2 bg-emerald-50/60 border border-emerald-200 rounded-2xl p-4">
+                        <label class="block text-xs font-bold text-emerald-900 mb-1">
+                            <i class="fa-solid fa-mobile-screen mr-1"></i> Storefront UPI ID (GPay / PhonePe / Paytm / BHIM)
+                        </label>
+                        <input type="text" name="upi_id" value="{{ old('upi_id', $minisite->upi_id ?? '') }}" placeholder="e.g. 9876543210@paytm or shop@okhdfcbank" class="w-full px-4 py-2.5 text-xs font-bold bg-white border border-emerald-300 rounded-xl focus:border-emerald-500 focus:outline-hidden">
+                        <span class="text-[11px] text-emerald-700 block mt-1">This UPI ID will be shown with a 1-click Pay button on the Order Success page & WhatsApp message.</span>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Account Holder Name</label>
+                        <input type="text" name="bank_account_holder" value="{{ old('bank_account_holder', $minisite->bank_account_holder ?? '') }}" placeholder="e.g. Rajesh Kumar" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-hidden">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Bank Name</label>
+                        <input type="text" name="bank_name" value="{{ old('bank_name', $minisite->bank_name ?? '') }}" placeholder="e.g. HDFC Bank / State Bank of India" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-hidden">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Account Number</label>
+                        <input type="text" name="bank_account_number" value="{{ old('bank_account_number', $minisite->bank_account_number ?? '') }}" placeholder="e.g. 50100234567890" class="w-full px-4 py-2.5 text-sm font-mono bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-hidden">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">IFSC Code</label>
+                        <input type="text" name="bank_ifsc" value="{{ old('bank_ifsc', $minisite->bank_ifsc ?? '') }}" placeholder="e.g. HDFC0001234" class="w-full px-4 py-2.5 text-sm font-mono uppercase bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-hidden">
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="flex items-center gap-3 p-3.5 rounded-2xl bg-gray-50 border border-gray-200 cursor-pointer">
+                            <input type="checkbox" name="show_payment_details_to_buyer" value="1" {{ old('show_payment_details_to_buyer', $minisite->show_payment_details_to_buyer ?? true) ? 'checked' : '' }} class="h-4 w-4 text-emerald-600 rounded">
+                            <div>
+                                <div class="text-xs font-bold text-gray-900">Show UPI & Bank Details on Digital Receipt to Buyer</div>
+                                <div class="text-[11px] text-gray-500">Enable this to display payment details on digital order slips</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
             <!-- Submit Action -->
             <div class="flex items-center justify-end gap-4 pt-4">
                 <a href="{{ route('seller.dashboard') }}" class="px-6 py-3 rounded-2xl bg-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-300 transition-colors">

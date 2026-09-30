@@ -19,6 +19,11 @@ class SellerProfile extends Model
         'country',
         'gst_number',
         'dispatch_radius',
+        'upi_id',
+        'bank_name',
+        'bank_account_number',
+        'bank_ifsc',
+        'bank_account_holder',
     ];
 
     public function user()

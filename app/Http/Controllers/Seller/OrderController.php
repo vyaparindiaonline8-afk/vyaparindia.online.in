@@ -9,26 +9,59 @@ use Illuminate\Support\Facades\Auth;
 
 class OrderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $sellerId = Auth::id();
-        $orders = Order::where('seller_id', $sellerId)
-            ->orWhereHas('products', function ($query) use ($sellerId) {
-                $query->where('user_id', $sellerId);
-            })
-            ->with(['buyer', 'products'])
-            ->latest()
-            ->paginate(15);
+        $query = Order::where(function ($q) use ($sellerId) {
+            $q->where('seller_id', $sellerId)
+              ->orWhereHas('products', function ($pq) use ($sellerId) {
+                  $pq->where('user_id', $sellerId);
+              });
+        })->with(['buyer', 'products']);
 
-        return view('seller.orders.index', compact('orders'));
+        // Date Filter (Per-day order tracking)
+        $dateFilter = $request->input('date', 'all');
+        if ($dateFilter === 'today') {
+            $query->whereDate('created_at', now()->today());
+        } elseif ($dateFilter === 'yesterday') {
+            $query->whereDate('created_at', now()->yesterday());
+        } elseif ($dateFilter === 'this_week') {
+            $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+        } elseif ($dateFilter === 'this_month') {
+            $query->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year);
+        }
+
+        // Status Filter
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        $orders = $query->latest()->paginate(20)->withQueryString();
+
+        // Metrics for today's orders
+        $todayOrdersCount = Order::where(function ($q) use ($sellerId) {
+            $q->where('seller_id', $sellerId)
+              ->orWhereHas('products', function ($pq) use ($sellerId) {
+                  $pq->where('user_id', $sellerId);
+              });
+        })->whereDate('created_at', now()->today())->count();
+
+        $todayRevenue = Order::where(function ($q) use ($sellerId) {
+            $q->where('seller_id', $sellerId)
+              ->orWhereHas('products', function ($pq) use ($sellerId) {
+                  $pq->where('user_id', $sellerId);
+              });
+        })->whereDate('created_at', now()->today())->where('status', '!=', 'cancelled')->sum('total_price');
+
+        return view('seller.orders.index', compact('orders', 'dateFilter', 'todayOrdersCount', 'todayRevenue'));
     }
 
     public function show(Order $order)
     {
         $sellerId = Auth::id();
-        $orderContainsSellerProduct = $order->products()->where('user_id', $sellerId)->exists();
+        $isMyOrder = ($order->seller_id == $sellerId) || $order->products()->where('user_id', $sellerId)->exists();
 
-        if (!$orderContainsSellerProduct) {
+        if (!$isMyOrder) {
             abort(403);
         }
 
@@ -38,9 +71,9 @@ class OrderController extends Controller
     public function updateStatus(Request $request, Order $order)
     {
         $sellerId = Auth::id();
-        $orderContainsSellerProduct = $order->products()->where('user_id', $sellerId)->exists();
+        $isMyOrder = ($order->seller_id == $sellerId) || $order->products()->where('user_id', $sellerId)->exists();
 
-        if (!$orderContainsSellerProduct) {
+        if (!$isMyOrder) {
             abort(403);
         }
 

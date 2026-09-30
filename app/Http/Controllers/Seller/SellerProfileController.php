@@ -28,6 +28,11 @@ class SellerProfileController extends Controller
             'country' => 'required|string|max:255',
             'gst_number' => 'nullable|string|max:255',
             'dispatch_radius' => 'nullable|integer|min:0',
+            'upi_id' => 'nullable|string|max:100',
+            'bank_name' => 'nullable|string|max:150',
+            'bank_account_number' => 'nullable|string|max:50',
+            'bank_ifsc' => 'nullable|string|max:20',
+            'bank_account_holder' => 'nullable|string|max:150',
         ]);
 
         Auth::user()->sellerProfile()->create($request->all());
@@ -60,6 +65,11 @@ class SellerProfileController extends Controller
             'country' => 'required|string|max:255',
             'gst_number' => 'nullable|string|max:255',
             'dispatch_radius' => 'nullable|integer|min:0',
+            'upi_id' => 'nullable|string|max:100',
+            'bank_name' => 'nullable|string|max:150',
+            'bank_account_number' => 'nullable|string|max:50',
+            'bank_ifsc' => 'nullable|string|max:20',
+            'bank_account_holder' => 'nullable|string|max:150',
         ]);
 
         $profile->update($request->all());
