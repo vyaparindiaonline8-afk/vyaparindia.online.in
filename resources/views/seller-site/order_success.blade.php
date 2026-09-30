@@ -8,17 +8,77 @@
             <i class="fa-solid fa-check"></i>
         </div>
 
-        <span class="text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
-            Order Confirmed
-        </span>
+        @php
+            $statusStep = match(strtolower($order->status ?? 'pending')) {
+                'processing' => 2,
+                'shipped' => 3,
+                'delivered' => 4,
+                'cancelled' => 0,
+                default => 1,
+            };
+        @endphp
+
+        <!-- Live Status Tracker -->
+        <div class="mt-6 mb-8 bg-gray-50 border border-gray-200 rounded-2xl p-4">
+            <div class="flex items-center justify-between text-xs font-bold text-gray-500 mb-3">
+                <span>Live Order Status:</span>
+                @if($statusStep === 0)
+                    <span class="px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 uppercase">Cancelled</span>
+                @else
+                    <span class="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 uppercase">{{ ucfirst($order->status ?? 'Pending') }}</span>
+                @endif
+            </div>
+
+            @if($statusStep > 0)
+                <div class="grid grid-cols-4 gap-2 text-center text-[10px] font-bold">
+                    <div class="{{ $statusStep >= 1 ? 'text-emerald-700 font-black' : 'text-gray-400' }}">
+                        <div class="w-7 h-7 mx-auto mb-1 rounded-full flex items-center justify-center {{ $statusStep >= 1 ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-500' }}">
+                            <i class="fa-solid fa-check text-xs"></i>
+                        </div>
+                        <span>Placed</span>
+                    </div>
+                    <div class="{{ $statusStep >= 2 ? 'text-blue-700 font-black' : 'text-gray-400' }}">
+                        <div class="w-7 h-7 mx-auto mb-1 rounded-full flex items-center justify-center {{ $statusStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500' }}">
+                            <i class="fa-solid fa-box text-xs"></i>
+                        </div>
+                        <span>Confirmed</span>
+                    </div>
+                    <div class="{{ $statusStep >= 3 ? 'text-indigo-700 font-black' : 'text-gray-400' }}">
+                        <div class="w-7 h-7 mx-auto mb-1 rounded-full flex items-center justify-center {{ $statusStep >= 3 ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-500' }}">
+                            <i class="fa-solid fa-truck text-xs"></i>
+                        </div>
+                        <span>Dispatched</span>
+                    </div>
+                    <div class="{{ $statusStep >= 4 ? 'text-emerald-700 font-black' : 'text-gray-400' }}">
+                        <div class="w-7 h-7 mx-auto mb-1 rounded-full flex items-center justify-center {{ $statusStep >= 4 ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-500' }}">
+                            <i class="fa-solid fa-house-chimney-check text-xs"></i>
+                        </div>
+                        <span>Delivered</span>
+                    </div>
+                </div>
+            @endif
+        </div>
+
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                Order Confirmed
+            </span>
+            <button onclick="window.print()" class="no-print px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-print"></i>
+                <span>Download / Print Bill</span>
+            </button>
+        </div>
 
         <h1 class="text-3xl font-black text-gray-900 mt-3">Thank You for Your Order!</h1>
         <p class="text-sm text-gray-500 mt-2">
             Your order <strong class="text-gray-900 font-mono">#{{ $order->order_number }}</strong> has been placed with <strong>{{ $sellerPage->page_title }}</strong>.
         </p>
+        <p class="text-[11px] text-gray-400 mt-0.5">
+            🔒 This bill is locked in system. You can revisit this link anytime to check live delivery updates.
+        </p>
 
         <!-- Order Snapshot Box -->
-        <div class="mt-8 bg-gray-50 rounded-2xl p-6 text-left border border-gray-100 space-y-4">
+        <div class="mt-6 bg-gray-50 rounded-2xl p-6 text-left border border-gray-100 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-gray-200 text-xs">
                 <span class="text-gray-500">Order Number:</span>
                 <span class="font-mono font-bold text-gray-900">{{ $order->order_number }}</span>
