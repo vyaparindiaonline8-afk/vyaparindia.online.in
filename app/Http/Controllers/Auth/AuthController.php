@@ -65,6 +65,23 @@ class AuthController extends Controller
             );
         }
 
+        // Send branded welcome email via Brevo SMTP
+        try {
+            $companyName = $request->firm_name ?: ($user->name . ' Enterprises');
+            $storeUrl = ($user->role_id == 3 && isset($slug)) ? url('/store/' . $slug) : null;
+
+            \Illuminate\Support\Facades\Mail::send('emails.welcome', [
+                'user' => $user,
+                'companyName' => $companyName,
+                'storeUrl' => $storeUrl,
+            ], function ($message) use ($user) {
+                $message->to($user->email)
+                        ->subject('VyaparIndia में आपका स्वागत है! 🎉 Welcome to VyaparIndia');
+            });
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Registration welcome email failed: ' . $e->getMessage());
+        }
+
         Auth::login($user);
 
         // Redirect based on role

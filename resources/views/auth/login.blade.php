@@ -73,6 +73,15 @@
                     </div>
                 @endif
 
+                @if (session('success') || session('status'))
+                    <div class="mb-5 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-3">
+                        <i class="fa-solid fa-circle-check text-emerald-600 text-lg mt-0.5"></i>
+                        <div class="text-xs sm:text-sm font-semibold text-emerald-800">
+                            {{ session('success') ?? session('status') }}
+                        </div>
+                    </div>
+                @endif
+
                 <form method="POST" action="{{ route('login') }}" class="space-y-5">
                     @csrf
 
@@ -97,6 +106,9 @@
                             <label for="password" class="block text-xs font-bold text-gray-700 uppercase tracking-wider">
                                 Password (पासवर्ड) <span class="text-rose-500">*</span>
                             </label>
+                            <a href="{{ route('password.request') }}" class="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline">
+                                पासवर्ड भूल गए? (Forgot?)
+                            </a>
                         </div>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
