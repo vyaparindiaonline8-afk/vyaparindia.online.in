@@ -149,10 +149,47 @@
             <p class="mt-4 text-sm text-gray-600 leading-relaxed max-w-3xl mx-auto">
                 {{ $sellerPage->about_text ?: $sellerPage->welcome_message }}
             </p>
-            @if($sellerPage->address)
-                <div class="mt-6 inline-flex items-center gap-2 text-xs font-medium text-gray-500 bg-white px-4 py-2 rounded-full border border-gray-200 shadow-xs">
-                    <i class="fa-solid fa-location-dot text-brand-custom"></i>
-                    <span>Located at: {{ $sellerPage->address }}, {{ $sellerPage->city }}</span>
+            @if($sellerPage->address || $sellerPage->city)
+                <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+                    <div class="inline-flex items-center gap-2 text-xs font-medium text-gray-700 bg-white px-4 py-2 rounded-full border border-gray-200 shadow-xs">
+                        <i class="fa-solid fa-location-dot text-rose-500"></i>
+                        <span>{{ $sellerPage->address ? $sellerPage->address . ', ' : '' }}{{ $sellerPage->city }}{{ $sellerPage->pincode ? ' - ' . $sellerPage->pincode : '' }}</span>
+                    </div>
+
+                    @if($sellerPage->google_map_link)
+                        <a href="{{ $sellerPage->google_map_link }}" target="_blank" class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-full border border-blue-200 shadow-xs transition">
+                            <i class="fa-solid fa-map-location-dot text-blue-600"></i>
+                            <span>View on Google Maps</span>
+                        </a>
+                    @endif
+
+                    @if($sellerPage->google_review_link)
+                        <a href="{{ $sellerPage->google_review_link }}" target="_blank" class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 px-4 py-2 rounded-full border border-amber-200 shadow-xs transition">
+                            <i class="fa-brands fa-google text-amber-500"></i>
+                            <span>Google Verified & Reviews</span>
+                        </a>
+                    @endif
+                </div>
+            @endif
+
+            <!-- Social Links -->
+            @if($sellerPage->instagram_link || $sellerPage->facebook_link || $sellerPage->youtube_link)
+                <div class="mt-6 flex items-center justify-center gap-4 text-lg">
+                    @if($sellerPage->instagram_link)
+                        <a href="{{ $sellerPage->instagram_link }}" target="_blank" class="h-10 w-10 rounded-full bg-white text-rose-600 flex items-center justify-center border border-gray-200 shadow-xs hover:scale-110 transition">
+                            <i class="fa-brands fa-instagram"></i>
+                        </a>
+                    @endif
+                    @if($sellerPage->facebook_link)
+                        <a href="{{ $sellerPage->facebook_link }}" target="_blank" class="h-10 w-10 rounded-full bg-white text-blue-600 flex items-center justify-center border border-gray-200 shadow-xs hover:scale-110 transition">
+                            <i class="fa-brands fa-facebook"></i>
+                        </a>
+                    @endif
+                    @if($sellerPage->youtube_link)
+                        <a href="{{ $sellerPage->youtube_link }}" target="_blank" class="h-10 w-10 rounded-full bg-white text-red-600 flex items-center justify-center border border-gray-200 shadow-xs hover:scale-110 transition">
+                            <i class="fa-brands fa-youtube"></i>
+                        </a>
+                    @endif
                 </div>
             @endif
         </div>

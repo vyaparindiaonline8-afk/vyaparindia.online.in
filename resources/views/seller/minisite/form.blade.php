@@ -208,6 +208,30 @@
                         <label class="block text-xs font-bold text-gray-700 mb-1">Instagram Profile URL</label>
                         <input type="url" name="instagram_link" value="{{ old('instagram_link', $minisite->instagram_link ?? '') }}" placeholder="https://instagram.com/yourhandle" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Facebook Page URL</label>
+                        <input type="url" name="facebook_link" value="{{ old('facebook_link', $minisite->facebook_link ?? '') }}" placeholder="https://facebook.com/yourbusiness" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">YouTube Channel URL</label>
+                        <input type="url" name="youtube_link" value="{{ old('youtube_link', $minisite->youtube_link ?? '') }}" placeholder="https://youtube.com/@yourchannel" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">
+                            <i class="fa-brands fa-google text-amber-500"></i> Google Business Review Link
+                        </label>
+                        <input type="url" name="google_review_link" value="{{ old('google_review_link', $minisite->google_review_link ?? '') }}" placeholder="https://g.page/r/.../review (Buyers can directly view & leave Google reviews)" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">
+                            <i class="fa-solid fa-map-location-dot text-rose-500"></i> Google Maps / Warehouse Location Link
+                        </label>
+                        <input type="url" name="google_map_link" value="{{ old('google_map_link', $minisite->google_map_link ?? '') }}" placeholder="https://maps.google.com/?q=..." class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
                 </div>
             </div>
 

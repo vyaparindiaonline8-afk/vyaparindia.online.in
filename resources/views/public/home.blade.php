@@ -130,6 +130,107 @@
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12 flex-1">
         
+        <!-- 🚀 Seller Growth Spotlight: Mini-Website Builder & B2B Dropshipping Hub -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Card 1: Free Digital Mini-Website for Sellers -->
+            <div class="relative bg-gradient-to-br from-blue-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl overflow-hidden flex flex-col justify-between border border-blue-800/40 group hover:border-blue-500/50 transition duration-300">
+                <div class="absolute -right-10 -bottom-10 w-44 h-44 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                
+                <div class="space-y-4 relative z-10">
+                    <div class="flex items-center justify-between">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                            <i class="fa-solid fa-sparkles text-amber-300"></i> Free Digital Storefront
+                        </span>
+                        <span class="text-[11px] font-bold text-slate-400">Zero Commission</span>
+                    </div>
+
+                    <h3 class="text-xl sm:text-2xl font-black text-white leading-tight">
+                        अपनी दूकान या फर्म का पर्सनल वेब स्टोर और कैटलॉग बनाएं
+                    </h3>
+
+                    <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                        2 मिनट में अपनी वेबसाइट लिंक पाएं (उदा. <code class="text-blue-300 font-mono">vyaparindia.online/your-firm</code>)। व्हाट्सएप आर्डर, गूगल मैप लोकेशन, गूगल रिव्यूज और डायरेक्ट UPI पेमेंट लें — बिना किसी एजेंसी फीस के!
+                    </p>
+
+                    <div class="grid grid-cols-2 gap-2 pt-1 text-xs text-slate-200">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-brands fa-whatsapp text-emerald-400"></i>
+                            <span>1-Click WhatsApp Orders</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fa-brands fa-google text-amber-400"></i>
+                            <span>Google Reviews Link</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-qrcode text-indigo-400"></i>
+                            <span>Direct UPI & Bank Pay</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-globe text-blue-400"></i>
+                            <span>Custom Domain Ready</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-6 relative z-10">
+                    <a href="{{ route('register', ['role' => 'seller']) }}" class="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 font-extrabold text-white text-xs shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 transition transform active:scale-98">
+                        <span>अपना फ्री स्टोर बनाएं (Create Store)</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Card 2: Wholesale & Reseller Network (Seller Growth Engine) -->
+            <div class="relative bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl overflow-hidden flex flex-col justify-between border border-emerald-800/40 group hover:border-emerald-500/50 transition duration-300">
+                <div class="absolute -right-10 -bottom-10 w-44 h-44 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                <div class="space-y-4 relative z-10">
+                    <div class="flex items-center justify-between">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            <i class="fa-solid fa-truck-fast text-emerald-300"></i> B2B Dropship & Reseller Hub
+                        </span>
+                        <span class="text-[11px] font-bold text-slate-400">Pan-India Reach</span>
+                    </div>
+
+                    <h3 class="text-xl sm:text-2xl font-black text-white leading-tight">
+                        अपने माल को पूरे भारत के रीसेलर्स से बिकवाएं और व्यापार 10x बढ़ाएं
+                    </h3>
+
+                    <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                        क्या आप मैन्युफैक्चरर या थोक व्यापारी हैं? VyaparIndia Dropship नेटवर्क पर अपना कैटलॉग जोड़ें। पूरे भारत के रीसेलर्स और दुकानदार आपका माल प्रमोट करेंगे और आपको सीधे थोक ऑर्डर्स मिलेंगे!
+                    </p>
+
+                    <div class="grid grid-cols-2 gap-2 pt-1 text-xs text-slate-200">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-users text-emerald-400"></i>
+                            <span>अपनी रीसेलर आर्मी बनाएं</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-boxes-stacked text-amber-400"></i>
+                            <span>ऑटोमैटिक थोक ऑर्डर्स</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-handshake-angle text-indigo-400"></i>
+                            <span>फैक्ट्री डायरेक्ट डिस्पैच</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved text-blue-400"></i>
+                            <span>100% सुरक्षित भुगतान (COD/Prepaid)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-6 relative z-10">
+                    <a href="{{ route('register', ['role' => 'seller']) }}" class="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 font-extrabold text-white text-xs shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/50 transition transform active:scale-98">
+                        <span>सप्लायर बनकर माल जोड़ें (Join as Supplier)</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
         <!-- Featured Local Shops / Sellers Section -->
         @if($featuredSellers->isNotEmpty())
             <div class="space-y-4">

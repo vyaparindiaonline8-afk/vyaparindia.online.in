@@ -1,4 +1,4 @@
 $env:GIT_PAGER = ""
 git add -A
-git commit -m "Add firm name, city, pincode, GPS detection to registration, and create About, Help, Privacy, and Terms pages"
+git commit -m "feat: Add Google review, Maps, social links to mini-site and homepage seller growth cards"
 git push origin main
