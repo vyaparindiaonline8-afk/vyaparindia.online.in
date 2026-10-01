@@ -51,17 +51,17 @@ class User extends Authenticatable
 
     public function is_admin()
     {
-        return $this->role->name === 'admin';
+        return (int)$this->role_id === 1 || ($this->role && $this->role->name === 'admin');
     }
 
     public function is_seller()
     {
-        return $this->role->name === 'seller';
+        return (int)$this->role_id === 2 || ($this->role && $this->role->name === 'seller');
     }
 
     public function is_buyer()
     {
-        return $this->role->name === 'buyer';
+        return (int)$this->role_id === 3 || ($this->role && $this->role->name === 'buyer');
     }
 
     public function products()

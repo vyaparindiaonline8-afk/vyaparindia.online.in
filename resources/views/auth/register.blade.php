@@ -82,9 +82,9 @@
                             Select Account Type <span class="text-rose-500">*</span>
                         </label>
                         <div class="grid grid-cols-2 gap-3">
-                            <!-- Seller Option (Role 3) -->
+                            <!-- Seller Option (Role 2) -->
                             <label class="relative flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 text-center select-none" id="sellerCardLabel">
-                                <input type="radio" name="role_id" value="3" id="roleSeller" class="sr-only" {{ old('role_id', $defaultRole ?? 3) == 3 ? 'checked' : '' }} onchange="updateRoleUI()">
+                                <input type="radio" name="role_id" value="2" id="roleSeller" class="sr-only" {{ old('role_id', $defaultRole ?? 2) == 2 ? 'checked' : '' }} onchange="updateRoleUI()">
                                 <div class="text-2xl mb-1 text-blue-600" id="sellerIcon">
                                     <i class="fa-solid fa-store"></i>
                                 </div>
@@ -92,9 +92,9 @@
                                 <span class="text-[11px] text-gray-500 mt-0.5">Sell products, store & dropship</span>
                             </label>
 
-                            <!-- Buyer Option (Role 2) -->
+                            <!-- Buyer Option (Role 3) -->
                             <label class="relative flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 text-center select-none" id="buyerCardLabel">
-                                <input type="radio" name="role_id" value="2" id="roleBuyer" class="sr-only" {{ old('role_id', $defaultRole ?? 3) == 2 ? 'checked' : '' }} onchange="updateRoleUI()">
+                                <input type="radio" name="role_id" value="3" id="roleBuyer" class="sr-only" {{ old('role_id', $defaultRole ?? 2) == 3 ? 'checked' : '' }} onchange="updateRoleUI()">
                                 <div class="text-2xl mb-1 text-gray-400" id="buyerIcon">
                                     <i class="fa-solid fa-bag-shopping"></i>
                                 </div>

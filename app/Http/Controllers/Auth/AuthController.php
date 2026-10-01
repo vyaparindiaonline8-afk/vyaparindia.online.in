@@ -13,7 +13,7 @@ class AuthController extends Controller
     public function showRegistrationForm(Request $request)
     {
         $roleParam = $request->query('role');
-        $defaultRole = ($roleParam === 'buyer') ? 2 : 3; // Default to Seller (3)
+        $defaultRole = ($roleParam === 'buyer') ? 3 : 2; // Default to Seller (2)
         return view('auth.register', compact('defaultRole'));
     }
 
@@ -23,7 +23,7 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role_id' => ['required', 'in:2,3'], // 2 for buyer, 3 for seller
+            'role_id' => ['required', 'in:2,3'], // 2 for seller, 3 for buyer
             'firm_name' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:100'],
             'pincode' => ['nullable', 'string', 'max:20'],
@@ -36,8 +36,8 @@ class AuthController extends Controller
             'role_id' => $request->role_id,
         ]);
 
-        // Auto initialize seller records if registering as seller
-        if ($user->role_id == 3) {
+        // Auto initialize seller records if registering as seller (role_id 2)
+        if ($user->role_id == 2) {
             $companyName = trim($request->firm_name) ?: ($user->name . ' Enterprises');
             $city = trim($request->city);
             $pincode = trim($request->pincode);
@@ -68,7 +68,7 @@ class AuthController extends Controller
         // Send branded welcome email via Brevo SMTP
         try {
             $companyName = $request->firm_name ?: ($user->name . ' Enterprises');
-            $storeUrl = ($user->role_id == 3 && isset($slug)) ? url('/store/' . $slug) : null;
+            $storeUrl = ($user->role_id == 2 && isset($slug)) ? url('/store/' . $slug) : null;
 
             \Illuminate\Support\Facades\Mail::send('emails.welcome', [
                 'user' => $user,
