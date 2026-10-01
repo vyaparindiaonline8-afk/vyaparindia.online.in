@@ -11,10 +11,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
-            'is_admin' => \App\Http\Middleware\IsAdmin::class,
-            'is_seller' => \App\Http\Middleware\IsSeller::class,
-            'is_buyer' => \App\Http\Middleware\IsBuyer::class,
+            'is_admin' => \App\Middleware\IsAdmin::class,
+            'is_seller' => \App\Middleware\IsSeller::class,
+            'is_buyer' => \App\Middleware\IsBuyer::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
