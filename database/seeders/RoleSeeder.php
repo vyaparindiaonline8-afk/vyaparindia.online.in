@@ -15,10 +15,10 @@ class RoleSeeder extends Seeder
      */
     public function run()
     {
-        DB::table('roles')->insertOrIgnore([
-            ['name' => 'admin'],
-            ['name' => 'seller'],
-            ['name' => 'buyer'],
-        ]);
+        DB::table('roles')->upsert([
+            ['id' => 1, 'name' => 'admin'],
+            ['id' => 2, 'name' => 'buyer'],
+            ['id' => 3, 'name' => 'seller'],
+        ], ['id'], ['name']);
     }
 }

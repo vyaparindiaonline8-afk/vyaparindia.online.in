@@ -31,7 +31,7 @@
                         <a href="{{ route('login') }}" class="px-4 py-2 text-xs font-bold text-gray-700 hover:text-blue-600 transition">
                             Login
                         </a>
-                        <a href="{{ route('register') }}" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition">
+                        <a href="{{ route('register', ['role' => 'seller']) }}" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition">
                             Seller Registration
                         </a>
                     @else

@@ -39,7 +39,7 @@
                             </a>
                         @endif
                     @else
-                        <a href="{{ route('register') }}" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold shadow-sm">
+                        <a href="{{ route('register', ['role' => 'seller']) }}" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold shadow-sm">
                             Seller Registration
                         </a>
                     @endauth

@@ -10,9 +10,11 @@ use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    public function showRegistrationForm()
+    public function showRegistrationForm(Request $request)
     {
-        return view('auth.register');
+        $roleParam = $request->query('role');
+        $defaultRole = ($roleParam === 'buyer') ? 2 : 3; // Default to Seller (3)
+        return view('auth.register', compact('defaultRole'));
     }
 
     public function register(Request $request)
@@ -30,6 +32,28 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'role_id' => $request->role_id,
         ]);
+
+        // Auto initialize seller records if registering as seller
+        if ($user->role_id == 3) {
+            \App\Models\SellerProfile::firstOrCreate(['user_id' => $user->id], [
+                'company_name' => $user->name . ' Enterprises',
+            ]);
+            
+            $baseSlug = \Illuminate\Support\Str::slug($user->name);
+            $slug = $baseSlug ?: 'store';
+            if (\App\Models\SellerPage::where('slug', $slug)->exists()) {
+                $slug .= '-' . $user->id;
+            }
+
+            \App\Models\SellerPage::firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'slug' => $slug,
+                    'page_title' => $user->name . ' Online Store',
+                    'welcome_message' => 'Welcome to our verified store on VyaparIndia!',
+                ]
+            );
+        }
 
         Auth::login($user);
 
