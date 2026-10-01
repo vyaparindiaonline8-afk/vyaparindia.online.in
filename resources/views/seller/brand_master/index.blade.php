@@ -47,10 +47,17 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3">
-                    <a href="{{ route('seller.products.index') }}" class="text-xs font-bold text-gray-600 hover:text-blue-600 transition flex items-center gap-1.5">
+                <div class="flex items-center gap-2.5">
+                    <!-- Button to open 24-Page PDF Catalog Viewer -->
+                    <button type="button" onclick="openCatalogModal(1)" 
+                            class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-extrabold text-xs shadow-xs flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-book-open"></i>
+                        <span>मूल कैटलॉग देखें (24 Pages PDF)</span>
+                    </button>
+
+                    <a href="{{ route('seller.products.index') }}" class="hidden sm:inline-flex text-xs font-bold text-gray-600 hover:text-blue-600 transition items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white">
                         <i class="fa-solid fa-boxes-stacked"></i>
-                        <span>मेरी दुकान के प्रोडक्ट्स</span>
+                        <span>मेरी दुकान</span>
                     </a>
                 </div>
 
@@ -78,7 +85,7 @@
             </div>
         @endif
 
-        <!-- Brand Selector Bar -->
+        <!-- Brand Selector & Stats Bar -->
         <div class="bg-white rounded-2xl p-4 border border-gray-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-2">
                 <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">चुना गया ब्रांड:</span>
@@ -86,21 +93,34 @@
                     <i class="fa-solid fa-award"></i>
                     <span>PLASTO (R C Plasto Pipes & Tanks)</span>
                 </div>
+                <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+                    कुल 291 प्रोडक्ट्स
+                </span>
             </div>
 
-            <!-- Category Filter Pills -->
-            <div class="flex flex-wrap items-center gap-1.5">
-                <a href="{{ route('seller.brand-master.index', ['brand' => $selectedBrand]) }}" 
-                   class="px-3 py-1 rounded-lg text-xs font-bold transition {{ empty($selectedCategory) ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
-                    सभी श्रेणियां (All)
-                </a>
-                @foreach($categories as $cat)
-                    <a href="{{ route('seller.brand-master.index', ['brand' => $selectedBrand, 'category' => $cat]) }}" 
-                       class="px-3 py-1 rounded-lg text-xs font-bold transition {{ $selectedCategory == $cat ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
-                        {{ $cat }}
-                    </a>
-                @endforeach
+            <!-- Instant Search Input -->
+            <div class="relative w-full sm:w-72">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </div>
+                <input type="text" id="liveSearchInput" onkeyup="filterLiveProducts()" 
+                       placeholder="सर्च करें (e.g. Elbow, UPVC, 25mm, Brass)..." 
+                       class="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
             </div>
+        </div>
+
+        <!-- Category Filter Pills -->
+        <div class="flex flex-wrap items-center gap-1.5">
+            <a href="{{ route('seller.brand-master.index', ['brand' => $selectedBrand]) }}" 
+               class="px-3 py-1 rounded-lg text-xs font-bold transition {{ empty($selectedCategory) ? 'bg-gray-900 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100' }}">
+                सभी श्रेणियां (All 291)
+            </a>
+            @foreach($categories as $cat)
+                <a href="{{ route('seller.brand-master.index', ['brand' => $selectedBrand, 'category' => $cat]) }}" 
+                   class="px-3 py-1 rounded-lg text-xs font-bold transition {{ $selectedCategory == $cat ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100' }}">
+                    {{ $cat }}
+                </a>
+            @endforeach
         </div>
 
         <!-- Master Global Costing & Less Calculator Bar -->
@@ -198,29 +218,28 @@
                                    class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300" checked>
                             <span class="text-xs font-bold text-gray-700">सभी चुनें (Select All)</span>
                         </label>
-                        <span class="text-xs text-gray-400">|</span>
-                        <span class="text-xs font-semibold text-gray-500">कुल प्रोडक्ट्स: <strong>{{ count($products) }}</strong></span>
                     </div>
-                    <div class="text-xs text-gray-500">
-                        💡 हरे रंग में सेलिंग प्राइस (बिक्री दर) ग्राहक को दिखेगा
+                    <div class="text-xs text-gray-500 font-medium">
+                        दिख रहे प्रोडक्ट्स: <strong class="text-gray-900 font-bold" id="visibleCount">{{ count($products) }}</strong>
                     </div>
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">
-                                <th class="py-3 px-4 w-12 text-center">चुनें</th>
-                                <th class="py-3 px-4">उत्पाद का नाम (Product Name)</th>
-                                <th class="py-3 px-4">साइज़ / कोड</th>
-                                <th class="py-3 px-4 text-right">कंपनी MRP / कोड (List)</th>
+                            <tr class="border-b border-gray-200 bg-gray-50/75 text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">
+                                <th class="py-3 px-3 text-center w-10">चुनें</th>
+                                <th class="py-3 px-3 text-center w-14">फ़ोटो</th>
+                                <th class="py-3 px-4">प्रोडक्ट का नाम व कैटेगरी</th>
+                                <th class="py-3 px-3">साइज़ व कोड</th>
+                                <th class="py-3 px-4 text-right">कंपनी MRP (₹)</th>
                                 <th class="py-3 px-4 text-center">खरीद Less %</th>
-                                <th class="py-3 px-4 text-right">खरीद लागत (Cost + GST)</th>
-                                <th class="py-3 px-4 text-center">बिक्री Less / Margin</th>
+                                <th class="py-3 px-4 text-right">नेट खरीद (GST सहित)</th>
+                                <th class="py-3 px-4 text-center">सेलिंग Less / मार्जिन</th>
                                 <th class="py-3 px-4 text-right">सेलिंग प्राइस (Selling ₹)</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100 text-xs font-medium">
+                        <tbody class="divide-y divide-gray-100 text-xs font-medium" id="productsTableBody">
                             @forelse($products as $p)
                                 @php
                                     $sku = strtoupper($p->brand_name) . '-' . ($p->product_code ?: $p->id);
@@ -228,13 +247,25 @@
                                 @endphp
                                 <tr class="product-row hover:bg-blue-50/30 transition {{ $isAlreadyImported ? 'bg-emerald-50/20' : '' }}" 
                                     data-id="{{ $p->id }}" 
-                                    data-list-price="{{ $p->list_price }}">
+                                    data-list-price="{{ $p->list_price }}"
+                                    data-name="{{ strtolower($p->product_name) }}"
+                                    data-code="{{ strtolower($p->product_code ?? '') }}"
+                                    data-cat="{{ strtolower($p->category_name) }}">
                                     
                                     <!-- Checkbox -->
-                                    <td class="py-3.5 px-4 text-center">
+                                    <td class="py-3 px-3 text-center">
                                         <input type="checkbox" name="selected_ids[]" value="{{ $p->id }}" 
                                                class="item-checkbox h-4 w-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300 cursor-pointer"
                                                onchange="updateSelectionSummary()" checked>
+                                    </td>
+
+                                    <!-- Product Photo Thumbnail -->
+                                    <td class="py-3 px-3 text-center">
+                                        <img src="{{ $p->image_url ?? asset('images/catalog/plasto/page_2.jpg') }}" 
+                                             class="w-11 h-11 object-contain rounded-xl border border-gray-200 bg-white p-0.5 shadow-2xs hover:scale-125 transition-transform cursor-pointer mx-auto"
+                                             onclick="openImagePreview('{{ $p->image_url ?? asset('images/catalog/plasto/page_2.jpg') }}', '{{ addslashes($p->product_name) }}')"
+                                             alt="{{ $p->product_name }}"
+                                             loading="lazy">
                                     </td>
 
                                     <!-- Product Info -->
@@ -248,15 +279,21 @@
                                             @endif
                                         </div>
                                         <div class="text-[11px] text-gray-400 mt-0.5">
-                                            {{ $p->category_name }} &bull; बॉक्स पैकिंग: {{ $p->box_qty ?? 'Std' }}
+                                            {{ $p->category_name }} &bull; {{ $p->item_type ?? 'Fitting' }}
                                         </div>
                                     </td>
 
                                     <!-- Size & Code -->
-                                    <td class="py-3.5 px-4">
-                                        <span class="px-2 py-1 rounded-md bg-gray-100 font-bold text-gray-700 font-mono text-[11px]">
-                                            {{ $p->size_inch ?: $p->size_mm }}
-                                        </span>
+                                    <td class="py-3.5 px-3">
+                                        @if($p->size_mm)
+                                            <span class="px-2 py-0.5 rounded-md bg-blue-50 font-bold text-blue-700 font-mono text-[11px]">
+                                                {{ $p->size_mm }} MM
+                                            </span>
+                                        @elseif($p->size_inch)
+                                            <span class="px-2 py-0.5 rounded-md bg-gray-100 font-bold text-gray-700 font-mono text-[11px]">
+                                                {{ $p->size_inch }}
+                                            </span>
+                                        @endif
                                         <span class="text-gray-400 text-[10px] ml-1 font-mono">Code: {{ $p->product_code }}</span>
                                     </td>
 
@@ -275,7 +312,7 @@
                                                    oninput="recalculateRow(this.closest('.product-row'))">
                                             <span class="text-[10px] text-gray-400 font-bold">%</span>
                                         </div>
-                                        <input type="hidden" name="items[{{ $p->id }}][gst_percent]" class="item-gst" value="18">
+                                        <input type="hidden" name="items[{{ $p->id }}][gst_percent]" class="item-gst" value="{{ $p->default_gst_percent ?? 18 }}">
                                     </td>
 
                                     <!-- Net Cost with GST -->
@@ -310,7 +347,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="py-12 text-center text-gray-400">
+                                    <td colspan="9" class="py-12 text-center text-gray-400">
                                         <i class="fa-solid fa-box-open text-4xl mb-3 block"></i>
                                         कोई प्रोडक्ट नहीं मिला।
                                     </td>
@@ -355,8 +392,145 @@
 
     </div>
 
-    <!-- Live Calculation JavaScript -->
+    <!-- 24-Page Official Plasto PDF Catalog Viewer Modal -->
+    <div id="catalogModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-white rounded-3xl w-full max-w-5xl h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="p-4 border-b border-gray-200 flex items-center justify-between bg-slate-900 text-white">
+                <div class="flex items-center gap-3">
+                    <span class="h-8 w-8 rounded-xl bg-rose-600 flex items-center justify-center text-white text-sm font-black">
+                        <i class="fa-solid fa-file-pdf"></i>
+                    </span>
+                    <div>
+                        <h3 class="font-extrabold text-sm text-white">PLASTO Official Product Catalog (24 Pages)</h3>
+                        <p class="text-[11px] text-slate-300">RCPL Product Catalog - All Pipes, Fittings, Tanks & Solvents</p>
+                    </div>
+                </div>
+
+                <!-- Page Navigation Controls -->
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="changeCatalogPage(-1)" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <span class="text-xs font-bold text-amber-300">
+                        Page <span id="currentPageNum">1</span> / 24
+                    </span>
+                    <button type="button" onclick="changeCatalogPage(1)" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+
+                    <!-- Jump To Dropdown -->
+                    <select id="pageSelectDropdown" onchange="jumpToCatalogPage(this.value)" class="bg-white/10 border border-white/20 text-white text-xs font-bold rounded-lg px-2 py-1 focus:outline-none">
+                        @for($p = 1; $p <= 24; $p++)
+                            <option value="{{ $p }}" class="text-gray-900">Page {{ $p }}</option>
+                        @endfor
+                    </select>
+
+                    <button type="button" onclick="closeCatalogModal()" class="ml-3 h-8 w-8 rounded-xl bg-white/10 hover:bg-rose-600 text-white flex items-center justify-center transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body (Image Container) -->
+            <div class="flex-1 bg-slate-950 p-4 overflow-auto flex items-center justify-center">
+                <img id="catalogPageImage" src="{{ asset('images/catalog/plasto/page_1.jpg') }}" 
+                     class="max-h-full max-w-full object-contain rounded-lg shadow-2xl transition-all duration-150" 
+                     alt="Plasto Catalog Page">
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-3 bg-slate-900 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
+                <span>Tip: Click Previous/Next or select page number to browse full company rate list.</span>
+                <button type="button" onclick="closeCatalogModal()" class="px-4 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold">
+                    Close Viewer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Single Image Zoom Preview Modal -->
+    <div id="imagePreviewModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4" onclick="closeImagePreview()">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between border-b pb-2">
+                <h4 id="previewModalTitle" class="font-extrabold text-sm text-gray-900 truncate"></h4>
+                <button type="button" onclick="closeImagePreview()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+            <div class="h-64 flex items-center justify-center bg-gray-50 rounded-2xl p-4">
+                <img id="previewModalImg" src="" class="max-h-full max-w-full object-contain" alt="">
+            </div>
+            <button type="button" onclick="closeImagePreview()" class="w-full py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <!-- Live Calculation & Filter JavaScript -->
     <script>
+        let currentCatalogPage = 1;
+        const totalCatalogPages = 24;
+
+        function openCatalogModal(page = 1) {
+            currentCatalogPage = page;
+            updateCatalogModalImage();
+            document.getElementById('catalogModal').classList.remove('hidden');
+        }
+
+        function closeCatalogModal() {
+            document.getElementById('catalogModal').classList.add('hidden');
+        }
+
+        function changeCatalogPage(delta) {
+            currentCatalogPage += delta;
+            if (currentCatalogPage < 1) currentCatalogPage = 1;
+            if (currentCatalogPage > totalCatalogPages) currentCatalogPage = totalCatalogPages;
+            updateCatalogModalImage();
+        }
+
+        function jumpToCatalogPage(val) {
+            currentCatalogPage = parseInt(val) || 1;
+            updateCatalogModalImage();
+        }
+
+        function updateCatalogModalImage() {
+            document.getElementById('currentPageNum').innerText = currentCatalogPage;
+            document.getElementById('pageSelectDropdown').value = currentCatalogPage;
+            document.getElementById('catalogPageImage').src = `/images/catalog/plasto/page_${currentCatalogPage}.jpg`;
+        }
+
+        function openImagePreview(url, title) {
+            document.getElementById('previewModalImg').src = url;
+            document.getElementById('previewModalTitle').innerText = title;
+            document.getElementById('imagePreviewModal').classList.remove('hidden');
+        }
+
+        function closeImagePreview() {
+            document.getElementById('imagePreviewModal').classList.add('hidden');
+        }
+
+        function filterLiveProducts() {
+            const query = document.getElementById('liveSearchInput').value.toLowerCase().trim();
+            const rows = document.querySelectorAll('.product-row');
+            let visible = 0;
+
+            rows.forEach(row => {
+                const name = row.getAttribute('data-name') || '';
+                const code = row.getAttribute('data-code') || '';
+                const cat = row.getAttribute('data-cat') || '';
+
+                if (!query || name.includes(query) || code.includes(query) || cat.includes(query)) {
+                    row.style.display = '';
+                    visible++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            document.getElementById('visibleCount').innerText = visible;
+        }
+
         function updateModeLabel() {
             const mode = document.getElementById('global_selling_mode').value;
             const label = document.getElementById('selling_value_label');
@@ -391,7 +565,7 @@
             // Update UI
             row.querySelector('.item-cost-display').innerText = '₹' + netCostWithGst.toFixed(2);
             row.querySelector('.item-cost-val').value = netCostWithGst.toFixed(2);
-            row.querySelector('.item-selling-price').value = Math.round(sellingPrice * 10) / 10; // 1 decimal place
+            row.querySelector('.item-selling-price').value = Math.round(sellingPrice * 10) / 10;
 
             updateSelectionSummary();
         }

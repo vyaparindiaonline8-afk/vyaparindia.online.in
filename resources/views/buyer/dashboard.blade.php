@@ -157,17 +157,19 @@
                     <p class="text-gray-500 text-xs mt-1">Shortlisted products and suppliers saved for later purchase.</p>
                 </div>
             </a>
-            @else
-            <div class="bg-white p-5 rounded-2xl border border-gray-200 flex flex-col justify-between opacity-80">
-                <div class="w-12 h-12 rounded-xl bg-gray-50 text-gray-500 flex items-center justify-center text-xl">
-                    <i class="fa-solid fa-shield-heart"></i>
+            <!-- Card 3: Central Brand Catalog (Plasto) -->
+            <a href="{{ route('seller.brand-master.index') }}" class="group bg-gradient-to-br from-blue-900 to-indigo-950 text-white p-5 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 flex flex-col justify-between border border-blue-800">
+                <div class="flex items-start justify-between">
+                    <div class="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-book-bookmark"></i>
+                    </div>
+                    <span class="text-xs text-amber-400 font-bold group-hover:translate-x-1 transition-transform">&rarr;</span>
                 </div>
                 <div class="mt-4">
-                    <h3 class="font-bold text-gray-900 text-sm">Direct Manufacturer Rates</h3>
-                    <p class="text-gray-500 text-xs mt-1">Get bulk discounts directly without middleman markups.</p>
+                    <h3 class="font-bold text-white text-sm">Plasto Brand Master (291 Items)</h3>
+                    <p class="text-blue-200 text-xs mt-1">24-page original PDF catalog, MRP list, & 1-Click Less Calculator.</p>
                 </div>
-            </div>
-            @endif
+            </a>
 
             <!-- Card 4: Switch to Seller Account -->
             <a href="{{ route('register') }}?role=seller" class="group bg-gradient-to-br from-emerald-500 to-teal-700 text-white p-5 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 flex flex-col justify-between">
