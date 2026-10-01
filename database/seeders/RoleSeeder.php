@@ -15,10 +15,10 @@ class RoleSeeder extends Seeder
      */
     public function run()
     {
-        DB::table('roles')->upsert([
-            ['id' => 1, 'name' => 'admin'],
-            ['id' => 2, 'name' => 'buyer'],
-            ['id' => 3, 'name' => 'seller'],
-        ], ['id'], ['name']);
+        foreach (['admin', 'seller', 'buyer'] as $roleName) {
+            if (!DB::table('roles')->where('name', $roleName)->exists()) {
+                DB::table('roles')->insert(['name' => $roleName]);
+            }
+        }
     }
 }
