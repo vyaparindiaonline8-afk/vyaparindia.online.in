@@ -9,6 +9,7 @@ use App\Models\ChannelListing;
 use App\Models\Product;
 use App\Models\Category;
 use App\Services\AIProductService;
+use App\Services\CloudinaryService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -110,7 +111,7 @@ class ChannelController extends Controller
 
         $imagePath = null;
         if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('products', 'public');
+            $imagePath = CloudinaryService::upload($request->file('image'), 'vyaparindia/products');
         }
 
         // 1. Create Core Product

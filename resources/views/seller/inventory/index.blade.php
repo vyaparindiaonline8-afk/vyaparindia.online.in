@@ -128,8 +128,8 @@
                                 <td class="py-3.5 px-4">
                                     <div class="flex items-center gap-3">
                                         <div class="h-12 w-12 rounded-xl bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center flex-shrink-0">
-                                            @if($product->image)
-                                                <img src="{{ asset($product->image) }}" class="w-full h-full object-contain">
+                                            @if($product->image_url)
+                                                <img src="{{ $product->image_url }}" class="w-full h-full object-contain">
                                             @else
                                                 <i class="fa-solid fa-cube text-gray-400"></i>
                                             @endif

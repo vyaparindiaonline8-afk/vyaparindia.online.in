@@ -1,4 +1,4 @@
 $env:GIT_PAGER = ""
 git add -A
-git commit -m "feat: Add Google review, Maps, social links to mini-site and homepage seller growth cards"
+git commit -m "feat: Integrate Cloudinary image hosting for products, logos, and banners"
 git push origin main

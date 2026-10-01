@@ -303,8 +303,8 @@
                         
                         <!-- Image -->
                         <a href="{{ route('product.show', $product->slug) }}" class="relative block aspect-square bg-gray-100 overflow-hidden">
-                            @if($product->image)
-                                <img src="{{ asset($product->image) }}" alt="{{ $product->name }}" class="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300">
+                            @if($product->image_url)
+                                <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300">
                             @else
                                 <div class="w-full h-full flex items-center justify-center text-gray-300">
                                     <i class="fa-solid fa-cube text-4xl"></i>

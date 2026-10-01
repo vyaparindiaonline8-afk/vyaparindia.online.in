@@ -61,16 +61,32 @@ class SellerPage extends Model
 
     public function getLogoUrlAttribute()
     {
-        if ($this->logo && file_exists(public_path('storage/' . $this->logo))) {
-            return asset('storage/' . $this->logo);
+        if ($this->logo) {
+            if (filter_var($this->logo, FILTER_VALIDATE_URL)) {
+                return $this->logo;
+            }
+            if (file_exists(public_path('storage/' . $this->logo))) {
+                return asset('storage/' . $this->logo);
+            }
+            if (file_exists(public_path($this->logo))) {
+                return asset($this->logo);
+            }
         }
         return null;
     }
 
     public function getBannerUrlAttribute()
     {
-        if ($this->banner_image && file_exists(public_path('storage/' . $this->banner_image))) {
-            return asset('storage/' . $this->banner_image);
+        if ($this->banner_image) {
+            if (filter_var($this->banner_image, FILTER_VALIDATE_URL)) {
+                return $this->banner_image;
+            }
+            if (file_exists(public_path('storage/' . $this->banner_image))) {
+                return asset('storage/' . $this->banner_image);
+            }
+            if (file_exists(public_path($this->banner_image))) {
+                return asset($this->banner_image);
+            }
         }
         return null;
     }

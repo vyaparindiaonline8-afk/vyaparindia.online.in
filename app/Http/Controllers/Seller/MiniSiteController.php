@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\SellerPage;
 use App\Models\Review;
 use App\Services\AISlipScannerService;
+use App\Services\CloudinaryService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -57,10 +58,10 @@ class MiniSiteController extends Controller
         ]);
 
         if ($request->hasFile('logo')) {
-            $validated['logo'] = $request->file('logo')->store('minisite/logos', 'public');
+            $validated['logo'] = CloudinaryService::upload($request->file('logo'), 'vyaparindia/minisite/logos');
         }
         if ($request->hasFile('banner_image')) {
-            $validated['banner_image'] = $request->file('banner_image')->store('minisite/banners', 'public');
+            $validated['banner_image'] = CloudinaryService::upload($request->file('banner_image'), 'vyaparindia/minisite/banners');
         }
 
         $validated['enable_cod'] = $request->has('enable_cod');
@@ -122,10 +123,10 @@ class MiniSiteController extends Controller
         ]);
 
         if ($request->hasFile('logo')) {
-            $validated['logo'] = $request->file('logo')->store('minisite/logos', 'public');
+            $validated['logo'] = CloudinaryService::upload($request->file('logo'), 'vyaparindia/minisite/logos');
         }
         if ($request->hasFile('banner_image')) {
-            $validated['banner_image'] = $request->file('banner_image')->store('minisite/banners', 'public');
+            $validated['banner_image'] = CloudinaryService::upload($request->file('banner_image'), 'vyaparindia/minisite/banners');
         }
 
         $validated['enable_cod'] = $request->has('enable_cod');

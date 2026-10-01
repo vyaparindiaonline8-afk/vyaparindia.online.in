@@ -155,6 +155,12 @@ class Product extends Model
             if (file_exists(public_path('storage/' . $this->image))) {
                 return asset('storage/' . $this->image);
             }
+            if (file_exists(public_path('images/' . $this->image))) {
+                return asset('images/' . $this->image);
+            }
+            if (file_exists(public_path($this->image))) {
+                return asset($this->image);
+            }
         }
         return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80';
     }

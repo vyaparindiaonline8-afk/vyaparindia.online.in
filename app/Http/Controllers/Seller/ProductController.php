@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Category;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use App\Services\CloudinaryService;
 
 class ProductController extends Controller
 {
@@ -62,8 +63,7 @@ class ProductController extends Controller
 
         $imageName = null;
         if ($request->hasFile('image')) {
-            $imageName = time().'.'.$request->image->extension();
-            $request->image->move(public_path('images'), $imageName);
+            $imageName = CloudinaryService::upload($request->file('image'), 'vyaparindia/products');
         }
 
         Auth::user()->products()->create([
@@ -119,8 +119,7 @@ class ProductController extends Controller
 
         $imageName = $product->image;
         if ($request->hasFile('image')) {
-            $imageName = time().'.'.$request->image->extension();
-            $request->image->move(public_path('images'), $imageName);
+            $imageName = CloudinaryService::upload($request->file('image'), 'vyaparindia/products');
         }
 
         $product->update([
