@@ -152,8 +152,17 @@
         </div>
     </main>
 
-    <!-- Footer Trust Info -->
+    <!-- Footer Trust Info & Links -->
     <footer class="w-full py-6 text-center text-xs text-gray-400 relative z-10">
+        <div class="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mb-3">
+            <a href="{{ route('about') }}" class="hover:text-gray-200 transition">About Us</a>
+            <span>•</span>
+            <a href="{{ route('help') }}" class="hover:text-gray-200 transition">Help & Support</a>
+            <span>•</span>
+            <a href="{{ route('privacy') }}" class="hover:text-gray-200 transition">Privacy Policy</a>
+            <span>•</span>
+            <a href="{{ route('terms') }}" class="hover:text-gray-200 transition">Terms of Service</a>
+        </div>
         <div class="flex items-center justify-center gap-6 mb-2">
             <span class="flex items-center gap-1.5"><i class="fa-solid fa-lock text-green-400"></i> SSL 256-bit Secure</span>
             <span class="flex items-center gap-1.5"><i class="fa-solid fa-truck-fast text-blue-400"></i> Pan-India Logistics</span>

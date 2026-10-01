@@ -41,7 +41,7 @@
 
     <!-- Main Registration Container (Centered) -->
     <main class="w-full flex-1 flex items-center justify-center px-4 py-8 relative z-10">
-        <div class="w-full max-w-lg bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-300">
+        <div class="w-full max-w-xl bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-300">
             
             <!-- Card Top Header -->
             <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 sm:p-8 text-white text-center relative">
@@ -88,8 +88,8 @@
                                 <div class="text-2xl mb-1 text-blue-600" id="sellerIcon">
                                     <i class="fa-solid fa-store"></i>
                                 </div>
-                                <span class="font-bold text-sm text-gray-900" id="sellerTitle">Seller (दुकानदार)</span>
-                                <span class="text-[11px] text-gray-500 mt-0.5">Sell products & catalog</span>
+                                <span class="font-bold text-sm text-gray-900" id="sellerTitle">Seller (दुकानदार / सप्लायर)</span>
+                                <span class="text-[11px] text-gray-500 mt-0.5">Sell products, store & dropship</span>
                             </label>
 
                             <!-- Buyer Option (Role 2) -->
@@ -98,32 +98,55 @@
                                 <div class="text-2xl mb-1 text-gray-400" id="buyerIcon">
                                     <i class="fa-solid fa-bag-shopping"></i>
                                 </div>
-                                <span class="font-bold text-sm text-gray-700" id="buyerTitle">Buyer (खरीदार)</span>
-                                <span class="text-[11px] text-gray-500 mt-0.5">Wholesale & sourcing</span>
+                                <span class="font-bold text-sm text-gray-700" id="buyerTitle">Buyer (खरीदार / व्यापारी)</span>
+                                <span class="text-[11px] text-gray-500 mt-0.5">Wholesale sourcing & quotes</span>
                             </label>
                         </div>
                     </div>
 
-                    <!-- Full Name / Business Name -->
+                    <!-- Firm / Company Name (Essential for Sellers) -->
+                    <div id="firmNameContainer">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="firm_name" class="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                Firm / Business Name (फर्म या दूकान का नाम) <span class="text-rose-500" id="firmRequiredStar">*</span>
+                            </label>
+                            <span class="text-[11px] text-blue-600 font-semibold">Storefront Title</span>
+                        </div>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                <i class="fa-solid fa-building text-sm"></i>
+                            </div>
+                            <input id="firm_name" type="text" name="firm_name" value="{{ old('firm_name') }}"
+                                placeholder="e.g. Shree Ganesh Hardware & Sanitary"
+                                class="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm font-medium text-gray-800 placeholder-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition">
+                        </div>
+                    </div>
+
+                    <!-- Owner / Contact Person Name -->
                     <div>
                         <label for="name" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5" id="nameLabel">
-                            Full Name / Owner Name <span class="text-rose-500">*</span>
+                            Owner Name (मालिक का नाम) <span class="text-rose-500">*</span>
                         </label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                                 <i class="fa-solid fa-user text-sm"></i>
                             </div>
                             <input id="name" type="text" name="name" value="{{ old('name') }}" required autofocus
-                                placeholder="Enter your full name or trade name"
+                                placeholder="Enter your full name"
                                 class="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm font-medium text-gray-800 placeholder-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition">
                         </div>
                     </div>
 
                     <!-- Email Address -->
                     <div>
-                        <label for="email" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                            Business Email Address <span class="text-rose-500">*</span>
-                        </label>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="email" class="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                Email Address (ईमेल) <span class="text-rose-500">*</span>
+                            </label>
+                            <span class="text-[10px] text-gray-500 font-semibold flex items-center gap-1">
+                                <i class="fa-solid fa-shield text-blue-500"></i> Email OTP verification soon
+                            </span>
+                        </div>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                                 <i class="fa-solid fa-envelope text-sm"></i>
@@ -131,6 +154,41 @@
                             <input id="email" type="email" name="email" value="{{ old('email') }}" required
                                 placeholder="name@business.com"
                                 class="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm font-medium text-gray-800 placeholder-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition">
+                        </div>
+                    </div>
+
+                    <!-- City & Pincode (Optional with GPS Auto-Detect) -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                Business Location (स्थान) <span class="text-gray-400 font-normal">(Optional)</span>
+                            </label>
+                            <!-- GPS Auto-Detect Button -->
+                            <button type="button" onclick="detectGPSLocation()" id="gpsBtn" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1 rounded-lg transition active:scale-95">
+                                <i class="fa-solid fa-location-crosshairs text-blue-600" id="gpsIcon"></i>
+                                <span id="gpsText">Auto-Detect via GPS</span>
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <!-- City Input -->
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                    <i class="fa-solid fa-city text-xs"></i>
+                                </div>
+                                <input id="city" type="text" name="city" value="{{ old('city') }}"
+                                    placeholder="City (e.g. Rajkot, Surat)"
+                                    class="w-full pl-9 pr-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm font-medium text-gray-800 placeholder-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition">
+                            </div>
+
+                            <!-- Pincode Input -->
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                    <i class="fa-solid fa-location-dot text-xs"></i>
+                                </div>
+                                <input id="pincode" type="text" name="pincode" value="{{ old('pincode') }}" maxlength="6"
+                                    placeholder="6-Digit Pincode"
+                                    class="w-full pl-9 pr-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm font-medium text-gray-800 placeholder-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition">
+                            </div>
                         </div>
                     </div>
 
@@ -170,10 +228,18 @@
                         </div>
                     </div>
 
+                    <!-- Future Verification Roadmap Notice -->
+                    <div class="p-3 bg-blue-50/80 border border-blue-200/70 rounded-2xl text-[11px] text-blue-900 flex items-start gap-2.5">
+                        <i class="fa-solid fa-circle-info text-blue-600 mt-0.5 text-xs"></i>
+                        <div>
+                            <strong>Merchant Protection Policy:</strong> VyaparIndia uses verified seller credentials. Mobile & Email OTP verification badges will be activated for zero-fraud trust.
+                        </div>
+                    </div>
+
                     <!-- Terms & Agreement Notice -->
-                    <div class="flex items-start gap-2.5 pt-1 text-xs text-gray-600">
+                    <div class="flex items-start gap-2 pt-1 text-xs text-gray-600">
                         <i class="fa-solid fa-circle-check text-blue-600 mt-0.5"></i>
-                        <span>By signing up, you agree to VyaparIndia's marketplace standards, privacy guidelines, and verified B2B merchant policy.</span>
+                        <span>By signing up, you agree to VyaparIndia's <a href="{{ route('terms') }}" class="text-blue-600 hover:underline">Terms of Service</a> & <a href="{{ route('privacy') }}" class="text-blue-600 hover:underline">Privacy Policy</a>.</span>
                     </div>
 
                     <!-- Submit Button -->
@@ -200,8 +266,17 @@
         </div>
     </main>
 
-    <!-- Footer Trust Info -->
+    <!-- Footer Trust Info & Links -->
     <footer class="w-full py-6 text-center text-xs text-gray-400 relative z-10">
+        <div class="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mb-3">
+            <a href="{{ route('about') }}" class="hover:text-gray-200 transition">About Us</a>
+            <span>•</span>
+            <a href="{{ route('help') }}" class="hover:text-gray-200 transition">Help & Support</a>
+            <span>•</span>
+            <a href="{{ route('privacy') }}" class="hover:text-gray-200 transition">Privacy Policy</a>
+            <span>•</span>
+            <a href="{{ route('terms') }}" class="hover:text-gray-200 transition">Terms of Service</a>
+        </div>
         <div class="flex items-center justify-center gap-6 mb-2">
             <span class="flex items-center gap-1.5"><i class="fa-solid fa-lock text-green-400"></i> SSL 256-bit Secure</span>
             <span class="flex items-center gap-1.5"><i class="fa-solid fa-truck-fast text-blue-400"></i> Pan-India Logistics</span>
@@ -210,7 +285,7 @@
         <p>&copy; {{ date('Y') }} VyaparIndia.online - All rights reserved.</p>
     </footer>
 
-    <!-- Interactive Role Toggle Script -->
+    <!-- Interactive Role Toggle & GPS Script -->
     <script>
         function updateRoleUI() {
             const isSeller = document.getElementById('roleSeller').checked;
@@ -221,31 +296,33 @@
             const headerTitle = document.getElementById('formHeaderTitle');
             const headerSubtitle = document.getElementById('formHeaderSubtitle');
             const btnText = document.getElementById('btnText');
+            const firmRequiredStar = document.getElementById('firmRequiredStar');
+            const nameLabel = document.getElementById('nameLabel');
 
             if (isSeller) {
-                // Active Seller styling
                 sellerCard.className = "relative flex flex-col p-4 rounded-2xl border-2 border-blue-600 bg-blue-50/50 shadow-md shadow-blue-500/10 cursor-pointer transition-all duration-200 text-center select-none";
                 sellerIcon.className = "text-2xl mb-1 text-blue-600";
                 
-                // Inactive Buyer styling
                 buyerCard.className = "relative flex flex-col p-4 rounded-2xl border-2 border-gray-200 bg-white hover:border-gray-300 cursor-pointer transition-all duration-200 text-center select-none";
                 buyerIcon.className = "text-2xl mb-1 text-gray-400";
 
                 headerTitle.innerText = "Create Seller Account";
                 headerSubtitle.innerText = "Start selling across India with zero upfront fees & instant store activation.";
                 btnText.innerText = "Create Seller Account";
+                firmRequiredStar.style.display = "inline";
+                nameLabel.innerText = "Owner Name (मालिक का नाम) *";
             } else {
-                // Active Buyer styling
                 buyerCard.className = "relative flex flex-col p-4 rounded-2xl border-2 border-blue-600 bg-blue-50/50 shadow-md shadow-blue-500/10 cursor-pointer transition-all duration-200 text-center select-none";
                 buyerIcon.className = "text-2xl mb-1 text-blue-600";
                 
-                // Inactive Seller styling
                 sellerCard.className = "relative flex flex-col p-4 rounded-2xl border-2 border-gray-200 bg-white hover:border-gray-300 cursor-pointer transition-all duration-200 text-center select-none";
                 sellerIcon.className = "text-2xl mb-1 text-gray-400";
 
                 headerTitle.innerText = "Create Buyer Account";
                 headerSubtitle.innerText = "Discover verified wholesale manufacturers and order at direct factory rates.";
                 btnText.innerText = "Create Buyer Account";
+                firmRequiredStar.style.display = "none";
+                nameLabel.innerText = "Your Full Name (आपका नाम) *";
             }
         }
 
@@ -263,7 +340,63 @@
             }
         }
 
-        // Initialize UI state on load
+        // HTML5 Geolocation with free reverse geocoding
+        function detectGPSLocation() {
+            const gpsBtn = document.getElementById('gpsBtn');
+            const gpsText = document.getElementById('gpsText');
+            const gpsIcon = document.getElementById('gpsIcon');
+
+            if (!navigator.geolocation) {
+                alert("Geolocation is not supported by your browser.");
+                return;
+            }
+
+            gpsText.innerText = "Locating...";
+            gpsIcon.className = "fa-solid fa-spinner fa-spin text-blue-600";
+            gpsBtn.disabled = true;
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+                        const data = await res.json();
+                        
+                        if (data && data.address) {
+                            const city = data.address.city || data.address.town || data.address.state_district || data.address.county || "";
+                            const pincode = data.address.postcode || "";
+                            
+                            if (city) document.getElementById('city').value = city;
+                            if (pincode) document.getElementById('pincode').value = pincode;
+
+                            gpsText.innerText = "Location Detected!";
+                            gpsIcon.className = "fa-solid fa-check text-green-600";
+                            setTimeout(() => {
+                                gpsText.innerText = "Auto-Detect via GPS";
+                                gpsIcon.className = "fa-solid fa-location-crosshairs text-blue-600";
+                                gpsBtn.disabled = false;
+                            }, 3000);
+                        } else {
+                            throw new Error("Address not found");
+                        }
+                    } catch (e) {
+                        gpsText.innerText = "GPS Failed";
+                        gpsIcon.className = "fa-solid fa-triangle-exclamation text-amber-500";
+                        gpsBtn.disabled = false;
+                    }
+                },
+                (error) => {
+                    gpsText.innerText = "GPS Denied";
+                    gpsIcon.className = "fa-solid fa-location-crosshairs text-blue-600";
+                    gpsBtn.disabled = false;
+                    alert("Please allow location access to auto-fill your city.");
+                },
+                { timeout: 10000 }
+            );
+        }
+
         document.addEventListener('DOMContentLoaded', updateRoleUI);
     </script>
 </body>

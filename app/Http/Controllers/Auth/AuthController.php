@@ -24,6 +24,9 @@ class AuthController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role_id' => ['required', 'in:2,3'], // 2 for buyer, 3 for seller
+            'firm_name' => ['nullable', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:100'],
+            'pincode' => ['nullable', 'string', 'max:20'],
         ]);
 
         $user = User::create([
@@ -35,11 +38,16 @@ class AuthController extends Controller
 
         // Auto initialize seller records if registering as seller
         if ($user->role_id == 3) {
+            $companyName = trim($request->firm_name) ?: ($user->name . ' Enterprises');
+            $city = trim($request->city);
+            $pincode = trim($request->pincode);
+
             \App\Models\SellerProfile::firstOrCreate(['user_id' => $user->id], [
-                'company_name' => $user->name . ' Enterprises',
+                'company_name' => $companyName,
+                'city' => $city,
             ]);
             
-            $baseSlug = \Illuminate\Support\Str::slug($user->name);
+            $baseSlug = \Illuminate\Support\Str::slug($companyName);
             $slug = $baseSlug ?: 'store';
             if (\App\Models\SellerPage::where('slug', $slug)->exists()) {
                 $slug .= '-' . $user->id;
@@ -49,7 +57,9 @@ class AuthController extends Controller
                 ['user_id' => $user->id],
                 [
                     'slug' => $slug,
-                    'page_title' => $user->name . ' Online Store',
+                    'page_title' => $companyName,
+                    'city' => $city,
+                    'pincode' => $pincode,
                     'welcome_message' => 'Welcome to our verified store on VyaparIndia!',
                 ]
             );

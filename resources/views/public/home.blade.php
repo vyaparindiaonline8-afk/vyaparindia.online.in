@@ -264,9 +264,12 @@
             <div>
                 © {{ date('Y') }} <strong>VyaparIndia</strong>. All rights reserved. B2B, Mini-Websites & Dropshipping Ecosystem.
             </div>
-            <div class="flex items-center gap-4">
-                <a href="{{ route('home') }}" class="hover:text-gray-900">Marketplace</a>
-                <a href="{{ route('login') }}" class="hover:text-gray-900">Seller Portal</a>
+            <div class="flex flex-wrap items-center gap-4 sm:gap-6">
+                <a href="{{ route('about') }}" class="hover:text-blue-600 transition">About Us</a>
+                <a href="{{ route('help') }}" class="hover:text-blue-600 transition">Help & Support</a>
+                <a href="{{ route('privacy') }}" class="hover:text-blue-600 transition">Privacy Policy</a>
+                <a href="{{ route('terms') }}" class="hover:text-blue-600 transition">Terms of Service</a>
+                <a href="{{ route('login') }}" class="text-blue-600 font-bold hover:underline">Seller Hub</a>
             </div>
         </div>
     </footer>
