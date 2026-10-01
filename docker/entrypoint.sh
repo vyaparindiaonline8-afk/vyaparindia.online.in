@@ -11,6 +11,7 @@ php artisan migrate --force
 echo "=== Seeding Base Roles & B2B Marketplace Catalog ==="
 php artisan db:seed --class=RoleSeeder --force || true
 php artisan db:seed --class=SampleDataSeeder --force || true
+php artisan db:seed --class=BrandMasterSeeder --force || true
 
 # Cache routes and views for production speed
 php artisan config:cache || true

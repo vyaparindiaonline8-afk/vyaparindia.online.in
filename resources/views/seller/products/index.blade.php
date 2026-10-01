@@ -107,7 +107,12 @@
                 <p class="text-xs text-gray-500">Manage pricing, variants, and stock of your catalog items.</p>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="{{ route('seller.brand-master.index') }}" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-xs shadow-md shadow-amber-500/20 transition flex items-center gap-2">
+                    <i class="fa-solid fa-award"></i>
+                    <span>ब्रांड मास्टर कैटलॉग (Plasto) ⚡</span>
+                </a>
+
                 @if(Auth::user()->canAddProduct())
                     <a href="{{ route('seller.products.create') }}" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition flex items-center gap-2">
                         <i class="fa-solid fa-plus"></i>

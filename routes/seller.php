@@ -20,6 +20,7 @@ use App\Http\Controllers\Seller\CatalogIngestionController;
 use App\Http\Controllers\Seller\DropshipPartnerController;
 use App\Http\Controllers\Seller\PhotoStudioController;
 use App\Http\Controllers\Seller\AnalyticsController;
+use App\Http\Controllers\Seller\BrandMasterController;
 
 Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -141,5 +142,11 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/upload', [PhotoStudioController::class, 'uploadMedia'])->name('upload');
         Route::post('/publish', [PhotoStudioController::class, 'publishProduct'])->name('publish');
         Route::post('/ai-assist', [PhotoStudioController::class, 'aiAssist'])->name('aiAssist');
+    });
+
+    // 🏷️ Central Brand Master Catalog & Less Calculator Routes
+    Route::prefix('brand-master')->name('brand-master.')->group(function () {
+        Route::get('/', [BrandMasterController::class, 'index'])->name('index');
+        Route::post('/import', [BrandMasterController::class, 'import'])->name('import');
     });
 });
