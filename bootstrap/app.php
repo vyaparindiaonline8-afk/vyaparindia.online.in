@@ -20,5 +20,12 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, \Illuminate\Http\Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'CSRF token mismatch. Please refresh.'], 419);
+            }
+            return redirect()->back()
+                ->withInput($request->except('password', 'password_confirmation', '_token'))
+                ->with('error', 'Aapka session expire ho gaya tha ya page purana tha. Kripya dobara submit karein.');
+        });
     })->create();

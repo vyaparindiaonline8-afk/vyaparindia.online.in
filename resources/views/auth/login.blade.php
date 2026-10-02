@@ -73,6 +73,15 @@
                     </div>
                 @endif
 
+                @if (session('error'))
+                    <div class="mb-5 p-4 rounded-2xl bg-rose-50 border border-rose-200 flex items-start gap-3">
+                        <i class="fa-solid fa-circle-exclamation text-rose-600 text-lg mt-0.5"></i>
+                        <div class="text-xs sm:text-sm font-semibold text-rose-800">
+                            {{ session('error') }}
+                        </div>
+                    </div>
+                @endif
+
                 @if (session('success') || session('status'))
                     <div class="mb-5 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-3">
                         <i class="fa-solid fa-circle-check text-emerald-600 text-lg mt-0.5"></i>
