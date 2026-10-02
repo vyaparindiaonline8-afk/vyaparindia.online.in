@@ -124,12 +124,47 @@
             </div>
         </div>
 
+        <!-- Quick Launch: Pre-Configured Plasto Master Card -->
+        <div class="bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+            <div class="space-y-2 max-w-xl relative z-10">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-xs font-black backdrop-blur-xs">
+                    <i class="fa-solid fa-star text-yellow-300"></i>
+                    <span>Ready Brand Master Available</span>
+                </div>
+                <h2 class="text-xl sm:text-2xl font-black">
+                    Plasto Complete Master Catalog (291 Items with HD Photos)
+                </h2>
+                <p class="text-xs sm:text-sm text-orange-100">
+                    Aapke accounting ka 291 Plasto items ka pura data (UPVC, CPVC, SWR, Brass, Valves) HD product photos aur exact sizes ke sath ready hai!
+                </p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 relative z-10">
+                <form action="{{ route('seller.catalog.load_plasto') }}" method="POST">
+                    @csrf
+                    <button type="submit" class="px-6 py-3.5 rounded-2xl bg-white hover:bg-orange-50 text-orange-950 font-black text-xs shadow-lg transition flex items-center gap-2">
+                        <i class="fa-solid fa-bolt text-amber-600"></i>
+                        <span>1-Click Load to Review</span>
+                    </button>
+                </form>
+
+                <a href="{{ asset('catalogs/PLASTO_WITH_IMAGES_MASTER.xlsx') }}" download class="px-5 py-3.5 rounded-2xl bg-black/30 hover:bg-black/40 text-white font-bold text-xs backdrop-blur-xs border border-white/20 transition flex items-center gap-2">
+                    <i class="fa-solid fa-file-excel text-emerald-400"></i>
+                    <span>Download Excel Sheet</span>
+                </a>
+            </div>
+            
+            <div class="absolute -right-6 -bottom-6 opacity-15 text-white pointer-events-none text-9xl">
+                <i class="fa-solid fa-certificate"></i>
+            </div>
+        </div>
+
         <!-- Upload Card -->
         <div class="bg-white rounded-3xl border border-gray-200 p-8 shadow-xs space-y-6">
             <div class="flex items-center justify-between border-b border-gray-100 pb-4">
                 <div>
-                    <h2 class="text-lg font-black text-gray-900">Upload Product Brochure / Rate List</h2>
-                    <p class="text-xs text-gray-500">PDF files up to 50MB supported (High-res product images auto-extracted)</p>
+                    <h2 class="text-lg font-black text-gray-900">Upload Accounting Excel or PDF Brochure</h2>
+                    <p class="text-xs text-gray-500">Supported formats: Excel (.xlsx, .xls, .csv) & PDF catalogs up to 50MB</p>
                 </div>
                 <span class="text-xs font-semibold px-3 py-1 bg-blue-50 text-blue-700 rounded-full">
                     <i class="fa-solid fa-bolt mr-1"></i> AI Powered
@@ -141,7 +176,7 @@
 
                 <!-- Dropzone Area -->
                 <div id="dropzone" class="border-2 border-dashed border-gray-300 hover:border-blue-500 rounded-3xl p-10 text-center cursor-pointer transition bg-gray-50/50 hover:bg-blue-50/20 group">
-                    <input type="file" name="catalog_pdf" id="catalog_pdf" accept="application/pdf" class="hidden" required onchange="handleFileSelect(this)">
+                    <input type="file" name="catalog_file" id="catalog_file" accept=".pdf,.xlsx,.xls,.csv" class="hidden" required onchange="handleFileSelect(this)">
                     
                     <div class="flex flex-col items-center justify-center space-y-3">
                         <div class="h-16 w-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-3xl group-hover:scale-110 transition">
@@ -149,10 +184,10 @@
                         </div>
                         <div>
                             <span class="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition" id="fileLabel">
-                                Click to choose or drag & drop PDF catalog here
+                                Click to choose or drag & drop Excel sheet or PDF catalog
                             </span>
                             <p class="text-xs text-gray-400 mt-1" id="fileSubtext">
-                                PDF format only (e.g. Astral_Pipes_2026.pdf, Garment_Catalog.pdf)
+                                Excel (.xlsx/.csv from Busy, Tally, Marg) or PDF brochure up to 50MB
                             </p>
                         </div>
                     </div>
@@ -161,12 +196,12 @@
                 <div class="flex items-center justify-between pt-2">
                     <div class="text-xs text-gray-500 flex items-center gap-2">
                         <i class="fa-solid fa-circle-info text-blue-500"></i>
-                        <span>Upload hone ke baad aapko visual screen milegi jahan aap rates aur details edit kar sakenge.</span>
+                        <span>Upload hone ke baad sabhi sizes automatically 1 product card me group hokar editable canvas par aayenge.</span>
                     </div>
 
                     <button type="submit" id="submitBtn" class="px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm shadow-lg shadow-blue-500/20 flex items-center gap-2 transition disabled:opacity-50">
                         <i class="fa-solid fa-gear fa-spin hidden" id="spinner"></i>
-                        <span id="btnText">Parse & Ingest Catalog</span>
+                        <span id="btnText">Parse & Process Catalog</span>
                         <i class="fa-solid fa-arrow-right text-xs"></i>
                     </button>
                 </div>

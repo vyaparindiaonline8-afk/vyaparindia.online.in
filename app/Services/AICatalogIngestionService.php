@@ -32,8 +32,11 @@ class AICatalogIngestionService
             mkdir($outputDir, 0755, true);
         }
 
-        $pythonScript = base_path('app/Services/pdf_catalog_parser.py');
-        $pythonExec = 'python';
+        $pythonExec = (PHP_OS_FAMILY === 'Windows' && file_exists('C:\\Python313\\python.exe')) ? 'C:\\Python313\\python.exe' : 'python3';
+        
+        $ext = strtolower(pathinfo($job->filename, PATHINFO_EXTENSION));
+        $isExcel = in_array($ext, ['xlsx', 'xls', 'csv']);
+        $pythonScript = $isExcel ? base_path('app/Services/excel_catalog_parser.py') : base_path('app/Services/pdf_catalog_parser.py');
 
         $extractedData = null;
 
@@ -51,7 +54,7 @@ class AICatalogIngestionService
                     $extractedData = json_decode($jsonContent, true);
                 }
             } catch (\Exception $e) {
-                Log::warning("Python catalog parser error for job #{$job->id}: " . $e->getMessage());
+                Log::warning("Catalog parser error for job #{$job->id}: " . $e->getMessage());
             }
         }
 

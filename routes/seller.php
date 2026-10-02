@@ -122,12 +122,15 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
     Route::get('/products/{product}/pricing-tiers', [GstInvoiceController::class, 'pricingTiers'])->name('products.pricing_tiers');
     Route::post('/products/{product}/pricing-tiers', [GstInvoiceController::class, 'storeTier'])->name('products.store_tier');
 
-    // 📑 PDF Catalog & Brochure AI Ingestion Routes
+    // 📑 PDF & Excel Catalog AI Ingestion Routes
     Route::prefix('catalog')->name('catalog.')->group(function () {
         Route::get('/upload', [CatalogIngestionController::class, 'uploadForm'])->name('upload');
         Route::post('/upload', [CatalogIngestionController::class, 'upload'])->name('store');
+        Route::post('/load-plasto-master', [CatalogIngestionController::class, 'loadPlastoMaster'])->name('load_plasto');
         Route::get('/review/{job}', [CatalogIngestionController::class, 'review'])->name('review');
         Route::post('/publish/{job}', [CatalogIngestionController::class, 'publish'])->name('publish');
+        Route::get('/export-excel/{job}', [CatalogIngestionController::class, 'exportExcel'])->name('export_excel');
+        Route::post('/crop-image', [CatalogIngestionController::class, 'cropImage'])->name('crop_image');
     });
 
     // 📦 Inventory & 1-Click Restock Manager

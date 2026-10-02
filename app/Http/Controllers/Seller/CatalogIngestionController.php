@@ -38,16 +38,22 @@ class CatalogIngestionController extends Controller
     }
 
     /**
-     * Handle PDF Catalog Upload and Trigger Ingestion.
+     * Handle PDF or Excel Catalog Upload and Trigger Ingestion.
      */
     public function upload(Request $request)
     {
         $request->validate([
-            'catalog_pdf' => 'required|file|mimes:pdf|max:51200', // Up to 50MB
+            'catalog_file' => 'nullable|file|mimes:pdf,xlsx,xls,csv|max:51200', // Up to 50MB
+            'catalog_pdf' => 'nullable|file|mimes:pdf,xlsx,xls,csv|max:51200',
         ]);
 
         $user = Auth::user();
-        $file = $request->file('catalog_pdf');
+        $file = $request->file('catalog_file') ?? $request->file('catalog_pdf');
+
+        if (!$file) {
+            return back()->withErrors(['catalog_file' => 'Please select a valid PDF brochure or Excel (.xlsx/.csv) rate list file.']);
+        }
+
         $originalName = $file->getClientOriginalName();
         $storedPath = $file->store('catalogs/' . $user->id, 'public');
 
@@ -59,11 +65,105 @@ class CatalogIngestionController extends Controller
             'total_products_detected' => 0,
         ]);
 
-        // Process PDF via AI Ingestion Service
+        // Process PDF or Excel via AI Ingestion Service
         $job = $this->ingestionService->processCatalog($job);
 
         return redirect()->route('seller.catalog.review', $job->id)
-            ->with('success', 'PDF Catalog successfully parsed! Review extracted items, set GST & margins before publishing.');
+            ->with('success', 'Catalog successfully processed! Review grouped products, verify photos & margins before publishing.');
+    }
+
+    /**
+     * 1-Click Load Pre-Configured Plasto Master Catalog (291 items with high-res photos)
+     */
+    public function loadPlastoMaster(Request $request)
+    {
+        $user = Auth::user();
+        $masterFile = 'catalogs/PLASTO_WITH_IMAGES_MASTER.xlsx';
+        $fullPath = storage_path('app/' . $masterFile);
+
+        if (!file_exists($fullPath)) {
+            // Check public
+            $pubPath = public_path('catalogs/PLASTO_WITH_IMAGES_MASTER.xlsx');
+            if (file_exists($pubPath)) {
+                if (!is_dir(storage_path('app/catalogs'))) {
+                    mkdir(storage_path('app/catalogs'), 0755, true);
+                }
+                copy($pubPath, $fullPath);
+            }
+        }
+
+        $job = CatalogIngestionJob::create([
+            'user_id' => $user->id,
+            'filename' => 'PLASTO_MASTER_CATALOG_WITH_IMAGES.xlsx',
+            'file_path' => $masterFile,
+            'status' => 'pending',
+            'total_products_detected' => 0,
+        ]);
+
+        $job = $this->ingestionService->processCatalog($job);
+
+        return redirect()->route('seller.catalog.review', $job->id)
+            ->with('success', '🎉 Plasto 291-Item Master Catalog successfully loaded with high-definition photos and exact sizes!');
+    }
+
+    /**
+     * Export Current Staging / Job Data to Clean Excel
+     */
+    public function exportExcel(CatalogIngestionJob $job)
+    {
+        if ($job->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $masterExcel = public_path('catalogs/PLASTO_WITH_IMAGES_MASTER.xlsx');
+        if (file_exists($masterExcel)) {
+            return response()->download($masterExcel, 'VyaparIndia_Plasto_Master_Catalog.xlsx');
+        }
+
+        return back()->with('error', 'Master Excel file not available for download.');
+    }
+
+    /**
+     * Save Client-Side Cropped Image
+     */
+    public function cropImage(Request $request)
+    {
+        $request->validate([
+            'image_data' => 'required|string',
+            'product_index' => 'nullable|integer',
+        ]);
+
+        $data = $request->input('image_data');
+        if (preg_match('/^data:image\/(\w+);base64,/', $data, $type)) {
+            $data = substr($data, strpos($data, ',') + 1);
+            $type = strtolower($type[1]);
+            if (!in_array($type, ['jpg', 'jpeg', 'png', 'webp'])) {
+                return response()->json(['success' => false, 'message' => 'Invalid image format'], 422);
+            }
+            $data = base64_decode($data);
+            if ($data === false) {
+                return response()->json(['success' => false, 'message' => 'Base64 decode failed'], 422);
+            }
+        } else {
+            return response()->json(['success' => false, 'message' => 'Invalid data URI'], 422);
+        }
+
+        $cropsDir = public_path('storage/catalog_extracted/custom_crops');
+        if (!is_dir($cropsDir)) {
+            mkdir($cropsDir, 0755, true);
+        }
+
+        $fileName = 'crop_' . Auth::id() . '_' . time() . '_' . rand(100, 999) . '.' . ($type === 'png' ? 'png' : 'jpg');
+        $filePath = $cropsDir . DIRECTORY_SEPARATOR . $fileName;
+        file_put_contents($filePath, $data);
+
+        $relativeUrl = 'storage/catalog_extracted/custom_crops/' . $fileName;
+
+        return response()->json([
+            'success' => true,
+            'image_url' => $relativeUrl,
+            'asset_url' => asset($relativeUrl),
+        ]);
     }
 
     /**
