@@ -803,9 +803,10 @@
         function clearRowSelection() {
             document.querySelectorAll('.row-checkbox').forEach(cb => {
                 cb.checked = false;
-                cb.closest('tr').classList.remove('row-selected');
+                if (cb.closest('tr')) cb.closest('tr').classList.remove('row-selected');
             });
-            document.getElementById('selectAllCheckbox').checked = false;
+            const selAll = document.getElementById('selectAllCheckbox');
+            if (selAll) selAll.checked = false;
             updateFloatingBatchBar();
         }
 
@@ -817,14 +818,18 @@
                 count = document.querySelectorAll('.row-checkbox:checked').length;
             }
             const bar = document.getElementById('floatingBatchBar');
+            const selCountEl = document.getElementById('floatingSelectedCount');
+            const btnBatchEl = document.getElementById('btnBatchCount');
             
-            document.getElementById('floatingSelectedCount').innerText = count;
-            document.getElementById('btnBatchCount').innerText = count;
+            if (selCountEl) selCountEl.innerText = count;
+            if (btnBatchEl) btnBatchEl.innerText = count;
 
-            if (count > 0) {
-                bar.classList.remove('hidden');
-            } else {
-                bar.classList.add('hidden');
+            if (bar) {
+                if (count > 0) {
+                    bar.classList.remove('hidden');
+                } else {
+                    bar.classList.add('hidden');
+                }
             }
         }
 
