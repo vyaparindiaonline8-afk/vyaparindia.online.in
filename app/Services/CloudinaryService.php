@@ -121,4 +121,61 @@ class CloudinaryService
 
         return null;
     }
+
+    /**
+     * List resources from Cloudinary Admin API
+     *
+     * @param string $prefix
+     * @param int $maxResults
+     * @return array
+     */
+    public static function listResources(string $prefix = '', int $maxResults = 500): array
+    {
+        $cloudName = config('cloudinary.cloud_name') ?: env('CLOUDINARY_CLOUD_NAME');
+        $apiKey = config('cloudinary.api_key') ?: env('CLOUDINARY_API_KEY');
+        $apiSecret = config('cloudinary.api_secret') ?: env('CLOUDINARY_API_SECRET');
+
+        if (!$cloudName || !$apiKey || !$apiSecret) {
+            return [];
+        }
+
+        try {
+            $allResources = [];
+            $nextCursor = null;
+
+            do {
+                $url = "https://api.cloudinary.com/v1_1/{$cloudName}/resources/image?max_results=" . min(500, $maxResults) . "&type=upload";
+                if (!empty($prefix)) {
+                    $url .= "&prefix=" . urlencode($prefix);
+                }
+                if ($nextCursor) {
+                    $url .= "&next_cursor=" . urlencode($nextCursor);
+                }
+
+                $response = Http::timeout(25)
+                    ->withoutVerifying()
+                    ->withBasicAuth($apiKey, $apiSecret)
+                    ->get($url);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $resources = $data['resources'] ?? [];
+                    $allResources = array_merge($allResources, $resources);
+                    $nextCursor = $data['next_cursor'] ?? null;
+                } else {
+                    Log::warning('Cloudinary listResources failed', [
+                        'status' => $response->status(),
+                        'body' => $response->body()
+                    ]);
+                    break;
+                }
+            } while ($nextCursor && count($allResources) < $maxResults);
+
+            return $allResources;
+        } catch (\Throwable $e) {
+            Log::error('Cloudinary listResources exception: ' . $e->getMessage());
+        }
+
+        return [];
+    }
 }

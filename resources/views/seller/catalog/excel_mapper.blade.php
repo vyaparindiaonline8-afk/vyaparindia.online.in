@@ -500,6 +500,7 @@
                     <h3 class="text-sm font-black text-gray-900 flex items-center gap-2">
                         <i class="fa-solid fa-images text-indigo-600"></i>
                         <span>Select Photo from Media Bank</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-100 text-indigo-800 font-bold" id="drawerImagesCount">{{ count($galleryImages) }} Photos</span>
                     </h3>
                     <p class="text-[11px] text-gray-500" id="drawerTargetInfo">
                         Click any image to attach it immediately
@@ -754,10 +755,15 @@
 
         function filterDrawerGallery(q) {
             const query = q.toLowerCase().trim();
+            let visible = 0;
             document.querySelectorAll('.drawer-img-card').forEach(card => {
                 const name = card.getAttribute('data-name');
-                card.style.display = (!query || name.includes(query)) ? '' : 'none';
+                const match = (!query || name.includes(query));
+                card.style.display = match ? '' : 'none';
+                if (match) visible++;
             });
+            const countEl = document.getElementById('drawerImagesCount');
+            if (countEl) countEl.innerText = `${visible} Photos`;
         }
 
         // User picks an image from drawer
