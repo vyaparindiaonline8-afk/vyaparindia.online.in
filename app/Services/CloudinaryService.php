@@ -71,4 +71,54 @@ class CloudinaryService
 
         return null;
     }
+
+    /**
+     * Upload a Base64 data URI image (e.g. data:image/jpeg;base64,...) directly to Cloudinary.
+     *
+     * @param string $base64Data
+     * @param string $folder
+     * @return string|null
+     */
+    public static function uploadBase64(string $base64Data, string $folder = 'vyaparindia/catalog/crops'): ?string
+    {
+        $cloudName = config('cloudinary.cloud_name') ?: env('CLOUDINARY_CLOUD_NAME');
+        $apiKey = config('cloudinary.api_key') ?: env('CLOUDINARY_API_KEY');
+        $apiSecret = config('cloudinary.api_secret') ?: env('CLOUDINARY_API_SECRET');
+
+        if ($cloudName && $apiKey && $apiSecret) {
+            try {
+                $timestamp = time();
+                $toSign = "folder={$folder}&timestamp={$timestamp}" . $apiSecret;
+                $signature = sha1($toSign);
+
+                $url = "https://api.cloudinary.com/v1_1/{$cloudName}/image/upload";
+
+                $response = Http::timeout(30)
+                    ->withoutVerifying()
+                    ->post($url, [
+                        'file' => $base64Data, // Cloudinary natively accepts base64 data URI
+                        'api_key' => $apiKey,
+                        'timestamp' => $timestamp,
+                        'folder' => $folder,
+                        'signature' => $signature,
+                    ]);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    if (!empty($data['secure_url'])) {
+                        return $data['secure_url'];
+                    }
+                }
+
+                Log::warning('Cloudinary base64 upload returned non-success response', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('Cloudinary base64 upload exception: ' . $e->getMessage());
+            }
+        }
+
+        return null;
+    }
 }

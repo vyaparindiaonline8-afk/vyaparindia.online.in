@@ -146,6 +146,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         // 📊 Page 3: Excel Multi-Row Mapper (6-8 Line Batch Image Assigner & Publisher)
         Route::get('/excel-mapper/{job?}', [CatalogIngestionController::class, 'excelMapper'])->name('excel_mapper');
         Route::post('/excel-mapper/assign-batch', [CatalogIngestionController::class, 'assignBatchImage'])->name('excel_mapper.assign_batch');
+        Route::post('/excel-mapper/create-sheet', [CatalogIngestionController::class, 'createSheetFromRows'])->name('excel_mapper.create_sheet');
         Route::post('/excel-mapper/publish-direct', [CatalogIngestionController::class, 'publishDirectFromMapper'])->name('excel_mapper.publish_direct');
     });
 

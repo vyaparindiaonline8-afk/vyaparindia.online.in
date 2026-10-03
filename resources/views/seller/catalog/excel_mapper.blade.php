@@ -91,27 +91,112 @@
             </div>
         @endif
 
-        @if(!$job || empty($products))
-            <div class="bg-white rounded-3xl border border-gray-200 p-12 text-center max-w-xl mx-auto shadow-sm space-y-4 my-8">
-                <div class="h-20 w-20 mx-auto rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-3xl">
-                    <i class="fa-solid fa-file-excel"></i>
+        <!-- ========================================== -->
+        <!-- 📑 DYNAMIC SAAS SPREADSHEET TABLE          -->
+        <!-- (Supports PDF Extracted Lines & 6-8 Link)  -->
+        <!-- ========================================== -->
+        <div id="dynamicSheetContainer" class="{{ (!$job || empty($products)) ? '' : 'hidden' }} space-y-4">
+            <!-- Dynamic Controls Header -->
+            <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-table"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="dynamicSheetName" value="PDF Extracted Catalog Sheet" class="text-sm font-black text-gray-900 border-b border-dashed border-gray-300 focus:border-emerald-600 focus:outline-none bg-transparent">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-bold" id="dynamicRowCountBadge">0 Rows</span>
+                        </div>
+                        <p class="text-[11px] text-gray-500">
+                            PDF se nikale gaye text lines yahan editable rows me aa gaye hain. 6-8 rows select karke 1-click me photo link karein!
+                        </p>
+                    </div>
                 </div>
-                <h3 class="text-xl font-black text-gray-900">Koi Excel Sheet Uploaded Nahi Hai</h3>
-                <p class="text-xs text-gray-500 leading-relaxed">
-                    Purana catalog data, images aur jobs completely delete kar diye gaye hain. Fresh start karne ke liye apni Excel rate list ya PDF brochure upload karein.
-                </p>
-                <div class="pt-2 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ route('seller.catalog.upload') }}" class="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition">
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" onclick="loadSampleDynamicRows()" class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition flex items-center gap-1.5" title="Load sample UPVC / CPVC fittings">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
+                        <span>Load Sample Lines</span>
+                    </button>
+                    <a href="{{ route('seller.catalog.pdf_studio') }}" class="px-3.5 py-2 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-700 font-bold text-xs transition flex items-center gap-1.5 border border-violet-200">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>Extract from PDF Studio</span>
+                    </a>
+                    <button type="button" onclick="addDynamicRow()" class="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs transition flex items-center gap-1.5 border border-blue-200">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Add Row</span>
+                    </button>
+                    <button type="button" onclick="exportDynamicToCsv()" class="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-csv text-emerald-600"></i>
+                        <span>Export CSV</span>
+                    </button>
+                    <button type="button" onclick="saveDynamicSheetToBackend()" id="btnSaveDynamicSheet" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition active:scale-95">
                         <i class="fa-solid fa-cloud-arrow-up"></i>
-                        <span>Upload Fresh Excel / PDF File</span>
-                    </a>
-                    <a href="{{ route('seller.catalog.gallery') }}" class="px-5 py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-extrabold text-xs transition flex items-center gap-2">
-                        <i class="fa-solid fa-images"></i>
-                        <span>Check Media Vault</span>
-                    </a>
+                        <span>Save to Catalog & Publish</span>
+                    </button>
+                    @if($job && !empty($products))
+                        <button type="button" onclick="toggleDynamicMode(false)" class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-xs">
+                            &larr; Back to Uploaded Excel
+                        </button>
+                    @endif
                 </div>
             </div>
-        @else
+
+            <!-- Dynamic Table Card -->
+            <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/70">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-black text-gray-800 uppercase tracking-wider">Dynamic Spreadsheet Lines:</span>
+                        <span class="text-xs text-gray-500" id="dynamicTableSubtitle">(Select 6-8 lines to link photo)</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="text-gray-500">Quick Select:</span>
+                        <button type="button" onclick="selectNDynamicRows(6)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700">First 6</button>
+                        <button type="button" onclick="selectNDynamicRows(8)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700">First 8</button>
+                        <button type="button" onclick="toggleSelectAllDynamic(true)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700">All</button>
+                        <button type="button" onclick="clearDynamicRowSelection()" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-600">Clear</button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs" id="dynamicSpreadsheetTable">
+                        <thead class="bg-gray-50 text-gray-500 text-[11px] font-bold uppercase border-b border-gray-200">
+                            <tr>
+                                <th class="p-3 w-12 text-center">
+                                    <input type="checkbox" id="dynamicSelectAll" onchange="toggleSelectAllDynamic(this.checked)" class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+                                </th>
+                                <th class="p-3 w-14">Photo</th>
+                                <th class="p-3 w-28">Category</th>
+                                <th class="p-3 min-w-[200px]">Product Name (Line Text)</th>
+                                <th class="p-3 w-32">Size / Variant</th>
+                                <th class="p-3 w-24">MRP (₹)</th>
+                                <th class="p-3 w-24">Cost (₹)</th>
+                                <th class="p-3 w-24">Retail (₹)</th>
+                                <th class="p-3 w-28 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dynamicTableBody" class="divide-y divide-gray-100 font-medium">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        @if($job && !empty($products))
+            <!-- Banner to switch to Dynamic PDF Mode if user has extracted lines -->
+            <div id="dynamicPdfPromptBanner" class="hidden p-3.5 bg-violet-50 border border-violet-200 rounded-2xl flex items-center justify-between gap-3 text-xs">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-file-lines text-violet-600 text-sm"></i>
+                    <span class="font-bold text-violet-900" id="dynamicPdfPromptText">PDF Studio se nikale gaye text lines uplabdh hain!</span>
+                </div>
+                <button type="button" onclick="toggleDynamicMode(true)" class="px-3.5 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-extrabold text-xs shadow-sm transition">
+                    Open PDF Extracted Sheet &rarr;
+                </button>
+            </div>
+        @endif
+
+        @if($job && !empty($products))
 
         <!-- Controls & View Mode Bar -->
         <div class="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
@@ -569,9 +654,13 @@
         }
 
         function updateFloatingBatchBar() {
-            const checked = document.querySelectorAll('.row-checkbox:checked');
+            let count = 0;
+            if (isDynamicMode) {
+                count = document.querySelectorAll('.dynamic-row-checkbox:checked').length;
+            } else {
+                count = document.querySelectorAll('.row-checkbox:checked').length;
+            }
             const bar = document.getElementById('floatingBatchBar');
-            const count = checked.length;
             
             document.getElementById('floatingSelectedCount').innerText = count;
             document.getElementById('btnBatchCount').innerText = count;
@@ -589,10 +678,10 @@
             currentTargetId = id;
 
             const info = document.getElementById('drawerTargetInfo');
-            if (type === 'row') {
-                info.innerText = `Attaching to Row #${id}`;
+            if (type === 'row' || type === 'dynamic_row') {
+                info.innerText = `Attaching photo to Row #${id}`;
             } else if (type === 'card') {
-                info.innerText = `Attaching to Product Card #${id}`;
+                info.innerText = `Attaching photo to Product Card #${id}`;
             } else {
                 info.innerText = `Click any image to attach to selection`;
             }
@@ -601,6 +690,16 @@
         }
 
         function openGalleryDrawerForBatch() {
+            if (isDynamicMode) {
+                const checked = Array.from(document.querySelectorAll('.dynamic-row-checkbox:checked')).map(cb => parseInt(cb.value));
+                if (checked.length === 0) return;
+                currentTargetType = 'dynamic_batch';
+                currentTargetId = checked;
+                document.getElementById('drawerTargetInfo').innerText = `Attaching photo to all ${checked.length} selected lines`;
+                document.getElementById('galleryDrawerOverlay').classList.remove('hidden');
+                return;
+            }
+
             const checked = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => parseInt(cb.value));
             if (checked.length === 0) return;
 
@@ -629,6 +728,22 @@
                 return;
             }
 
+            // 1. Dynamic Row Single Assign
+            if (currentTargetType === 'dynamic_row') {
+                updateDynamicRowThumbnail(currentTargetId, relUrl, assetUrl);
+                closeGalleryDrawer();
+                return;
+            }
+
+            // 2. Dynamic Batch Assign (e.g. 6-8 rows selected!)
+            if (currentTargetType === 'dynamic_batch') {
+                currentTargetId.forEach(rId => updateDynamicRowThumbnail(rId, relUrl, assetUrl));
+                clearDynamicRowSelection();
+                closeGalleryDrawer();
+                return;
+            }
+
+            // 3. Database Job Assign
             let payload = {
                 job_id: jobId,
                 image_url: relUrl
@@ -687,6 +802,366 @@
                 box.outerHTML = `<img src="${assetUrl}" class="max-h-full max-w-full object-contain" id="card_thumb_${cId}">`;
             }
         }
+
+        // ==========================================
+        // 📑 DYNAMIC SAAS SPREADSHEET TABLE LOGIC
+        // ==========================================
+        let isDynamicMode = {{ (!$job || empty($products)) ? 'true' : 'false' }};
+        let dynamicRows = [];
+        let dynamicRowNextId = 1;
+
+        function toggleDynamicMode(enable) {
+            isDynamicMode = enable;
+            const dynContainer = document.getElementById('dynamicSheetContainer');
+            const viewTable = document.getElementById('viewTableContainer');
+            const viewCards = document.getElementById('viewCardsContainer');
+
+            if (enable) {
+                if (dynContainer) dynContainer.classList.remove('hidden');
+                if (viewTable) viewTable.classList.add('hidden');
+                if (viewCards) viewCards.classList.add('hidden');
+            } else {
+                if (dynContainer) dynContainer.classList.add('hidden');
+                if (viewTable) viewTable.classList.remove('hidden');
+            }
+            clearDynamicRowSelection();
+            clearRowSelection();
+        }
+
+        function initDynamicSheet() {
+            const rawStored = localStorage.getItem('vyapar_custom_excel_lines');
+            if (rawStored) {
+                try {
+                    const parsed = JSON.parse(rawStored);
+                    const lines = Array.isArray(parsed) ? parsed : (parsed.lines || []);
+                    if (lines.length > 0) {
+                        const promptBanner = document.getElementById('dynamicPdfPromptBanner');
+                        const promptText = document.getElementById('dynamicPdfPromptText');
+                        if (promptBanner) {
+                            promptBanner.classList.remove('hidden');
+                            if (promptText) promptText.innerText = `PDF Studio se ${lines.length} lines nikali gayi hain! Inhe dynamic table me use karein.`;
+                        }
+
+                        if (!jobId || isDynamicMode) {
+                            loadLinesIntoDynamicRows(lines);
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to parse vyapar_custom_excel_lines:', e);
+                }
+            }
+
+            if (!jobId && dynamicRows.length === 0) {
+                loadSampleDynamicRows();
+            }
+        }
+
+        function loadLinesIntoDynamicRows(lines) {
+            dynamicRows = [];
+            lines.forEach((lineText, idx) => {
+                const text = (lineText || '').trim();
+                if (!text) return;
+
+                let category = 'UPVC';
+                if (/CPVC/i.test(text)) category = 'CPVC';
+                else if (/SWR|TRAP|DRAIN/i.test(text)) category = 'SWR';
+                else if (/AGRI|SOLVENT/i.test(text)) category = 'AGRI_OTHER';
+
+                const sizeMatch = text.match(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/i);
+                const size = sizeMatch ? sizeMatch[0] : `Var-${idx + 1}`;
+
+                const priceMatch = text.match(/(?:rs\.?|₹|\/)\s*(\d+(?:\.\d+)?)/i);
+                const price = priceMatch ? parseFloat(priceMatch[1]) : (50 + (idx * 15));
+                const cost = Math.round(price * 0.65);
+                const retail = Math.round(price * 0.88);
+
+                dynamicRows.push({
+                    id: dynamicRowNextId++,
+                    product_name: text,
+                    size: size,
+                    group_type: category,
+                    mrp: price,
+                    purchase_cost: cost,
+                    retail_price: retail,
+                    image_url: preselectedImg || '',
+                    asset_url: preselectedImg ? ('/' + preselectedImg.replace(/^\//, '')) : ''
+                });
+            });
+
+            renderDynamicRows();
+            toggleDynamicMode(true);
+        }
+
+        function loadSampleDynamicRows() {
+            const sampleLines = [
+                "UPVC Elbow 90 Degree 25mm (1 inch) Heavy Duty",
+                "UPVC Elbow 90 Degree 32mm (1-1/4 inch) Heavy Duty",
+                "UPVC Elbow 90 Degree 40mm (1-1/2 inch) Heavy Duty",
+                "UPVC Elbow 90 Degree 50mm (2 inch) Heavy Duty",
+                "UPVC Brass Elbow 25mm x 1/2\" Threaded",
+                "UPVC Brass Elbow 32mm x 1\" Threaded",
+                "UPVC Equal Tee 25mm (1 inch) 3-Way",
+                "UPVC Equal Tee 32mm (1-1/4 inch) 3-Way"
+            ];
+            loadLinesIntoDynamicRows(sampleLines);
+        }
+
+        function addDynamicRow() {
+            dynamicRows.push({
+                id: dynamicRowNextId++,
+                product_name: 'New Product Item',
+                size: '25mm (1")',
+                group_type: 'UPVC',
+                mrp: 100,
+                purchase_cost: 65,
+                retail_price: 85,
+                image_url: '',
+                asset_url: ''
+            });
+            renderDynamicRows();
+        }
+
+        function deleteDynamicRow(id) {
+            dynamicRows = dynamicRows.filter(r => r.id !== id);
+            renderDynamicRows();
+            updateFloatingBatchBar();
+        }
+
+        function renderDynamicRows() {
+            const tbody = document.getElementById('dynamicTableBody');
+            const badge = document.getElementById('dynamicRowCountBadge');
+            if (badge) badge.innerText = `${dynamicRows.length} Rows`;
+
+            if (!tbody) return;
+
+            if (dynamicRows.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="p-8 text-center text-gray-400 text-xs">
+                            Koi rows nahi hain. Upar <b>"Load Sample Lines"</b> ya <b>"Extract from PDF Studio"</b> dabayein.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let html = '';
+            dynamicRows.forEach((r) => {
+                const imgThumb = r.image_url 
+                    ? `<img src="${r.asset_url || r.image_url}" class="max-h-full max-w-full object-contain" id="dyn_img_${r.id}">`
+                    : `<span class="text-gray-300 text-xs" id="dyn_img_${r.id}"><i class="fa-solid fa-camera"></i></span>`;
+
+                html += `
+                    <tr class="hover:bg-slate-50 transition dynamic-row-item" id="dyn_row_${r.id}">
+                        <td class="p-3 text-center">
+                            <input type="checkbox" value="${r.id}" onchange="handleDynamicCheckboxChange(this)" class="dynamic-row-checkbox h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+                        </td>
+                        <td class="p-3">
+                            <div class="h-10 w-10 bg-gray-50 rounded-xl border border-gray-200 p-0.5 flex items-center justify-center overflow-hidden cursor-pointer hover:border-emerald-500 transition" onclick="openGalleryDrawer('dynamic_row', ${r.id})" title="Click to attach photo">
+                                ${imgThumb}
+                            </div>
+                        </td>
+                        <td class="p-3">
+                            <select onchange="updateDynamicRowField(${r.id}, 'group_type', this.value)" class="text-[11px] font-bold py-1 px-1.5 rounded-lg border border-gray-200 bg-white focus:ring-1 focus:ring-emerald-500">
+                                <option value="UPVC" ${r.group_type === 'UPVC' ? 'selected' : ''}>💧 UPVC</option>
+                                <option value="CPVC" ${r.group_type === 'CPVC' ? 'selected' : ''}>🔥 CPVC</option>
+                                <option value="SWR" ${r.group_type === 'SWR' ? 'selected' : ''}>🚰 SWR</option>
+                                <option value="AGRI_OTHER" ${r.group_type === 'AGRI_OTHER' ? 'selected' : ''}>🌿 Other</option>
+                            </select>
+                        </td>
+                        <td class="p-3">
+                            <input type="text" value="${escapeHtml(r.product_name)}" oninput="updateDynamicRowField(${r.id}, 'product_name', this.value)" class="w-full text-xs font-bold text-gray-900 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent">
+                        </td>
+                        <td class="p-3">
+                            <input type="text" value="${escapeHtml(r.size)}" oninput="updateDynamicRowField(${r.id}, 'size', this.value)" class="w-full text-xs font-mono font-bold text-gray-800 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent">
+                        </td>
+                        <td class="p-3 font-mono">
+                            <div class="flex items-center">
+                                <span class="text-gray-400 mr-0.5">₹</span>
+                                <input type="number" step="0.5" value="${r.mrp}" oninput="updateDynamicRowField(${r.id}, 'mrp', parseFloat(this.value) || 0)" class="w-16 text-xs font-bold text-gray-800 border border-transparent hover:border-gray-300 focus:border-emerald-600 rounded-lg p-1 bg-transparent">
+                            </div>
+                        </td>
+                        <td class="p-3 font-mono">
+                            <div class="flex items-center">
+                                <span class="text-gray-400 mr-0.5">₹</span>
+                                <input type="number" step="0.5" value="${r.purchase_cost}" oninput="updateDynamicRowField(${r.id}, 'purchase_cost', parseFloat(this.value) || 0)" class="w-16 text-xs text-gray-600 border border-transparent hover:border-gray-300 focus:border-emerald-600 rounded-lg p-1 bg-transparent">
+                            </div>
+                        </td>
+                        <td class="p-3 font-mono">
+                            <div class="flex items-center">
+                                <span class="text-gray-400 mr-0.5">₹</span>
+                                <input type="number" step="0.5" value="${r.retail_price}" oninput="updateDynamicRowField(${r.id}, 'retail_price', parseFloat(this.value) || 0)" class="w-16 text-xs font-bold text-emerald-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 rounded-lg p-1 bg-transparent">
+                            </div>
+                        </td>
+                        <td class="p-3 text-right">
+                            <div class="flex items-center justify-end gap-1">
+                                <button type="button" onclick="openGalleryDrawer('dynamic_row', ${r.id})" class="h-7 w-7 rounded-lg bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 flex items-center justify-center text-xs transition" title="Pick Photo">
+                                    <i class="fa-solid fa-image"></i>
+                                </button>
+                                <button type="button" onclick="deleteDynamicRow(${r.id})" class="h-7 w-7 rounded-lg bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 flex items-center justify-center text-xs transition" title="Delete Line">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        function updateDynamicRowField(id, field, val) {
+            const row = dynamicRows.find(r => r.id === id);
+            if (row) {
+                row[field] = val;
+            }
+        }
+
+        function updateDynamicRowThumbnail(id, relUrl, assetUrl) {
+            const row = dynamicRows.find(r => r.id === id);
+            if (row) {
+                row.image_url = relUrl;
+                row.asset_url = assetUrl;
+            }
+            const el = document.getElementById('dyn_img_' + id);
+            if (el) {
+                el.outerHTML = `<img src="${assetUrl}" class="max-h-full max-w-full object-contain" id="dyn_img_${id}">`;
+            }
+        }
+
+        function handleDynamicCheckboxChange(cb) {
+            const tr = cb.closest('tr');
+            if (cb.checked) {
+                tr.classList.add('row-selected');
+            } else {
+                tr.classList.remove('row-selected');
+            }
+            updateFloatingBatchBar();
+        }
+
+        function toggleSelectAllDynamic(checked) {
+            document.querySelectorAll('.dynamic-row-checkbox').forEach(cb => {
+                cb.checked = checked;
+                const tr = cb.closest('tr');
+                if (checked) tr.classList.add('row-selected');
+                else tr.classList.remove('row-selected');
+            });
+            const selAll = document.getElementById('dynamicSelectAll');
+            if (selAll) selAll.checked = checked;
+            updateFloatingBatchBar();
+        }
+
+        function selectNDynamicRows(n) {
+            clearDynamicRowSelection();
+            const cbs = document.querySelectorAll('.dynamic-row-checkbox');
+            for (let i = 0; i < Math.min(n, cbs.length); i++) {
+                cbs[i].checked = true;
+                cbs[i].closest('tr').classList.add('row-selected');
+            }
+            updateFloatingBatchBar();
+        }
+
+        function clearDynamicRowSelection() {
+            document.querySelectorAll('.dynamic-row-checkbox').forEach(cb => {
+                cb.checked = false;
+                cb.closest('tr').classList.remove('row-selected');
+            });
+            const selAll = document.getElementById('dynamicSelectAll');
+            if (selAll) selAll.checked = false;
+            updateFloatingBatchBar();
+        }
+
+        function exportDynamicToCsv() {
+            if (dynamicRows.length === 0) {
+                alert('Export karne ke liye koi rows nahi hain.');
+                return;
+            }
+
+            const sheetName = (document.getElementById('dynamicSheetName')?.value || 'catalog').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+            let csv = "Category,Product Name,Size/Dimension,MRP,Purchase Cost,Retail Price,Image URL\n";
+
+            dynamicRows.forEach(r => {
+                const escapeCsv = (str) => `"${(str || '').toString().replace(/"/g, '""')}"`;
+                csv += [
+                    escapeCsv(r.group_type),
+                    escapeCsv(r.product_name),
+                    escapeCsv(r.size),
+                    r.mrp,
+                    r.purchase_cost,
+                    r.retail_price,
+                    escapeCsv(r.image_url)
+                ].join(',') + "\n";
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', `${sheetName}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function saveDynamicSheetToBackend() {
+            if (dynamicRows.length === 0) {
+                alert('Save karne ke liye kam se kam 1 row hona zaroori hai.');
+                return;
+            }
+
+            const sheetTitle = (document.getElementById('dynamicSheetName')?.value || 'PDF Extracted Sheet').trim();
+            const btn = document.getElementById('btnSaveDynamicSheet');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
+            }
+
+            fetch("{{ route('seller.catalog.excel_mapper.create_sheet') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": csrfToken,
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify({
+                    sheet_name: sheetTitle,
+                    rows: dynamicRows
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Save to Catalog & Publish`;
+                }
+
+                if (data.success) {
+                    alert(data.message || 'Sheet saved successfully!');
+                    if (data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                    }
+                } else {
+                    alert(data.message || 'Error saving sheet.');
+                }
+            })
+            .catch(err => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Save to Catalog & Publish`;
+                }
+                console.error(err);
+                alert('Network error while saving dynamic sheet.');
+            });
+        }
+
+        function escapeHtml(str) {
+            return (str || '').toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // Initialize when DOM is ready
+        window.addEventListener('DOMContentLoaded', () => {
+            initDynamicSheet();
+        });
     </script>
 </body>
 </html>

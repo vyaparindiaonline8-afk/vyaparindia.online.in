@@ -179,6 +179,12 @@
                             <span>Fit Page</span>
                         </button>
 
+                        <!-- Extract Text Lines Button -->
+                        <button type="button" onclick="toggleTextDrawer(true)" class="px-2.5 py-1.5 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-extrabold transition flex items-center gap-1 border border-violet-200" title="Extract Text & Lines into Excel Table">
+                            <i class="fa-solid fa-list-check"></i>
+                            <span>Extract Text Lines</span>
+                        </button>
+
                         <!-- Layout Toggle: Split vs Full Page -->
                         <button type="button" onclick="toggleLayoutMode()" id="btnLayoutToggle" class="px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-extrabold transition flex items-center gap-1 border border-indigo-200" title="Toggle Full Page Wide View">
                             <i class="fa-solid fa-expand" id="layoutToggleIcon"></i>
@@ -455,6 +461,70 @@
         </div>
     </div>
 
+    <!-- ======================================================= -->
+    <!-- 📄 TEXT & TABLE LINE EXTRACTOR SLIDE-OVER DRAWER        -->
+    <!-- ======================================================= -->
+    <div id="textDrawerOverlay" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 hidden flex justify-end transition-opacity duration-300" onclick="toggleTextDrawer(false)">
+        <div class="w-full max-w-lg bg-white h-full shadow-2xl flex flex-col transform transition-transform duration-300" onclick="event.stopPropagation()">
+            
+            <!-- Drawer Header -->
+            <div class="p-4 border-b border-gray-200 bg-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-700 flex items-center justify-center text-sm shadow-md">
+                        <i class="fa-solid fa-list-check text-amber-300"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm font-black tracking-tight">PDF Text & Lines Extractor</h3>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] bg-white/10 text-emerald-300 font-mono font-bold" id="extractedLineCountBadge">0 Lines</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400" id="textDrawerPageContext">Page 1</p>
+                    </div>
+                </div>
+
+                <button type="button" onclick="toggleTextDrawer(false)" class="h-8 w-8 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 flex items-center justify-center text-sm transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Toolbar Actions: Select All, Copy, Send -->
+            <div class="p-3 bg-violet-50 border-b border-violet-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div class="flex items-center gap-1.5">
+                    <button type="button" onclick="toggleSelectAllTextLines(true)" class="px-2.5 py-1 rounded-lg bg-white border border-violet-200 hover:bg-violet-100 text-violet-800 font-bold text-[11px]">
+                        Select All
+                    </button>
+                    <button type="button" onclick="toggleSelectAllTextLines(false)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 text-gray-600 font-medium text-[11px]">
+                        Clear
+                    </button>
+                    <span class="text-[11px] font-bold text-violet-900 ml-1" id="selectedLineCountText">0 Selected</span>
+                </div>
+
+                <div class="flex items-center gap-1.5">
+                    <button type="button" onclick="copySelectedLinesToClipboard()" class="px-3 py-1.5 rounded-xl bg-white border border-violet-300 hover:bg-violet-100 text-violet-800 font-extrabold text-[11px] flex items-center gap-1">
+                        <i class="fa-solid fa-copy"></i>
+                        <span>Copy</span>
+                    </button>
+                    <button type="button" onclick="sendSelectedLinesToExcelMapper()" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] flex items-center gap-1.5 shadow-sm active:scale-95">
+                        <i class="fa-solid fa-table-cells"></i>
+                        <span>Send to Excel Mapper &rarr;</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Hint text -->
+            <div class="px-4 py-2 bg-gray-50 border-b border-gray-100 text-[11px] text-gray-600 flex items-center gap-1.5">
+                <i class="fa-solid fa-circle-info text-indigo-600"></i>
+                <span>Lines select karein aur <b>"Send to Excel Mapper"</b> dabayein — wahan in sabhi me 1-click me photo jud jayegi!</span>
+            </div>
+
+            <!-- Extracted Lines List -->
+            <div class="flex-1 p-4 overflow-y-auto space-y-1.5" id="extractedLinesList">
+                <p class="text-xs text-gray-400 text-center py-8">PDF load hone par is page ke sabhi text lines yahan dikhenge...</p>
+            </div>
+
+        </div>
+    </div>
+
     <!-- Floating Trigger for AI Copilot (Bottom Left) -->
     <button type="button" onclick="toggleAiDrawer(true)" class="fixed bottom-6 left-6 z-40 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-black transition active:scale-95 border border-white/20">
         <i class="fa-solid fa-wand-magic-sparkles text-amber-300 animate-pulse text-sm"></i>
@@ -668,10 +738,11 @@
                     }
                 });
 
-                // Extract Text content for AI context
+                // Extract Text content for AI context and Text Lines Drawer
                 page.getTextContent().then(textContent => {
                     currentPageTextContent = textContent.items.map(item => item.str).join(' ');
                     document.getElementById('aiPageContextStatus').innerText = `Page ${pageNum} Active (${textContent.items.length} text items)`;
+                    renderPageTextLines(textContent.items, pageNum);
                 });
 
                 // Update controls
@@ -1194,6 +1265,170 @@
             setTimeout(() => {
                 toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
             }, 3500);
+        }
+
+        // =======================================================
+        // 📄 PDF TEXT & TABLE LINES EXTRACTOR FOR EXCEL MAPPER
+        // =======================================================
+        let currentExtractedLines = [];
+        let selectedLineIndices = new Set();
+
+        function toggleTextDrawer(show) {
+            const drawer = document.getElementById('textDrawerOverlay');
+            if (!drawer) return;
+            if (show) {
+                drawer.classList.remove('hidden');
+                updateTextDrawerUI();
+            } else {
+                drawer.classList.add('hidden');
+            }
+        }
+
+        function renderPageTextLines(items, pageNum) {
+            currentExtractedLines = [];
+            selectedLineIndices.clear();
+
+            const contextEl = document.getElementById('textDrawerPageContext');
+            if (contextEl) contextEl.innerText = `Page ${pageNum} • ${items ? items.length : 0} Raw Items`;
+
+            if (!items || items.length === 0) {
+                updateTextDrawerUI();
+                return;
+            }
+
+            // Cluster text items by visual Y coordinate (PDF coordinates, tolerance of 4px)
+            const lineBuckets = {};
+            items.forEach(item => {
+                const text = (item.str || '').trim();
+                if (!text) return;
+                const y = item.transform ? Math.round(item.transform[5] / 4) * 4 : 0;
+                const x = item.transform ? item.transform[4] : 0;
+                if (!lineBuckets[y]) {
+                    lineBuckets[y] = [];
+                }
+                lineBuckets[y].push({ text, x });
+            });
+
+            // Sort lines top to bottom (Y descending in PDF coordinate space)
+            const sortedY = Object.keys(lineBuckets).map(Number).sort((a, b) => b - a);
+            
+            sortedY.forEach(y => {
+                // Sort items in this line left-to-right (X ascending)
+                const rowItems = lineBuckets[y].sort((a, b) => a.x - b.x);
+                const lineText = rowItems.map(i => i.text).join(' ').trim();
+                if (lineText.length > 0) {
+                    currentExtractedLines.push(lineText);
+                }
+            });
+
+            updateTextDrawerUI();
+        }
+
+        function updateTextDrawerUI() {
+            const list = document.getElementById('extractedLinesList');
+            const countBadge = document.getElementById('extractedLineCountBadge');
+            const selCountText = document.getElementById('selectedLineCountText');
+
+            if (countBadge) countBadge.innerText = `${currentExtractedLines.length} Lines`;
+            if (selCountText) selCountText.innerText = `${selectedLineIndices.size} Selected`;
+
+            if (!list) return;
+
+            if (currentExtractedLines.length === 0) {
+                list.innerHTML = `<div class="p-8 text-center text-gray-400 text-xs">Is page par koi text nahi mila ya PDF scan image hai.</div>`;
+                return;
+            }
+
+            let html = '';
+            currentExtractedLines.forEach((line, idx) => {
+                const isSelected = selectedLineIndices.has(idx);
+                const bgClass = isSelected ? 'bg-violet-50 border-violet-400 shadow-2xs' : 'bg-gray-50 border-gray-200 hover:bg-white hover:border-gray-300';
+                
+                html += `
+                    <div class="flex items-start gap-2.5 p-2.5 rounded-xl border ${bgClass} transition cursor-pointer select-none" onclick="toggleLineSelect(${idx})">
+                        <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleLineSelect(${idx})" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 cursor-pointer">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-0.5">
+                                <span class="px-1.5 py-0.5 rounded bg-white text-gray-500 font-mono text-[9px] font-bold border border-gray-200">#${idx + 1}</span>
+                            </div>
+                            <p class="text-xs font-medium text-gray-800 break-words leading-relaxed">${escapeHtml(line)}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            list.innerHTML = html;
+        }
+
+        function toggleLineSelect(idx) {
+            if (selectedLineIndices.has(idx)) {
+                selectedLineIndices.delete(idx);
+            } else {
+                selectedLineIndices.add(idx);
+            }
+            updateTextDrawerUI();
+        }
+
+        function toggleSelectAllTextLines(select) {
+            if (select) {
+                currentExtractedLines.forEach((_, idx) => selectedLineIndices.add(idx));
+            } else {
+                selectedLineIndices.clear();
+            }
+            updateTextDrawerUI();
+        }
+
+        function copySelectedLinesToClipboard() {
+            let linesToCopy = [];
+            if (selectedLineIndices.size > 0) {
+                selectedLineIndices.forEach(idx => {
+                    if (currentExtractedLines[idx]) linesToCopy.push(currentExtractedLines[idx]);
+                });
+            } else {
+                linesToCopy = currentExtractedLines;
+            }
+
+            if (linesToCopy.length === 0) {
+                alert('Copy karne ke liye koi text line available nahi hai.');
+                return;
+            }
+
+            navigator.clipboard.writeText(linesToCopy.join('\n')).then(() => {
+                showToast(`Copied ${linesToCopy.length} lines to clipboard!`, 'success');
+            }).catch(err => {
+                alert('Copy error: ' + err.message);
+            });
+        }
+
+        function sendSelectedLinesToExcelMapper() {
+            let linesToSend = [];
+            if (selectedLineIndices.size > 0) {
+                currentExtractedLines.forEach((line, idx) => {
+                    if (selectedLineIndices.has(idx)) {
+                        linesToSend.push(line);
+                    }
+                });
+            } else {
+                linesToSend = currentExtractedLines;
+            }
+
+            if (linesToSend.length === 0) {
+                alert('Excel Mapper me bhejne ke liye pehle kam se kam 1 line select karein.');
+                return;
+            }
+
+            // Save to localStorage
+            const payload = {
+                lines: linesToSend,
+                page: currentPdfPage,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('vyapar_custom_excel_lines', JSON.stringify(payload));
+            
+            showToast(`${linesToSend.length} lines saved! Opening Excel Multi-Row Mapper...`, 'success');
+
+            setTimeout(() => {
+                window.location.href = "{{ route('seller.catalog.excel_mapper') }}?source=pdf_lines";
+            }, 400);
         }
     </script>
 </body>
