@@ -28,9 +28,15 @@ COPY . /var/www
 # Install composer production dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Setup permissions
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
-    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+# Setup permissions & ensure storage directories exist
+RUN mkdir -p /var/www/storage/framework/sessions \
+             /var/www/storage/framework/views \
+             /var/www/storage/framework/cache/data \
+             /var/www/storage/logs \
+             /var/www/storage/app/public \
+             /var/www/bootstrap/cache \
+    && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
+    && chmod -R 777 /var/www/storage /var/www/bootstrap/cache
 
 # Copy Nginx configuration
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
