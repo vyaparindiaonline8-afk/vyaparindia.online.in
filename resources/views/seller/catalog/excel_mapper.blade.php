@@ -255,6 +255,34 @@
                 </div>
             </div>
 
+            <!-- ⚡ Workflow Progress & Status Banner -->
+            <div class="bg-indigo-50/80 border border-indigo-200 rounded-3xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-xs">
+                <div class="flex items-center gap-3">
+                    <span class="relative flex h-3 w-3">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black text-gray-900">Pending to Link:</span>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono" id="pendingRowsCountText">0 Rows Left</span>
+                            <span class="text-gray-300">|</span>
+                            <span class="text-xs font-black text-gray-900">Completed Cards:</span>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-100 text-indigo-800 border border-indigo-300 font-mono" id="completedCardsCountText">0 Cards Ready</span>
+                        </div>
+                        <p class="text-[11px] text-gray-600 mt-0.5">
+                            <b>Superfast Workflow:</b> <b>"Next 6"</b> dabayein &rarr; Photo par click karein &rarr; Rows card me save ho kar table se hat jayengi!
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="saveSelectedIntoCardAndRemove()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95" title="Selected rows ko 1 card me group karke table se hata do">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Save into Card & Remove from List</span>
+                    </button>
+                </div>
+            </div>
+
             <!-- Dynamic Table Card -->
             <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
                 <div class="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/70">
@@ -277,9 +305,9 @@
                             <i class="fa-solid fa-table-columns text-teal-600"></i>
                             <span>Map Columns</span>
                         </button>
-                        <button type="button" onclick="groupSelectedRowsIntoCard()" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition ml-1">
-                            <i class="fa-solid fa-layer-group"></i>
-                            <span>Group Selected into Card</span>
+                        <button type="button" onclick="saveSelectedIntoCardAndRemove()" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition ml-1 active:scale-95" title="Selected rows ko 1 card me group karke table se hata do taaki next items samne aa sakein">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>Save Card & Next &rarr;</span>
                         </button>
                     </div>
                 </div>
@@ -295,6 +323,7 @@
                                 <th class="p-3 w-24">Category</th>
                                 <th class="p-3 min-w-[200px]">Product / Item Name</th>
                                 <th class="p-3 w-28">Item Code</th>
+                                <th class="p-3 w-24">HSN Code</th>
                                 <th class="p-3 w-24">Size</th>
                                 <th class="p-3 w-28">Packing</th>
                                 <th class="p-3 w-20">MRP (₹)</th>
@@ -635,13 +664,13 @@
                     <span>Add to Card</span>
                 </button>
             </div>
-            <button type="button" onclick="groupSelectedRowsIntoCard()" class="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-1.5 transition active:scale-95" title="Combine selected rows into a new Product Card">
-                <i class="fa-solid fa-layer-group"></i>
-                <span>Group into New Card</span>
+            <button type="button" onclick="saveSelectedIntoCardAndRemove()" class="px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-black text-xs shadow-lg shadow-emerald-500/30 flex items-center gap-1.5 transition active:scale-95" title="Selected rows ko Card me save karke table se hata do taaki next items samne aa sakein">
+                <i class="fa-solid fa-floppy-disk"></i>
+                <span>Save Card & Remove from List</span>
             </button>
-            <button type="button" onclick="openGalleryDrawerForBatch()" class="px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-black text-xs shadow-lg shadow-emerald-500/30 flex items-center gap-2 transition active:scale-95">
+            <button type="button" onclick="openGalleryDrawerForBatch()" class="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition active:scale-95" title="Photo choose karein aur card me save karein">
                 <i class="fa-solid fa-images"></i>
-                <span>Assign Image (<span id="btnBatchCount">0</span>)</span>
+                <span>Pick Photo & Save (<span id="btnBatchCount">0</span>)</span>
             </button>
         </div>
     </div>
@@ -745,7 +774,7 @@
                         <span class="text-xs text-gray-500 font-medium">Hardware items (Solvents, Tapes) me size nahi hota, to blank reh sakta hai</span>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
                         <!-- 4. Size / Dimension -->
                         <div class="bg-slate-50 p-3.5 rounded-2xl border border-gray-200 space-y-1">
                             <label class="text-xs font-black text-gray-900 flex items-center justify-between">
@@ -767,31 +796,43 @@
                             <select id="mapColCode" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-2.5 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                                 <!-- Populated dynamically -->
                             </select>
-                            <p class="text-[10px] text-gray-500">Item Code, SKU, Art No (jaise: UPVC-01, PL-101)</p>
+                            <p class="text-[10px] text-gray-500">Item Code, SKU, Art No (jaise: UPVC-01)</p>
+                        </div>
+
+                        <!-- 5b. HSN / SAC Code -->
+                        <div class="bg-slate-50 p-3.5 rounded-2xl border border-indigo-200 space-y-1">
+                            <label class="text-xs font-black text-indigo-950 flex items-center justify-between">
+                                <span>📋 HSN / SAC Code:</span>
+                                <span class="text-[10px] text-gray-500 font-bold">(Optional)</span>
+                            </label>
+                            <select id="mapColHsn" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-2.5 rounded-xl border border-indigo-300 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <p class="text-[10px] text-gray-500">GST HSN (Default: 39174000)</p>
                         </div>
 
                         <!-- 6. Packing 1 (Box / Inner Pack) -->
                         <div class="bg-slate-50 p-3.5 rounded-2xl border border-gray-200 space-y-1">
                             <label class="text-xs font-black text-gray-900 flex items-center justify-between">
-                                <span>📦 Packing 1 (Box / Inner):</span>
+                                <span>📦 Packing 1 (Box):</span>
                                 <span class="text-[10px] text-gray-500 font-bold">(Optional)</span>
                             </label>
                             <select id="mapColPack1" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-2.5 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                                 <!-- Populated dynamically -->
                             </select>
-                            <p class="text-[10px] text-gray-500">Std Pkg, Box Pack (jaise: 20 pcs, 50 pcs)</p>
+                            <p class="text-[10px] text-gray-500">Box Pack (jaise: 20 pcs, 50 pcs)</p>
                         </div>
 
                         <!-- 7. Packing 2 (Carton / Master Bag) -->
                         <div class="bg-slate-50 p-3.5 rounded-2xl border border-gray-200 space-y-1">
                             <label class="text-xs font-black text-gray-900 flex items-center justify-between">
-                                <span>📦 Packing 2 (Carton/Bag):</span>
+                                <span>📦 Packing 2 (Bag):</span>
                                 <span class="text-[10px] text-gray-500 font-bold">(Optional)</span>
                             </label>
                             <select id="mapColPack2" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-2.5 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                                 <!-- Populated dynamically -->
                             </select>
-                            <p class="text-[10px] text-gray-500">Master Bag, Outer Carton (jaise: 200 pcs, 500 pcs)</p>
+                            <p class="text-[10px] text-gray-500">Master Bag, Carton (200 pcs)</p>
                         </div>
                     </div>
                 </div>
@@ -884,6 +925,7 @@
                                 <tr>
                                     <th class="p-2.5">Category</th>
                                     <th class="p-2.5">Code</th>
+                                    <th class="p-2.5">HSN</th>
                                     <th class="p-2.5">Product Name</th>
                                     <th class="p-2.5">Size</th>
                                     <th class="p-2.5">Packing (Box/Bag)</th>
@@ -1277,8 +1319,7 @@
             if (isDynamicMode) {
                 const checked = Array.from(document.querySelectorAll('.dynamic-row-checkbox:checked')).map(cb => parseInt(cb.value));
                 if (checked.length > 0) {
-                    checked.forEach(rId => updateDynamicRowThumbnail(rId, relUrl, assetUrl));
-                    clearDynamicRowSelection();
+                    saveSelectedIntoCardAndRemove(relUrl, assetUrl);
                     return;
                 }
             } else {
@@ -1294,12 +1335,11 @@
 
         // User picks an image from drawer
         function selectDrawerImage(relUrl, assetUrl) {
-            if (!currentTargetType || currentTargetType === 'browse') {
+            if (!currentTargetType || currentTargetType === 'browse' || currentTargetType === 'dynamic_batch') {
                 if (isDynamicMode) {
                     const checked = Array.from(document.querySelectorAll('.dynamic-row-checkbox:checked')).map(cb => parseInt(cb.value));
                     if (checked.length > 0) {
-                        checked.forEach(rId => updateDynamicRowThumbnail(rId, relUrl, assetUrl));
-                        clearDynamicRowSelection();
+                        saveSelectedIntoCardAndRemove(relUrl, assetUrl);
                         closeGalleryDrawer();
                         return;
                     }
@@ -1325,14 +1365,6 @@
             // 1. Dynamic Row Single Assign
             if (currentTargetType === 'dynamic_row') {
                 updateDynamicRowThumbnail(currentTargetId, relUrl, assetUrl);
-                closeGalleryDrawer();
-                return;
-            }
-
-            // 2. Dynamic Batch Assign (e.g. 6-8 rows selected!)
-            if (currentTargetType === 'dynamic_batch') {
-                currentTargetId.forEach(rId => updateDynamicRowThumbnail(rId, relUrl, assetUrl));
-                clearDynamicRowSelection();
                 closeGalleryDrawer();
                 return;
             }
@@ -1582,10 +1614,10 @@
             const headerRow = uploadedExcelRawRows[headerRowIdx] || [];
             const sampleDataRow = uploadedExcelRawRows[headerRowIdx + 1] || [];
 
-            // All 12 Column Selectors
+            // All 13 Column Selectors
             const colSelects = [
                 'mapColName', 'mapColMrp', 'mapColRetail',
-                'mapColSize', 'mapColCode', 'mapColPack1', 'mapColPack2',
+                'mapColSize', 'mapColCode', 'mapColHsn', 'mapColPack1', 'mapColPack2',
                 'mapColCost', 'mapColCost2', 'mapColCost3', 'mapColStock', 'mapColCategory'
             ];
             const colLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -1611,6 +1643,7 @@
             // Smart auto-selection for B2B plumbing & hardware sheets
             let selectedCols = {
                 code: -1,
+                hsn: -1,
                 name: -1,
                 size: -1,
                 pack1: -1,
@@ -1632,6 +1665,10 @@
                 // Product Code / SKU
                 if (selectedCols.code === -1 && (c.includes('item code') || c.includes('product code') || c.includes('item_code') || c.includes('sku') || c.includes('cat no') || c.includes('cat.no') || c.includes('art no') || c.includes('art.no') || c === 'code' || c === 'part no')) {
                     selectedCols.code = idx;
+                }
+                // HSN / SAC Code
+                else if (selectedCols.hsn === -1 && (c.includes('hsn') || c.includes('sac'))) {
+                    selectedCols.hsn = idx;
                 }
                 // Product Name
                 else if (selectedCols.name === -1 && (c.includes('particular') || c.includes('item name') || c.includes('product name') || c.includes('description') || c.includes('desc') || c === 'item' || c === 'product' || c.includes('material'))) {
@@ -1683,7 +1720,7 @@
             if (selectedCols.mrp === -1) {
                 headerRow.forEach((col, idx) => {
                     const c = String(col || '').toLowerCase().trim();
-                    const isSrNo = (c === 's.no' || c === 's.no.' || c === 'sr.no' || c === 'sr no' || c === 'sl.no' || c === 'no' || c === '#' || c === 'sn');
+                    const isSrNo = (c === 's.no' || c === 's.no.' || c === 'sr.no' || c === 'sr.no.' || c === 'sr no' || c === 'sl.no' || c === 'no' || c === '#' || c === 'sn');
                     if (!isSrNo && (c.includes('rate') || c.includes('price')) && selectedCols.cost !== idx) {
                         selectedCols.mrp = idx;
                     }
@@ -1698,6 +1735,7 @@
             if (selectedCols.retail !== -1) document.getElementById('mapColRetail').value = selectedCols.retail;
             if (selectedCols.size !== -1) document.getElementById('mapColSize').value = selectedCols.size;
             if (selectedCols.code !== -1) document.getElementById('mapColCode').value = selectedCols.code;
+            if (selectedCols.hsn !== -1 && document.getElementById('mapColHsn')) document.getElementById('mapColHsn').value = selectedCols.hsn;
             if (selectedCols.pack1 !== -1) document.getElementById('mapColPack1').value = selectedCols.pack1;
             if (selectedCols.pack2 !== -1) document.getElementById('mapColPack2').value = selectedCols.pack2;
             if (selectedCols.cost !== -1) document.getElementById('mapColCost').value = selectedCols.cost;
@@ -1724,6 +1762,7 @@
             const retailIdx = parseInt(document.getElementById('mapColRetail')?.value ?? -1);
             const sizeIdx = parseInt(document.getElementById('mapColSize')?.value ?? -1);
             const codeIdx = parseInt(document.getElementById('mapColCode')?.value ?? -1);
+            const hsnIdx = parseInt(document.getElementById('mapColHsn')?.value ?? -1);
             const pack1Idx = parseInt(document.getElementById('mapColPack1')?.value ?? -1);
             const pack2Idx = parseInt(document.getElementById('mapColPack2')?.value ?? -1);
             const costIdx = parseInt(document.getElementById('mapColCost')?.value ?? -1);
@@ -1740,6 +1779,7 @@
 
                 const name = (nameIdx !== -1 && row[nameIdx] !== undefined) ? String(row[nameIdx]).trim() : 'Sample Product';
                 const code = (codeIdx !== -1 && row[codeIdx] !== undefined) ? String(row[codeIdx]).trim() : '-';
+                const rawHsn = (hsnIdx !== -1 && row[hsnIdx] !== undefined && String(row[hsnIdx]).trim() !== '') ? String(row[hsnIdx]).trim() : '39174000';
 
                 let size = (sizeIdx !== -1 && row[sizeIdx] !== undefined) ? String(row[sizeIdx]).trim() : '';
                 if (!size) {
@@ -1788,6 +1828,7 @@
                             <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-100 text-indigo-800 border border-indigo-200">${escapeHtml(cat)}</span>
                         </td>
                         <td class="p-2.5 font-mono text-[11px] text-gray-600">${escapeHtml(code)}</td>
+                        <td class="p-2.5 font-mono text-[11px] text-indigo-700">${escapeHtml(rawHsn)}</td>
                         <td class="p-2.5 font-bold text-gray-900">${escapeHtml(name)}</td>
                         <td class="p-2.5 font-mono text-gray-700">${escapeHtml(size)}</td>
                         <td class="p-2.5 text-[11px] text-indigo-700 font-mono">${escapeHtml(packText)}</td>
@@ -1801,7 +1842,7 @@
             }
 
             if (!previewHtml) {
-                previewHtml = `<tr><td colspan="9" class="p-4 text-center text-gray-400">Is row number par koi data nahi mila. "Data Starts At Row" number check karein.</td></tr>`;
+                previewHtml = `<tr><td colspan="10" class="p-4 text-center text-gray-400">Is row number par koi data nahi mila. "Data Starts At Row" number check karein.</td></tr>`;
             }
 
             tbody.innerHTML = previewHtml;
@@ -1813,6 +1854,7 @@
             const retailIdx = parseInt(document.getElementById('mapColRetail')?.value ?? -1);
             const sizeIdx = parseInt(document.getElementById('mapColSize')?.value ?? -1);
             const codeIdx = parseInt(document.getElementById('mapColCode')?.value ?? -1);
+            const hsnIdx = parseInt(document.getElementById('mapColHsn')?.value ?? -1);
             const pack1Idx = parseInt(document.getElementById('mapColPack1')?.value ?? -1);
             const pack2Idx = parseInt(document.getElementById('mapColPack2')?.value ?? -1);
             const costIdx = parseInt(document.getElementById('mapColCost')?.value ?? -1);
@@ -1840,6 +1882,7 @@
                 if (!rawName) continue;
 
                 const rawCode = (codeIdx !== -1 && row[codeIdx] !== undefined) ? String(row[codeIdx]).trim() : '';
+                const rawHsn = (hsnIdx !== -1 && row[hsnIdx] !== undefined && String(row[hsnIdx]).trim() !== '') ? String(row[hsnIdx]).trim() : '39174000';
 
                 let rawSize = (sizeIdx !== -1 && row[sizeIdx] !== undefined) ? String(row[sizeIdx]).trim() : '';
                 if (!rawSize) {
@@ -1893,6 +1936,7 @@
                 newRows.push({
                     id: dynamicRowNextId++,
                     product_code: rawCode,
+                    hsn_code: rawHsn,
                     product_name: rawName,
                     size: rawSize,
                     packing_1: rawPack1,
@@ -1931,7 +1975,24 @@
             alert(`🎉 Success! Excel sheet se ${newRows.length} products sahi MRP, Selling Price, Code, Packing aur Category ke sath map ho gaye hain!`);
         }
 
-        function groupSelectedRowsIntoCard() {
+        function showToastNotification(message) {
+            let toast = document.getElementById('vyaparLiveToast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'vyaparLiveToast';
+                toast.className = 'fixed top-20 right-6 z-[99999] max-w-md bg-gray-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-emerald-500/50 text-xs font-bold flex items-center gap-3 transform transition-all duration-300 translate-y-[-20px] opacity-0 pointer-events-none';
+                document.body.appendChild(toast);
+            }
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-base shrink-0"></i><span class="flex-1">${message}</span>`;
+            toast.classList.remove('translate-y-[-20px]', 'opacity-0', 'pointer-events-none');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                toast.classList.add('translate-y-[-20px]', 'opacity-0', 'pointer-events-none');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 4500);
+        }
+
+        function saveSelectedIntoCardAndRemove(specificImgUrl, specificAssetUrl) {
             let checkedIds = [];
             if (isDynamicMode) {
                 checkedIds = Array.from(document.querySelectorAll('.dynamic-row-checkbox:checked')).map(cb => parseInt(cb.value));
@@ -1940,7 +2001,7 @@
             }
 
             if (checkedIds.length === 0) {
-                alert('Kripya 1 ya usse zyada rows (jaise 6-8 sizes) select karein jinhe 1 Product Card me combine karna hai.');
+                alert('Kripya pehle 1 ya usse zyada rows (jaise 4, 6 ya 8 sizes) select karein jinhe Card me save karna hai.');
                 return;
             }
 
@@ -1961,8 +2022,8 @@
             }
             parentTitle = parentTitle.replace(/[-–,\s]+$/, '').trim() || firstRow.product_name;
 
-            const assignedImg = selectedRows.find(r => r.image_url)?.image_url || preselectedImg || '';
-            const assignedAsset = selectedRows.find(r => r.asset_url)?.asset_url || (preselectedImg ? ('/' + preselectedImg.replace(/^\//, '')) : '');
+            const assignedImg = specificImgUrl || selectedRows.find(r => r.image_url)?.image_url || preselectedImg || '';
+            const assignedAsset = specificAssetUrl || selectedRows.find(r => r.asset_url)?.asset_url || (preselectedImg ? ('/' + preselectedImg.replace(/^\//, '')) : '');
 
             const newCard = {
                 card_id: groupedCardNextId++,
@@ -1973,6 +2034,7 @@
                 variants: selectedRows.map(r => ({
                     id: r.id,
                     product_code: r.product_code || '',
+                    hsn_code: r.hsn_code || '39174000',
                     size: r.size || 'Standard',
                     packing_1: r.packing_1 || '',
                     packing_2: r.packing_2 || '',
@@ -1987,6 +2049,7 @@
 
             groupedProductCards.push(newCard);
 
+            // REMOVE SAVED ROWS FROM PENDING LIST SO USER'S WORKFLOW ADVANCES SMOOTHLY
             dynamicRows = dynamicRows.filter(r => !checkedIds.includes(r.id));
 
             clearDynamicRowSelection();
@@ -1995,10 +2058,11 @@
             refreshCategoryFilterTabs();
             updateFloatingBatchBar();
 
-            const gSection = document.getElementById('groupedCardsSection');
-            if (gSection) {
-                gSection.scrollIntoView({ behavior: 'smooth' });
-            }
+            showToastNotification(`🎉 Shabaash! ${selectedRows.length} items "${parentTitle}" card me save ho gaye aur pending table se hat gaye! Ab table me bache ${dynamicRows.length} items me se "Next 6" select karein.`);
+        }
+
+        function groupSelectedRowsIntoCard() {
+            saveSelectedIntoCardAndRemove();
         }
 
         function renderGroupedProductCards() {
@@ -2033,6 +2097,9 @@
                             </td>
                             <td class="p-2 font-mono">
                                 <input type="text" value="${escapeHtml(v.product_code || '')}" placeholder="SKU" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'product_code', this.value)" class="w-20 text-[11px] font-mono text-gray-600 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent">
+                            </td>
+                            <td class="p-2 font-mono">
+                                <input type="text" value="${escapeHtml(v.hsn_code || '39174000')}" placeholder="39174000" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'hsn_code', this.value)" class="w-20 text-[10px] font-mono text-indigo-700 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent" title="HSN Code">
                             </td>
                             <td class="p-2 font-mono text-[10px] text-indigo-700">
                                 <input type="text" value="${escapeHtml(packStr)}" placeholder="Box/Bag" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'packing_1', this.value)" class="w-24 text-[10px] font-mono text-indigo-700 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent">
@@ -2102,6 +2169,7 @@
                                     <tr>
                                         <th class="p-2.5">Size / Dimension</th>
                                         <th class="p-2.5">SKU / Code</th>
+                                        <th class="p-2.5">HSN</th>
                                         <th class="p-2.5">Packing</th>
                                         <th class="p-2.5">MRP</th>
                                         <th class="p-2.5">Cost Price</th>
@@ -2162,6 +2230,7 @@
                 dynamicRows.push({
                     id: dynamicRowNextId++,
                     product_code: v.product_code || '',
+                    hsn_code: v.hsn_code || '39174000',
                     product_name: `${card.parent_name} ${v.size === 'Standard' ? '' : v.size}`.trim() || card.parent_name,
                     size: v.size || 'Standard',
                     packing_1: v.packing_1 || '',
@@ -2192,6 +2261,7 @@
             const newVariant = {
                 id: dynamicRowNextId++,
                 product_code: '',
+                hsn_code: lastVar ? (lastVar.hsn_code || '39174000') : '39174000',
                 size: '',
                 packing_1: lastVar ? lastVar.packing_1 : '',
                 packing_2: lastVar ? lastVar.packing_2 : '',
@@ -2237,6 +2307,7 @@
                 card.variants.push({
                     id: r.id,
                     product_code: r.product_code || '',
+                    hsn_code: r.hsn_code || '39174000',
                     size: r.size || 'Standard',
                     packing_1: r.packing_1 || '',
                     packing_2: r.packing_2 || '',
@@ -2327,6 +2398,7 @@
             dynamicRows.push({
                 id: dynamicRowNextId++,
                 product_code: '',
+                hsn_code: '39174000',
                 product_name: 'New Product Item',
                 size: 'Standard',
                 packing_1: '',
@@ -2355,13 +2427,18 @@
             const badge = document.getElementById('dynamicRowCountBadge');
             if (badge) badge.innerText = `${dynamicRows.length} Rows`;
 
+            const pendingEl = document.getElementById('pendingRowsCountText');
+            if (pendingEl) pendingEl.innerText = `${dynamicRows.length} Rows Left`;
+            const completedEl = document.getElementById('completedCardsCountText');
+            if (completedEl) completedEl.innerText = `${groupedProductCards.length} Cards Ready`;
+
             if (!tbody) return;
 
             if (dynamicRows.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="12" class="p-8 text-center text-gray-400 text-xs">
-                            Koi flat rows nahi hain. Nayi row jodne ke liye <b>"+ Add Line"</b> ya Excel Import karein.
+                        <td colspan="13" class="p-8 text-center text-gray-400 text-xs">
+                            Koi pending flat rows nahi hain! Sabhi items cards me save ho chuke hain ya "+ Add Line" / Excel Import karein.
                         </td>
                     </tr>
                 `;
@@ -2375,7 +2452,7 @@
                     : `<span class="text-gray-300 text-xs" id="dyn_img_${r.id}"><i class="fa-solid fa-camera"></i></span>`;
 
                 const catVal = r.group_type || r.category || 'General Hardware';
-                const searchStr = `${r.product_name} ${r.product_code || ''} ${r.size || ''} ${catVal}`.toLowerCase();
+                const searchStr = `${r.product_name} ${r.product_code || ''} ${r.hsn_code || ''} ${r.size || ''} ${catVal}`.toLowerCase();
 
                 html += `
                     <tr class="hover:bg-slate-50 transition dynamic-row-item" id="dyn_row_${r.id}" data-category="${escapeHtml(catVal)}" data-search="${escapeHtml(searchStr)}">
@@ -2395,6 +2472,9 @@
                         </td>
                         <td class="p-3">
                             <input type="text" value="${escapeHtml(r.product_code || '')}" placeholder="Item Code" oninput="updateDynamicRowField(${r.id}, 'product_code', this.value)" class="w-24 text-[11px] font-mono text-gray-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" title="Product / Item Code (SKU)">
+                        </td>
+                        <td class="p-3">
+                            <input type="text" value="${escapeHtml(r.hsn_code || '39174000')}" placeholder="39174000" oninput="updateDynamicRowField(${r.id}, 'hsn_code', this.value)" class="w-20 text-[11px] font-mono text-indigo-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" title="HSN / SAC Code (Default: 39174000)">
                         </td>
                         <td class="p-3">
                             <input type="text" value="${escapeHtml(r.size || 'Standard')}" placeholder="Standard" oninput="updateDynamicRowField(${r.id}, 'size', this.value)" class="w-20 text-xs font-mono font-bold text-gray-800 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" title="Size / Dimension">
@@ -2552,7 +2632,7 @@
             }
 
             const sheetName = (document.getElementById('dynamicSheetName')?.value || 'catalog').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-            let csv = "Category,Product Code,Product Name,Size/Dimension,Packing 1 (Box),Packing 2 (Carton),MRP,Purchase Cost 1,Cost Price 2,Cost Price 3,Selling Price,Stock,Image URL\n";
+            let csv = "Category,Product Code,HSN Code,Product Name,Size/Dimension,Packing 1 (Box),Packing 2 (Carton),MRP,Purchase Cost 1,Cost Price 2,Cost Price 3,Selling Price,Stock,Image URL\n";
 
             // Add grouped cards
             groupedProductCards.forEach(c => {
@@ -2561,6 +2641,7 @@
                     csv += [
                         escapeCsv(c.category),
                         escapeCsv(v.product_code || ''),
+                        escapeCsv(v.hsn_code || '39174000'),
                         escapeCsv(c.parent_name),
                         escapeCsv(v.size || 'Standard'),
                         escapeCsv(v.packing_1 || ''),
@@ -2582,6 +2663,7 @@
                 csv += [
                     escapeCsv(r.group_type),
                     escapeCsv(r.product_code || ''),
+                    escapeCsv(r.hsn_code || '39174000'),
                     escapeCsv(r.product_name),
                     escapeCsv(r.size || 'Standard'),
                     escapeCsv(r.packing_1 || ''),

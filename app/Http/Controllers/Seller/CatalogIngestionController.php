@@ -1319,11 +1319,13 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                 $vRetail = floatval($v['retail_price'] ?? ($vMrp * 0.85));
                 $vStock = intval($v['stock'] ?? ($v['stock_quantity'] ?? 100));
 
+                $vHsn = trim($v['hsn_code'] ?? '39174000');
                 $cardVariants[] = [
                     'variant_name' => $vSize ?: 'Standard',
                     'size' => $vSize ?: 'Standard',
                     'sku' => $vCode ?: ('VAR-' . strtoupper(Str::random(6))),
                     'product_code' => $vCode,
+                    'hsn_code' => $vHsn ?: '39174000',
                     'packing_1' => $vPack1,
                     'packing_2' => $vPack2,
                     'grade' => 'Industrial',
@@ -1340,9 +1342,10 @@ Please respond clearly in simple professional Hinglish/English with bullet point
             if (!empty($cardVariants)) {
                 $products[] = [
                     'name' => $cardName,
-                    'category' => 'Industrial & Commercial',
+                    'category' => $groupType,
                     'group_type' => $groupType,
                     'image_url' => $img,
+                    'hsn_code' => $cardVariants[0]['hsn_code'] ?? '39174000',
                     'variants' => $cardVariants,
                 ];
             }
@@ -1354,6 +1357,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
             $prodName = trim($r['product_name'] ?? 'Product Item');
             $size = trim($r['size'] ?? 'Standard');
             $code = trim($r['product_code'] ?? ($r['sku'] ?? ''));
+            $hsn = trim($r['hsn_code'] ?? '39174000');
             $pack1 = trim($r['packing_1'] ?? '');
             $pack2 = trim($r['packing_2'] ?? '');
             $mrp = floatval($r['mrp'] ?? 100);
@@ -1372,6 +1376,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                     'category' => $categoryName,
                     'group_type' => $groupType,
                     'image_url' => $img,
+                    'hsn_code' => $hsn ?: '39174000',
                     'variants' => [],
                 ];
             }
@@ -1385,6 +1390,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                 'size' => $size ?: 'Standard',
                 'sku' => $code ?: ('VAR-' . strtoupper(Str::random(6))),
                 'product_code' => $code,
+                'hsn_code' => $hsn ?: '39174000',
                 'packing_1' => $pack1,
                 'packing_2' => $pack2,
                 'grade' => 'Industrial',
@@ -1464,7 +1470,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
             $baseWholesale = floatval($firstVar['wholesale_price'] ?? ($basePurchase * 1.15));
             $baseRetail = floatval($firstVar['retail_price'] ?? ($basePurchase * 1.35));
             $baseMrp = floatval($firstVar['mrp'] ?? ($basePurchase * 1.60));
-            $prodSku = !empty($firstVar['product_code']) ? $firstVar['product_code'] : ('PLST-' . strtoupper(Str::random(6)));
+            $prodHsn = !empty($prodData['hsn_code']) ? $prodData['hsn_code'] : (!empty($firstVar['hsn_code']) ? $firstVar['hsn_code'] : '39174000');
 
             $product = Product::create([
                 'user_id' => $userId,
@@ -1472,7 +1478,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                 'name' => $prodData['name'],
                 'slug' => Str::slug($prodData['name']) . '-' . Str::random(5),
                 'description' => "High grade {$prodData['name']} manufactured to industrial specifications.",
-                'hsn_code' => '39174000',
+                'hsn_code' => $prodHsn,
                 'image' => $prodData['image_url'] ?? null,
                 'purchase_price' => $basePurchase,
                 'wholesale_price' => $baseWholesale,
