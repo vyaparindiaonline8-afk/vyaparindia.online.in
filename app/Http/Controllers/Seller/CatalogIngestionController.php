@@ -764,6 +764,25 @@ class CatalogIngestionController extends Controller
         $products = $extractedData['products'] ?? [];
         $categories = Category::all();
 
+        // Categorize each product into UPVC, CPVC, SWR, or AGRI_OTHER
+        foreach ($products as $pIdx => &$prod) {
+            $pName = strtoupper($prod['name'] ?? '');
+            $pCat = strtoupper($prod['category'] ?? '');
+
+            if (str_contains($pName, 'CPVC') || str_contains($pCat, 'CPVC')) {
+                $groupType = 'CPVC';
+            } elseif (str_contains($pName, 'UPVC') || str_contains($pCat, 'UPVC')) {
+                $groupType = 'UPVC';
+            } elseif (str_contains($pName, 'SWR') || str_contains($pCat, 'SWR') || str_contains($pName, 'TRAP') || str_contains($pName, 'VENT') || str_contains($pName, 'COWL')) {
+                $groupType = 'SWR';
+            } else {
+                $groupType = 'AGRI_OTHER';
+            }
+
+            $prod['group_type'] = $groupType;
+        }
+        unset($prod);
+
         // Build flat rows list for 6-8 row table selector
         $flatRows = [];
         $rowIndex = 0;
@@ -771,6 +790,7 @@ class CatalogIngestionController extends Controller
             $prodName = $prod['name'];
             $cat = $prod['category'] ?? 'Industrial & Commercial';
             $img = $prod['image_url'] ?? null;
+            $groupType = $prod['group_type'] ?? 'UPVC';
             $variants = $prod['variants'] ?? [];
 
             foreach ($variants as $vIdx => $v) {
@@ -782,6 +802,7 @@ class CatalogIngestionController extends Controller
                     'variant_name' => $v['variant_name'] ?? 'Standard',
                     'size' => $v['size'] ?? 'Standard',
                     'category' => $cat,
+                    'group_type' => $groupType,
                     'mrp' => floatval($v['mrp'] ?? 0),
                     'purchase_cost' => floatval($v['raw_rate'] ?? 0),
                     'wholesale_price' => floatval($v['wholesale_price'] ?? 0),
@@ -792,6 +813,11 @@ class CatalogIngestionController extends Controller
             }
         }
 
+        $upvcCount = count(array_filter($products, fn($p) => ($p['group_type'] ?? '') === 'UPVC'));
+        $cpvcCount = count(array_filter($products, fn($p) => ($p['group_type'] ?? '') === 'CPVC'));
+        $swrCount = count(array_filter($products, fn($p) => ($p['group_type'] ?? '') === 'SWR'));
+        $otherCount = count(array_filter($products, fn($p) => ($p['group_type'] ?? '') === 'AGRI_OTHER'));
+
         $galleryImages = $this->getAllGalleryImages($userId);
 
         return view('seller.catalog.excel_mapper', compact(
@@ -799,7 +825,11 @@ class CatalogIngestionController extends Controller
             'products',
             'flatRows',
             'galleryImages',
-            'categories'
+            'categories',
+            'upvcCount',
+            'cpvcCount',
+            'swrCount',
+            'otherCount'
         ));
     }
 

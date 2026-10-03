@@ -113,6 +113,35 @@
 
         </div>
 
+        <!-- 🏷️ Category Filter Tabs: UPVC, CPVC, SWR, Agri/Others -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-1">
+            <button type="button" onclick="filterByCategory('ALL')" id="catTab_ALL" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-black bg-gray-900 text-white shadow-sm flex items-center gap-2 transition whitespace-nowrap">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>All Categories</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] bg-white/20 text-white font-mono">{{ count($products) }}</span>
+            </button>
+            <button type="button" onclick="filterByCategory('UPVC')" id="catTab_UPVC" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-extrabold bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 shadow-xs flex items-center gap-2 transition whitespace-nowrap">
+                <span class="h-2.5 w-2.5 rounded-full bg-blue-600"></span>
+                <span>💧 UPVC Pipes & Fittings</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] bg-blue-100 text-blue-800 font-mono font-bold">{{ $upvcCount ?? 0 }}</span>
+            </button>
+            <button type="button" onclick="filterByCategory('CPVC')" id="catTab_CPVC" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-extrabold bg-white hover:bg-amber-50 text-amber-700 border border-amber-200 shadow-xs flex items-center gap-2 transition whitespace-nowrap">
+                <span class="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
+                <span>🔥 CPVC Pipes & Fittings</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 font-mono font-bold">{{ $cpvcCount ?? 0 }}</span>
+            </button>
+            <button type="button" onclick="filterByCategory('SWR')" id="catTab_SWR" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-extrabold bg-white hover:bg-purple-50 text-purple-700 border border-purple-200 shadow-xs flex items-center gap-2 transition whitespace-nowrap">
+                <span class="h-2.5 w-2.5 rounded-full bg-purple-600"></span>
+                <span>🚰 SWR Drainage & Traps</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-800 font-mono font-bold">{{ $swrCount ?? 0 }}</span>
+            </button>
+            <button type="button" onclick="filterByCategory('AGRI_OTHER')" id="catTab_AGRI_OTHER" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-extrabold bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs flex items-center gap-2 transition whitespace-nowrap">
+                <span class="h-2.5 w-2.5 rounded-full bg-emerald-600"></span>
+                <span>🌿 Agri, Solvents & Others</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-mono font-bold">{{ $otherCount ?? 0 }}</span>
+            </button>
+        </div>
+
         <!-- ========================================== -->
         <!-- VIEW 1: MULTI-ROW SPREADSHEET TABLE VIEW   -->
         <!-- ========================================== -->
@@ -139,6 +168,7 @@
                                 <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAllRows(this.checked)" class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
                             </th>
                             <th class="p-3 w-14">Photo</th>
+                            <th class="p-3">Type</th>
                             <th class="p-3">Product Name (Base Family)</th>
                             <th class="p-3">Size / Variant</th>
                             <th class="p-3">MRP (₹)</th>
@@ -149,7 +179,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100 font-medium">
                         @foreach($flatRows as $row)
-                            <tr class="hover:bg-slate-50 transition table-row-item" id="row_{{ $row['row_id'] }}" data-search="{{ strtolower($row['product_name'] . ' ' . $row['variant_name'] . ' ' . $row['size']) }}" data-parent-idx="{{ $row['parent_idx'] }}">
+                            <tr class="hover:bg-slate-50 transition table-row-item" id="row_{{ $row['row_id'] }}" data-category="{{ $row['group_type'] ?? 'UPVC' }}" data-search="{{ strtolower($row['product_name'] . ' ' . $row['variant_name'] . ' ' . $row['size'] . ' ' . ($row['group_type'] ?? '')) }}" data-parent-idx="{{ $row['parent_idx'] }}">
                                 <td class="p-3 text-center">
                                     <input type="checkbox" value="{{ $row['row_id'] }}" onchange="handleRowCheckboxChange(this)" class="row-checkbox h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
                                 </td>
@@ -161,6 +191,15 @@
                                             <span class="text-gray-300 text-xs" id="img_thumb_row_{{ $row['row_id'] }}"><i class="fa-solid fa-image"></i></span>
                                         @endif
                                     </div>
+                                </td>
+                                <td class="p-3">
+                                    @php
+                                        $gt = $row['group_type'] ?? 'UPVC';
+                                        $pillClass = $gt === 'UPVC' ? 'bg-blue-100 text-blue-800 border-blue-200' : ($gt === 'CPVC' ? 'bg-amber-100 text-amber-800 border-amber-200' : ($gt === 'SWR' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-emerald-100 text-emerald-800 border-emerald-200'));
+                                    @endphp
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-black border {{ $pillClass }}">
+                                        {{ $gt === 'AGRI_OTHER' ? 'OTHER' : $gt }}
+                                    </span>
                                 </td>
                                 <td class="p-3 font-bold text-gray-900">
                                     {{ $row['product_name'] }}
@@ -196,7 +235,7 @@
         <!-- ========================================== -->
         <div id="viewCardsContainer" class="space-y-6 hidden">
             @foreach($products as $pIdx => $prod)
-                <div class="product-family-card bg-white rounded-3xl border border-gray-200 p-5 shadow-xs hover:shadow-md transition space-y-4" data-card-idx="{{ $pIdx }}" data-search="{{ strtolower($prod['name']) }}">
+                <div class="product-family-card bg-white rounded-3xl border border-gray-200 p-5 shadow-xs hover:shadow-md transition space-y-4" data-card-idx="{{ $pIdx }}" data-category="{{ $prod['group_type'] ?? 'UPVC' }}" data-search="{{ strtolower($prod['name'] . ' ' . ($prod['group_type'] ?? '')) }}">
                     
                     <div class="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-gray-100">
                         <div class="flex items-center gap-4">
@@ -216,10 +255,18 @@
                             </div>
 
                             <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    @php
+                                        $cgt = $prod['group_type'] ?? 'UPVC';
+                                        $cardPill = $cgt === 'UPVC' ? 'bg-blue-100 text-blue-800 border-blue-200' : ($cgt === 'CPVC' ? 'bg-amber-100 text-amber-800 border-amber-200' : ($cgt === 'SWR' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-emerald-100 text-emerald-800 border-emerald-200'));
+                                    @endphp
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-black border {{ $cardPill }}">
+                                        {{ $cgt === 'AGRI_OTHER' ? 'AGRI / OTHER' : $cgt }}
+                                    </span>
+                                    <span class="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 font-bold text-[10px]">{{ $prod['category'] ?? 'Industrial' }}</span>
+                                </div>
                                 <h3 class="text-base font-black text-gray-900">{{ $prod['name'] }}</h3>
-                                <div class="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                                    <span class="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold text-[10px]">{{ $prod['category'] ?? 'Industrial' }}</span>
-                                    <span>•</span>
+                                <div class="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                                     <span class="font-bold text-gray-700">{{ count($prod['variants'] ?? []) }} Sizes / Variants</span>
                                 </div>
                             </div>
@@ -381,18 +428,57 @@
             }
         }
 
+        // Category & Live Search Filtering
+        let activeCategory = 'ALL';
+        let searchQuery = '';
+
+        function filterByCategory(cat) {
+            activeCategory = cat;
+
+            const tabs = [
+                { id: 'catTab_ALL', key: 'ALL', activeClass: 'bg-gray-900 text-white shadow-sm', inactiveClass: 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200' },
+                { id: 'catTab_UPVC', key: 'UPVC', activeClass: 'bg-blue-600 text-white shadow-md', inactiveClass: 'bg-white hover:bg-blue-50 text-blue-700 border border-blue-200' },
+                { id: 'catTab_CPVC', key: 'CPVC', activeClass: 'bg-amber-600 text-white shadow-md', inactiveClass: 'bg-white hover:bg-amber-50 text-amber-700 border border-amber-200' },
+                { id: 'catTab_SWR', key: 'SWR', activeClass: 'bg-purple-600 text-white shadow-md', inactiveClass: 'bg-white hover:bg-purple-50 text-purple-700 border border-purple-200' },
+                { id: 'catTab_AGRI_OTHER', key: 'AGRI_OTHER', activeClass: 'bg-emerald-600 text-white shadow-md', inactiveClass: 'bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200' }
+            ];
+
+            tabs.forEach(tab => {
+                const el = document.getElementById(tab.id);
+                if (!el) return;
+                const baseClass = "cat-pill px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 transition whitespace-nowrap ";
+                if (tab.key === cat) {
+                    el.className = baseClass + tab.activeClass;
+                } else {
+                    el.className = baseClass + tab.inactiveClass;
+                }
+            });
+
+            applyCombinedFilter();
+        }
+
         // Live Search Filter
         function filterItemsLive(q) {
-            const query = q.toLowerCase().trim();
+            searchQuery = q.toLowerCase().trim();
+            applyCombinedFilter();
+        }
+
+        function applyCombinedFilter() {
             // Table view
             document.querySelectorAll('.table-row-item').forEach(tr => {
-                const text = tr.getAttribute('data-search');
-                tr.style.display = (!query || text.includes(query)) ? '' : 'none';
+                const text = tr.getAttribute('data-search') || '';
+                const category = tr.getAttribute('data-category') || '';
+                const matchSearch = (!searchQuery || text.includes(searchQuery));
+                const matchCat = (activeCategory === 'ALL' || category === activeCategory);
+                tr.style.display = (matchSearch && matchCat) ? '' : 'none';
             });
             // Cards view
             document.querySelectorAll('.product-family-card').forEach(card => {
-                const text = card.getAttribute('data-search');
-                card.style.display = (!query || text.includes(query)) ? '' : 'none';
+                const text = card.getAttribute('data-search') || '';
+                const category = card.getAttribute('data-category') || '';
+                const matchSearch = (!searchQuery || text.includes(searchQuery));
+                const matchCat = (activeCategory === 'ALL' || category === activeCategory);
+                card.style.display = (matchSearch && matchCat) ? '' : 'none';
             });
         }
 
