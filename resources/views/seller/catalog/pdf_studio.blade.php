@@ -76,7 +76,7 @@
                 <a href="{{ route('seller.catalog.pdf_studio') }}" class="pb-2 text-xs font-extrabold border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2 whitespace-nowrap">
                     <i class="fa-solid fa-file-pdf"></i>
                     <span>2. Side-by-Side PDF Studio</span>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-100 text-indigo-700 font-bold">24 Pages Active</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-100 text-indigo-700 font-bold">{{ count($pages) }} Pages Active</span>
                 </a>
                 <a href="{{ route('seller.catalog.excel_mapper') }}" class="pb-2 text-xs font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-900 flex items-center gap-2 whitespace-nowrap transition">
                     <i class="fa-solid fa-table-cells"></i>
@@ -88,6 +88,27 @@
 
     <!-- Main Side-by-Side Workspace Layout -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+        @if(!$hasPages)
+            <div class="bg-white rounded-3xl border border-gray-200 p-12 text-center max-w-xl mx-auto shadow-sm space-y-4 my-8">
+                <div class="h-20 w-20 mx-auto rounded-3xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-3xl">
+                    <i class="fa-solid fa-file-pdf"></i>
+                </div>
+                <h3 class="text-xl font-black text-gray-900">Koi PDF Catalog Active Nahi Hai</h3>
+                <p class="text-xs text-gray-500 leading-relaxed">
+                    Purana catalog data aur images successfully delete kar diye gaye hain. Side-by-side drag-to-crop aur text editing shuru karne ke liye apna PDF brochure upload karein.
+                </p>
+                <div class="pt-2 flex flex-wrap items-center justify-center gap-3">
+                    <a href="{{ route('seller.catalog.upload') }}" class="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>Upload Fresh PDF Brochure</span>
+                    </a>
+                    <a href="{{ route('seller.catalog.gallery') }}" class="px-5 py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-extrabold text-xs transition flex items-center gap-2">
+                        <i class="fa-solid fa-images"></i>
+                        <span>Check Media Vault</span>
+                    </a>
+                </div>
+            </div>
+        @else
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             
             <!-- LEFT COLUMN: Interactive PDF Canvas & Text Editor (7 cols) -->
@@ -260,6 +281,7 @@
             </div>
 
         </div>
+        @endif
     </div>
 
     <!-- Hidden Canvas for Cropping -->

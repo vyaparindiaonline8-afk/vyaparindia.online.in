@@ -40,19 +40,26 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <a href="{{ route('seller.catalog.export_excel', $job->id) }}" class="px-3.5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-file-excel text-emerald-600"></i>
-                        <span>Download Excel</span>
-                    </a>
-                    
-                    <form action="{{ route('seller.catalog.excel_mapper.publish_direct') }}" method="POST" id="directPublishForm" onsubmit="return confirm('Kya aap in sabhi products ko apne live store par publish karna chahte hain?');">
-                        @csrf
-                        <input type="hidden" name="job_id" value="{{ $job->id }}">
-                        <button type="submit" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95">
+                    @if($job)
+                        <a href="{{ route('seller.catalog.export_excel', $job->id) }}" class="px-3.5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                            <span>Download Excel</span>
+                        </a>
+                        
+                        <form action="{{ route('seller.catalog.excel_mapper.publish_direct') }}" method="POST" id="directPublishForm" onsubmit="return confirm('Kya aap in sabhi products ko apne live store par publish karna chahte hain?');">
+                            @csrf
+                            <input type="hidden" name="job_id" value="{{ $job->id }}">
+                            <button type="submit" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                                <span>Publish to Live Store</span>
+                            </button>
+                        </form>
+                    @else
+                        <a href="{{ route('seller.catalog.upload') }}" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-2 transition">
                             <i class="fa-solid fa-cloud-arrow-up"></i>
-                            <span>Publish to Live Store</span>
-                        </button>
-                    </form>
+                            <span>Upload Fresh Excel / PDF</span>
+                        </a>
+                    @endif
                 </div>
             </div>
 
@@ -83,6 +90,28 @@
                 <span>{{ session('success') }}</span>
             </div>
         @endif
+
+        @if(!$job || empty($products))
+            <div class="bg-white rounded-3xl border border-gray-200 p-12 text-center max-w-xl mx-auto shadow-sm space-y-4 my-8">
+                <div class="h-20 w-20 mx-auto rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-3xl">
+                    <i class="fa-solid fa-file-excel"></i>
+                </div>
+                <h3 class="text-xl font-black text-gray-900">Koi Excel Sheet Uploaded Nahi Hai</h3>
+                <p class="text-xs text-gray-500 leading-relaxed">
+                    Purana catalog data, images aur jobs completely delete kar diye gaye hain. Fresh start karne ke liye apni Excel rate list ya PDF brochure upload karein.
+                </p>
+                <div class="pt-2 flex flex-wrap items-center justify-center gap-3">
+                    <a href="{{ route('seller.catalog.upload') }}" class="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>Upload Fresh Excel / PDF File</span>
+                    </a>
+                    <a href="{{ route('seller.catalog.gallery') }}" class="px-5 py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-extrabold text-xs transition flex items-center gap-2">
+                        <i class="fa-solid fa-images"></i>
+                        <span>Check Media Vault</span>
+                    </a>
+                </div>
+            </div>
+        @else
 
         <!-- Controls & View Mode Bar -->
         <div class="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
@@ -308,6 +337,8 @@
             @endforeach
         </div>
 
+        @endif
+
     </div>
 
     <!-- ========================================== -->
@@ -396,7 +427,7 @@
 
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        const jobId = {{ $job->id }};
+        const jobId = {{ $job ? $job->id : 'null' }};
 
         let currentTargetType = null; // 'row', 'card', or 'batch'
         let currentTargetId = null;

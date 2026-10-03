@@ -629,18 +629,22 @@ class CatalogIngestionController extends Controller
         $userId = Auth::id();
         $galleryImages = $this->getAllGalleryImages($userId);
 
-        // 24 Plasto Catalog Pages
+        // Check if any catalog pages exist on disk
         $pages = [];
         for ($p = 1; $p <= 24; $p++) {
             $pageImg = "images/catalog/plasto/page_{$p}.jpg";
             $headerImg = "images/catalog/plasto/headers/header_{$p}.jpg";
-            $pages[] = [
-                'page' => $p,
-                'image_url' => asset($pageImg),
-                'header_url' => file_exists(public_path($headerImg)) ? asset($headerImg) : null,
-                'exists' => file_exists(public_path($pageImg)),
-            ];
+            $exists = file_exists(public_path($pageImg));
+            if ($exists) {
+                $pages[] = [
+                    'page' => $p,
+                    'image_url' => asset($pageImg),
+                    'header_url' => file_exists(public_path($headerImg)) ? asset($headerImg) : null,
+                    'exists' => true,
+                ];
+            }
         }
+        $hasPages = count($pages) > 0;
 
         // Detailed product and text metadata per page
         $pageMetadata = [
@@ -670,7 +674,7 @@ class CatalogIngestionController extends Controller
             24 => ['title' => 'Warranty, Standards & Technical Data', 'items' => ['ASTM Standards', 'IS 4985 Compliance', 'Plasto Quality Guarantee']],
         ];
 
-        return view('seller.catalog.pdf_studio', compact('pages', 'galleryImages', 'pageMetadata'));
+        return view('seller.catalog.pdf_studio', compact('pages', 'galleryImages', 'pageMetadata', 'hasPages'));
     }
 
     /**
@@ -744,20 +748,18 @@ class CatalogIngestionController extends Controller
         }
 
         if (!$job) {
-            $job = CatalogIngestionJob::where('user_id', $userId)->latest()->first();
-        }
-
-        // If still no job, auto-seed the Plasto Master Job
-        if (!$job) {
-            $masterFile = 'catalogs/PLASTO_WITH_IMAGES_MASTER.xlsx';
-            $job = CatalogIngestionJob::create([
-                'user_id' => $userId,
-                'filename' => 'PLASTO_MASTER_CATALOG_WITH_IMAGES.xlsx',
-                'file_path' => $masterFile,
-                'status' => 'pending',
-                'total_products_detected' => 0,
+            $galleryImages = $this->getAllGalleryImages($userId);
+            return view('seller.catalog.excel_mapper', [
+                'job' => null,
+                'products' => [],
+                'flatRows' => [],
+                'categories' => Category::all(),
+                'galleryImages' => $galleryImages,
+                'upvcCount' => 0,
+                'cpvcCount' => 0,
+                'swrCount' => 0,
+                'otherCount' => 0,
             ]);
-            $job = $this->ingestionService->processCatalog($job);
         }
 
         $extractedData = $job->extracted_data ?? ['products' => []];
