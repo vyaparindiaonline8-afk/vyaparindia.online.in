@@ -16,6 +16,10 @@ class SampleDataSeeder extends Seeder
 {
     public function run(): void
     {
+        if (Category::count() >= 5) {
+            return;
+        }
+
         $sellerRole = Role::firstOrCreate(['name' => 'seller']);
         $buyerRole = Role::firstOrCreate(['name' => 'buyer']);
         $adminRole = Role::firstOrCreate(['name' => 'admin']);

@@ -18,10 +18,8 @@ php artisan storage:link || true
 echo "=== Running Database Migrations ==="
 php artisan migrate --force || true
 
-echo "=== Seeding Base Roles & B2B Marketplace Catalog ==="
+echo "=== Seeding Base Roles ==="
 php artisan db:seed --class=RoleSeeder --force || true
-php artisan db:seed --class=SampleDataSeeder --force || true
-php artisan db:seed --class=BrandMasterSeeder --force || true
 
 # Cache routes and views for production speed
 php artisan config:cache || true

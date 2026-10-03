@@ -13,6 +13,10 @@ class BrandMasterSeeder extends Seeder
      */
     public function run(): void
     {
+        if (BrandMasterProduct::count() >= 200) {
+            return;
+        }
+
         $products = [
             [
                 'brand_name' => 'Plasto',
