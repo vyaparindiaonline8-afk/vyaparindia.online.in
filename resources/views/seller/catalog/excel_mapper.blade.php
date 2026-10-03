@@ -155,6 +155,33 @@
             </div>
 
             <!-- ======================================================== -->
+            <!-- 📥 EXCEL RATE LIST UPLOAD DROPZONE                        -->
+            <!-- ======================================================== -->
+            <div id="excelDropzoneCard" class="bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border-2 border-dashed border-emerald-300 hover:border-emerald-500 rounded-3xl p-6 text-center cursor-pointer transition shadow-xs group" onclick="document.getElementById('excelFileInput').click()" ondragover="event.preventDefault(); this.classList.add('border-emerald-600', 'bg-emerald-100/40');" ondragleave="this.classList.remove('border-emerald-600', 'bg-emerald-100/40');" ondrop="event.preventDefault(); this.classList.remove('border-emerald-600', 'bg-emerald-100/40'); if(event.dataTransfer.files.length) handleExcelDroppedFile(event.dataTransfer.files[0]);">
+                <div class="max-w-xl mx-auto space-y-2">
+                    <div class="h-14 w-14 mx-auto rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-2xl shadow-lg shadow-emerald-600/30 group-hover:scale-110 transition">
+                        <i class="fa-solid fa-file-excel"></i>
+                    </div>
+                    <h3 class="text-base font-black text-gray-900">
+                        Upload Your Excel Sheet Here (.xlsx, .xls, .csv)
+                    </h3>
+                    <p class="text-xs text-gray-600 font-medium">
+                        Click karein ya apni Excel Rate List / Price Sheet yahan Drag & Drop karein. Sabhi products aur sizes table me turant list ho jayenge!
+                    </p>
+                    <div class="pt-2 flex flex-wrap items-center justify-center gap-3">
+                        <button type="button" class="px-5 py-2.5 rounded-xl bg-emerald-600 group-hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/20 flex items-center gap-2 transition">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <span>Choose Excel File</span>
+                        </button>
+                        <button type="button" onclick="event.stopPropagation(); loadSampleDynamicRows();" class="px-4 py-2.5 rounded-xl bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-200 shadow-2xs flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
+                            <span>Try Demo Sheet (12 Sample Rows)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======================================================== -->
             <!-- 📷 LIVE PHOTO BANK TRAY (DIRECT ON-PAGE ACCESS)           -->
             <!-- ======================================================== -->
             <div class="bg-white rounded-3xl border border-gray-200 shadow-sm p-4 space-y-3">
@@ -1041,6 +1068,11 @@
                 loadSampleDynamicRows();
             }
             renderGroupedProductCards();
+        }
+
+        function handleExcelDroppedFile(file) {
+            if (!file) return;
+            handleExcelFileUpload({ target: { files: [file] } });
         }
 
         function handleExcelFileUpload(event) {
