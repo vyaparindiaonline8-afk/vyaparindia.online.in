@@ -1045,7 +1045,19 @@
             const emptyPrompt = document.getElementById('sideGalleryEmptyPrompt');
             if (emptyPrompt) emptyPrompt.remove();
 
+            // Cache to client localStorage so crops never get lost across restarts
+            try {
+                let cached = JSON.parse(localStorage.getItem('vyapar_cached_crops') || '[]');
+                if (!cached.find(c => c.id === img.id || c.url === img.url)) {
+                    cached.unshift(img);
+                    if (cached.length > 500) cached.pop();
+                    localStorage.setItem('vyapar_cached_crops', JSON.stringify(cached));
+                }
+            } catch(e) {}
+
             const list = document.getElementById('sideGalleryList');
+            if (document.getElementById(`card_img_${img.id}`)) return;
+
             const countEl = document.getElementById('rightGalleryCount');
             if (countEl) {
                 countEl.innerText = parseInt(countEl.innerText || 0) + 1;
@@ -1083,6 +1095,13 @@
         // Delete Image from Gallery Vault
         function deleteSideGalleryImage(url, id, name) {
             if (!confirm(`Kya aap "${name}" photo ko Media Vault se delete karna chahte hain?`)) return;
+
+            // Remove from client cache
+            try {
+                let cached = JSON.parse(localStorage.getItem('vyapar_cached_crops') || '[]');
+                cached = cached.filter(c => c.url !== url && c.id !== id);
+                localStorage.setItem('vyapar_cached_crops', JSON.stringify(cached));
+            } catch(e) {}
 
             fetch("{{ route('seller.catalog.gallery.delete') }}", {
                 method: "POST",
@@ -1430,6 +1449,20 @@
                 window.location.href = "{{ route('seller.catalog.excel_mapper') }}?source=pdf_lines";
             }, 400);
         }
+
+        // Restore cached crops on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            try {
+                const cached = JSON.parse(localStorage.getItem('vyapar_cached_crops') || '[]');
+                if (cached.length > 0) {
+                    cached.forEach(img => {
+                        if (!document.getElementById(`card_img_${img.id}`)) {
+                            appendCropToRightGallery(img);
+                        }
+                    });
+                }
+            } catch (e) {}
+        });
     </script>
 </body>
 </html>

@@ -139,6 +139,95 @@
                             {{ $product->description ?: 'High quality verified commercial product listed directly by verified Indian manufacturer/wholesaler.' }}
                         </p>
                     </div>
+
+                    <!-- 📦 B2B Multi-Size Wholesale Matrix Order Table -->
+                    @if($product->variants && $product->variants->count() > 0)
+                        <div class="mt-4 bg-slate-50 border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-xs space-y-3">
+                            <div class="flex items-center justify-between pb-2.5 border-b border-gray-200">
+                                <div>
+                                    <h3 class="text-xs sm:text-sm font-black text-gray-900 flex items-center gap-2">
+                                        <i class="fa-solid fa-layer-group text-blue-600"></i>
+                                        <span>Sizes & Wholesale Quantity Order Form</span>
+                                    </h3>
+                                    <p class="text-[11px] text-gray-500">Zaroorat ke sizes ke aage quantity dalein aur 1-click me order karein</p>
+                                </div>
+                                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 font-mono">
+                                    {{ $product->variants->count() }} Sizes
+                                </span>
+                            </div>
+
+                            <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="bg-gray-50 text-gray-500 text-[10px] font-bold uppercase border-b border-gray-200">
+                                        <tr>
+                                            <th class="p-2.5">Size / Dimension</th>
+                                            <th class="p-2.5">Rate (₹)</th>
+                                            <th class="p-2.5">MRP</th>
+                                            <th class="p-2.5 text-center w-36">Quantity (Pcs)</th>
+                                            <th class="p-2.5 text-right">Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100 font-medium">
+                                        @foreach($product->variants as $v)
+                                            @php
+                                                $vPrice = floatval($v->retail_price ?: ($v->wholesale_price ?: $product->price));
+                                                $vMrp = floatval($v->mrp ?: ($vPrice * 1.35));
+                                                $vSize = $v->size ?: ($v->variant_name ?: 'Standard');
+                                            @endphp
+                                            <tr class="hover:bg-blue-50/40 transition variant-matrix-row" data-id="{{ $v->id }}" data-size="{{ $vSize }}" data-price="{{ $vPrice }}">
+                                                <td class="p-2.5 font-black text-gray-900 font-mono text-xs">
+                                                    {{ $vSize }}
+                                                </td>
+                                                <td class="p-2.5 font-mono font-bold text-emerald-700">
+                                                    ₹{{ number_format($vPrice, 2) }}
+                                                </td>
+                                                <td class="p-2.5 font-mono text-gray-400 text-[11px]">
+                                                    @if($vMrp > $vPrice)
+                                                        <span class="line-through">₹{{ number_format($vMrp, 2) }}</span>
+                                                    @else
+                                                        ₹{{ number_format($vPrice, 2) }}
+                                                    @endif
+                                                </td>
+                                                <td class="p-2.5 text-center">
+                                                    <div class="inline-flex items-center border border-gray-300 rounded-xl overflow-hidden bg-white shadow-2xs">
+                                                        <button type="button" onclick="adjustMatrixQty({{ $v->id }}, -1)" class="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold active:bg-gray-200 transition">-</button>
+                                                        <input type="number" min="0" value="0" id="matrix_qty_{{ $v->id }}" oninput="recalcMatrixTotal()" class="w-12 h-7 text-center text-xs font-bold font-mono border-x border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-600">
+                                                        <button type="button" onclick="adjustMatrixQty({{ $v->id }}, 1)" class="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold active:bg-gray-200 transition">+</button>
+                                                    </div>
+                                                </td>
+                                                <td class="p-2.5 text-right font-mono font-bold text-gray-900" id="matrix_subtotal_{{ $v->id }}">
+                                                    ₹0.00
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Matrix Order Live Total Bar -->
+                            <div class="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-bold text-gray-600">Selected Quantity:</span>
+                                        <span class="text-xs font-black text-emerald-800" id="matrixSummaryQty">0 Pcs</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-bold text-gray-600">Estimated Total:</span>
+                                        <span class="text-sm font-black text-gray-900" id="matrixSummaryTotal">₹0.00</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    @if($sellerPhoneClean)
+                                        <button type="button" onclick="orderMatrixOnWhatsApp()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition active:scale-95">
+                                            <i class="fa-brands fa-whatsapp text-sm"></i>
+                                            <span>Order Sizes on WhatsApp</span>
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Seller Profile & WhatsApp Direct Action -->
@@ -262,5 +351,82 @@
         </div>
     </footer>
 
+    <script>
+        function adjustMatrixQty(id, delta) {
+            const input = document.getElementById('matrix_qty_' + id);
+            if (!input) return;
+            let current = parseInt(input.value) || 0;
+            current = Math.max(0, current + delta);
+            input.value = current;
+            recalcMatrixTotal();
+        }
+
+        function recalcMatrixTotal() {
+            const rows = document.querySelectorAll('.variant-matrix-row');
+            let totalQty = 0;
+            let totalAmount = 0;
+
+            rows.forEach(tr => {
+                const id = tr.getAttribute('data-id');
+                const price = parseFloat(tr.getAttribute('data-price') || 0);
+                const input = document.getElementById('matrix_qty_' + id);
+                const qty = input ? (parseInt(input.value) || 0) : 0;
+                const subtotal = qty * price;
+
+                const subtotalEl = document.getElementById('matrix_subtotal_' + id);
+                if (subtotalEl) {
+                    subtotalEl.innerText = '₹' + subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+
+                if (qty > 0) {
+                    tr.classList.add('bg-blue-50/70');
+                } else {
+                    tr.classList.remove('bg-blue-50/70');
+                }
+
+                totalQty += qty;
+                totalAmount += subtotal;
+            });
+
+            const summaryQtyEl = document.getElementById('matrixSummaryQty');
+            const summaryTotalEl = document.getElementById('matrixSummaryTotal');
+            if (summaryQtyEl) summaryQtyEl.innerText = `${totalQty} Pcs`;
+            if (summaryTotalEl) summaryTotalEl.innerText = '₹' + totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function orderMatrixOnWhatsApp() {
+            const rows = document.querySelectorAll('.variant-matrix-row');
+            const selected = [];
+            let totalQty = 0;
+            let totalVal = 0;
+
+            rows.forEach(tr => {
+                const id = tr.getAttribute('data-id');
+                const size = tr.getAttribute('data-size');
+                const price = parseFloat(tr.getAttribute('data-price') || 0);
+                const input = document.getElementById('matrix_qty_' + id);
+                const qty = input ? (parseInt(input.value) || 0) : 0;
+                if (qty > 0) {
+                    const lineTotal = qty * price;
+                    selected.push(`• *${size}*: ${qty} pcs @ ₹${price.toFixed(2)} = ₹${lineTotal.toFixed(2)}`);
+                    totalQty += qty;
+                    totalVal += lineTotal;
+                }
+            });
+
+            if (selected.length === 0) {
+                alert('Kripya kam se kam 1 size ki quantity dalein.');
+                return;
+            }
+
+            const sellerName = "{{ $sp->company_name ?? ($seller->name ?? 'Seller') }}";
+            const prodName = "{{ $product->name }}";
+            const phone = "{{ $sellerPhoneClean }}";
+
+            let msg = `Hello ${sellerName},\n\nI want to place an order for *${prodName}* via VyaparIndia:\n\n${selected.join('\n')}\n\n*Total Quantity:* ${totalQty} pcs\n*Estimated Value:* ₹${totalVal.toFixed(2)}\n\nPlease confirm availability and payment/delivery terms.`;
+
+            window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+    </script>
 </body>
 </html>

@@ -6,6 +6,7 @@
     <title>Excel Multi-Row & Variant Card Mapper - VyaparIndia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
         .drawer-slide {
@@ -114,6 +115,12 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" onclick="document.getElementById('excelFileInput').click()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition active:scale-95" title="Import full Excel sheet (.xlsx, .xls, .csv)">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <span>Import Excel File</span>
+                    </button>
+                    <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelFileUpload(event)">
+
                     <button type="button" onclick="loadSampleDynamicRows()" class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition flex items-center gap-1.5" title="Load sample UPVC / CPVC fittings">
                         <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
                         <span>Load Sample Lines</span>
@@ -147,7 +154,7 @@
                 <div class="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/70">
                     <div class="flex items-center gap-2">
                         <span class="text-xs font-black text-gray-800 uppercase tracking-wider">Dynamic Spreadsheet Lines:</span>
-                        <span class="text-xs text-gray-500" id="dynamicTableSubtitle">(Select 6-8 lines to link photo)</span>
+                        <span class="text-xs text-gray-500" id="dynamicTableSubtitle">(Select 6-8 lines to link photo or group into 1 card)</span>
                     </div>
                     <div class="flex items-center gap-2 text-xs">
                         <span class="text-gray-500">Quick Select:</span>
@@ -155,6 +162,10 @@
                         <button type="button" onclick="selectNDynamicRows(8)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700">First 8</button>
                         <button type="button" onclick="toggleSelectAllDynamic(true)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700">All</button>
                         <button type="button" onclick="clearDynamicRowSelection()" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-600">Clear</button>
+                        <button type="button" onclick="groupSelectedRowsIntoCard()" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition ml-2">
+                            <i class="fa-solid fa-layer-group"></i>
+                            <span>Group (6-8) Rows into 1 Card</span>
+                        </button>
                     </div>
                 </div>
 
@@ -179,6 +190,28 @@
                             <!-- Populated via JS -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Grouped Product Cards Container (When user groups 6-8 sizes into 1 card) -->
+            <div id="groupedCardsSection" class="space-y-4 pt-2">
+                <div class="flex items-center justify-between pb-2 border-b border-gray-200">
+                    <div class="flex items-center gap-2">
+                        <div class="h-8 w-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm shadow-xs">
+                            <i class="fa-solid fa-layer-group"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-black text-gray-900 flex items-center gap-2">
+                                <span>Grouped Product Cards</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-100 text-indigo-800 font-bold" id="groupedCardCountBadge">0 Cards</span>
+                            </h3>
+                            <p class="text-[11px] text-gray-500">6-8 sizes ko jodkar banaye gaye cards. Live store par customer in sabhi sizes ke aage quantity dalker order karega.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="groupedCardsGrid" class="space-y-4">
+                    <!-- Populated via JS -->
                 </div>
             </div>
         </div>
@@ -444,9 +477,13 @@
             <button type="button" onclick="clearRowSelection()" class="px-3 py-2 rounded-xl text-gray-400 hover:text-white text-xs font-bold transition">
                 Deselect
             </button>
+            <button type="button" onclick="groupSelectedRowsIntoCard()" class="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-1.5 transition active:scale-95" title="Combine selected rows into 1 Product Card">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>Group into 1 Card</span>
+            </button>
             <button type="button" onclick="openGalleryDrawerForBatch()" class="px-5 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-black text-xs shadow-lg shadow-emerald-500/30 flex items-center gap-2 transition active:scale-95">
                 <i class="fa-solid fa-images"></i>
-                <span>Assign Image to (<span id="btnBatchCount">0</span>) Rows</span>
+                <span>Assign Image (<span id="btnBatchCount">0</span>)</span>
             </button>
         </div>
     </div>
@@ -682,6 +719,8 @@
                 info.innerText = `Attaching photo to Row #${id}`;
             } else if (type === 'card') {
                 info.innerText = `Attaching photo to Product Card #${id}`;
+            } else if (type === 'grouped_card') {
+                info.innerText = `Attaching photo to Grouped Product Card #${id}`;
             } else {
                 info.innerText = `Click any image to attach to selection`;
             }
@@ -724,6 +763,13 @@
         // User picks an image from drawer
         function selectDrawerImage(relUrl, assetUrl) {
             if (!currentTargetType) {
+                closeGalleryDrawer();
+                return;
+            }
+
+            // 0. Grouped Product Card Assign
+            if (currentTargetType === 'grouped_card') {
+                updateGroupedCardThumbnail(currentTargetId, relUrl, assetUrl);
                 closeGalleryDrawer();
                 return;
             }
@@ -803,12 +849,26 @@
             }
         }
 
+        function updateGroupedCardThumbnail(cardId, relUrl, assetUrl) {
+            const card = groupedProductCards.find(c => c.card_id === cardId);
+            if (card) {
+                card.image_url = relUrl;
+                card.asset_url = assetUrl;
+            }
+            const box = document.getElementById('grouped_thumb_' + cardId);
+            if (box) {
+                box.innerHTML = `<img src="${assetUrl}" class="max-h-full max-w-full object-contain">`;
+            }
+        }
+
         // ==========================================
         // 📑 DYNAMIC SAAS SPREADSHEET TABLE LOGIC
         // ==========================================
         let isDynamicMode = {{ (!$job || empty($products)) ? 'true' : 'false' }};
         let dynamicRows = [];
         let dynamicRowNextId = 1;
+        let groupedProductCards = [];
+        let groupedCardNextId = 1;
 
         function toggleDynamicMode(enable) {
             isDynamicMode = enable;
@@ -844,6 +904,7 @@
 
                         if (!jobId || isDynamicMode) {
                             loadLinesIntoDynamicRows(lines);
+                            renderGroupedProductCards();
                             return;
                         }
                     }
@@ -855,6 +916,340 @@
             if (!jobId && dynamicRows.length === 0) {
                 loadSampleDynamicRows();
             }
+            renderGroupedProductCards();
+        }
+
+        function handleExcelFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (!jsonRows || jsonRows.length === 0) {
+                        alert('Excel file me koi data nahi mila!');
+                        return;
+                    }
+
+                    let startIndex = 0;
+                    let colIdx = { name: 0, size: 1, mrp: 2, cost: 3, retail: 4, category: -1, image: -1 };
+
+                    const firstRow = jsonRows[0].map(c => String(c || '').toLowerCase().trim());
+                    const hasHeader = firstRow.some(c => 
+                        c.includes('item') || c.includes('product') || c.includes('name') || 
+                        c.includes('size') || c.includes('rate') || c.includes('price') || 
+                        c.includes('mrp') || c.includes('particular') || c.includes('desc')
+                    );
+
+                    if (hasHeader) {
+                        startIndex = 1;
+                        firstRow.forEach((col, idx) => {
+                            if (col.includes('item') || col.includes('product') || col.includes('name') || col.includes('desc') || col.includes('particular')) colIdx.name = idx;
+                            else if (col.includes('size') || col.includes('dimension') || col.includes('dia') || col.includes('inch') || col.includes('mm')) colIdx.size = idx;
+                            else if (col.includes('mrp') || col.includes('list') || col.includes('price') || col.includes('rate')) colIdx.mrp = idx;
+                            else if (col.includes('purchase') || col.includes('cost') || col.includes('buy')) colIdx.cost = idx;
+                            else if (col.includes('retail') || col.includes('sell') || col.includes('net') || col.includes('sale')) colIdx.retail = idx;
+                            else if (col.includes('cat') || col.includes('group') || col.includes('type')) colIdx.category = idx;
+                            else if (col.includes('img') || col.includes('photo') || col.includes('image')) colIdx.image = idx;
+                        });
+                    }
+
+                    const newRows = [];
+                    for (let i = startIndex; i < jsonRows.length; i++) {
+                        const row = jsonRows[i];
+                        if (!row || row.length === 0 || row.every(c => c === null || c === undefined || String(c).trim() === '')) continue;
+
+                        const rawName = String(row[colIdx.name] || '').trim();
+                        if (!rawName) continue;
+
+                        const rawSize = (colIdx.size !== -1 && row[colIdx.size] !== undefined) ? String(row[colIdx.size]).trim() : '';
+                        const rawMrp = parseFloat(String(row[colIdx.mrp] || '0').replace(/[^0-9.]/g, '')) || 0;
+                        const rawCost = (colIdx.cost !== -1 && row[colIdx.cost]) ? parseFloat(String(row[colIdx.cost]).replace(/[^0-9.]/g, '')) : Math.round(rawMrp * 0.65);
+                        const rawRetail = (colIdx.retail !== -1 && row[colIdx.retail]) ? parseFloat(String(row[colIdx.retail]).replace(/[^0-9.]/g, '')) : Math.round(rawMrp * 0.88);
+                        
+                        let cat = 'UPVC';
+                        if (colIdx.category !== -1 && row[colIdx.category]) {
+                            const cVal = String(row[colIdx.category]).toUpperCase();
+                            if (cVal.includes('CPVC')) cat = 'CPVC';
+                            else if (cVal.includes('SWR')) cat = 'SWR';
+                            else if (cVal.includes('AGRI') || cVal.includes('OTHER')) cat = 'AGRI_OTHER';
+                        } else {
+                            const combined = (rawName + ' ' + rawSize).toUpperCase();
+                            if (combined.includes('CPVC')) cat = 'CPVC';
+                            else if (combined.includes('SWR') || combined.includes('TRAP') || combined.includes('DRAIN')) cat = 'SWR';
+                            else if (combined.includes('AGRI') || combined.includes('SOLVENT')) cat = 'AGRI_OTHER';
+                        }
+
+                        let parsedSize = rawSize;
+                        if (!parsedSize) {
+                            const sizeMatch = rawName.match(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/i);
+                            parsedSize = sizeMatch ? sizeMatch[0] : `Var-${i}`;
+                        }
+
+                        const img = (colIdx.image !== -1 && row[colIdx.image]) ? String(row[colIdx.image]).trim() : '';
+
+                        newRows.push({
+                            id: dynamicRowNextId++,
+                            product_name: rawName,
+                            size: parsedSize,
+                            group_type: cat,
+                            mrp: rawMrp || 100,
+                            purchase_cost: rawCost || 65,
+                            retail_price: rawRetail || 88,
+                            image_url: img,
+                            asset_url: img ? (img.startsWith('http') ? img : ('/' + img.replace(/^\//, ''))) : ''
+                        });
+                    }
+
+                    if (newRows.length === 0) {
+                        alert('File se valid product data nahi mila.');
+                        return;
+                    }
+
+                    dynamicRows = dynamicRows.concat(newRows);
+                    renderDynamicRows();
+                    toggleDynamicMode(true);
+                    alert(`✅ Excel sheet se ${newRows.length} rows safaltapoorvak import ho gayi hain!`);
+                } catch (err) {
+                    console.error('Excel parse error:', err);
+                    alert('Excel file read karne me error: ' + err.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = '';
+        }
+
+        function groupSelectedRowsIntoCard() {
+            let checkedIds = [];
+            if (isDynamicMode) {
+                checkedIds = Array.from(document.querySelectorAll('.dynamic-row-checkbox:checked')).map(cb => parseInt(cb.value));
+            } else {
+                checkedIds = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => parseInt(cb.value));
+            }
+
+            if (checkedIds.length === 0) {
+                alert('Kripya 1 ya usse zyada rows (jaise 6-8 sizes) select karein jinhe 1 Product Card me combine karna hai.');
+                return;
+            }
+
+            if (!isDynamicMode) {
+                toggleDynamicMode(true);
+            }
+
+            const selectedRows = dynamicRows.filter(r => checkedIds.includes(r.id));
+            if (selectedRows.length === 0) {
+                alert('Selected rows dynamic table me nahi mili.');
+                return;
+            }
+
+            let firstRow = selectedRows[0];
+            let parentTitle = firstRow.product_name;
+            if (firstRow.size && parentTitle.includes(firstRow.size)) {
+                parentTitle = parentTitle.replace(firstRow.size, '').trim();
+            }
+            parentTitle = parentTitle.replace(/[-–,\s]+$/, '').trim() || firstRow.product_name;
+
+            const assignedImg = selectedRows.find(r => r.image_url)?.image_url || preselectedImg || '';
+            const assignedAsset = selectedRows.find(r => r.asset_url)?.asset_url || (preselectedImg ? ('/' + preselectedImg.replace(/^\//, '')) : '');
+
+            const newCard = {
+                card_id: groupedCardNextId++,
+                parent_name: parentTitle,
+                category: firstRow.group_type || 'UPVC',
+                image_url: assignedImg,
+                asset_url: assignedAsset,
+                variants: selectedRows.map(r => ({
+                    id: r.id,
+                    size: r.size,
+                    mrp: r.mrp,
+                    purchase_cost: r.purchase_cost,
+                    retail_price: r.retail_price
+                }))
+            };
+
+            groupedProductCards.push(newCard);
+
+            dynamicRows = dynamicRows.filter(r => !checkedIds.includes(r.id));
+
+            clearDynamicRowSelection();
+            renderDynamicRows();
+            renderGroupedProductCards();
+            updateFloatingBatchBar();
+
+            const gSection = document.getElementById('groupedCardsSection');
+            if (gSection) {
+                gSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function renderGroupedProductCards() {
+            const grid = document.getElementById('groupedCardsGrid');
+            const badge = document.getElementById('groupedCardCountBadge');
+            if (badge) badge.innerText = `${groupedProductCards.length} Cards`;
+            if (!grid) return;
+
+            if (groupedProductCards.length === 0) {
+                grid.innerHTML = `
+                    <div class="p-6 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 text-gray-400 text-xs">
+                        <i class="fa-solid fa-layer-group text-lg mb-1"></i>
+                        <p>Abhi tak koi grouped card nahi banaya gaya. Upar table me se 6-8 sizes select karke <b>"Group (6-8) Rows into 1 Card"</b> dabayein.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            groupedProductCards.forEach((c) => {
+                const imgThumb = (c.asset_url || c.image_url)
+                    ? `<img src="${c.asset_url || c.image_url}" class="max-h-full max-w-full object-contain">`
+                    : `<div class="text-center text-gray-400 group-hover:text-indigo-600"><i class="fa-solid fa-camera text-base"></i><p class="text-[9px] font-bold mt-0.5">Attach Photo</p></div>`;
+
+                let variantRowsHtml = '';
+                c.variants.forEach((v) => {
+                    variantRowsHtml += `
+                        <tr class="hover:bg-indigo-50/30 transition">
+                            <td class="p-2">
+                                <input type="text" value="${escapeHtml(v.size)}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'size', this.value)" class="w-full text-xs font-mono font-bold text-gray-900 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent">
+                            </td>
+                            <td class="p-2 font-mono">
+                                <div class="flex items-center"><span class="text-gray-400 mr-0.5">₹</span><input type="number" step="0.5" value="${v.mrp}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'mrp', parseFloat(this.value) || 0)" class="w-16 text-xs font-bold text-gray-800 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent"></div>
+                            </td>
+                            <td class="p-2 font-mono">
+                                <div class="flex items-center"><span class="text-gray-400 mr-0.5">₹</span><input type="number" step="0.5" value="${v.purchase_cost}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'purchase_cost', parseFloat(this.value) || 0)" class="w-16 text-xs text-gray-600 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent"></div>
+                            </td>
+                            <td class="p-2 font-mono">
+                                <div class="flex items-center"><span class="text-gray-400 mr-0.5">₹</span><input type="number" step="0.5" value="${v.retail_price}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'retail_price', parseFloat(this.value) || 0)" class="w-16 text-xs font-bold text-emerald-700 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent"></div>
+                            </td>
+                            <td class="p-2 text-right">
+                                <button type="button" onclick="deleteVariantFromCard(${c.card_id}, ${v.id})" class="h-6 w-6 rounded bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition inline-flex items-center justify-center text-[10px]" title="Remove size"><i class="fa-solid fa-xmark"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                    <div class="bg-white rounded-3xl border-2 border-indigo-100 p-5 shadow-sm hover:shadow-md transition space-y-4" id="grouped_card_box_${c.card_id}">
+                        <div class="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-gray-100">
+                            <div class="flex items-center gap-4 flex-1 min-w-[280px]">
+                                <!-- Product Photo Slot -->
+                                <div class="relative group h-20 w-20 bg-gray-50 rounded-2xl border-2 border-dashed border-indigo-200 hover:border-indigo-500 p-1 flex items-center justify-center overflow-hidden cursor-pointer transition shrink-0" onclick="openGalleryDrawer('grouped_card', ${c.card_id})" title="Click to choose image from Photo Bank" id="grouped_thumb_${c.card_id}">
+                                    ${imgThumb}
+                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition rounded-xl">
+                                        Change
+                                    </div>
+                                </div>
+
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1.5">
+                                        <select onchange="updateGroupedCardField(${c.card_id}, 'category', this.value)" class="text-[11px] font-bold py-0.5 px-2 rounded-lg border border-indigo-200 bg-indigo-50/50 text-indigo-900 focus:ring-1 focus:ring-indigo-500">
+                                            <option value="UPVC" ${c.category === 'UPVC' ? 'selected' : ''}>💧 UPVC</option>
+                                            <option value="CPVC" ${c.category === 'CPVC' ? 'selected' : ''}>🔥 CPVC</option>
+                                            <option value="SWR" ${c.category === 'SWR' ? 'selected' : ''}>🚰 SWR</option>
+                                            <option value="AGRI_OTHER" ${c.category === 'AGRI_OTHER' ? 'selected' : ''}>🌿 Other</option>
+                                        </select>
+                                        <span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-extrabold text-[10px]">${c.variants.length} Sizes Included</span>
+                                    </div>
+                                    <input type="text" value="${escapeHtml(c.parent_name)}" oninput="updateGroupedCardField(${c.card_id}, 'parent_name', this.value)" class="w-full text-base font-black text-gray-900 border border-transparent hover:border-gray-300 focus:border-indigo-600 focus:bg-white rounded-lg px-2 py-1 transition bg-transparent" placeholder="e.g. UPVC 90° Elbow Heavy Duty">
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="openGalleryDrawer('grouped_card', ${c.card_id})" class="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-extrabold border border-indigo-200 flex items-center gap-1.5 transition">
+                                    <i class="fa-solid fa-images"></i>
+                                    <span>Pick Photo</span>
+                                </button>
+                                <button type="button" onclick="ungroupCard(${c.card_id})" class="px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-extrabold border border-amber-200 flex items-center gap-1.5 transition" title="Restore back to flat table rows">
+                                    <i class="fa-solid fa-arrow-rotate-left"></i>
+                                    <span>Ungroup</span>
+                                </button>
+                                <button type="button" onclick="deleteGroupedCard(${c.card_id})" class="h-8 w-8 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 flex items-center justify-center text-xs transition" title="Delete Card">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Sizes Matrix Sub-Table -->
+                        <div class="overflow-x-auto rounded-2xl border border-gray-100 bg-slate-50/50">
+                            <table class="w-full text-left text-xs">
+                                <thead class="text-[10px] text-gray-400 uppercase font-bold border-b border-gray-200">
+                                    <tr>
+                                        <th class="p-2.5">Size / Dimension</th>
+                                        <th class="p-2.5">MRP</th>
+                                        <th class="p-2.5">Cost Price</th>
+                                        <th class="p-2.5">Selling Price</th>
+                                        <th class="p-2.5 text-right w-12">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 font-medium">
+                                    ${variantRowsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            });
+
+            grid.innerHTML = html;
+        }
+
+        function updateGroupedCardField(cardId, field, val) {
+            const card = groupedProductCards.find(c => c.card_id === cardId);
+            if (card) card[field] = val;
+        }
+
+        function updateGroupedVariantField(cardId, variantId, field, val) {
+            const card = groupedProductCards.find(c => c.card_id === cardId);
+            if (card) {
+                const v = card.variants.find(item => item.id === variantId);
+                if (v) v[field] = val;
+            }
+        }
+
+        function deleteVariantFromCard(cardId, variantId) {
+            const card = groupedProductCards.find(c => c.card_id === cardId);
+            if (card) {
+                card.variants = card.variants.filter(v => v.id !== variantId);
+                if (card.variants.length === 0) {
+                    deleteGroupedCard(cardId);
+                    return;
+                }
+                renderGroupedProductCards();
+            }
+        }
+
+        function ungroupCard(cardId) {
+            const card = groupedProductCards.find(c => c.card_id === cardId);
+            if (!card) return;
+
+            card.variants.forEach(v => {
+                dynamicRows.push({
+                    id: dynamicRowNextId++,
+                    product_name: `${card.parent_name} ${v.size}`.trim(),
+                    size: v.size,
+                    group_type: card.category,
+                    mrp: v.mrp,
+                    purchase_cost: v.purchase_cost,
+                    retail_price: v.retail_price,
+                    image_url: card.image_url || '',
+                    asset_url: card.asset_url || ''
+                });
+            });
+
+            groupedProductCards = groupedProductCards.filter(c => c.card_id !== cardId);
+            renderDynamicRows();
+            renderGroupedProductCards();
+        }
+
+        function deleteGroupedCard(cardId) {
+            if (!confirm('Kya aap is Grouped Product Card ko delete karna chahte hain?')) return;
+            groupedProductCards = groupedProductCards.filter(c => c.card_id !== cardId);
+            renderGroupedProductCards();
         }
 
         function loadLinesIntoDynamicRows(lines) {
@@ -939,7 +1334,7 @@
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="9" class="p-8 text-center text-gray-400 text-xs">
-                            Koi rows nahi hain. Upar <b>"Load Sample Lines"</b> ya <b>"Extract from PDF Studio"</b> dabayein.
+                            Koi flat rows nahi hain. Nayi row jodne ke liye <b>"+ Add Line"</b> ya Excel Import karein.
                         </td>
                     </tr>
                 `;
@@ -1073,7 +1468,7 @@
         }
 
         function exportDynamicToCsv() {
-            if (dynamicRows.length === 0) {
+            if (dynamicRows.length === 0 && groupedProductCards.length === 0) {
                 alert('Export karne ke liye koi rows nahi hain.');
                 return;
             }
@@ -1081,6 +1476,23 @@
             const sheetName = (document.getElementById('dynamicSheetName')?.value || 'catalog').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
             let csv = "Category,Product Name,Size/Dimension,MRP,Purchase Cost,Retail Price,Image URL\n";
 
+            // Add grouped cards
+            groupedProductCards.forEach(c => {
+                const escapeCsv = (str) => `"${(str || '').toString().replace(/"/g, '""')}"`;
+                c.variants.forEach(v => {
+                    csv += [
+                        escapeCsv(c.category),
+                        escapeCsv(c.parent_name),
+                        escapeCsv(v.size),
+                        v.mrp,
+                        v.purchase_cost,
+                        v.retail_price,
+                        escapeCsv(c.image_url)
+                    ].join(',') + "\n";
+                });
+            });
+
+            // Add flat rows
             dynamicRows.forEach(r => {
                 const escapeCsv = (str) => `"${(str || '').toString().replace(/"/g, '""')}"`;
                 csv += [
@@ -1104,12 +1516,12 @@
         }
 
         function saveDynamicSheetToBackend() {
-            if (dynamicRows.length === 0) {
-                alert('Save karne ke liye kam se kam 1 row hona zaroori hai.');
+            if (dynamicRows.length === 0 && groupedProductCards.length === 0) {
+                alert('Save karne ke liye kam se kam 1 row ya 1 Grouped Card hona zaroori hai.');
                 return;
             }
 
-            const sheetTitle = (document.getElementById('dynamicSheetName')?.value || 'PDF Extracted Sheet').trim();
+            const sheetTitle = (document.getElementById('dynamicSheetName')?.value || 'Catalog Sheet').trim();
             const btn = document.getElementById('btnSaveDynamicSheet');
             if (btn) {
                 btn.disabled = true;
@@ -1125,7 +1537,8 @@
                 },
                 body: JSON.stringify({
                     sheet_name: sheetTitle,
-                    rows: dynamicRows
+                    rows: dynamicRows,
+                    grouped_cards: groupedProductCards
                 })
             })
             .then(res => res.json())

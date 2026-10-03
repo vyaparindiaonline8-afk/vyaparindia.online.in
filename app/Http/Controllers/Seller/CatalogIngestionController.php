@@ -440,13 +440,48 @@ class CatalogIngestionController extends Controller
     protected function getAllGalleryImages($userId): array
     {
         $images = [];
+        $seenUrls = [];
 
-        // 0. Registered Cloudinary & Custom Crop URLs
+        // 0. Registered SellerMedia from PostgreSQL Database (Permanent Cloudinary & Custom Crops)
+        try {
+            $dbMedia = \App\Models\SellerMedia::where('user_id', $userId)
+                ->orWhere('user_id', 1)
+                ->orWhereNull('user_id')
+                ->latest()
+                ->get();
+            foreach ($dbMedia as $m) {
+                $url = $m->file_path;
+                if (isset($seenUrls[$url])) continue;
+                $seenUrls[$url] = true;
+                $assetUrl = (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) ? $url : asset($url);
+                $name = $m->filename ? ucwords(str_replace(['crop_', 'p_', '_', '-'], ' ', pathinfo($m->filename, PATHINFO_FILENAME))) : 'Catalog Image';
+                $images[] = [
+                    'id' => md5($url),
+                    'filename' => $m->filename,
+                    'name' => trim($name),
+                    'url' => $url,
+                    'asset_url' => $assetUrl,
+                    'size_kb' => 35.0,
+                    'created_at' => $m->created_at ? $m->created_at->format('d M Y, H:i') : date('d M Y, H:i'),
+                    'source' => 'custom_crop',
+                    'deletable' => true,
+                ];
+            }
+        } catch (\Throwable $e) {
+            Log::warning('SellerMedia DB fetch warning: ' . $e->getMessage());
+        }
+
+        // 0b. Registered Cloudinary & Custom Crop URLs from JSON
         $registryCrops = $this->getCropsRegistry($userId);
         foreach ($registryCrops as $regImg) {
-            $images[] = $regImg;
+            $u = $regImg['url'] ?? '';
+            if ($u && !isset($seenUrls[$u])) {
+                $seenUrls[$u] = true;
+                $images[] = $regImg;
+            }
         }
-        // 0b. User Cropped Images Library
+
+        // 0c. User Cropped Images Library
         $cropsDir = public_path('images/catalog/crops/seller_' . $userId);
         if (is_dir($cropsDir)) {
             $files = scandir($cropsDir);
@@ -661,6 +696,13 @@ class CatalogIngestionController extends Controller
 
         // If it's a Cloudinary / HTTP URL or registered crop
         $this->removeCropFromRegistry($userId, $rawUrl);
+        try {
+            \App\Models\SellerMedia::where('user_id', $userId)
+                ->where(function($q) use ($rawUrl) {
+                    $q->where('file_path', $rawUrl)
+                      ->orWhere('file_path', ltrim($rawUrl, '/'));
+                })->delete();
+        } catch (\Throwable $e) {}
 
         if (str_starts_with($rawUrl, 'http://') || str_starts_with($rawUrl, 'https://')) {
             return response()->json([
@@ -764,6 +806,16 @@ class CatalogIngestionController extends Controller
                     'deletable' => true,
                 ];
                 $this->addCropToRegistry($userId, $newImage);
+                try {
+                    \App\Models\SellerMedia::create([
+                        'user_id' => $userId,
+                        'filename' => $fileName,
+                        'file_path' => $cloudinaryUrl,
+                        'is_assigned' => false,
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::warning('SellerMedia insert error: ' . $e->getMessage());
+                }
 
                 return response()->json([
                     'success' => true,
@@ -817,6 +869,16 @@ class CatalogIngestionController extends Controller
                 'deletable' => true,
             ];
             $this->addCropToRegistry($userId, $newImage);
+            try {
+                \App\Models\SellerMedia::create([
+                    'user_id' => $userId,
+                    'filename' => $fileName,
+                    'file_path' => $relUrl,
+                    'is_assigned' => false,
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('SellerMedia local insert error: ' . $e->getMessage());
+            }
 
             return response()->json([
                 'success' => true,
@@ -1106,21 +1168,61 @@ Please respond clearly in simple professional Hinglish/English with bullet point
 
         $request->validate([
             'sheet_name' => 'nullable|string|max:150',
-            'rows' => 'required|array|min:1',
-            'rows.*.product_name' => 'required|string',
-            'rows.*.size' => 'nullable|string',
-            'rows.*.mrp' => 'nullable|numeric',
-            'rows.*.purchase_cost' => 'nullable|numeric',
-            'rows.*.retail_price' => 'nullable|numeric',
-            'rows.*.image_url' => 'nullable|string',
-            'rows.*.group_type' => 'nullable|string',
+            'rows' => 'nullable|array',
+            'grouped_cards' => 'nullable|array',
         ]);
 
-        $sheetName = trim($request->input('sheet_name') ?: ('PDF Extracted Sheet ' . date('d M Y, H:i')));
-        $rawRows = $request->input('rows');
+        $sheetName = trim($request->input('sheet_name') ?: ('Catalog Sheet ' . date('d M Y, H:i')));
+        $rawRows = $request->input('rows', []);
+        $groupedCards = $request->input('grouped_cards', []);
 
-        // Group rows by product_name to form parent products with size variants
-        $grouped = [];
+        if (empty($rawRows) && empty($groupedCards)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Koi rows ya grouped cards select nahi kiye gaye hain.',
+            ], 422);
+        }
+
+        $products = [];
+
+        // 1. Process Grouped Cards first
+        foreach ($groupedCards as $card) {
+            $cardName = trim($card['parent_name'] ?? 'Product Family');
+            $groupType = !empty($card['category']) ? $card['category'] : (!empty($card['group_type']) ? $card['group_type'] : 'UPVC');
+            $img = !empty($card['image_url']) ? $card['image_url'] : null;
+
+            $cardVariants = [];
+            foreach ($card['variants'] ?? [] as $v) {
+                $vSize = trim($v['size'] ?? 'Standard');
+                $vMrp = floatval($v['mrp'] ?? 100);
+                $vCost = floatval($v['purchase_cost'] ?? ($vMrp * 0.6));
+                $vRetail = floatval($v['retail_price'] ?? ($vMrp * 0.85));
+
+                $cardVariants[] = [
+                    'variant_name' => $vSize,
+                    'size' => $vSize,
+                    'grade' => 'Industrial',
+                    'raw_rate' => $vCost,
+                    'wholesale_price' => round($vCost * 1.15, 2),
+                    'retail_price' => $vRetail,
+                    'mrp' => $vMrp,
+                    'stock_quantity' => 100,
+                ];
+            }
+
+            if (!empty($cardVariants)) {
+                $products[] = [
+                    'name' => $cardName,
+                    'category' => 'Industrial & Commercial',
+                    'group_type' => $groupType,
+                    'image_url' => $img,
+                    'variants' => $cardVariants,
+                ];
+            }
+        }
+
+        // 2. Process Flat Rows (Group by product_name)
+        $flatGrouped = [];
         foreach ($rawRows as $r) {
             $prodName = trim($r['product_name'] ?? 'Product Item');
             $size = trim($r['size'] ?? 'Standard');
@@ -1130,8 +1232,8 @@ Please respond clearly in simple professional Hinglish/English with bullet point
             $img = !empty($r['image_url']) ? $r['image_url'] : null;
             $groupType = !empty($r['group_type']) ? $r['group_type'] : 'UPVC';
 
-            if (!isset($grouped[$prodName])) {
-                $grouped[$prodName] = [
+            if (!isset($flatGrouped[$prodName])) {
+                $flatGrouped[$prodName] = [
                     'name' => $prodName,
                     'category' => 'Industrial & Commercial',
                     'group_type' => $groupType,
@@ -1140,11 +1242,11 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                 ];
             }
 
-            if ($img && empty($grouped[$prodName]['image_url'])) {
-                $grouped[$prodName]['image_url'] = $img;
+            if ($img && empty($flatGrouped[$prodName]['image_url'])) {
+                $flatGrouped[$prodName]['image_url'] = $img;
             }
 
-            $grouped[$prodName]['variants'][] = [
+            $flatGrouped[$prodName]['variants'][] = [
                 'variant_name' => $size,
                 'size' => $size,
                 'grade' => 'Industrial',
@@ -1156,7 +1258,9 @@ Please respond clearly in simple professional Hinglish/English with bullet point
             ];
         }
 
-        $products = array_values($grouped);
+        foreach ($flatGrouped as $fp) {
+            $products[] = $fp;
+        }
 
         $newJob = CatalogIngestionJob::create([
             'user_id' => $userId,

@@ -20,6 +20,7 @@ class HomeController extends Controller
 
     public function showProduct(Product $product)
     {
+        $product->load(['variants', 'seller.sellerProfile', 'seller.sellerPage', 'category']);
         $product->recordView(auth()->id(), request()->ip(), request()->userAgent());
         $similarProducts = $product->similarProducts(4);
         return view('public.product', compact('product', 'similarProducts'));
