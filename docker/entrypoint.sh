@@ -1,12 +1,22 @@
 #!/bin/sh
 set -e
 
+# Ensure all essential storage directories exist and have proper permissions
+mkdir -p /var/www/storage/framework/sessions \
+         /var/www/storage/framework/views \
+         /var/www/storage/framework/cache/data \
+         /var/www/storage/logs \
+         /var/www/storage/app/public \
+         /var/www/bootstrap/cache
+chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache || true
+chmod -R 777 /var/www/storage /var/www/bootstrap/cache || true
+
 # Run storage link
 php artisan storage:link || true
 
 # Run database migrations
 echo "=== Running Database Migrations ==="
-php artisan migrate --force
+php artisan migrate --force || true
 
 echo "=== Seeding Base Roles & B2B Marketplace Catalog ==="
 php artisan db:seed --class=RoleSeeder --force || true
