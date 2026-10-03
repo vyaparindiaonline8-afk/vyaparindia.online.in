@@ -287,17 +287,20 @@
                     <table class="w-full text-left text-xs" id="dynamicSpreadsheetTable">
                         <thead class="bg-gray-50 text-gray-500 text-[11px] font-bold uppercase border-b border-gray-200">
                             <tr>
-                                <th class="p-3 w-12 text-center">
+                                <th class="p-3 w-10 text-center">
                                     <input type="checkbox" id="dynamicSelectAll" onchange="toggleSelectAllDynamic(this.checked)" class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
                                 </th>
-                                <th class="p-3 w-14">Photo</th>
-                                <th class="p-3 w-28">Category</th>
-                                <th class="p-3 min-w-[200px]">Product Name (Line Text)</th>
-                                <th class="p-3 w-32">Size / Variant</th>
-                                <th class="p-3 w-24">MRP (₹)</th>
-                                <th class="p-3 w-24">Cost (₹)</th>
-                                <th class="p-3 w-24">Retail (₹)</th>
-                                <th class="p-3 w-28 text-right">Actions</th>
+                                <th class="p-3 w-12">Photo</th>
+                                <th class="p-3 w-24">Category</th>
+                                <th class="p-3 min-w-[200px]">Product / Item Name</th>
+                                <th class="p-3 w-28">Item Code</th>
+                                <th class="p-3 w-24">Size</th>
+                                <th class="p-3 w-28">Packing</th>
+                                <th class="p-3 w-20">MRP (₹)</th>
+                                <th class="p-3 w-20">Cost (₹)</th>
+                                <th class="p-3 w-20">Selling (₹)</th>
+                                <th class="p-3 w-16">Stock</th>
+                                <th class="p-3 w-20 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="dynamicTableBody" class="divide-y divide-gray-100 font-medium">
@@ -375,34 +378,62 @@
 
         </div>
 
-        <!-- 🏷️ Category Filter Tabs: UPVC, CPVC, SWR, Agri/Others -->
-        <div class="flex items-center gap-2 overflow-x-auto pb-1">
-            <button type="button" onclick="filterByCategory('ALL')" id="catTab_ALL" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-black bg-gray-900 text-white shadow-sm flex items-center gap-2 transition whitespace-nowrap">
+        <!-- 🏷️ Dynamic Category Filter Tabs -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-1" id="categoryFilterContainer">
+            <button type="button" onclick="filterByCategory('ALL')" data-cat-key="ALL" id="catTab_ALL" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-black bg-gray-900 text-white shadow-sm flex items-center gap-2 transition whitespace-nowrap">
                 <i class="fa-solid fa-layer-group"></i>
                 <span>All Categories</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] bg-white/20 text-white font-mono">{{ count($products) }}</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] bg-white/20 text-white font-mono" id="catCount_ALL">{{ count($products) }}</span>
             </button>
-            <button type="button" onclick="filterByCategory('UPVC')" id="catTab_UPVC" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-extrabold bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 shadow-xs flex items-center gap-2 transition whitespace-nowrap">
-                <span class="h-2.5 w-2.5 rounded-full bg-blue-600"></span>
-                <span>💧 UPVC Pipes & Fittings</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] bg-blue-100 text-blue-800 font-mono font-bold">{{ $upvcCount ?? 0 }}</span>
-            </button>
-            <button type="button" onclick="filterByCategory('CPVC')" id="catTab_CPVC" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-extrabold bg-white hover:bg-amber-50 text-amber-700 border border-amber-200 shadow-xs flex items-center gap-2 transition whitespace-nowrap">
-                <span class="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
-                <span>🔥 CPVC Pipes & Fittings</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 font-mono font-bold">{{ $cpvcCount ?? 0 }}</span>
-            </button>
-            <button type="button" onclick="filterByCategory('SWR')" id="catTab_SWR" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-extrabold bg-white hover:bg-purple-50 text-purple-700 border border-purple-200 shadow-xs flex items-center gap-2 transition whitespace-nowrap">
-                <span class="h-2.5 w-2.5 rounded-full bg-purple-600"></span>
-                <span>🚰 SWR Drainage & Traps</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-800 font-mono font-bold">{{ $swrCount ?? 0 }}</span>
-            </button>
-            <button type="button" onclick="filterByCategory('AGRI_OTHER')" id="catTab_AGRI_OTHER" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-extrabold bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs flex items-center gap-2 transition whitespace-nowrap">
-                <span class="h-2.5 w-2.5 rounded-full bg-emerald-600"></span>
-                <span>🌿 Agri, Solvents & Others</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-mono font-bold">{{ $otherCount ?? 0 }}</span>
-            </button>
+            @if(isset($categoryCounts) && count($categoryCounts) > 0)
+                @foreach($categoryCounts as $catName => $count)
+                    <button type="button" onclick="filterByCategory('{{ addslashes($catName) }}')" data-cat-key="{{ $catName }}" id="catTab_{{ Str::slug($catName) }}" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-extrabold bg-white hover:bg-slate-50 text-gray-700 border border-gray-200 shadow-xs flex items-center gap-2 transition whitespace-nowrap">
+                        <span class="h-2 w-2 rounded-full bg-indigo-500"></span>
+                        <span>{{ $catName }}</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-800 font-mono font-bold">{{ $count }}</span>
+                    </button>
+                @endforeach
+            @else
+                <button type="button" onclick="filterByCategory('UPVC')" data-cat-key="UPVC" id="catTab_upvc" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-extrabold bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 shadow-xs flex items-center gap-2 transition whitespace-nowrap">
+                    <span class="h-2.5 w-2.5 rounded-full bg-blue-600"></span>
+                    <span>💧 UPVC Pipes & Fittings</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-blue-100 text-blue-800 font-mono font-bold">{{ $upvcCount ?? 0 }}</span>
+                </button>
+                <button type="button" onclick="filterByCategory('CPVC')" data-cat-key="CPVC" id="catTab_cpvc" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-extrabold bg-white hover:bg-amber-50 text-amber-700 border border-amber-200 shadow-xs flex items-center gap-2 transition whitespace-nowrap">
+                    <span class="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
+                    <span>🔥 CPVC Pipes & Fittings</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 font-mono font-bold">{{ $cpvcCount ?? 0 }}</span>
+                </button>
+                <button type="button" onclick="filterByCategory('SWR')" data-cat-key="SWR" id="catTab_swr" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-extrabold bg-white hover:bg-purple-50 text-purple-700 border border-purple-200 shadow-xs flex items-center gap-2 transition whitespace-nowrap">
+                    <span class="h-2.5 w-2.5 rounded-full bg-purple-600"></span>
+                    <span>🚰 SWR Drainage & Traps</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-800 font-mono font-bold">{{ $swrCount ?? 0 }}</span>
+                </button>
+                <button type="button" onclick="filterByCategory('Other')" data-cat-key="Other" id="catTab_other" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-extrabold bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs flex items-center gap-2 transition whitespace-nowrap">
+                    <span class="h-2.5 w-2.5 rounded-full bg-emerald-600"></span>
+                    <span>🌿 Agri, Solvents & Others</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-mono font-bold">{{ $otherCount ?? 0 }}</span>
+                </button>
+            @endif
         </div>
+
+        <!-- Global Autocomplete Datalist for Hardware & Industrial Categories -->
+        <datalist id="allCategoriesList">
+            @foreach($categories as $c)
+                <option value="{{ $c->name }}"></option>
+            @endforeach
+            <option value="Pipes & Fittings"></option>
+            <option value="CPVC Pipes & Fittings"></option>
+            <option value="UPVC Pipes & Fittings"></option>
+            <option value="SWR Drainage"></option>
+            <option value="Agri & Solvents"></option>
+            <option value="Paints & Coatings"></option>
+            <option value="Electrical & Wiring"></option>
+            <option value="Plywood & Hardware"></option>
+            <option value="Pumps & Motors"></option>
+            <option value="Sanitaryware & Bath"></option>
+            <option value="General Hardware"></option>
+        </datalist>
 
         <!-- ========================================== -->
         <!-- VIEW 1: MULTI-ROW SPREADSHEET TABLE VIEW   -->
@@ -646,103 +677,209 @@
                     </div>
                 </div>
 
-                <!-- Column Mapping Selectors Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    
-                    <!-- 1. Product Name -->
-                    <div class="bg-slate-50 p-4 rounded-2xl border border-gray-200 space-y-1.5">
-                        <label class="text-xs font-black text-gray-900 flex items-center justify-between">
-                            <span>📦 Product / Item Name:</span>
-                            <span class="text-[10px] text-rose-500 font-bold">*Required</span>
-                        </label>
-                        <select id="mapColName" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                            <!-- Populated dynamically -->
-                        </select>
-                        <p class="text-[10px] text-gray-500">Item description ya pipe/fitting ka naam (jaise: UPVC Agri Elbow)</p>
+                <!-- Section 1: MANDATORY CORE FIELDS (🟢 ZAROORI COLUMNS) -->
+                <div class="space-y-2">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            🟢 MANDATORY COLUMNS (Zaroori)
+                        </span>
+                        <span class="text-xs text-gray-500 font-medium">Sirf Product Name aur Prices zaroori hain</span>
                     </div>
 
-                    <!-- 2. Size / Dimension -->
-                    <div class="bg-slate-50 p-4 rounded-2xl border border-gray-200 space-y-1.5">
-                        <label class="text-xs font-black text-gray-900 flex items-center justify-between">
-                            <span>📏 Size / Dimension / Variant:</span>
-                            <span class="text-[10px] text-rose-500 font-bold">*Required</span>
-                        </label>
-                        <select id="mapColSize" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                            <!-- Populated dynamically -->
-                        </select>
-                        <p class="text-[10px] text-gray-500">Size column (jaise: 15mm, 20mm, 25mm, 1 inch, 1/2")</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <!-- 1. Product Name -->
+                        <div class="bg-emerald-50/40 p-3.5 rounded-2xl border-2 border-emerald-200 space-y-1">
+                            <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                                <span>📦 Product / Item Name:</span>
+                                <span class="text-[10px] text-rose-500 font-bold">*Required</span>
+                            </label>
+                            <select id="mapColName" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-2.5 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <p class="text-[10px] text-gray-500">Item description ya pipe/fitting ka naam (jaise: UPVC Agri Elbow)</p>
+                        </div>
+
+                        <!-- 2. MRP (₹) -->
+                        <div class="bg-emerald-50/60 p-3.5 rounded-2xl border-2 border-emerald-300 space-y-1">
+                            <label class="text-xs font-black text-emerald-950 flex items-center justify-between">
+                                <span>🏷️ MRP / List Price (₹):</span>
+                                <span class="text-[10px] text-rose-500 font-bold">*Required</span>
+                            </label>
+                            <select id="mapColMrp" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-2.5 rounded-xl border border-emerald-400 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <p class="text-[10px] text-emerald-800 font-semibold">⚠️ S.No (1, 2) select na ho, asli MRP column select karein!</p>
+                        </div>
+
+                        <!-- 3. Retail / Selling Price (₹) -->
+                        <div class="bg-emerald-50/40 p-3.5 rounded-2xl border-2 border-emerald-200 space-y-1">
+                            <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                                <span>🛒 Selling Price / Rate A (₹):</span>
+                                <span class="text-[10px] text-emerald-700 font-bold">*Mandatory</span>
+                            </label>
+                            <select id="mapColRetail" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-2.5 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <p class="text-[10px] text-emerald-800 font-semibold">Storefront par customer ko sirf yahi price dikhega (MRP cross hoke: ~~₹100~~ ₹85).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: HARDWARE & PLUMBING ATTRIBUTES (🟡 OPTIONAL - MILE TO THIK, NA MILE TO THIK) -->
+                <div class="space-y-2 pt-2 border-t border-gray-100">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-100 text-amber-900 border border-amber-300">
+                            🟡 HARDWARE ATTRIBUTES (Optional - Mile to thik, na mile to thik)
+                        </span>
+                        <span class="text-xs text-gray-500 font-medium">Hardware items (Solvents, Tapes) me size nahi hota, to blank reh sakta hai</span>
                     </div>
 
-                    <!-- 3. MRP (₹) -->
-                    <div class="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200 space-y-1.5">
-                        <label class="text-xs font-black text-emerald-900 flex items-center justify-between">
-                            <span>🏷️ MRP / List Price (₹):</span>
-                            <span class="text-[10px] text-emerald-700 font-bold">*Main Price</span>
-                        </label>
-                        <select id="mapColMrp" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-3 rounded-xl border border-emerald-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                            <!-- Populated dynamically -->
-                        </select>
-                        <p class="text-[10px] text-emerald-700 font-medium">⚠️ Dhyan dein: S.No (1, 2) select na ho, asli MRP column select karein!</p>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <!-- 4. Size / Dimension -->
+                        <div class="bg-slate-50 p-3.5 rounded-2xl border border-gray-200 space-y-1">
+                            <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                                <span>📏 Size / Dimension:</span>
+                                <span class="text-[10px] text-gray-500 font-bold">(Optional)</span>
+                            </label>
+                            <select id="mapColSize" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-2.5 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <p class="text-[10px] text-gray-500">15mm, 1 inch, 25x20. Khali rehne par 'Standard' banega.</p>
+                        </div>
+
+                        <!-- 5. Product / Item Code -->
+                        <div class="bg-slate-50 p-3.5 rounded-2xl border border-gray-200 space-y-1">
+                            <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                                <span>🔖 Product / Item Code:</span>
+                                <span class="text-[10px] text-gray-500 font-bold">(Optional)</span>
+                            </label>
+                            <select id="mapColCode" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-2.5 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <p class="text-[10px] text-gray-500">Item Code, SKU, Art No (jaise: UPVC-01, PL-101)</p>
+                        </div>
+
+                        <!-- 6. Packing 1 (Box / Inner Pack) -->
+                        <div class="bg-slate-50 p-3.5 rounded-2xl border border-gray-200 space-y-1">
+                            <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                                <span>📦 Packing 1 (Box / Inner):</span>
+                                <span class="text-[10px] text-gray-500 font-bold">(Optional)</span>
+                            </label>
+                            <select id="mapColPack1" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-2.5 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <p class="text-[10px] text-gray-500">Std Pkg, Box Pack (jaise: 20 pcs, 50 pcs)</p>
+                        </div>
+
+                        <!-- 7. Packing 2 (Carton / Master Bag) -->
+                        <div class="bg-slate-50 p-3.5 rounded-2xl border border-gray-200 space-y-1">
+                            <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                                <span>📦 Packing 2 (Carton/Bag):</span>
+                                <span class="text-[10px] text-gray-500 font-bold">(Optional)</span>
+                            </label>
+                            <select id="mapColPack2" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-2.5 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <p class="text-[10px] text-gray-500">Master Bag, Outer Carton (jaise: 200 pcs, 500 pcs)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: PURCHASE RATES & STOCK (🔵 MULTI-TIER COST & INVENTORY - OPTIONAL) -->
+                <div class="space-y-2 pt-2 border-t border-gray-100">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-blue-100 text-blue-900 border border-blue-300">
+                            🔵 OPTIONAL TIERS: RATE B, C, STOCK & CATEGORY (Customer se Hidden)
+                        </span>
+                        <span class="text-xs text-blue-700 font-medium">⚠️ Ye rates public customer ko KABHI nahi dikhte (Wholesale/B2B ke liye hain)</span>
                     </div>
 
-                    <!-- 4. Purchase Cost / Dealer Rate (₹) -->
-                    <div class="bg-slate-50 p-4 rounded-2xl border border-gray-200 space-y-1.5">
-                        <label class="text-xs font-black text-gray-900 flex items-center justify-between">
-                            <span>💰 Purchase Cost / Buying Rate (₹):</span>
-                            <span class="text-[10px] text-gray-500 font-semibold">(Optional)</span>
-                        </label>
-                        <select id="mapColCost" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                            <!-- Populated dynamically -->
-                        </select>
-                        <p class="text-[10px] text-gray-500">Agar sheet me nahi hai, to MRP ka 65% auto calculate ho jayega.</p>
-                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                        <!-- 8. Cost Price 1 -->
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-gray-200 space-y-1">
+                            <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                                <span>💰 Cost Price 1:</span>
+                                <span class="text-[10px] text-gray-500">(Optional)</span>
+                            </label>
+                            <select id="mapColCost" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-1.5 px-2 rounded-xl border border-gray-300 bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <p class="text-[9px] text-gray-500">Kharid rate (Cost Price)</p>
+                        </div>
 
-                    <!-- 5. Retail / Selling Price (₹) -->
-                    <div class="bg-slate-50 p-4 rounded-2xl border border-gray-200 space-y-1.5">
-                        <label class="text-xs font-black text-gray-900 flex items-center justify-between">
-                            <span>🛒 Selling Price / Retail Rate (₹):</span>
-                            <span class="text-[10px] text-gray-500 font-semibold">(Optional)</span>
-                        </label>
-                        <select id="mapColRetail" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                            <!-- Populated dynamically -->
-                        </select>
-                        <p class="text-[10px] text-gray-500">Jis rate par bechna chahte hain. Default: MRP ka 88%.</p>
-                    </div>
+                        <!-- 9. Rate B (Wholesale / Plumber Rate) -->
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-gray-200 space-y-1">
+                            <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                                <span>💰 Rate B (Wholesale):</span>
+                                <span class="text-[10px] text-gray-500">(Optional)</span>
+                            </label>
+                            <select id="mapColCost2" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-1.5 px-2 rounded-xl border border-gray-300 bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <p class="text-[9px] text-gray-500">Plumber / Dealer rate (Hidden)</p>
+                        </div>
 
-                    <!-- 6. Category -->
-                    <div class="bg-slate-50 p-4 rounded-2xl border border-gray-200 space-y-1.5">
-                        <label class="text-xs font-black text-gray-900 flex items-center justify-between">
-                            <span>📂 Category / Group Type:</span>
-                            <span class="text-[10px] text-gray-500 font-semibold">(Optional)</span>
-                        </label>
-                        <select id="mapColCategory" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                            <!-- Populated dynamically -->
-                        </select>
-                        <p class="text-[10px] text-gray-500">UPVC, CPVC, SWR, Agri fittings auto-detect ho jayenge.</p>
-                    </div>
+                        <!-- 10. Rate C (Bulk / Contractor Rate) -->
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-gray-200 space-y-1">
+                            <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                                <span>💰 Rate C (Bulk/Bag):</span>
+                                <span class="text-[10px] text-gray-500">(Optional)</span>
+                            </label>
+                            <select id="mapColCost3" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-1.5 px-2 rounded-xl border border-gray-300 bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <p class="text-[9px] text-gray-500">Master carton / Bulk slab (Hidden)</p>
+                        </div>
 
+                        <!-- 11. Stock / Quantity -->
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-gray-200 space-y-1">
+                            <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                                <span>📊 Stock / Qty:</span>
+                                <span class="text-[10px] text-gray-500">(Optional)</span>
+                            </label>
+                            <select id="mapColStock" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-1.5 px-2 rounded-xl border border-gray-300 bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <p class="text-[9px] text-gray-500">Opening stock (Default: 100)</p>
+                        </div>
+
+                        <!-- 12. Category -->
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-emerald-300 space-y-1">
+                            <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                                <span>📂 Category:</span>
+                                <span class="text-[10px] text-emerald-700 font-bold">(Optional)</span>
+                            </label>
+                            <select id="mapColCategory" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-1.5 px-2 rounded-xl border border-emerald-400 bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <p class="text-[9px] text-gray-500">Pipes, Paints, Electrical, Ply etc.</p>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Live 3-Row Preview Table -->
-                <div class="space-y-2">
+                <div class="space-y-2 pt-2 border-t border-gray-100">
                     <div class="flex items-center justify-between">
                         <h4 class="text-xs font-black text-gray-800 flex items-center gap-1.5">
                             <i class="fa-solid fa-eye text-indigo-600"></i>
                             <span>Live Preview (Sheet ke First 3 Items Kese Load Honge):</span>
                         </h4>
-                        <span class="text-[10px] text-gray-500 font-medium">Verify kar lein ki MRP sahi aa rahi hai</span>
+                        <span class="text-[10px] text-gray-500 font-medium">Verify kar lein ki MRP aur Selling Price sahi aa rahi hai</span>
                     </div>
 
-                    <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+                    <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-2xs">
                         <table class="w-full text-left text-xs">
                             <thead class="bg-gray-50 text-[10px] uppercase font-bold text-gray-500 border-b border-gray-200">
                                 <tr>
                                     <th class="p-2.5">Category</th>
+                                    <th class="p-2.5">Code</th>
                                     <th class="p-2.5">Product Name</th>
-                                    <th class="p-2.5">Size / Variant</th>
+                                    <th class="p-2.5">Size</th>
+                                    <th class="p-2.5">Packing (Box/Bag)</th>
                                     <th class="p-2.5 font-bold text-emerald-800">MRP (₹)</th>
-                                    <th class="p-2.5">Cost (₹)</th>
-                                    <th class="p-2.5">Retail (₹)</th>
+                                    <th class="p-2.5">Cost 1 (₹)</th>
+                                    <th class="p-2.5 font-bold text-emerald-700">Selling (₹)</th>
+                                    <th class="p-2.5">Stock</th>
                                 </tr>
                             </thead>
                             <tbody id="mappingPreviewTbody" class="divide-y divide-gray-100 font-medium">
@@ -879,26 +1016,61 @@
         function filterByCategory(cat) {
             activeCategory = cat;
 
-            const tabs = [
-                { id: 'catTab_ALL', key: 'ALL', activeClass: 'bg-gray-900 text-white shadow-sm', inactiveClass: 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200' },
-                { id: 'catTab_UPVC', key: 'UPVC', activeClass: 'bg-blue-600 text-white shadow-md', inactiveClass: 'bg-white hover:bg-blue-50 text-blue-700 border border-blue-200' },
-                { id: 'catTab_CPVC', key: 'CPVC', activeClass: 'bg-amber-600 text-white shadow-md', inactiveClass: 'bg-white hover:bg-amber-50 text-amber-700 border border-amber-200' },
-                { id: 'catTab_SWR', key: 'SWR', activeClass: 'bg-purple-600 text-white shadow-md', inactiveClass: 'bg-white hover:bg-purple-50 text-purple-700 border border-purple-200' },
-                { id: 'catTab_AGRI_OTHER', key: 'AGRI_OTHER', activeClass: 'bg-emerald-600 text-white shadow-md', inactiveClass: 'bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200' }
-            ];
-
-            tabs.forEach(tab => {
-                const el = document.getElementById(tab.id);
-                if (!el) return;
+            document.querySelectorAll('.cat-pill').forEach(btn => {
+                const btnCat = btn.getAttribute('data-cat-key');
+                if (!btnCat) return;
                 const baseClass = "cat-pill px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 transition whitespace-nowrap ";
-                if (tab.key === cat) {
-                    el.className = baseClass + tab.activeClass;
+                if (btnCat.toLowerCase() === cat.toLowerCase()) {
+                    btn.className = baseClass + (cat === 'ALL' ? 'bg-gray-900 text-white shadow-sm' : 'bg-indigo-600 text-white shadow-md');
                 } else {
-                    el.className = baseClass + tab.inactiveClass;
+                    btn.className = baseClass + 'bg-white hover:bg-slate-50 text-gray-700 border border-gray-200 shadow-xs';
                 }
             });
 
             applyCombinedFilter();
+        }
+
+        function refreshCategoryFilterTabs() {
+            const container = document.getElementById('categoryFilterContainer');
+            if (!container) return;
+
+            const counts = {};
+            let total = 0;
+
+            if (isDynamicMode) {
+                dynamicRows.forEach(r => {
+                    const c = (r.group_type || r.category || 'General Hardware').trim();
+                    counts[c] = (counts[c] || 0) + 1;
+                    total++;
+                });
+            } else {
+                document.querySelectorAll('.table-row-item').forEach(tr => {
+                    const c = (tr.getAttribute('data-category') || 'General Hardware').trim();
+                    counts[c] = (counts[c] || 0) + 1;
+                    total++;
+                });
+            }
+
+            let html = `
+                <button type="button" onclick="filterByCategory('ALL')" data-cat-key="ALL" id="catTab_ALL" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-black ${activeCategory === 'ALL' ? 'bg-gray-900 text-white shadow-sm' : 'bg-white hover:bg-slate-50 text-gray-700 border border-gray-200 shadow-xs'} flex items-center gap-2 transition whitespace-nowrap">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span>All Categories</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] ${activeCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-800'} font-mono" id="catCount_ALL">${total}</span>
+                </button>
+            `;
+
+            for (const [catName, count] of Object.entries(counts)) {
+                const isActive = (activeCategory.toLowerCase() === catName.toLowerCase());
+                html += `
+                    <button type="button" onclick="filterByCategory('${escapeHtml(catName)}')" data-cat-key="${escapeHtml(catName)}" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-extrabold ${isActive ? 'bg-indigo-600 text-white shadow-md' : 'bg-white hover:bg-slate-50 text-gray-700 border border-gray-200 shadow-xs'} flex items-center gap-2 transition whitespace-nowrap">
+                        <span class="h-2 w-2 rounded-full ${isActive ? 'bg-white' : 'bg-indigo-500'}"></span>
+                        <span>${escapeHtml(catName)}</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-800'} font-mono font-bold">${count}</span>
+                    </button>
+                `;
+            }
+
+            container.innerHTML = html;
         }
 
         // Live Search Filter
@@ -908,20 +1080,21 @@
         }
 
         function applyCombinedFilter() {
-            // Table view
-            document.querySelectorAll('.table-row-item').forEach(tr => {
-                const text = tr.getAttribute('data-search') || '';
-                const category = tr.getAttribute('data-category') || '';
+            // Table view (both static .table-row-item and dynamic .dynamic-row-item)
+            const rows = document.querySelectorAll(isDynamicMode ? '.dynamic-row-item' : '.table-row-item');
+            rows.forEach(tr => {
+                const text = (tr.getAttribute('data-search') || '').toLowerCase();
+                const category = (tr.getAttribute('data-category') || '').toLowerCase();
                 const matchSearch = (!searchQuery || text.includes(searchQuery));
-                const matchCat = (activeCategory === 'ALL' || category === activeCategory);
+                const matchCat = (activeCategory === 'ALL' || category === activeCategory.toLowerCase());
                 tr.style.display = (matchSearch && matchCat) ? '' : 'none';
             });
             // Cards view
-            document.querySelectorAll('.product-family-card').forEach(card => {
-                const text = card.getAttribute('data-search') || '';
-                const category = card.getAttribute('data-category') || '';
+            document.querySelectorAll('.product-family-card, [id^="grouped_card_box_"]').forEach(card => {
+                const text = (card.getAttribute('data-search') || '').toLowerCase();
+                const category = (card.getAttribute('data-category') || '').toLowerCase();
                 const matchSearch = (!searchQuery || text.includes(searchQuery));
-                const matchCat = (activeCategory === 'ALL' || category === activeCategory);
+                const matchCat = (activeCategory === 'ALL' || category === activeCategory.toLowerCase());
                 card.style.display = (matchSearch && matchCat) ? '' : 'none';
             });
         }
@@ -1255,18 +1428,16 @@
                 return;
             }
             const sampleData = [
-                ["Product / Item Name", "Size / Variant", "MRP (₹)", "Purchase Rate (₹)", "Selling Price (₹)", "Category"],
-                ["UPVC Agri Elbow 90 Degree", "15 mm", 45.00, 22.00, 35.00, "UPVC"],
-                ["UPVC Agri Elbow 90 Degree", "20 mm", 55.00, 28.00, 42.00, "UPVC"],
-                ["UPVC Agri Elbow 90 Degree", "25 mm", 75.00, 38.00, 58.00, "UPVC"],
-                ["UPVC Agri Elbow 90 Degree", "32 mm", 110.00, 56.00, 85.00, "UPVC"],
-                ["UPVC Agri Elbow 90 Degree", "40 mm", 160.00, 82.00, 125.00, "UPVC"],
-                ["UPVC Agri Elbow 90 Degree", "50 mm", 230.00, 118.00, 180.00, "UPVC"],
-                ["CPVC Brass Elbow", "15 mm x 1/2\"", 120.00, 62.00, 95.00, "CPVC"],
-                ["CPVC Brass Elbow", "20 mm x 1/2\"", 150.00, 78.00, 120.00, "CPVC"],
-                ["CPVC Brass Elbow", "25 mm x 3/4\"", 220.00, 115.00, 175.00, "CPVC"],
-                ["SWR Nahani Trap", "110 mm x 75 mm", 180.00, 92.00, 140.00, "SWR"],
-                ["SWR Multi Floor Trap", "110 mm", 260.00, 135.00, 205.00, "SWR"]
+                ["Product Code", "Product / Item Name", "Size / Dimension", "Packing 1 (Box)", "Packing 2 (Carton)", "MRP (₹)", "Cost Price 1 (₹)", "Cost Price 2 (₹)", "Selling Price (₹)", "Stock", "Category"],
+                ["UPVC-ELB-15", "UPVC Agri Elbow 90 Degree", "15 mm", "50 Pcs", "500 Pcs", 45.00, 22.00, 26.00, 35.00, 250, "UPVC Pipes & Fittings"],
+                ["UPVC-ELB-20", "UPVC Agri Elbow 90 Degree", "20 mm", "40 Pcs", "400 Pcs", 55.00, 28.00, 32.00, 42.00, 200, "UPVC Pipes & Fittings"],
+                ["UPVC-ELB-25", "UPVC Agri Elbow 90 Degree", "25 mm", "30 Pcs", "300 Pcs", 75.00, 38.00, 44.00, 58.00, 150, "UPVC Pipes & Fittings"],
+                ["CPVC-BR-15", "CPVC Brass Elbow", "15 mm x 1/2\"", "25 Pcs", "250 Pcs", 120.00, 62.00, 72.00, 95.00, 100, "CPVC Pipes & Fittings"],
+                ["SWR-TRAP-110", "SWR Nahani Trap", "110 mm x 75 mm", "12 Pcs", "72 Pcs", 180.00, 92.00, 105.00, 140.00, 60, "SWR Drainage"],
+                ["SLV-HEAVY-250", "Heavy Duty UPVC Solvent Cement 250ml", "", "24 Cans", "144 Cans", 185.00, 98.00, 115.00, 155.00, 120, "Agri & Solvents"],
+                ["TEF-TAPE-12", "PTFE Thread Seal Teflon Tape 12mm", "", "100 Pcs", "1000 Pcs", 25.00, 11.00, 13.00, 18.00, 500, "General Hardware"],
+                ["BP-WAL-01", "Berger Walmasta Exterior Antifungal Emulsion", "1 Ltr", "4 Cans", "16 Cans", 320.00, 195.00, 215.00, 260.00, 40, "Paints & Coatings"],
+                ["EL-SW-06A", "Anchor Roma 6A 1-Way Modular Switch", "1 Module", "20 Pcs", "200 Pcs", 38.00, 18.00, 21.00, 28.00, 300, "Electrical & Wiring"]
             ];
             const ws = XLSX.utils.aoa_to_sheet(sampleData);
             const wb = XLSX.utils.book_new();
@@ -1371,6 +1542,7 @@
                     if (str.includes('size') || str.includes('dim') || str.includes('dia') || str.includes('inch') || str.includes('mm')) score += 3;
                     if (str.includes('mrp') || str.includes('price') || str.includes('rate') || str.includes('list')) score += 3;
                     if (str.includes('cost') || str.includes('purchase') || str.includes('basic') || str.includes('net') || str.includes('dealer')) score += 2;
+                    if (str.includes('code') || str.includes('sku') || str.includes('pack') || str.includes('box') || str.includes('carton') || str.includes('bag')) score += 2;
                 });
                 if (score > maxScore) {
                     maxScore = score;
@@ -1384,15 +1556,20 @@
             const headerRow = uploadedExcelRawRows[headerRowIdx] || [];
             const sampleDataRow = uploadedExcelRawRows[headerRowIdx + 1] || [];
 
-            // Build dropdown options
-            const colSelects = ['mapColName', 'mapColSize', 'mapColMrp', 'mapColCost', 'mapColRetail', 'mapColCategory'];
+            // All 12 Column Selectors
+            const colSelects = [
+                'mapColName', 'mapColMrp', 'mapColRetail',
+                'mapColSize', 'mapColCode', 'mapColPack1', 'mapColPack2',
+                'mapColCost', 'mapColCost2', 'mapColCost3', 'mapColStock', 'mapColCategory'
+            ];
             const colLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
             colSelects.forEach(selId => {
                 const sel = document.getElementById(selId);
                 if (!sel) return;
-                const isRequired = selId === 'mapColName' || selId === 'mapColSize' || selId === 'mapColMrp';
-                let opts = isRequired ? '<option value="">-- Choose Column --</option>' : '<option value="-1">-- None (Auto Calculate) --</option>';
+                // Only Name and MRP are strictly required
+                const isRequired = (selId === 'mapColName' || selId === 'mapColMrp');
+                let opts = isRequired ? '<option value="">-- Choose Column --</option>' : '<option value="-1">-- None (Optional) --</option>';
 
                 const maxCols = Math.max(headerRow.length, sampleDataRow.length);
                 for (let c = 0; c < maxCols; c++) {
@@ -1405,35 +1582,83 @@
                 sel.innerHTML = opts;
             });
 
-            // Smart auto-selection
-            let selectedCols = { name: -1, size: -1, mrp: -1, cost: -1, retail: -1, category: -1 };
+            // Smart auto-selection for B2B plumbing & hardware sheets
+            let selectedCols = {
+                code: -1,
+                name: -1,
+                size: -1,
+                pack1: -1,
+                pack2: -1,
+                mrp: -1,
+                cost: -1,
+                cost2: -1,
+                cost3: -1,
+                retail: -1,
+                stock: -1,
+                category: -1
+            };
 
             headerRow.forEach((col, idx) => {
                 const c = String(col || '').toLowerCase().trim();
-                const isSrNo = (c === 's.no' || c === 's.no.' || c === 'sr.no' || c === 'sr no' || c === 'sl.no' || c === 'no' || c === '#' || c === 'sn' || c === 's no');
-                if (isSrNo) return; // Prevent serial numbers from becoming product name or MRP!
+                const isSrNo = (c === 's.no' || c === 's.no.' || c === 'sr.no' || c === 'sr.no.' || c === 'sr no' || c === 'sl.no' || c === 'sl no' || c === 'no' || c === '#' || c === 'sn' || c === 's no');
+                if (isSrNo) return; // Prevent serial numbers (1, 2) from becoming MRP, code or name!
 
-                if (selectedCols.name === -1 && (c.includes('particular') || c.includes('item') || c.includes('product') || c.includes('name') || c.includes('desc'))) {
+                // Product Code / SKU
+                if (selectedCols.code === -1 && (c.includes('item code') || c.includes('product code') || c.includes('item_code') || c.includes('sku') || c.includes('cat no') || c.includes('cat.no') || c.includes('art no') || c.includes('art.no') || c === 'code' || c === 'part no')) {
+                    selectedCols.code = idx;
+                }
+                // Product Name
+                else if (selectedCols.name === -1 && (c.includes('particular') || c.includes('item name') || c.includes('product name') || c.includes('description') || c.includes('desc') || c === 'item' || c === 'product' || c.includes('material'))) {
                     selectedCols.name = idx;
-                } else if (selectedCols.size === -1 && (c.includes('size') || c.includes('dimension') || c.includes('dia') || c.includes('inch') || c.includes('mm'))) {
+                }
+                // Size / Dimension
+                else if (selectedCols.size === -1 && (c.includes('size') || c.includes('dimension') || c.includes('dim') || c.includes('dia') || c.includes('inch') || c.includes('mm'))) {
                     selectedCols.size = idx;
-                } else if (selectedCols.mrp === -1 && (c.includes('mrp') || c.includes('list') || c.includes('price') || c.includes('m.r.p'))) {
+                }
+                // Packing 1 (Box / Inner)
+                else if (selectedCols.pack1 === -1 && (c.includes('std pkg') || c.includes('std pack') || c.includes('box pack') || c.includes('box_pack') || c.includes('inner') || c.includes('pkg 1') || c.includes('pack 1') || c.includes('unit pack') || c === 'box' || c.includes('pkg1'))) {
+                    selectedCols.pack1 = idx;
+                }
+                // Packing 2 (Carton / Master Bag)
+                else if (selectedCols.pack2 === -1 && (c.includes('master bag') || c.includes('master pkg') || c.includes('carton pack') || c.includes('bag pack') || c.includes('outer') || c.includes('pkg 2') || c.includes('pack 2') || c === 'carton' || c === 'master' || c.includes('pkg2'))) {
+                    selectedCols.pack2 = idx;
+                }
+                // MRP / List Price
+                else if (selectedCols.mrp === -1 && (c.includes('mrp') || c.includes('list price') || c.includes('price list') || c.includes('m.r.p') || c === 'list rate')) {
                     selectedCols.mrp = idx;
-                } else if (selectedCols.cost === -1 && (c.includes('purchase') || c.includes('cost') || c.includes('basic') || c.includes('net') || c.includes('dealer') || c.includes('buy'))) {
+                }
+                // Cost Price 1 / Dealer Rate
+                else if (selectedCols.cost === -1 && (c.includes('purchase') || c.includes('dealer') || c.includes('basic rate') || c.includes('cost 1') || c.includes('rate 1') || c === 'cost' || c === 'basic' || c === 'net rate')) {
                     selectedCols.cost = idx;
-                } else if (selectedCols.retail === -1 && (c.includes('retail') || c.includes('sell') || c.includes('sale'))) {
+                }
+                // Cost Price 2 / Wholesale Rate
+                else if (selectedCols.cost2 === -1 && (c.includes('cost 2') || c.includes('rate 2') || c.includes('wholesale') || c.includes('distributor') || c.includes('tier 2'))) {
+                    selectedCols.cost2 = idx;
+                }
+                // Cost Price 3 / Bulk Rate
+                else if (selectedCols.cost3 === -1 && (c.includes('cost 3') || c.includes('rate 3') || c.includes('bulk') || c.includes('tier 3'))) {
+                    selectedCols.cost3 = idx;
+                }
+                // Retail / Selling Price
+                else if (selectedCols.retail === -1 && (c.includes('retail') || c.includes('sell') || c.includes('sale') || c.includes('selling price') || c.includes('market price'))) {
                     selectedCols.retail = idx;
-                } else if (selectedCols.category === -1 && (c.includes('cat') || c.includes('group') || c.includes('type'))) {
+                }
+                // Stock / Qty
+                else if (selectedCols.stock === -1 && (c.includes('stock') || c.includes('qty') || c.includes('quantity') || c.includes('opening stock') || c.includes('inventory'))) {
+                    selectedCols.stock = idx;
+                }
+                // Category
+                else if (selectedCols.category === -1 && (c.includes('cat') || c.includes('group') || c.includes('type') || c.includes('series'))) {
                     selectedCols.category = idx;
                 }
             });
 
-            // Fallback for MRP: column with 'rate'
+            // Fallback for MRP: any column with 'rate' or 'price' if not serial no
             if (selectedCols.mrp === -1) {
                 headerRow.forEach((col, idx) => {
                     const c = String(col || '').toLowerCase().trim();
                     const isSrNo = (c === 's.no' || c === 's.no.' || c === 'sr.no' || c === 'sr no' || c === 'sl.no' || c === 'no' || c === '#' || c === 'sn');
-                    if (!isSrNo && c.includes('rate') && selectedCols.cost !== idx) {
+                    if (!isSrNo && (c.includes('rate') || c.includes('price')) && selectedCols.cost !== idx) {
                         selectedCols.mrp = idx;
                     }
                 });
@@ -1443,12 +1668,16 @@
             if (selectedCols.name !== -1) document.getElementById('mapColName').value = selectedCols.name;
             else if (headerRow.length > 1) document.getElementById('mapColName').value = 1;
 
-            if (selectedCols.size !== -1) document.getElementById('mapColSize').value = selectedCols.size;
-            else if (headerRow.length > 2) document.getElementById('mapColSize').value = 2;
-
             if (selectedCols.mrp !== -1) document.getElementById('mapColMrp').value = selectedCols.mrp;
-            if (selectedCols.cost !== -1) document.getElementById('mapColCost').value = selectedCols.cost;
             if (selectedCols.retail !== -1) document.getElementById('mapColRetail').value = selectedCols.retail;
+            if (selectedCols.size !== -1) document.getElementById('mapColSize').value = selectedCols.size;
+            if (selectedCols.code !== -1) document.getElementById('mapColCode').value = selectedCols.code;
+            if (selectedCols.pack1 !== -1) document.getElementById('mapColPack1').value = selectedCols.pack1;
+            if (selectedCols.pack2 !== -1) document.getElementById('mapColPack2').value = selectedCols.pack2;
+            if (selectedCols.cost !== -1) document.getElementById('mapColCost').value = selectedCols.cost;
+            if (selectedCols.cost2 !== -1) document.getElementById('mapColCost2').value = selectedCols.cost2;
+            if (selectedCols.cost3 !== -1) document.getElementById('mapColCost3').value = selectedCols.cost3;
+            if (selectedCols.stock !== -1) document.getElementById('mapColStock').value = selectedCols.stock;
             if (selectedCols.category !== -1) document.getElementById('mapColCategory').value = selectedCols.category;
 
             updateMappingPreview();
@@ -1465,10 +1694,14 @@
             if (!tbody || !uploadedExcelRawRows || uploadedExcelRawRows.length === 0) return;
 
             const nameIdx = parseInt(document.getElementById('mapColName')?.value ?? -1);
-            const sizeIdx = parseInt(document.getElementById('mapColSize')?.value ?? -1);
             const mrpIdx = parseInt(document.getElementById('mapColMrp')?.value ?? -1);
-            const costIdx = parseInt(document.getElementById('mapColCost')?.value ?? -1);
             const retailIdx = parseInt(document.getElementById('mapColRetail')?.value ?? -1);
+            const sizeIdx = parseInt(document.getElementById('mapColSize')?.value ?? -1);
+            const codeIdx = parseInt(document.getElementById('mapColCode')?.value ?? -1);
+            const pack1Idx = parseInt(document.getElementById('mapColPack1')?.value ?? -1);
+            const pack2Idx = parseInt(document.getElementById('mapColPack2')?.value ?? -1);
+            const costIdx = parseInt(document.getElementById('mapColCost')?.value ?? -1);
+            const stockIdx = parseInt(document.getElementById('mapColStock')?.value ?? -1);
             const catIdx = parseInt(document.getElementById('mapColCategory')?.value ?? -1);
             const startRow = Math.max(0, parseInt(document.getElementById('mapDataStartRow')?.value || 2) - 1);
 
@@ -1480,51 +1713,69 @@
                 if (!row || row.length === 0 || row.every(c => c === null || c === undefined || String(c).trim() === '')) continue;
 
                 const name = (nameIdx !== -1 && row[nameIdx] !== undefined) ? String(row[nameIdx]).trim() : 'Sample Product';
+                const code = (codeIdx !== -1 && row[codeIdx] !== undefined) ? String(row[codeIdx]).trim() : '-';
+
                 let size = (sizeIdx !== -1 && row[sizeIdx] !== undefined) ? String(row[sizeIdx]).trim() : '';
                 if (!size) {
                     const sizeMatch = name.match(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/i);
                     size = sizeMatch ? sizeMatch[0] : 'Standard';
                 }
 
+                const pack1 = (pack1Idx !== -1 && row[pack1Idx] !== undefined) ? String(row[pack1Idx]).trim() : '';
+                const pack2 = (pack2Idx !== -1 && row[pack2Idx] !== undefined) ? String(row[pack2Idx]).trim() : '';
+                const packText = [pack1 ? `Box: ${pack1}` : '', pack2 ? `Bag: ${pack2}` : ''].filter(Boolean).join(' | ') || '-';
+
                 const rawMrpStr = (mrpIdx !== -1 && row[mrpIdx] !== undefined) ? String(row[mrpIdx]).replace(/[^0-9.]/g, '') : '0';
-                const mrp = parseFloat(rawMrpStr) || 0;
+                const parsedMrp = parseFloat(rawMrpStr) || 0;
+
+                const rawRetailStr = (retailIdx !== -1 && row[retailIdx] !== undefined && String(row[retailIdx]).trim() !== '') ? String(row[retailIdx]).replace(/[^0-9.]/g, '') : '';
+                const parsedRetail = parseFloat(rawRetailStr) || 0;
+
+                const mrp = parsedMrp > 0 ? parsedMrp : (parsedRetail > 0 ? Math.round(parsedRetail / 0.88) : 100);
+                const retail = parsedRetail > 0 ? parsedRetail : Math.round(mrp * 0.88);
 
                 const rawCostStr = (costIdx !== -1 && row[costIdx] !== undefined && String(row[costIdx]).trim() !== '') ? String(row[costIdx]).replace(/[^0-9.]/g, '') : '';
                 const cost = rawCostStr ? (parseFloat(rawCostStr) || Math.round(mrp * 0.65)) : Math.round(mrp * 0.65);
 
-                const rawRetailStr = (retailIdx !== -1 && row[retailIdx] !== undefined && String(row[retailIdx]).trim() !== '') ? String(row[retailIdx]).replace(/[^0-9.]/g, '') : '';
-                const retail = rawRetailStr ? (parseFloat(rawRetailStr) || Math.round(mrp * 0.88)) : Math.round(mrp * 0.88);
+                const rawStockStr = (stockIdx !== -1 && row[stockIdx] !== undefined) ? String(row[stockIdx]).replace(/[^0-9]/g, '') : '100';
+                const stock = parseInt(rawStockStr) || 100;
 
-                let cat = 'UPVC';
+                let cat = 'Pipes & Fittings';
                 if (catIdx !== -1 && row[catIdx] !== undefined && String(row[catIdx]).trim() !== '') {
-                    const cStr = String(row[catIdx]).toUpperCase();
-                    if (cStr.includes('CPVC')) cat = 'CPVC';
-                    else if (cStr.includes('SWR')) cat = 'SWR';
-                    else if (cStr.includes('AGRI') || cStr.includes('OTHER')) cat = 'AGRI_OTHER';
+                    cat = String(row[catIdx]).trim();
                 } else {
                     const combined = (name + ' ' + size).toUpperCase();
-                    if (combined.includes('CPVC')) cat = 'CPVC';
-                    else if (combined.includes('SWR') || combined.includes('TRAP')) cat = 'SWR';
-                    else if (combined.includes('AGRI') || combined.includes('SOLVENT')) cat = 'AGRI_OTHER';
+                    if (combined.includes('PAINT') || combined.includes('EMULSION') || combined.includes('DISTEMPER') || combined.includes('PRIMER') || combined.includes('ENAMEL')) cat = 'Paints & Coatings';
+                    else if (combined.includes('SWITCH') || combined.includes('SOCKET') || combined.includes('WIRE') || combined.includes('CABLE') || combined.includes('MCB')) cat = 'Electrical & Wiring';
+                    else if (combined.includes('PLY') || combined.includes('DOOR') || combined.includes('BEAT') || combined.includes('LAMINATE')) cat = 'Plywood & Hardware';
+                    else if (combined.includes('PUMP') || combined.includes('MOTOR') || combined.includes('SUBMERSIBLE')) cat = 'Pumps & Motors';
+                    else if (combined.includes('CPVC')) cat = 'CPVC';
+                    else if (combined.includes('SWR') || combined.includes('TRAP') || combined.includes('DRAIN')) cat = 'SWR';
+                    else if (combined.includes('UPVC')) cat = 'UPVC';
+                    else if (combined.includes('AGRI') || combined.includes('SOLVENT') || combined.includes('CEMENT')) cat = 'Agri & Solvents';
+                    else cat = 'General Hardware';
                 }
 
                 previewHtml += `
                     <tr class="hover:bg-slate-50 transition">
                         <td class="p-2.5">
-                            <span class="px-2 py-0.5 rounded-md text-[10px] font-black ${cat === 'UPVC' ? 'bg-blue-100 text-blue-800' : (cat === 'CPVC' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800')}">${cat}</span>
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-100 text-indigo-800 border border-indigo-200">${escapeHtml(cat)}</span>
                         </td>
+                        <td class="p-2.5 font-mono text-[11px] text-gray-600">${escapeHtml(code)}</td>
                         <td class="p-2.5 font-bold text-gray-900">${escapeHtml(name)}</td>
                         <td class="p-2.5 font-mono text-gray-700">${escapeHtml(size)}</td>
-                        <td class="p-2.5 font-mono font-black text-emerald-700 text-sm">₹${mrp.toFixed(2)}</td>
+                        <td class="p-2.5 text-[11px] text-indigo-700 font-mono">${escapeHtml(packText)}</td>
+                        <td class="p-2.5 font-mono font-black text-emerald-800 text-sm">₹${mrp.toFixed(2)}</td>
                         <td class="p-2.5 font-mono text-gray-600">₹${cost.toFixed(2)}</td>
-                        <td class="p-2.5 font-mono text-gray-800">₹${retail.toFixed(2)}</td>
+                        <td class="p-2.5 font-mono font-bold text-emerald-700">₹${retail.toFixed(2)}</td>
+                        <td class="p-2.5 font-mono text-gray-700">${stock}</td>
                     </tr>
                 `;
                 rowsShown++;
             }
 
             if (!previewHtml) {
-                previewHtml = `<tr><td colspan="6" class="p-4 text-center text-gray-400">Is row number par koi data nahi mila. "Data Starts At Row" number check karein.</td></tr>`;
+                previewHtml = `<tr><td colspan="9" class="p-4 text-center text-gray-400">Is row number par koi data nahi mila. "Data Starts At Row" number check karein.</td></tr>`;
             }
 
             tbody.innerHTML = previewHtml;
@@ -1532,10 +1783,16 @@
 
         function applyExcelColumnMapping() {
             const nameIdx = parseInt(document.getElementById('mapColName')?.value ?? -1);
-            const sizeIdx = parseInt(document.getElementById('mapColSize')?.value ?? -1);
             const mrpIdx = parseInt(document.getElementById('mapColMrp')?.value ?? -1);
-            const costIdx = parseInt(document.getElementById('mapColCost')?.value ?? -1);
             const retailIdx = parseInt(document.getElementById('mapColRetail')?.value ?? -1);
+            const sizeIdx = parseInt(document.getElementById('mapColSize')?.value ?? -1);
+            const codeIdx = parseInt(document.getElementById('mapColCode')?.value ?? -1);
+            const pack1Idx = parseInt(document.getElementById('mapColPack1')?.value ?? -1);
+            const pack2Idx = parseInt(document.getElementById('mapColPack2')?.value ?? -1);
+            const costIdx = parseInt(document.getElementById('mapColCost')?.value ?? -1);
+            const cost2Idx = parseInt(document.getElementById('mapColCost2')?.value ?? -1);
+            const cost3Idx = parseInt(document.getElementById('mapColCost3')?.value ?? -1);
+            const stockIdx = parseInt(document.getElementById('mapColStock')?.value ?? -1);
             const catIdx = parseInt(document.getElementById('mapColCategory')?.value ?? -1);
             const startRow = Math.max(0, parseInt(document.getElementById('mapDataStartRow')?.value || 2) - 1);
 
@@ -1543,8 +1800,8 @@
                 alert('Kripya "Product / Item Name" column select karein.');
                 return;
             }
-            if (isNaN(mrpIdx) || mrpIdx === -1) {
-                alert('Kripya "MRP / List Price" column select karein.');
+            if ((isNaN(mrpIdx) || mrpIdx === -1) && (isNaN(retailIdx) || retailIdx === -1)) {
+                alert('Kripya "MRP / List Price" ya "Selling Price" column select karein.');
                 return;
             }
 
@@ -1556,41 +1813,72 @@
                 const rawName = String(row[nameIdx] || '').trim();
                 if (!rawName) continue;
 
+                const rawCode = (codeIdx !== -1 && row[codeIdx] !== undefined) ? String(row[codeIdx]).trim() : '';
+
                 let rawSize = (sizeIdx !== -1 && row[sizeIdx] !== undefined) ? String(row[sizeIdx]).trim() : '';
                 if (!rawSize) {
                     const sizeMatch = rawName.match(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/i);
                     rawSize = sizeMatch ? sizeMatch[0] : 'Standard';
                 }
 
-                const rawMrp = parseFloat(String(row[mrpIdx] || '0').replace(/[^0-9.]/g, '')) || 0;
+                const rawPack1 = (pack1Idx !== -1 && row[pack1Idx] !== undefined) ? String(row[pack1Idx]).trim() : '';
+                const rawPack2 = (pack2Idx !== -1 && row[pack2Idx] !== undefined) ? String(row[pack2Idx]).trim() : '';
+
+                const parsedMrp = (mrpIdx !== -1 && row[mrpIdx] !== undefined) ? (parseFloat(String(row[mrpIdx]).replace(/[^0-9.]/g, '')) || 0) : 0;
+                const parsedRetail = (retailIdx !== -1 && row[retailIdx] !== undefined && String(row[retailIdx]).trim() !== '')
+                    ? (parseFloat(String(row[retailIdx]).replace(/[^0-9.]/g, '')) || 0)
+                    : 0;
+
+                const rawMrp = parsedMrp > 0 ? parsedMrp : (parsedRetail > 0 ? Math.round(parsedRetail / 0.88) : 100);
+                const rawRetail = parsedRetail > 0 ? parsedRetail : Math.round(rawMrp * 0.88);
+
                 const rawCost = (costIdx !== -1 && row[costIdx] !== undefined && String(row[costIdx]).trim() !== '') 
                     ? (parseFloat(String(row[costIdx]).replace(/[^0-9.]/g, '')) || Math.round(rawMrp * 0.65))
                     : Math.round(rawMrp * 0.65);
-                const rawRetail = (retailIdx !== -1 && row[retailIdx] !== undefined && String(row[retailIdx]).trim() !== '')
-                    ? (parseFloat(String(row[retailIdx]).replace(/[^0-9.]/g, '')) || Math.round(rawMrp * 0.88))
-                    : Math.round(rawMrp * 0.88);
 
-                let cat = 'UPVC';
+                const rawCost2 = (cost2Idx !== -1 && row[cost2Idx] !== undefined && String(row[cost2Idx]).trim() !== '')
+                    ? (parseFloat(String(row[cost2Idx]).replace(/[^0-9.]/g, '')) || 0)
+                    : 0;
+
+                const rawCost3 = (cost3Idx !== -1 && row[cost3Idx] !== undefined && String(row[cost3Idx]).trim() !== '')
+                    ? (parseFloat(String(row[cost3Idx]).replace(/[^0-9.]/g, '')) || 0)
+                    : 0;
+
+                const rawStock = (stockIdx !== -1 && row[stockIdx] !== undefined && String(row[stockIdx]).trim() !== '')
+                    ? (parseInt(String(row[stockIdx]).replace(/[^0-9]/g, '')) || 100)
+                    : 100;
+
+                let cat = 'Pipes & Fittings';
                 if (catIdx !== -1 && row[catIdx] !== undefined && String(row[catIdx]).trim() !== '') {
-                    const cVal = String(row[catIdx]).toUpperCase();
-                    if (cVal.includes('CPVC')) cat = 'CPVC';
-                    else if (cVal.includes('SWR')) cat = 'SWR';
-                    else if (cVal.includes('AGRI') || cVal.includes('OTHER')) cat = 'AGRI_OTHER';
+                    cat = String(row[catIdx]).trim();
                 } else {
                     const combined = (rawName + ' ' + rawSize).toUpperCase();
-                    if (combined.includes('CPVC')) cat = 'CPVC';
+                    if (combined.includes('PAINT') || combined.includes('EMULSION') || combined.includes('DISTEMPER') || combined.includes('PRIMER') || combined.includes('ENAMEL')) cat = 'Paints & Coatings';
+                    else if (combined.includes('SWITCH') || combined.includes('SOCKET') || combined.includes('WIRE') || combined.includes('CABLE') || combined.includes('MCB')) cat = 'Electrical & Wiring';
+                    else if (combined.includes('PLY') || combined.includes('DOOR') || combined.includes('BEAT') || combined.includes('LAMINATE')) cat = 'Plywood & Hardware';
+                    else if (combined.includes('PUMP') || combined.includes('MOTOR') || combined.includes('SUBMERSIBLE')) cat = 'Pumps & Motors';
+                    else if (combined.includes('CPVC')) cat = 'CPVC';
                     else if (combined.includes('SWR') || combined.includes('TRAP') || combined.includes('DRAIN')) cat = 'SWR';
-                    else if (combined.includes('AGRI') || combined.includes('SOLVENT')) cat = 'AGRI_OTHER';
+                    else if (combined.includes('UPVC')) cat = 'UPVC';
+                    else if (combined.includes('AGRI') || combined.includes('SOLVENT') || combined.includes('CEMENT')) cat = 'Agri & Solvents';
+                    else cat = 'General Hardware';
                 }
 
                 newRows.push({
                     id: dynamicRowNextId++,
+                    product_code: rawCode,
                     product_name: rawName,
                     size: rawSize,
+                    packing_1: rawPack1,
+                    packing_2: rawPack2,
                     group_type: cat,
+                    category: cat,
                     mrp: rawMrp,
                     purchase_cost: rawCost,
+                    cost_price_2: rawCost2,
+                    cost_price_3: rawCost3,
                     retail_price: rawRetail,
+                    stock: rawStock,
                     image_url: '',
                     asset_url: ''
                 });
@@ -1603,6 +1891,7 @@
 
             dynamicRows = newRows;
             renderDynamicRows();
+            refreshCategoryFilterTabs();
             toggleDynamicMode(true);
             closeColumnMapperModal();
 
@@ -1613,7 +1902,7 @@
                 }
             }
 
-            alert(`🎉 Success! Excel sheet se ${newRows.length} products sahi MRP aur Sizes ke sath map ho gaye hain!`);
+            alert(`🎉 Success! Excel sheet se ${newRows.length} products sahi MRP, Selling Price, Code, Packing aur Category ke sath map ho gaye hain!`);
         }
 
         function groupSelectedRowsIntoCard() {
@@ -1652,15 +1941,21 @@
             const newCard = {
                 card_id: groupedCardNextId++,
                 parent_name: parentTitle,
-                category: firstRow.group_type || 'UPVC',
+                category: firstRow.category || firstRow.group_type || 'General Hardware',
                 image_url: assignedImg,
                 asset_url: assignedAsset,
                 variants: selectedRows.map(r => ({
                     id: r.id,
-                    size: r.size,
+                    product_code: r.product_code || '',
+                    size: r.size || 'Standard',
+                    packing_1: r.packing_1 || '',
+                    packing_2: r.packing_2 || '',
                     mrp: r.mrp,
                     purchase_cost: r.purchase_cost,
-                    retail_price: r.retail_price
+                    cost_price_2: r.cost_price_2 || 0,
+                    cost_price_3: r.cost_price_3 || 0,
+                    retail_price: r.retail_price,
+                    stock: r.stock || 100
                 }))
             };
 
@@ -1671,6 +1966,7 @@
             clearDynamicRowSelection();
             renderDynamicRows();
             renderGroupedProductCards();
+            refreshCategoryFilterTabs();
             updateFloatingBatchBar();
 
             const gSection = document.getElementById('groupedCardsSection');
@@ -1703,10 +1999,17 @@
 
                 let variantRowsHtml = '';
                 c.variants.forEach((v) => {
+                    const packStr = [v.packing_1 ? `Box: ${v.packing_1}` : '', v.packing_2 ? `Bag: ${v.packing_2}` : ''].filter(Boolean).join(' | ');
                     variantRowsHtml += `
                         <tr class="hover:bg-indigo-50/30 transition">
                             <td class="p-2">
-                                <input type="text" value="${escapeHtml(v.size)}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'size', this.value)" class="w-full text-xs font-mono font-bold text-gray-900 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent">
+                                <input type="text" value="${escapeHtml(v.size || 'Standard')}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'size', this.value)" class="w-full text-xs font-mono font-bold text-gray-900 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent">
+                            </td>
+                            <td class="p-2 font-mono">
+                                <input type="text" value="${escapeHtml(v.product_code || '')}" placeholder="SKU" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'product_code', this.value)" class="w-20 text-[11px] font-mono text-gray-600 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent">
+                            </td>
+                            <td class="p-2 font-mono text-[10px] text-indigo-700">
+                                <input type="text" value="${escapeHtml(packStr)}" placeholder="Box/Bag" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'packing_1', this.value)" class="w-24 text-[10px] font-mono text-indigo-700 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent">
                             </td>
                             <td class="p-2 font-mono">
                                 <div class="flex items-center"><span class="text-gray-400 mr-0.5">₹</span><input type="number" step="0.5" value="${v.mrp}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'mrp', parseFloat(this.value) || 0)" class="w-16 text-xs font-bold text-gray-800 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent"></div>
@@ -1717,6 +2020,9 @@
                             <td class="p-2 font-mono">
                                 <div class="flex items-center"><span class="text-gray-400 mr-0.5">₹</span><input type="number" step="0.5" value="${v.retail_price}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'retail_price', parseFloat(this.value) || 0)" class="w-16 text-xs font-bold text-emerald-700 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent"></div>
                             </td>
+                            <td class="p-2 font-mono">
+                                <input type="number" value="${v.stock || 100}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'stock', parseInt(this.value) || 0)" class="w-14 text-xs font-mono text-gray-700 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent">
+                            </td>
                             <td class="p-2 text-right">
                                 <button type="button" onclick="deleteVariantFromCard(${c.card_id}, ${v.id})" class="h-6 w-6 rounded bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition inline-flex items-center justify-center text-[10px]" title="Remove size"><i class="fa-solid fa-xmark"></i></button>
                             </td>
@@ -1724,8 +2030,11 @@
                     `;
                 });
 
+                const cardCategory = c.category || 'General Hardware';
+                const cardSearch = `${c.parent_name} ${cardCategory} ${c.variants.map(v => (v.product_code || '') + ' ' + (v.size || '')).join(' ')}`.toLowerCase();
+
                 html += `
-                    <div class="bg-white rounded-3xl border-2 border-indigo-100 p-5 shadow-sm hover:shadow-md transition space-y-4" id="grouped_card_box_${c.card_id}">
+                    <div class="bg-white rounded-3xl border-2 border-indigo-100 p-5 shadow-sm hover:shadow-md transition space-y-4" id="grouped_card_box_${c.card_id}" data-category="${escapeHtml(cardCategory)}" data-search="${escapeHtml(cardSearch)}">
                         <div class="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-gray-100">
                             <div class="flex items-center gap-4 flex-1 min-w-[280px]">
                                 <!-- Product Photo Slot -->
@@ -1738,12 +2047,7 @@
 
                                 <div class="flex-1">
                                     <div class="flex items-center gap-2 mb-1.5">
-                                        <select onchange="updateGroupedCardField(${c.card_id}, 'category', this.value)" class="text-[11px] font-bold py-0.5 px-2 rounded-lg border border-indigo-200 bg-indigo-50/50 text-indigo-900 focus:ring-1 focus:ring-indigo-500">
-                                            <option value="UPVC" ${c.category === 'UPVC' ? 'selected' : ''}>💧 UPVC</option>
-                                            <option value="CPVC" ${c.category === 'CPVC' ? 'selected' : ''}>🔥 CPVC</option>
-                                            <option value="SWR" ${c.category === 'SWR' ? 'selected' : ''}>🚰 SWR</option>
-                                            <option value="AGRI_OTHER" ${c.category === 'AGRI_OTHER' ? 'selected' : ''}>🌿 Other</option>
-                                        </select>
+                                        <input list="allCategoriesList" value="${escapeHtml(cardCategory)}" onchange="updateGroupedCardField(${c.card_id}, 'category', this.value); refreshCategoryFilterTabs();" class="text-xs font-bold py-1 px-2.5 rounded-xl border border-indigo-200 bg-white text-indigo-900 focus:ring-2 focus:ring-indigo-500 w-44" placeholder="Category">
                                         <span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-extrabold text-[10px]">${c.variants.length} Sizes Included</span>
                                     </div>
                                     <input type="text" value="${escapeHtml(c.parent_name)}" oninput="updateGroupedCardField(${c.card_id}, 'parent_name', this.value)" class="w-full text-base font-black text-gray-900 border border-transparent hover:border-gray-300 focus:border-indigo-600 focus:bg-white rounded-lg px-2 py-1 transition bg-transparent" placeholder="e.g. UPVC 90° Elbow Heavy Duty">
@@ -1771,9 +2075,12 @@
                                 <thead class="text-[10px] text-gray-400 uppercase font-bold border-b border-gray-200">
                                     <tr>
                                         <th class="p-2.5">Size / Dimension</th>
+                                        <th class="p-2.5">SKU / Code</th>
+                                        <th class="p-2.5">Packing</th>
                                         <th class="p-2.5">MRP</th>
                                         <th class="p-2.5">Cost Price</th>
                                         <th class="p-2.5">Selling Price</th>
+                                        <th class="p-2.5">Stock</th>
                                         <th class="p-2.5 text-right w-12">Action</th>
                                     </tr>
                                 </thead>
@@ -1821,12 +2128,18 @@
             card.variants.forEach(v => {
                 dynamicRows.push({
                     id: dynamicRowNextId++,
-                    product_name: `${card.parent_name} ${v.size}`.trim(),
-                    size: v.size,
+                    product_code: v.product_code || '',
+                    product_name: `${card.parent_name} ${v.size === 'Standard' ? '' : v.size}`.trim() || card.parent_name,
+                    size: v.size || 'Standard',
+                    packing_1: v.packing_1 || '',
+                    packing_2: v.packing_2 || '',
                     group_type: card.category,
                     mrp: v.mrp,
                     purchase_cost: v.purchase_cost,
+                    cost_price_2: v.cost_price_2 || 0,
+                    cost_price_3: v.cost_price_3 || 0,
                     retail_price: v.retail_price,
+                    stock: v.stock || 100,
                     image_url: card.image_url || '',
                     asset_url: card.asset_url || ''
                 });
@@ -1855,7 +2168,7 @@
                 else if (/AGRI|SOLVENT/i.test(text)) category = 'AGRI_OTHER';
 
                 const sizeMatch = text.match(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/i);
-                const size = sizeMatch ? sizeMatch[0] : `Var-${idx + 1}`;
+                const size = sizeMatch ? sizeMatch[0] : 'Standard';
 
                 const priceMatch = text.match(/(?:rs\.?|₹|\/)\s*(\d+(?:\.\d+)?)/i);
                 const price = priceMatch ? parseFloat(priceMatch[1]) : (50 + (idx * 15));
@@ -1864,12 +2177,18 @@
 
                 dynamicRows.push({
                     id: dynamicRowNextId++,
+                    product_code: `ITM-${100 + idx}`,
                     product_name: text,
                     size: size,
+                    packing_1: '',
+                    packing_2: '',
                     group_type: category,
                     mrp: price,
                     purchase_cost: cost,
+                    cost_price_2: 0,
+                    cost_price_3: 0,
                     retail_price: retail,
+                    stock: 100,
                     image_url: preselectedImg || '',
                     asset_url: preselectedImg ? ('/' + preselectedImg.replace(/^\//, '')) : ''
                 });
@@ -1896,12 +2215,18 @@
         function addDynamicRow() {
             dynamicRows.push({
                 id: dynamicRowNextId++,
+                product_code: '',
                 product_name: 'New Product Item',
-                size: '25mm (1")',
+                size: 'Standard',
+                packing_1: '',
+                packing_2: '',
                 group_type: 'UPVC',
                 mrp: 100,
                 purchase_cost: 65,
+                cost_price_2: 0,
+                cost_price_3: 0,
                 retail_price: 85,
+                stock: 100,
                 image_url: '',
                 asset_url: ''
             });
@@ -1924,7 +2249,7 @@
             if (dynamicRows.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="9" class="p-8 text-center text-gray-400 text-xs">
+                        <td colspan="12" class="p-8 text-center text-gray-400 text-xs">
                             Koi flat rows nahi hain. Nayi row jodne ke liye <b>"+ Add Line"</b> ya Excel Import karein.
                         </td>
                     </tr>
@@ -1938,8 +2263,11 @@
                     ? `<img src="${r.asset_url || r.image_url}" class="max-h-full max-w-full object-contain" id="dyn_img_${r.id}">`
                     : `<span class="text-gray-300 text-xs" id="dyn_img_${r.id}"><i class="fa-solid fa-camera"></i></span>`;
 
+                const catVal = r.group_type || r.category || 'General Hardware';
+                const searchStr = `${r.product_name} ${r.product_code || ''} ${r.size || ''} ${catVal}`.toLowerCase();
+
                 html += `
-                    <tr class="hover:bg-slate-50 transition dynamic-row-item" id="dyn_row_${r.id}">
+                    <tr class="hover:bg-slate-50 transition dynamic-row-item" id="dyn_row_${r.id}" data-category="${escapeHtml(catVal)}" data-search="${escapeHtml(searchStr)}">
                         <td class="p-3 text-center">
                             <input type="checkbox" value="${r.id}" onchange="handleDynamicCheckboxChange(this)" class="dynamic-row-checkbox h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
                         </td>
@@ -1949,18 +2277,22 @@
                             </div>
                         </td>
                         <td class="p-3">
-                            <select onchange="updateDynamicRowField(${r.id}, 'group_type', this.value)" class="text-[11px] font-bold py-1 px-1.5 rounded-lg border border-gray-200 bg-white focus:ring-1 focus:ring-emerald-500">
-                                <option value="UPVC" ${r.group_type === 'UPVC' ? 'selected' : ''}>💧 UPVC</option>
-                                <option value="CPVC" ${r.group_type === 'CPVC' ? 'selected' : ''}>🔥 CPVC</option>
-                                <option value="SWR" ${r.group_type === 'SWR' ? 'selected' : ''}>🚰 SWR</option>
-                                <option value="AGRI_OTHER" ${r.group_type === 'AGRI_OTHER' ? 'selected' : ''}>🌿 Other</option>
-                            </select>
+                            <input list="allCategoriesList" value="${escapeHtml(catVal)}" onchange="updateDynamicRowField(${r.id}, 'group_type', this.value); updateDynamicRowField(${r.id}, 'category', this.value); refreshCategoryFilterTabs();" class="text-xs font-bold py-1 px-2 rounded-lg border border-gray-200 bg-white text-gray-800 focus:ring-1 focus:ring-emerald-500 w-28" placeholder="Category" title="Select or type Category">
+                        </td>
+                        <td class="p-3 min-w-[200px]">
+                            <input type="text" value="${escapeHtml(r.product_name)}" oninput="updateDynamicRowField(${r.id}, 'product_name', this.value)" class="w-full text-xs font-bold text-gray-900 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" placeholder="Product Name">
                         </td>
                         <td class="p-3">
-                            <input type="text" value="${escapeHtml(r.product_name)}" oninput="updateDynamicRowField(${r.id}, 'product_name', this.value)" class="w-full text-xs font-bold text-gray-900 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent">
+                            <input type="text" value="${escapeHtml(r.product_code || '')}" placeholder="Item Code" oninput="updateDynamicRowField(${r.id}, 'product_code', this.value)" class="w-24 text-[11px] font-mono text-gray-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" title="Product / Item Code (SKU)">
                         </td>
                         <td class="p-3">
-                            <input type="text" value="${escapeHtml(r.size)}" oninput="updateDynamicRowField(${r.id}, 'size', this.value)" class="w-full text-xs font-mono font-bold text-gray-800 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent">
+                            <input type="text" value="${escapeHtml(r.size || 'Standard')}" placeholder="Standard" oninput="updateDynamicRowField(${r.id}, 'size', this.value)" class="w-20 text-xs font-mono font-bold text-gray-800 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" title="Size / Dimension">
+                        </td>
+                        <td class="p-3">
+                            <div class="space-y-0.5 min-w-[90px]">
+                                <input type="text" value="${escapeHtml(r.packing_1 || '')}" placeholder="Box: -" oninput="updateDynamicRowField(${r.id}, 'packing_1', this.value)" class="w-full text-[10px] font-mono text-indigo-700 border border-transparent hover:border-gray-300 focus:border-indigo-500 rounded px-1 py-0.5 bg-transparent" title="Box / Inner Pack">
+                                <input type="text" value="${escapeHtml(r.packing_2 || '')}" placeholder="Bag: -" oninput="updateDynamicRowField(${r.id}, 'packing_2', this.value)" class="w-full text-[10px] font-mono text-purple-700 border border-transparent hover:border-gray-300 focus:border-purple-500 rounded px-1 py-0.5 bg-transparent" title="Master Carton / Bag Pack">
+                            </div>
                         </td>
                         <td class="p-3 font-mono">
                             <div class="flex items-center">
@@ -1971,14 +2303,17 @@
                         <td class="p-3 font-mono">
                             <div class="flex items-center">
                                 <span class="text-gray-400 mr-0.5">₹</span>
-                                <input type="number" step="0.5" value="${r.purchase_cost}" oninput="updateDynamicRowField(${r.id}, 'purchase_cost', parseFloat(this.value) || 0)" class="w-16 text-xs text-gray-600 border border-transparent hover:border-gray-300 focus:border-emerald-600 rounded-lg p-1 bg-transparent">
+                                <input type="number" step="0.5" value="${r.purchase_cost}" oninput="updateDynamicRowField(${r.id}, 'purchase_cost', parseFloat(this.value) || 0)" class="w-16 text-xs text-gray-600 border border-transparent hover:border-gray-300 focus:border-emerald-600 rounded-lg p-1 bg-transparent" title="Cost Price 1">
                             </div>
                         </td>
                         <td class="p-3 font-mono">
                             <div class="flex items-center">
                                 <span class="text-gray-400 mr-0.5">₹</span>
-                                <input type="number" step="0.5" value="${r.retail_price}" oninput="updateDynamicRowField(${r.id}, 'retail_price', parseFloat(this.value) || 0)" class="w-16 text-xs font-bold text-emerald-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 rounded-lg p-1 bg-transparent">
+                                <input type="number" step="0.5" value="${r.retail_price}" oninput="updateDynamicRowField(${r.id}, 'retail_price', parseFloat(this.value) || 0)" class="w-16 text-xs font-bold text-emerald-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 rounded-lg p-1 bg-transparent" title="Selling Price">
                             </div>
+                        </td>
+                        <td class="p-3 font-mono">
+                            <input type="number" value="${r.stock || 100}" oninput="updateDynamicRowField(${r.id}, 'stock', parseInt(this.value) || 0)" class="w-14 text-xs font-mono text-gray-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 rounded-lg p-1 bg-transparent" title="Stock Quantity">
                         </td>
                         <td class="p-3 text-right">
                             <div class="flex items-center justify-end gap-1">
@@ -2080,7 +2415,7 @@
             }
 
             const sheetName = (document.getElementById('dynamicSheetName')?.value || 'catalog').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-            let csv = "Category,Product Name,Size/Dimension,MRP,Purchase Cost,Retail Price,Image URL\n";
+            let csv = "Category,Product Code,Product Name,Size/Dimension,Packing 1 (Box),Packing 2 (Carton),MRP,Purchase Cost 1,Cost Price 2,Cost Price 3,Selling Price,Stock,Image URL\n";
 
             // Add grouped cards
             groupedProductCards.forEach(c => {
@@ -2088,11 +2423,17 @@
                 c.variants.forEach(v => {
                     csv += [
                         escapeCsv(c.category),
+                        escapeCsv(v.product_code || ''),
                         escapeCsv(c.parent_name),
-                        escapeCsv(v.size),
+                        escapeCsv(v.size || 'Standard'),
+                        escapeCsv(v.packing_1 || ''),
+                        escapeCsv(v.packing_2 || ''),
                         v.mrp,
                         v.purchase_cost,
+                        v.cost_price_2 || 0,
+                        v.cost_price_3 || 0,
                         v.retail_price,
+                        v.stock || 100,
                         escapeCsv(c.image_url)
                     ].join(',') + "\n";
                 });
@@ -2103,11 +2444,17 @@
                 const escapeCsv = (str) => `"${(str || '').toString().replace(/"/g, '""')}"`;
                 csv += [
                     escapeCsv(r.group_type),
+                    escapeCsv(r.product_code || ''),
                     escapeCsv(r.product_name),
-                    escapeCsv(r.size),
+                    escapeCsv(r.size || 'Standard'),
+                    escapeCsv(r.packing_1 || ''),
+                    escapeCsv(r.packing_2 || ''),
                     r.mrp,
                     r.purchase_cost,
+                    r.cost_price_2 || 0,
+                    r.cost_price_3 || 0,
                     r.retail_price,
+                    r.stock || 100,
                     escapeCsv(r.image_url)
                 ].join(',') + "\n";
             });

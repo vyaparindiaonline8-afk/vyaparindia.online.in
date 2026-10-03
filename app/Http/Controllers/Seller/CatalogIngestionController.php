@@ -1115,22 +1115,41 @@ Please respond clearly in simple professional Hinglish/English with bullet point
         $products = $extractedData['products'] ?? [];
         $categories = Category::all();
 
-        // Categorize each product into UPVC, CPVC, SWR, or AGRI_OTHER
+        // Categorize each product preserving real sheet/custom categories
+        $categoryCounts = [];
         foreach ($products as $pIdx => &$prod) {
             $pName = strtoupper($prod['name'] ?? '');
-            $pCat = strtoupper($prod['category'] ?? '');
+            $pCat = trim($prod['category'] ?? '');
 
-            if (str_contains($pName, 'CPVC') || str_contains($pCat, 'CPVC')) {
-                $groupType = 'CPVC';
-            } elseif (str_contains($pName, 'UPVC') || str_contains($pCat, 'UPVC')) {
-                $groupType = 'UPVC';
-            } elseif (str_contains($pName, 'SWR') || str_contains($pCat, 'SWR') || str_contains($pName, 'TRAP') || str_contains($pName, 'VENT') || str_contains($pName, 'COWL')) {
-                $groupType = 'SWR';
+            if (!empty($pCat) && !in_array(strtoupper($pCat), ['INDUSTRIAL & COMMERCIAL', 'UNCATEGORIZED', 'OTHER'])) {
+                $groupType = $pCat;
+            } elseif (!empty($prod['group_type']) && !in_array($prod['group_type'], ['UPVC', 'CPVC', 'SWR', 'AGRI_OTHER'])) {
+                $groupType = $prod['group_type'];
             } else {
-                $groupType = 'AGRI_OTHER';
+                if (str_contains($pName, 'PAINT') || str_contains($pName, 'EMULSION') || str_contains($pName, 'DISTEMPER') || str_contains($pName, 'PRIMER') || str_contains($pName, 'ENAMEL')) {
+                    $groupType = 'Paints & Coatings';
+                } elseif (str_contains($pName, 'SWITCH') || str_contains($pName, 'WIRE') || str_contains($pName, 'CABLE') || str_contains($pName, 'MCB') || str_contains($pName, 'SOCKET')) {
+                    $groupType = 'Electrical & Wiring';
+                } elseif (str_contains($pName, 'PLY') || str_contains($pName, 'DOOR') || str_contains($pName, 'BEAT') || str_contains($pName, 'LAMINATE')) {
+                    $groupType = 'Plywood & Hardware';
+                } elseif (str_contains($pName, 'PUMP') || str_contains($pName, 'MOTOR') || str_contains($pName, 'SUBMERSIBLE')) {
+                    $groupType = 'Pumps & Motors';
+                } elseif (str_contains($pName, 'CPVC')) {
+                    $groupType = 'CPVC';
+                } elseif (str_contains($pName, 'UPVC')) {
+                    $groupType = 'UPVC';
+                } elseif (str_contains($pName, 'SWR') || str_contains($pName, 'TRAP') || str_contains($pName, 'VENT') || str_contains($pName, 'COWL') || str_contains($pName, 'DRAIN')) {
+                    $groupType = 'SWR';
+                } elseif (str_contains($pName, 'AGRI') || str_contains($pName, 'SOLVENT') || str_contains($pName, 'CEMENT')) {
+                    $groupType = 'Agri & Solvents';
+                } else {
+                    $groupType = !empty($prod['category']) ? $prod['category'] : 'Pipes & Fittings';
+                }
             }
 
             $prod['group_type'] = $groupType;
+            $prod['category'] = $groupType;
+            $categoryCounts[$groupType] = ($categoryCounts[$groupType] ?? 0) + 1;
         }
         unset($prod);
 
@@ -1139,9 +1158,9 @@ Please respond clearly in simple professional Hinglish/English with bullet point
         $rowIndex = 0;
         foreach ($products as $pIdx => $prod) {
             $prodName = $prod['name'];
-            $cat = $prod['category'] ?? 'Industrial & Commercial';
+            $cat = $prod['category'] ?? ($prod['group_type'] ?? 'Pipes & Fittings');
             $img = $prod['image_url'] ?? null;
-            $groupType = $prod['group_type'] ?? 'UPVC';
+            $groupType = $prod['group_type'] ?? $cat;
             $variants = $prod['variants'] ?? [];
 
             foreach ($variants as $vIdx => $v) {
@@ -1150,24 +1169,30 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                     'parent_idx' => $pIdx,
                     'variant_idx' => $vIdx,
                     'product_name' => $prodName,
+                    'product_code' => $v['product_code'] ?? ($v['sku'] ?? ''),
                     'variant_name' => $v['variant_name'] ?? 'Standard',
                     'size' => $v['size'] ?? 'Standard',
                     'category' => $cat,
                     'group_type' => $groupType,
+                    'packing_1' => $v['packing_1'] ?? '',
+                    'packing_2' => $v['packing_2'] ?? '',
                     'mrp' => floatval($v['mrp'] ?? 0),
                     'purchase_cost' => floatval($v['raw_rate'] ?? 0),
+                    'cost_price_2' => floatval($v['cost_price_2'] ?? 0),
+                    'cost_price_3' => floatval($v['cost_price_3'] ?? 0),
                     'wholesale_price' => floatval($v['wholesale_price'] ?? 0),
                     'retail_price' => floatval($v['retail_price'] ?? 0),
+                    'stock' => intval($v['stock_quantity'] ?? 100),
                     'image_url' => $img,
                 ];
                 $rowIndex++;
             }
         }
 
-        $upvcCount = count(array_filter($products, fn($p) => ($p['group_type'] ?? '') === 'UPVC'));
-        $cpvcCount = count(array_filter($products, fn($p) => ($p['group_type'] ?? '') === 'CPVC'));
-        $swrCount = count(array_filter($products, fn($p) => ($p['group_type'] ?? '') === 'SWR'));
-        $otherCount = count(array_filter($products, fn($p) => ($p['group_type'] ?? '') === 'AGRI_OTHER'));
+        $upvcCount = $categoryCounts['UPVC'] ?? 0;
+        $cpvcCount = $categoryCounts['CPVC'] ?? 0;
+        $swrCount = $categoryCounts['SWR'] ?? 0;
+        $otherCount = $categoryCounts['Agri & Solvents'] ?? ($categoryCounts['AGRI_OTHER'] ?? 0);
 
         $galleryImages = $this->getAllGalleryImages($userId);
 
@@ -1177,6 +1202,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
             'flatRows',
             'galleryImages',
             'categories',
+            'categoryCounts',
             'recentJobs',
             'upvcCount',
             'cpvcCount',
@@ -1283,19 +1309,31 @@ Please respond clearly in simple professional Hinglish/English with bullet point
             $cardVariants = [];
             foreach ($card['variants'] ?? [] as $v) {
                 $vSize = trim($v['size'] ?? 'Standard');
+                $vCode = trim($v['product_code'] ?? ($v['sku'] ?? ''));
+                $vPack1 = trim($v['packing_1'] ?? '');
+                $vPack2 = trim($v['packing_2'] ?? '');
                 $vMrp = floatval($v['mrp'] ?? 100);
                 $vCost = floatval($v['purchase_cost'] ?? ($vMrp * 0.6));
+                $vCost2 = floatval($v['cost_price_2'] ?? 0);
+                $vCost3 = floatval($v['cost_price_3'] ?? 0);
                 $vRetail = floatval($v['retail_price'] ?? ($vMrp * 0.85));
+                $vStock = intval($v['stock'] ?? ($v['stock_quantity'] ?? 100));
 
                 $cardVariants[] = [
-                    'variant_name' => $vSize,
-                    'size' => $vSize,
+                    'variant_name' => $vSize ?: 'Standard',
+                    'size' => $vSize ?: 'Standard',
+                    'sku' => $vCode ?: ('VAR-' . strtoupper(Str::random(6))),
+                    'product_code' => $vCode,
+                    'packing_1' => $vPack1,
+                    'packing_2' => $vPack2,
                     'grade' => 'Industrial',
                     'raw_rate' => $vCost,
-                    'wholesale_price' => round($vCost * 1.15, 2),
+                    'cost_price_2' => $vCost2,
+                    'cost_price_3' => $vCost3,
+                    'wholesale_price' => $vCost2 > 0 ? $vCost2 : round($vCost * 1.15, 2),
                     'retail_price' => $vRetail,
                     'mrp' => $vMrp,
-                    'stock_quantity' => 100,
+                    'stock_quantity' => $vStock > 0 ? $vStock : 100,
                 ];
             }
 
@@ -1315,16 +1353,23 @@ Please respond clearly in simple professional Hinglish/English with bullet point
         foreach ($rawRows as $r) {
             $prodName = trim($r['product_name'] ?? 'Product Item');
             $size = trim($r['size'] ?? 'Standard');
+            $code = trim($r['product_code'] ?? ($r['sku'] ?? ''));
+            $pack1 = trim($r['packing_1'] ?? '');
+            $pack2 = trim($r['packing_2'] ?? '');
             $mrp = floatval($r['mrp'] ?? 100);
             $cost = floatval($r['purchase_cost'] ?? ($mrp * 0.6));
+            $cost2 = floatval($r['cost_price_2'] ?? 0);
+            $cost3 = floatval($r['cost_price_3'] ?? 0);
             $retail = floatval($r['retail_price'] ?? ($mrp * 0.85));
+            $stock = intval($r['stock'] ?? ($r['stock_quantity'] ?? 100));
             $img = !empty($r['image_url']) ? $r['image_url'] : null;
-            $groupType = !empty($r['group_type']) ? $r['group_type'] : 'UPVC';
+            $groupType = !empty($r['group_type']) ? trim($r['group_type']) : (!empty($r['category']) ? trim($r['category']) : 'General Hardware');
+            $categoryName = !empty($r['category']) ? trim($r['category']) : $groupType;
 
             if (!isset($flatGrouped[$prodName])) {
                 $flatGrouped[$prodName] = [
                     'name' => $prodName,
-                    'category' => 'Industrial & Commercial',
+                    'category' => $categoryName,
                     'group_type' => $groupType,
                     'image_url' => $img,
                     'variants' => [],
@@ -1336,14 +1381,20 @@ Please respond clearly in simple professional Hinglish/English with bullet point
             }
 
             $flatGrouped[$prodName]['variants'][] = [
-                'variant_name' => $size,
-                'size' => $size,
+                'variant_name' => $size ?: 'Standard',
+                'size' => $size ?: 'Standard',
+                'sku' => $code ?: ('VAR-' . strtoupper(Str::random(6))),
+                'product_code' => $code,
+                'packing_1' => $pack1,
+                'packing_2' => $pack2,
                 'grade' => 'Industrial',
                 'raw_rate' => $cost,
-                'wholesale_price' => round($cost * 1.15, 2),
+                'cost_price_2' => $cost2,
+                'cost_price_3' => $cost3,
+                'wholesale_price' => $cost2 > 0 ? $cost2 : round($cost * 1.15, 2),
                 'retail_price' => $retail,
                 'mrp' => $mrp,
-                'stock_quantity' => 100,
+                'stock_quantity' => $stock > 0 ? $stock : 100,
             ];
         }
 
@@ -1395,11 +1446,15 @@ Please respond clearly in simple professional Hinglish/English with bullet point
             return back()->withErrors(['No products found in draft to publish.']);
         }
 
-        $defaultCategory = Category::firstOrCreate(['name' => 'Industrial & Commercial'], ['slug' => 'industrial-commercial']);
         $publishedCount = 0;
 
         foreach ($products as $prodData) {
-            $catId = $defaultCategory->id;
+            $catName = !empty($prodData['category']) ? trim($prodData['category']) : (!empty($prodData['group_type']) ? trim($prodData['group_type']) : 'General Hardware');
+            $category = Category::firstOrCreate(
+                ['name' => $catName],
+                ['slug' => Str::slug($catName) . '-' . Str::random(4)]
+            );
+            $catId = $category->id;
             $gst = 18;
             $variants = $prodData['variants'] ?? [];
             $hasMultipleVariants = count($variants) > 1;
@@ -1409,6 +1464,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
             $baseWholesale = floatval($firstVar['wholesale_price'] ?? ($basePurchase * 1.15));
             $baseRetail = floatval($firstVar['retail_price'] ?? ($basePurchase * 1.35));
             $baseMrp = floatval($firstVar['mrp'] ?? ($basePurchase * 1.60));
+            $prodSku = !empty($firstVar['product_code']) ? $firstVar['product_code'] : ('PLST-' . strtoupper(Str::random(6)));
 
             $product = Product::create([
                 'user_id' => $userId,
@@ -1423,10 +1479,10 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                 'price' => $baseRetail,
                 'mrp' => $baseMrp,
                 'gst_percent' => $gst,
-                'stock_quantity' => 100,
+                'stock_quantity' => intval($firstVar['stock_quantity'] ?? 100),
                 'track_inventory' => false,
                 'has_variants' => $hasMultipleVariants,
-                'sku' => 'PLST-' . strtoupper(Str::random(6)),
+                'sku' => $prodSku,
             ]);
 
             foreach ($variants as $v) {
@@ -1434,6 +1490,15 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                 $wPrice = floatval($v['wholesale_price'] ?? ($rawRate * 1.15));
                 $rPrice = floatval($v['retail_price'] ?? ($rawRate * 1.35));
                 $vMrp = floatval($v['mrp'] ?? ($rawRate * 1.60));
+                $vSku = !empty($v['product_code']) ? $v['product_code'] : (!empty($v['sku']) ? $v['sku'] : ('VAR-' . strtoupper(Str::random(7))));
+                
+                $attributes = [
+                    'size' => $v['size'] ?? 'Standard',
+                    'packing_1' => $v['packing_1'] ?? '',
+                    'packing_2' => $v['packing_2'] ?? '',
+                    'cost_price_2' => $v['cost_price_2'] ?? 0,
+                    'cost_price_3' => $v['cost_price_3'] ?? 0,
+                ];
 
                 ProductVariant::create([
                     'product_id' => $product->id,
@@ -1441,11 +1506,13 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                     'size' => $v['size'] ?? 'Standard',
                     'grade' => $v['grade'] ?? 'Industrial',
                     'raw_rate' => $rawRate,
+                    'purchase_price' => $rawRate,
                     'wholesale_price' => $wPrice,
                     'retail_price' => $rPrice,
                     'mrp' => $vMrp,
-                    'stock_quantity' => 100,
-                    'sku' => 'VAR-' . strtoupper(Str::random(7)),
+                    'stock_quantity' => intval($v['stock_quantity'] ?? 100),
+                    'sku' => $vSku,
+                    'attributes' => $attributes,
                 ]);
             }
 
