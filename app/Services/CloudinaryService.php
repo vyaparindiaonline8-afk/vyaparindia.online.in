@@ -15,15 +15,31 @@ class CloudinaryService
      * @param  string  $folder
      * @return string|null URL or relative path of uploaded image
      */
+    public static function getCredentials(): array
+    {
+        $cloudName = config('cloudinary.cloud_name') ?: env('CLOUDINARY_CLOUD_NAME');
+        $apiKey = config('cloudinary.api_key') ?: env('CLOUDINARY_API_KEY');
+        $apiSecret = config('cloudinary.api_secret') ?: env('CLOUDINARY_API_SECRET');
+
+        if ((!$cloudName || !$apiKey || !$apiSecret) && (env('CLOUDINARY_URL') ?: config('cloudinary.url'))) {
+            $parsed = parse_url(env('CLOUDINARY_URL') ?: config('cloudinary.url'));
+            if ($parsed && isset($parsed['host'])) {
+                $cloudName = $cloudName ?: $parsed['host'];
+                $apiKey = $apiKey ?: ($parsed['user'] ?? null);
+                $apiSecret = $apiSecret ?: ($parsed['pass'] ?? null);
+            }
+        }
+
+        return [$cloudName, $apiKey, $apiSecret];
+    }
+
     public static function upload($file, string $folder = 'products'): ?string
     {
         if (!$file) {
             return null;
         }
 
-        $cloudName = config('cloudinary.cloud_name') ?: env('CLOUDINARY_CLOUD_NAME');
-        $apiKey = config('cloudinary.api_key') ?: env('CLOUDINARY_API_KEY');
-        $apiSecret = config('cloudinary.api_secret') ?: env('CLOUDINARY_API_SECRET');
+        [$cloudName, $apiKey, $apiSecret] = self::getCredentials();
 
         // If Cloudinary credentials are configured, upload to Cloudinary
         if ($cloudName && $apiKey && $apiSecret) {
@@ -81,9 +97,7 @@ class CloudinaryService
      */
     public static function uploadBase64(string $base64Data, string $folder = 'vyaparindia/catalog/crops'): ?string
     {
-        $cloudName = config('cloudinary.cloud_name') ?: env('CLOUDINARY_CLOUD_NAME');
-        $apiKey = config('cloudinary.api_key') ?: env('CLOUDINARY_API_KEY');
-        $apiSecret = config('cloudinary.api_secret') ?: env('CLOUDINARY_API_SECRET');
+        [$cloudName, $apiKey, $apiSecret] = self::getCredentials();
 
         if ($cloudName && $apiKey && $apiSecret) {
             try {
@@ -131,9 +145,7 @@ class CloudinaryService
      */
     public static function listResources(string $prefix = '', int $maxResults = 500): array
     {
-        $cloudName = config('cloudinary.cloud_name') ?: env('CLOUDINARY_CLOUD_NAME');
-        $apiKey = config('cloudinary.api_key') ?: env('CLOUDINARY_API_KEY');
-        $apiSecret = config('cloudinary.api_secret') ?: env('CLOUDINARY_API_SECRET');
+        [$cloudName, $apiKey, $apiSecret] = self::getCredentials();
 
         if (!$cloudName || !$apiKey || !$apiSecret) {
             return [];

@@ -121,6 +121,11 @@
                     </button>
                     <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelFileUpload(event)">
 
+                    <button type="button" onclick="openGalleryDrawer(null, null)" class="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold text-xs border border-indigo-200 flex items-center gap-1.5 transition" title="Browse all photos from Central Media Bank">
+                        <i class="fa-solid fa-images"></i>
+                        <span>Browse Photo Bank</span>
+                    </button>
+
                     <button type="button" onclick="loadSampleDynamicRows()" class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition flex items-center gap-1.5" title="Load sample UPVC / CPVC fittings">
                         <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
                         <span>Load Sample Lines</span>
@@ -491,7 +496,7 @@
     <!-- ========================================== -->
     <!-- SLIDE-OVER PHOTO GALLERY DRAWER            -->
     <!-- ========================================== -->
-    <div id="galleryDrawerOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 hidden flex justify-end" onclick="closeGalleryDrawer()">
+    <div id="galleryDrawerOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] hidden flex justify-end" onclick="closeGalleryDrawer()">
         <div class="drawer-slide w-full max-w-lg bg-white h-full shadow-2xl flex flex-col" onclick="event.stopPropagation()">
             
             <!-- Drawer Header -->
@@ -514,7 +519,7 @@
             <!-- Drawer Search -->
             <div class="p-3 border-b border-gray-100 bg-gray-50">
                 <div class="relative">
-                    <input type="text" placeholder="Search gallery photo..." oninput="filterDrawerGallery(this.value)" class="w-full pl-8 pr-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white">
+                    <input type="text" placeholder="Search gallery photo (e.g. Elbow, Tee)..." oninput="filterDrawerGallery(this.value)" class="w-full pl-8 pr-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white">
                     <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-gray-400 text-xs"></i>
                 </div>
             </div>
@@ -522,15 +527,25 @@
             <!-- Drawer Gallery Grid -->
             <div class="flex-1 overflow-y-auto p-4">
                 <div class="grid grid-cols-3 gap-3" id="drawerImagesGrid">
-                    @foreach($galleryImages as $g)
-                        <div class="drawer-img-card border border-gray-200 rounded-2xl p-2 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-400 cursor-pointer text-center group transition" onclick="selectDrawerImage('{{ $g['url'] }}', '{{ asset($g['url']) }}')" data-name="{{ strtolower($g['name']) }}">
+                    @forelse($galleryImages as $g)
+                        <div class="drawer-img-card border border-gray-200 rounded-2xl p-2 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-400 cursor-pointer text-center group transition" onclick="selectDrawerImage('{{ $g['url'] }}', '{{ $g['asset_url'] }}')" data-name="{{ strtolower($g['name']) }}">
                             <div class="h-20 w-full bg-white rounded-xl p-1 mb-1.5 flex items-center justify-center overflow-hidden border border-gray-100 group-hover:scale-105 transition">
                                 <img src="{{ $g['asset_url'] }}" alt="{{ $g['name'] }}" class="max-h-full max-w-full object-contain">
                             </div>
                             <h5 class="text-[11px] font-bold text-gray-800 truncate" title="{{ $g['name'] }}">{{ $g['name'] }}</h5>
                             <span class="text-[9px] text-indigo-600 font-semibold">{{ $g['source'] === 'plasto_master' ? 'Master' : 'Crop' }}</span>
                         </div>
-                    @endforeach
+                    @empty
+                        <div class="col-span-3 py-16 text-center space-y-2" id="drawerEmptyPrompt">
+                            <div class="h-12 w-12 mx-auto rounded-2xl bg-indigo-50 text-indigo-400 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-images"></i>
+                            </div>
+                            <h4 class="text-xs font-bold text-gray-700">Photo Bank Loading / Empty</h4>
+                            <p class="text-[11px] text-gray-400 max-w-xs mx-auto">
+                                PDF Studio se photos crop karein ya Page refresh karein.
+                            </p>
+                        </div>
+                    @endforelse
                 </div>
             </div>
 
@@ -1580,6 +1595,40 @@
         // Initialize when DOM is ready
         window.addEventListener('DOMContentLoaded', () => {
             initDynamicSheet();
+
+            // Restore any locally cached crops into Photo Bank Drawer if missing
+            try {
+                const cached = JSON.parse(localStorage.getItem('vyapar_cached_crops') || '[]');
+                if (cached.length > 0) {
+                    const grid = document.getElementById('drawerImagesGrid');
+                    const emptyPrompt = document.getElementById('drawerEmptyPrompt');
+                    if (emptyPrompt) emptyPrompt.remove();
+
+                    cached.forEach(img => {
+                        const existing = document.querySelector(`.drawer-img-card[onclick*="${img.url}"]`);
+                        if (!existing && grid) {
+                            const div = document.createElement('div');
+                            div.className = "drawer-img-card border border-emerald-300 rounded-2xl p-2 bg-emerald-50/30 hover:bg-emerald-50 hover:border-emerald-400 cursor-pointer text-center group transition";
+                            div.setAttribute('data-name', (img.name || '').toLowerCase());
+                            div.onclick = () => selectDrawerImage(img.url, img.asset_url || img.url);
+                            div.innerHTML = `
+                                <div class="h-20 w-full bg-white rounded-xl p-1 mb-1.5 flex items-center justify-center overflow-hidden border border-emerald-100 group-hover:scale-105 transition">
+                                    <img src="${img.asset_url || img.url}" alt="${img.name}" class="max-h-full max-w-full object-contain">
+                                </div>
+                                <h5 class="text-[11px] font-bold text-gray-800 truncate" title="${img.name}">${img.name}</h5>
+                                <span class="text-[9px] text-emerald-600 font-bold">Local Crop</span>
+                            `;
+                            grid.prepend(div);
+                        }
+                    });
+
+                    const countEl = document.getElementById('drawerImagesCount');
+                    if (countEl) {
+                        const totalCards = document.querySelectorAll('.drawer-img-card').length;
+                        countEl.innerText = `${totalCards} Photos`;
+                    }
+                }
+            } catch (e) {}
         });
     </script>
 </body>

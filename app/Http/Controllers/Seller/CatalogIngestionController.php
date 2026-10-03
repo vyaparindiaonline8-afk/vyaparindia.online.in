@@ -442,77 +442,9 @@ class CatalogIngestionController extends Controller
         $images = [];
         $seenUrls = [];
 
-        // 0. Live Cloudinary Sync (Fetches all crops uploaded across all sessions with 60s cache)
+        // 1. Registered SellerMedia from Database (Permanent Central Cloudinary & Custom Crops)
         try {
-            $cloudResources = \Illuminate\Support\Facades\Cache::remember('cloudinary_resources_vyaparindia', 60, function () {
-                $res = CloudinaryService::listResources('vyaparindia', 500);
-                if (empty($res)) {
-                    $res = CloudinaryService::listResources('', 500);
-                }
-                return $res;
-            });
-
-            // Fast batch lookup to avoid N+1 queries
-            $existingDbPaths = \App\Models\SellerMedia::pluck('file_path')->flip()->all();
-            $newMediaToInsert = [];
-
-            foreach ($cloudResources as $res) {
-                $secUrl = $res['secure_url'] ?? $res['url'] ?? '';
-                if (!$secUrl || isset($seenUrls[$secUrl])) continue;
-
-                $publicId = $res['public_id'] ?? '';
-                if (!str_contains($publicId, 'vyaparindia') && !str_contains($publicId, 'seller_') && !str_contains($publicId, 'catalog')) {
-                    continue;
-                }
-
-                $seenUrls[$secUrl] = true;
-                $format = $res['format'] ?? 'jpg';
-                $baseName = basename($publicId);
-                $fileName = $baseName . '.' . $format;
-                $name = ucwords(str_replace(['crop_', 'p_', '_', '-'], ' ', $baseName));
-                $sizeKb = !empty($res['bytes']) ? round($res['bytes'] / 1024, 1) : 35.0;
-                $createdAt = !empty($res['created_at']) ? date('d M Y, H:i', strtotime($res['created_at'])) : date('d M Y, H:i');
-
-                $images[] = [
-                    'id' => md5($secUrl),
-                    'filename' => $fileName,
-                    'name' => trim($name),
-                    'url' => $secUrl,
-                    'asset_url' => $secUrl,
-                    'size_kb' => $sizeKb,
-                    'created_at' => $createdAt,
-                    'source' => 'custom_crop',
-                    'deletable' => true,
-                ];
-
-                if (!isset($existingDbPaths[$secUrl])) {
-                    $newMediaToInsert[] = [
-                        'user_id' => $userId ?: 1,
-                        'filename' => $fileName,
-                        'file_path' => $secUrl,
-                        'is_assigned' => false,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                    $existingDbPaths[$secUrl] = true;
-                }
-            }
-
-            if (!empty($newMediaToInsert)) {
-                \App\Models\SellerMedia::insert($newMediaToInsert);
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Cloudinary listResources sync error: ' . $e->getMessage());
-        }
-
-        // 0a. Registered SellerMedia from PostgreSQL Database (Permanent Cloudinary & Custom Crops)
-        try {
-            $dbMedia = \App\Models\SellerMedia::where('user_id', $userId)
-                ->orWhere('user_id', 1)
-                ->orWhere('user_id', 8)
-                ->orWhereNull('user_id')
-                ->latest()
-                ->get();
+            $dbMedia = \App\Models\SellerMedia::latest()->get();
             foreach ($dbMedia as $m) {
                 $url = $m->file_path;
                 if (isset($seenUrls[$url])) continue;
@@ -533,6 +465,66 @@ class CatalogIngestionController extends Controller
             }
         } catch (\Throwable $e) {
             Log::warning('SellerMedia DB fetch warning: ' . $e->getMessage());
+        }
+
+        // 2. Live Cloudinary Sync (Fetches all crops uploaded across all sessions with 60s cache)
+        try {
+            $cloudResources = \Illuminate\Support\Facades\Cache::remember('cloudinary_resources_vyaparindia', 60, function () {
+                $res = CloudinaryService::listResources('vyaparindia', 500);
+                if (empty($res)) {
+                    $res = CloudinaryService::listResources('', 500);
+                }
+                return $res;
+            });
+
+            if (!empty($cloudResources)) {
+                $newMediaToInsert = [];
+
+                foreach ($cloudResources as $res) {
+                    $secUrl = $res['secure_url'] ?? $res['url'] ?? '';
+                    if (!$secUrl || isset($seenUrls[$secUrl])) continue;
+
+                    $publicId = $res['public_id'] ?? '';
+                    if (!str_contains($publicId, 'vyaparindia') && !str_contains($publicId, 'seller_') && !str_contains($publicId, 'catalog')) {
+                        continue;
+                    }
+
+                    $seenUrls[$secUrl] = true;
+                    $format = $res['format'] ?? 'jpg';
+                    $baseName = basename($publicId);
+                    $fileName = $baseName . '.' . $format;
+                    $name = ucwords(str_replace(['crop_', 'p_', '_', '-'], ' ', $baseName));
+                    $sizeKb = !empty($res['bytes']) ? round($res['bytes'] / 1024, 1) : 35.0;
+                    $createdAt = !empty($res['created_at']) ? date('d M Y, H:i', strtotime($res['created_at'])) : date('d M Y, H:i');
+
+                    $images[] = [
+                        'id' => md5($secUrl),
+                        'filename' => $fileName,
+                        'name' => trim($name),
+                        'url' => $secUrl,
+                        'asset_url' => $secUrl,
+                        'size_kb' => $sizeKb,
+                        'created_at' => $createdAt,
+                        'source' => 'custom_crop',
+                        'deletable' => true,
+                    ];
+
+                    $newMediaToInsert[] = [
+                        'user_id' => $userId ?: 1,
+                        'filename' => $fileName,
+                        'file_path' => $secUrl,
+                        'is_assigned' => false,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+
+                if (!empty($newMediaToInsert)) {
+                    \App\Models\SellerMedia::insert($newMediaToInsert);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Cloudinary listResources sync error: ' . $e->getMessage());
         }
 
         // 0b. Registered Cloudinary & Custom Crop URLs from JSON
