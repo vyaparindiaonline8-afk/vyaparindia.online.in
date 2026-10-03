@@ -28,4 +28,16 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->withInput($request->except('password', 'password_confirmation', '_token'))
                 ->with('error', 'Aapka session expire ho gaya tha ya page purana tha. Kripya dobara submit karein.');
         });
+
+        $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+            return response(
+                "<div style='font-family:monospace;background:#0d1117;color:#58a6ff;padding:24px;border-radius:12px;margin:20px;'>" .
+                "<h2 style='color:#f85149;margin-top:0;'>⚠️ Application Error Encountered</h2>" .
+                "<p style='color:#e6edf3;font-size:16px;'><strong>Message:</strong> " . htmlspecialchars($e->getMessage()) . "</p>" .
+                "<p style='color:#8b949e;'><strong>Location:</strong> " . htmlspecialchars($e->getFile()) . " (Line " . $e->getLine() . ")</p>" .
+                "<pre style='background:#161b22;color:#c9d1d9;padding:16px;border-radius:8px;overflow:auto;max-height:400px;'>" . htmlspecialchars($e->getTraceAsString()) . "</pre>" .
+                "</div>",
+                500
+            );
+        });
     })->create();
