@@ -162,15 +162,21 @@
 
                         <!-- Zoom Controls -->
                         <div class="flex items-center bg-gray-100 p-0.5 rounded-xl ml-1">
-                            <button type="button" onclick="adjustZoom(-0.25)" class="h-7 w-7 rounded-lg hover:bg-white text-gray-600 text-xs font-bold transition" title="Zoom Out">-</button>
-                            <span class="text-[11px] font-black text-gray-700 px-2" id="zoomText">150%</span>
-                            <button type="button" onclick="adjustZoom(0.25)" class="h-7 w-7 rounded-lg hover:bg-white text-gray-600 text-xs font-bold transition" title="Zoom In">+</button>
+                            <button type="button" onclick="adjustZoom(-0.2)" class="h-7 w-7 rounded-lg hover:bg-white text-gray-600 text-xs font-bold transition" title="Zoom Out">-</button>
+                            <span class="text-[11px] font-black text-gray-700 px-2" id="zoomText">100%</span>
+                            <button type="button" onclick="adjustZoom(0.2)" class="h-7 w-7 rounded-lg hover:bg-white text-gray-600 text-xs font-bold transition" title="Zoom In">+</button>
                         </div>
 
                         <!-- Auto-Fit Width Button -->
-                        <button type="button" onclick="fitCanvasToWidth()" class="px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition flex items-center gap-1" title="Fit to Container Width">
+                        <button type="button" onclick="fitCanvasToWidth()" class="px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition flex items-center gap-1" title="Fit to Container Width (Poori Width Dikhe)">
                             <i class="fa-solid fa-arrows-left-right"></i>
                             <span>Fit Width</span>
+                        </button>
+
+                        <!-- Fit Entire Page Button -->
+                        <button type="button" onclick="fitCanvasToPage()" class="px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition flex items-center gap-1" title="Fit Entire Page (Poora Page Ek Sath Dikhe)">
+                            <i class="fa-solid fa-file-lines"></i>
+                            <span>Fit Page</span>
                         </button>
 
                         <!-- Layout Toggle: Split vs Full Page -->
@@ -199,28 +205,28 @@
                     <div class="flex items-center justify-between text-xs pb-1 border-b border-gray-100">
                         <span class="font-bold text-indigo-700 flex items-center gap-1.5">
                             <i class="fa-solid fa-crosshairs animate-pulse"></i>
-                            <span>Product ke chaaron taraf box drag karein — box chhodte hi <b>"Save Photo"</b> popup aayega:</span>
+                            <span>Product ke chaaron taraf square box drag karein — direct <b>"Save Photo"</b> dabayein (Naam likhna optional hai):</span>
                         </span>
                         <span class="text-gray-400 font-mono text-[11px]" id="cropCoordsText">No region selected</span>
                     </div>
 
-                    <!-- Big Canvas Viewport with 4-Way Scroll & Generous Height -->
-                    <div class="border rounded-2xl bg-slate-900/5 overflow-auto max-h-[82vh] p-4 flex justify-center shadow-inner relative" id="canvasScrollArea">
+                    <!-- Big Canvas Viewport with 4-Way Scroll & Generous Height (No Flex Clipping Bug) -->
+                    <div class="border rounded-2xl bg-slate-900/5 overflow-auto max-h-[84vh] p-6 text-center shadow-inner relative" id="canvasScrollArea">
                         
-                        <div class="crop-canvas-container" id="cropCanvasWrapper">
+                        <div class="crop-canvas-container inline-block text-left align-top mx-auto" id="cropCanvasWrapper">
                             <canvas id="pdfPageCanvas" class="block shadow-md bg-white rounded-lg"></canvas>
                             
                             <!-- Visual Selection Box on Canvas -->
                             <div class="crop-selection-box hidden" id="cropSelectionBox"></div>
 
                             <!-- ⚡ Floating Instant Action Bubble (Appears right on square when mouse released) -->
-                            <div id="cropActionBubble" class="absolute z-30 bg-gray-900/95 text-white p-2 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-2 backdrop-blur-md hidden transition-all">
-                                <input type="text" id="bubbleTitleInput" placeholder="Name (e.g. CPVC Elbow)" class="px-3 py-1.5 rounded-xl bg-white/10 text-white placeholder-gray-400 text-xs border border-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400 w-48 font-medium" onkeydown="if(event.key === 'Enter') extractAndPushToGallery()">
-                                <button type="button" onclick="extractAndPushToGallery()" id="btnBubbleSave" class="px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-black text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-500/30 whitespace-nowrap active:scale-95">
-                                    <i class="fa-solid fa-bolt"></i>
-                                    <span>Save Photo</span>
+                            <div id="cropActionBubble" onmousedown="event.stopPropagation()" onmouseup="event.stopPropagation()" onclick="event.stopPropagation()" class="absolute z-30 bg-gray-900/95 text-white p-2.5 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-2 backdrop-blur-md hidden transition-all">
+                                <button type="button" onclick="extractAndPushToGallery()" id="btnBubbleSave" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-black text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-500/30 whitespace-nowrap active:scale-95 cursor-pointer">
+                                    <i class="fa-solid fa-bolt text-sm"></i>
+                                    <span>⚡ Save Photo</span>
                                 </button>
-                                <button type="button" onclick="resetCropBox()" class="h-7 w-7 rounded-lg hover:bg-white/20 text-gray-400 hover:text-white flex items-center justify-center text-xs" title="Cancel Selection">
+                                <input type="text" id="bubbleTitleInput" placeholder="(Optional Naam)" class="px-3 py-1.5 rounded-xl bg-white/10 text-white placeholder-gray-400 text-xs border border-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400 w-36 font-medium" onkeydown="if(event.key === 'Enter') extractAndPushToGallery()">
+                                <button type="button" onclick="resetCropBox()" class="h-8 w-8 rounded-xl hover:bg-white/20 text-gray-400 hover:text-white flex items-center justify-center text-xs cursor-pointer" title="Cancel Selection">
                                     <i class="fa-solid fa-xmark"></i>
                                 </button>
                             </div>
@@ -232,14 +238,14 @@
                     <!-- Bottom Action Bar -->
                     <div class="bg-slate-50 p-4 rounded-2xl border border-gray-200 flex flex-wrap items-center justify-between gap-3" id="bottomCropBar">
                         <div class="flex items-center gap-2 flex-1 min-w-[240px]">
-                            <label class="text-xs font-bold text-gray-700 whitespace-nowrap">Product Name:</label>
-                            <input type="text" id="cropProductTitle" placeholder="e.g. CPVC 90° Elbow, UPVC Equal Tee, Ball Valve..." class="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white font-medium" oninput="syncTitles(this.value)">
+                            <label class="text-xs font-bold text-gray-700 whitespace-nowrap">Product Name (Optional):</label>
+                            <input type="text" id="cropProductTitle" placeholder="(Optional) e.g. CPVC Elbow, UPVC Tee... Khaali chhodne par bhi save ho jayega" class="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white font-medium" oninput="syncTitles(this.value)">
                         </div>
 
                         <div class="flex items-center gap-2">
-                            <button type="button" id="btnExtractToGallery" onclick="extractAndPushToGallery()" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 flex items-center gap-2 transition active:scale-95">
+                            <button type="button" id="btnExtractToGallery" onclick="extractAndPushToGallery()" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95 cursor-pointer">
                                 <i class="fa-solid fa-bolt"></i>
-                                <span>Extract & Send to Bagal Gallery</span>
+                                <span>Save Crop To Gallery</span>
                             </button>
                             <button type="button" onclick="resetCropBox()" class="px-3 py-2.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold transition">
                                 Reset Box
@@ -465,7 +471,7 @@
         let currentPdfDoc = null;
         let currentPdfPage = 1;
         let totalPdfPages = 0;
-        let currentScale = 1.5; // High definition render
+        let currentScale = 1.0; // Standard 100% initial render
         let isRenderingPage = false;
         let renderTaskPending = null;
         let isFullViewMode = false;
@@ -621,8 +627,8 @@
                     select.appendChild(opt);
                 }
 
-                // Render first page
-                renderPage(currentPdfPage);
+                // Auto-fit to container width so all edges and sides are immediately visible
+                fitCanvasToWidth();
                 showToast(`PDF Loaded Successfully! (${totalPdfPages} Pages)`, 'success');
             }).catch(err => {
                 console.error(err);
@@ -697,8 +703,8 @@
 
         function adjustZoom(delta) {
             let newScale = currentScale + delta;
-            if (newScale < 0.75) newScale = 0.75;
-            if (newScale > 3.0) newScale = 3.0;
+            if (newScale < 0.35) newScale = 0.35;
+            if (newScale > 3.5) newScale = 3.5;
             currentScale = newScale;
             document.getElementById('zoomText').innerText = `${Math.round(currentScale * 100)}%`;
             renderPage(currentPdfPage);
@@ -707,11 +713,27 @@
         function fitCanvasToWidth() {
             if (!currentPdfDoc) return;
             const container = document.getElementById('canvasScrollArea');
-            const availableWidth = container.clientWidth - 40; // minus padding
+            const availableWidth = Math.max(300, (container.clientWidth || (window.innerWidth * 0.6)) - 55);
 
             currentPdfDoc.getPage(currentPdfPage).then(page => {
                 const unscaledViewport = page.getViewport({ scale: 1.0 });
-                currentScale = Math.max(0.75, Math.min(3.0, availableWidth / unscaledViewport.width));
+                currentScale = Math.max(0.4, Math.min(3.0, availableWidth / unscaledViewport.width));
+                document.getElementById('zoomText').innerText = `${Math.round(currentScale * 100)}%`;
+                renderPage(currentPdfPage);
+            });
+        }
+
+        function fitCanvasToPage() {
+            if (!currentPdfDoc) return;
+            const container = document.getElementById('canvasScrollArea');
+            const availableWidth = Math.max(300, (container.clientWidth || (window.innerWidth * 0.6)) - 55);
+            const availableHeight = Math.max(300, (container.clientHeight || (window.innerHeight * 0.78)) - 60);
+
+            currentPdfDoc.getPage(currentPdfPage).then(page => {
+                const unscaledViewport = page.getViewport({ scale: 1.0 });
+                const scaleW = availableWidth / unscaledViewport.width;
+                const scaleH = availableHeight / unscaledViewport.height;
+                currentScale = Math.max(0.35, Math.min(scaleW, scaleH));
                 document.getElementById('zoomText').innerText = `${Math.round(currentScale * 100)}%`;
                 renderPage(currentPdfPage);
             });
@@ -730,21 +752,26 @@
                 galleryCol.className = "lg:col-span-12 space-y-4 transition-all duration-300";
                 icon.className = "fa-solid fa-compress";
                 text.innerText = "Split View";
-                fitCanvasToWidth();
-                showToast('Full Page View Enabled — Maximum workspace size!', 'info');
+                setTimeout(fitCanvasToWidth, 50);
+                showToast('Full Page View Enabled — Canvas Bracket Expanded!', 'info');
             } else {
                 pdfCol.className = "lg:col-span-8 space-y-4 transition-all duration-300";
                 galleryCol.className = "lg:col-span-4 space-y-4 transition-all duration-300";
                 icon.className = "fa-solid fa-expand";
                 text.innerText = "Full View";
-                fitCanvasToWidth();
+                setTimeout(fitCanvasToWidth, 50);
             }
         }
 
         // ========================================================
         // CROP SELECTION WITH INSTANT FLOATING ACTION BUBBLE
         // ========================================================
+        let cropItemCount = 1;
+
         wrapperEl.addEventListener('mousedown', e => {
+            // Never trigger crop drag if clicked on the action bubble
+            if (e.target.closest('#cropActionBubble')) return;
+
             const rect = canvas.getBoundingClientRect();
             startX = e.clientX - rect.left;
             startY = e.clientY - rect.top;
@@ -780,46 +807,50 @@
             document.getElementById('cropCoordsText').innerText = `Selection: ${Math.round(w)} x ${Math.round(h)} px`;
         });
 
-        window.addEventListener('mouseup', () => {
+        window.addEventListener('mouseup', (e) => {
             if (!isDragging) return;
             isDragging = false;
 
-            // If user drew a box of meaningful size (>= 15px by 15px)
-            if (cropCoords && cropCoords.w >= 15 && cropCoords.h >= 15) {
+            // If user drew a box of meaningful size (>= 10px by 10px)
+            if (cropCoords && cropCoords.w >= 10 && cropCoords.h >= 10) {
                 // Position Floating Action Bubble right under the square box
-                const bubbleX = Math.max(10, Math.min(cropCoords.x, canvas.width - 280));
-                const bubbleY = cropCoords.y + cropCoords.h + 8;
+                const bubbleX = Math.max(10, Math.min(cropCoords.x, canvas.offsetWidth - 280));
+                let bubbleY = cropCoords.y + cropCoords.h + 8;
+                // If bubble goes beyond bottom of canvas, place it above selection
+                if (bubbleY + 60 > canvas.offsetHeight) {
+                    bubbleY = Math.max(10, cropCoords.y - 60);
+                }
 
                 bubbleEl.style.left = bubbleX + 'px';
                 bubbleEl.style.top = bubbleY + 'px';
                 bubbleEl.classList.remove('hidden');
 
-                // Auto-focus input for rapid naming
-                setTimeout(() => {
-                    const bubbleInput = document.getElementById('bubbleTitleInput');
-                    bubbleInput.focus();
-                    if (!bubbleInput.value) {
-                        bubbleInput.value = `Page ${currentPdfPage} Item`;
-                        bubbleInput.select();
-                    }
-                }, 50);
+                // Clear input so user can directly click Save (Name is 100% Optional)
+                const bubbleInput = document.getElementById('bubbleTitleInput');
+                if (bubbleInput) {
+                    bubbleInput.value = '';
+                    bubbleInput.placeholder = "(Optional Naam)";
+                }
 
-                // Highlight bottom bar as well
-                document.getElementById('bottomCropBar').classList.add('ring-2', 'ring-indigo-400');
-                setTimeout(() => {
-                    document.getElementById('bottomCropBar').classList.remove('ring-2', 'ring-indigo-400');
-                }, 1000);
+                // Highlight bottom bar as visual cue
+                const bottomBar = document.getElementById('bottomCropBar');
+                if (bottomBar) {
+                    bottomBar.classList.add('ring-2', 'ring-emerald-400');
+                    setTimeout(() => bottomBar.classList.remove('ring-2', 'ring-emerald-400'), 1000);
+                }
             } else {
                 resetCropBox();
             }
         });
 
         function syncTitles(val) {
-            document.getElementById('bubbleTitleInput').value = val;
+            const bInput = document.getElementById('bubbleTitleInput');
+            if (bInput) bInput.value = val;
         }
 
-        document.getElementById('bubbleTitleInput').addEventListener('input', e => {
-            document.getElementById('cropProductTitle').value = e.target.value;
+        document.getElementById('bubbleTitleInput')?.addEventListener('input', e => {
+            const cInput = document.getElementById('cropProductTitle');
+            if (cInput) cInput.value = e.target.value;
         });
 
         function resetCropBox() {
@@ -833,83 +864,109 @@
         // EXTRACT & PUSH TO LIVE BAGAL GALLERY
         // ==========================================
         function extractAndPushToGallery() {
-            if (!cropCoords || cropCoords.w < 15 || cropCoords.h < 15) {
-                alert('Pehle cursor se PDF page par product ke aas-paas box drag karke select karein.');
+            if (!cropCoords || cropCoords.w < 10 || cropCoords.h < 10) {
+                alert('Pehle mouse se PDF par product ke chaaron taraf rectangle box banayein.');
                 return;
             }
 
-            const title = document.getElementById('bubbleTitleInput').value.trim() 
-                       || document.getElementById('cropProductTitle').value.trim() 
-                       || `Page ${currentPdfPage} Crop`;
+            const inputTitle = (document.getElementById('bubbleTitleInput')?.value || '').trim();
+            const bottomTitle = (document.getElementById('cropProductTitle')?.value || '').trim();
+            
+            // Name is NOT mandatory! If empty, auto-generate clean name
+            const title = inputTitle || bottomTitle || `Crop ${cropItemCount++} (P${currentPdfPage})`;
 
             const btnMain = document.getElementById('btnExtractToGallery');
             const btnBubble = document.getElementById('btnBubbleSave');
             
-            btnMain.disabled = true;
-            btnBubble.disabled = true;
-            btnBubble.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
+            if (btnMain) btnMain.disabled = true;
+            if (btnBubble) {
+                btnBubble.disabled = true;
+                btnBubble.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
+            }
 
-            // Displayed canvas size vs actual internal pixel resolution
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
+            try {
+                // Displayed canvas size vs actual internal pixel resolution
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
 
-            const actualX = cropCoords.x * scaleX;
-            const actualY = cropCoords.y * scaleY;
-            const actualW = cropCoords.w * scaleX;
-            const actualH = cropCoords.h * scaleY;
+                let actualX = Math.round(cropCoords.x * scaleX);
+                let actualY = Math.round(cropCoords.y * scaleY);
+                let actualW = Math.round(cropCoords.w * scaleX);
+                let actualH = Math.round(cropCoords.h * scaleY);
 
-            // Generate high-res cropped image snippet
-            const cropCanvas = document.getElementById('hiddenCropCanvas');
-            cropCanvas.width = actualW;
-            cropCanvas.height = actualH;
-            const cropCtx = cropCanvas.getContext('2d');
+                // CLAMP to guarantee drawImage never exceeds canvas bounds
+                actualX = Math.max(0, Math.min(actualX, canvas.width - 1));
+                actualY = Math.max(0, Math.min(actualY, canvas.height - 1));
+                actualW = Math.max(1, Math.min(actualW, canvas.width - actualX));
+                actualH = Math.max(1, Math.min(actualH, canvas.height - actualY));
 
-            cropCtx.drawImage(
-                canvas,
-                actualX, actualY, actualW, actualH,
-                0, 0, actualW, actualH
-            );
+                // Generate high-res cropped image snippet
+                const cropCanvas = document.getElementById('hiddenCropCanvas');
+                cropCanvas.width = actualW;
+                cropCanvas.height = actualH;
+                const cropCtx = cropCanvas.getContext('2d');
 
-            const base64Data = cropCanvas.toDataURL('image/jpeg', 0.95);
+                cropCtx.drawImage(
+                    canvas,
+                    actualX, actualY, actualW, actualH,
+                    0, 0, actualW, actualH
+                );
 
-            // POST to backend API
-            fetch("{{ route('seller.catalog.pdf_studio.crop') }}", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": csrfToken,
-                    "Accept": "application/json"
-                },
-                body: JSON.stringify({
-                    image_data: base64Data,
-                    title: title,
-                    page: currentPdfPage
+                const base64Data = cropCanvas.toDataURL('image/jpeg', 0.95);
+
+                // POST to backend API
+                fetch("{{ route('seller.catalog.pdf_studio.crop') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": csrfToken,
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify({
+                        image_data: base64Data,
+                        title: title,
+                        page: currentPdfPage
+                    })
                 })
-            })
-            .then(res => res.json())
-            .then(data => {
-                btnMain.disabled = false;
-                btnBubble.disabled = false;
-                btnBubble.innerHTML = `<i class="fa-solid fa-bolt"></i> Save Photo`;
+                .then(res => res.json())
+                .then(data => {
+                    if (btnMain) btnMain.disabled = false;
+                    if (btnBubble) {
+                        btnBubble.disabled = false;
+                        btnBubble.innerHTML = `<i class="fa-solid fa-bolt"></i> ⚡ Save Photo`;
+                    }
 
-                if (data.success) {
-                    showToast(`Photo "${data.image.name}" saved to Media Vault!`, 'success');
-                    appendCropToRightGallery(data.image);
-                    resetCropBox();
-                    document.getElementById('cropProductTitle').value = '';
-                    document.getElementById('bubbleTitleInput').value = '';
-                } else {
-                    alert(data.message || 'Error saving cropped photo.');
+                    if (data.success) {
+                        showToast(`Photo "${data.image.name}" saved to Gallery!`, 'success');
+                        appendCropToRightGallery(data.image);
+                        resetCropBox();
+                        const cInput = document.getElementById('cropProductTitle');
+                        if (cInput) cInput.value = '';
+                        const bInput = document.getElementById('bubbleTitleInput');
+                        if (bInput) bInput.value = '';
+                    } else {
+                        alert(data.message || 'Photo save karne me samasya aayi.');
+                    }
+                })
+                .catch(err => {
+                    if (btnMain) btnMain.disabled = false;
+                    if (btnBubble) {
+                        btnBubble.disabled = false;
+                        btnBubble.innerHTML = `<i class="fa-solid fa-bolt"></i> ⚡ Save Photo`;
+                    }
+                    console.error('Save error:', err);
+                    alert('Network error while saving cropped photo.');
+                });
+            } catch (err) {
+                if (btnMain) btnMain.disabled = false;
+                if (btnBubble) {
+                    btnBubble.disabled = false;
+                    btnBubble.innerHTML = `<i class="fa-solid fa-bolt"></i> ⚡ Save Photo`;
                 }
-            })
-            .catch(err => {
-                btnMain.disabled = false;
-                btnBubble.disabled = false;
-                btnBubble.innerHTML = `<i class="fa-solid fa-bolt"></i> Save Photo`;
-                console.error(err);
-                alert('Network error while saving cropped photo.');
-            });
+                console.error('Canvas extract error:', err);
+                alert('Crop capture error: ' + err.message);
+            }
         }
 
         // Prepend new image card to Right-Side Gallery live

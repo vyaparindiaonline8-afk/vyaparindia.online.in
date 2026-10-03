@@ -509,6 +509,36 @@ class CatalogIngestionController extends Controller
             }
         }
 
+        // 4. Crops from PDF Studio Vault
+        $cropDirs = [
+            public_path('images/catalog/crops/seller_' . $userId) => 'images/catalog/crops/seller_' . $userId,
+            public_path('images/catalog/crops') => 'images/catalog/crops',
+        ];
+        foreach ($cropDirs as $cDir => $relBase) {
+            if (is_dir($cDir)) {
+                $files = scandir($cDir);
+                foreach ($files as $f) {
+                    if (in_array(strtolower(pathinfo($f, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'webp'])) {
+                        $fullPath = $cDir . DIRECTORY_SEPARATOR . $f;
+                        $relUrl = $relBase . '/' . $f;
+                        $name = ucwords(str_replace(['crop_', 'p_', '_', '-'], ' ', pathinfo($f, PATHINFO_FILENAME)));
+                        $images[] = [
+                            'id' => md5($relUrl),
+                            'filename' => $f,
+                            'name' => trim($name),
+                            'url' => $relUrl,
+                            'asset_url' => asset($relUrl),
+                            'full_path' => $fullPath,
+                            'size_kb' => round(filesize($fullPath) / 1024, 1),
+                            'created_at' => date('d M Y, H:i', filemtime($fullPath)),
+                            'source' => 'custom_crop',
+                            'deletable' => true,
+                        ];
+                    }
+                }
+            }
+        }
+
         // Sort latest first
         usort($images, function ($a, $b) {
             return ($b['created_at'] ?? 0) <=> ($a['created_at'] ?? 0);
@@ -682,13 +712,14 @@ class CatalogIngestionController extends Controller
             return response()->json(['success' => false, 'message' => 'Malformed image payload'], 422);
         }
 
-        $userId = Auth::id();
+        $userId = Auth::id() ?: 1;
         $targetDir = public_path('images/catalog/crops/seller_' . $userId);
         if (!is_dir($targetDir)) {
-            mkdir($targetDir, 0755, true);
+            @mkdir($targetDir, 0777, true);
         }
 
-        $titleSlug = Str::slug($request->input('title', 'product_crop')) ?: 'product_crop';
+        $rawTitle = trim($request->input('title') ?? '');
+        $titleSlug = Str::slug($rawTitle ?: 'item') ?: 'item';
         $page = $request->input('page', 1);
         $fileName = "crop_p{$page}_{$titleSlug}_" . time() . '.' . ($type === 'png' ? 'png' : 'jpg');
         $fullPath = $targetDir . DIRECTORY_SEPARATOR . $fileName;
@@ -696,7 +727,7 @@ class CatalogIngestionController extends Controller
         file_put_contents($fullPath, $data);
 
         $relUrl = 'images/catalog/crops/seller_' . $userId . '/' . $fileName;
-        $name = ucwords(str_replace(['_', '-'], ' ', $request->input('title') ?: "Page {$page} Crop"));
+        $name = $rawTitle ? ucwords(str_replace(['_', '-'], ' ', $rawTitle)) : "Crop (Page {$page})";
 
         $newImage = [
             'id' => md5($relUrl),
