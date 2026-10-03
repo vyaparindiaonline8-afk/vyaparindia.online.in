@@ -45,18 +45,17 @@
                         <i class="fa-solid fa-file-excel"></i>
                         <span>+ Import New Excel</span>
                     </button>
+                    <button type="button" onclick="downloadSampleExcelTemplate()" class="px-3.5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition flex items-center gap-1.5" title="Download Excel template (.xlsx)">
+                        <i class="fa-solid fa-download text-emerald-600"></i>
+                        <span>Excel Template</span>
+                    </button>
                     @if($job)
-                        <a href="{{ route('seller.catalog.export_excel', $job->id) }}" class="px-3.5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition flex items-center gap-1.5">
-                            <i class="fa-solid fa-file-excel text-emerald-600"></i>
-                            <span>Download Excel</span>
-                        </a>
-                        
                         <form action="{{ route('seller.catalog.excel_mapper.publish_direct') }}" method="POST" id="directPublishForm" onsubmit="return confirm('Kya aap in sabhi products ko apne live store par publish karna chahte hain?');">
                             @csrf
                             <input type="hidden" name="job_id" value="{{ $job->id }}">
                             <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 flex items-center gap-2 transition active:scale-95">
                                 <i class="fa-solid fa-cloud-arrow-up"></i>
-                                <span>Publish Job #{{ $job->id }}</span>
+                                <span>Publish Saved Job #{{ $job->id }}</span>
                             </button>
                         </form>
                     @endif
@@ -192,6 +191,10 @@
                         <button type="button" onclick="event.stopPropagation(); loadSampleDynamicRows();" class="px-4 py-2.5 rounded-xl bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-200 shadow-2xs flex items-center gap-1.5 transition">
                             <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
                             <span>Try Demo Sheet (12 Sample Rows)</span>
+                        </button>
+                        <button type="button" onclick="event.stopPropagation(); downloadSampleExcelTemplate();" class="px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200 shadow-2xs flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                            <span>Download Blank Template (.xlsx)</span>
                         </button>
                     </div>
                 </div>
@@ -333,6 +336,7 @@
         @endif
 
         @if($job && !empty($products))
+        <div id="savedJobContainer" class="space-y-6 hidden">
 
         <!-- Controls & View Mode Bar -->
         <div class="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
@@ -558,6 +562,7 @@
             @endforeach
         </div>
 
+        </div>
         @endif
 
     </div>
@@ -1040,15 +1045,13 @@
         function toggleDynamicMode(enable) {
             isDynamicMode = enable;
             const dynContainer = document.getElementById('dynamicSheetContainer');
-            const viewTable = document.getElementById('viewTableContainer');
-            const viewCards = document.getElementById('viewCardsContainer');
+            const savedContainer = document.getElementById('savedJobContainer');
             const tabDyn = document.getElementById('tabDynamicExcelMode');
             const tabSaved = document.getElementById('tabSavedJobMode');
 
             if (enable) {
                 if (dynContainer) dynContainer.classList.remove('hidden');
-                if (viewTable) viewTable.classList.add('hidden');
-                if (viewCards) viewCards.classList.add('hidden');
+                if (savedContainer) savedContainer.classList.add('hidden');
                 if (tabDyn) {
                     tabDyn.className = "flex-1 py-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 bg-emerald-600 text-white shadow-xs";
                 }
@@ -1057,7 +1060,7 @@
                 }
             } else {
                 if (dynContainer) dynContainer.classList.add('hidden');
-                if (viewTable) viewTable.classList.remove('hidden');
+                if (savedContainer) savedContainer.classList.remove('hidden');
                 if (tabDyn) {
                     tabDyn.className = "flex-1 py-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200";
                 }
@@ -1067,6 +1070,31 @@
             }
             clearDynamicRowSelection();
             clearRowSelection();
+        }
+
+        function downloadSampleExcelTemplate() {
+            if (typeof XLSX === 'undefined') {
+                alert('Excel generator load ho raha hai, kripya 2 second baad dobara click karein.');
+                return;
+            }
+            const sampleData = [
+                ["Product / Item Name", "Size / Variant", "MRP (₹)", "Purchase Rate (₹)", "Selling Price (₹)", "Category"],
+                ["UPVC Agri Elbow 90 Degree", "15 mm", 45.00, 22.00, 35.00, "UPVC"],
+                ["UPVC Agri Elbow 90 Degree", "20 mm", 55.00, 28.00, 42.00, "UPVC"],
+                ["UPVC Agri Elbow 90 Degree", "25 mm", 75.00, 38.00, 58.00, "UPVC"],
+                ["UPVC Agri Elbow 90 Degree", "32 mm", 110.00, 56.00, 85.00, "UPVC"],
+                ["UPVC Agri Elbow 90 Degree", "40 mm", 160.00, 82.00, 125.00, "UPVC"],
+                ["UPVC Agri Elbow 90 Degree", "50 mm", 230.00, 118.00, 180.00, "UPVC"],
+                ["CPVC Brass Elbow", "15 mm x 1/2\"", 120.00, 62.00, 95.00, "CPVC"],
+                ["CPVC Brass Elbow", "20 mm x 1/2\"", 150.00, 78.00, 120.00, "CPVC"],
+                ["CPVC Brass Elbow", "25 mm x 3/4\"", 220.00, 115.00, 175.00, "CPVC"],
+                ["SWR Nahani Trap", "110 mm x 75 mm", 180.00, 92.00, 140.00, "SWR"],
+                ["SWR Multi Floor Trap", "110 mm", 260.00, 135.00, 205.00, "SWR"]
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(sampleData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Catalog_Template");
+            XLSX.writeFile(wb, "VyaparIndia_Product_Catalog_Template.xlsx");
         }
 
         function initDynamicSheet() {
@@ -1094,7 +1122,7 @@
                 }
             }
 
-            if (!jobId && dynamicRows.length === 0) {
+            if (dynamicRows.length === 0) {
                 loadSampleDynamicRows();
             }
             renderGroupedProductCards();
