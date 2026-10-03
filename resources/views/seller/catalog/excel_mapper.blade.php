@@ -283,6 +283,28 @@
                 </div>
             </div>
 
+            <!-- ⚡ 1-CLICK AUTO-DISTRIBUTE SPEED BANNER -->
+            <div class="p-4 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-indigo-500/10 border-2 border-emerald-400/80 rounded-3xl flex flex-wrap items-center justify-between gap-4 shadow-sm" id="autoDistributeBanner">
+                <div class="flex items-center gap-3.5 flex-1 min-w-[280px]">
+                    <div class="h-11 w-11 rounded-2xl bg-gradient-to-br from-amber-500 to-emerald-600 text-white flex items-center justify-center text-lg shadow-md shadow-emerald-500/20 shrink-0">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-black text-gray-900 flex items-center gap-2">
+                            <span>⚡ 1-Click Auto-Distribute into Product Family Cards</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-extrabold">Instant Magic</span>
+                        </h4>
+                        <p class="text-[11px] text-gray-600 mt-0.5">
+                            291 items ko 1-1 karke select karne ki zaroorat nahi! Click karte hi sabhi items (jaise 90° Elbow, Pipe 40 SCH, Tee, Union) apne-apne <b>alag Cards</b> me distribute ho jayenge — <b>fir aapko sirf 1-1 Photo link karni hogi!</b>
+                        </p>
+                    </div>
+                </div>
+                <button type="button" onclick="autoGroupAllDynamicRowsIntoCards()" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white font-black text-xs shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95 shrink-0">
+                    <i class="fa-solid fa-bolt text-amber-300"></i>
+                    <span>Auto-Distribute into Separate Cards &rarr;</span>
+                </button>
+            </div>
+
             <!-- Dynamic Table Card -->
             <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
                 <div class="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/70">
@@ -304,6 +326,10 @@
                         <button type="button" onclick="openColumnMapperModal()" id="btnOpenColumnMapper" class="px-3 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-extrabold text-xs border border-teal-200 flex items-center gap-1.5 transition ml-1" title="Excel Sheet ke columns ko dobara map karein">
                             <i class="fa-solid fa-table-columns text-teal-600"></i>
                             <span>Map Columns</span>
+                        </button>
+                        <button type="button" onclick="autoGroupAllDynamicRowsIntoCards()" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition ml-1" title="Sabhi rows ko unki family ke alag-alag cards me distribute karein">
+                            <i class="fa-solid fa-bolt text-amber-300"></i>
+                            <span>Auto-Distribute Cards</span>
                         </button>
                         <button type="button" onclick="saveSelectedIntoCardAndRemove()" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition ml-1 active:scale-95" title="Selected rows ko 1 card me group karke table se hata do taaki next items samne aa sakein">
                             <i class="fa-solid fa-floppy-disk"></i>
@@ -655,23 +681,23 @@
             <button type="button" onclick="clearRowSelection(); clearDynamicRowSelection();" class="px-3 py-2 rounded-xl text-gray-400 hover:text-white text-xs font-bold transition">
                 Deselect
             </button>
-            <div id="addToExistingCardWrapper" class="hidden flex items-center gap-1.5 bg-gray-800/80 p-1 rounded-2xl border border-amber-400/30">
-                <select id="selectTargetCard" class="bg-gray-900 text-amber-300 text-xs font-bold py-1.5 px-2 rounded-xl border border-gray-700 focus:outline-none max-w-[180px] truncate">
+            <button type="button" onclick="saveSelectedIntoCardAndRemove()" class="px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-black text-xs shadow-lg shadow-emerald-500/30 flex items-center gap-1.5 transition active:scale-95" title="Selected rows ka ALAG SE NAYA CARD banayein aur table se hata dein">
+                <i class="fa-solid fa-plus-circle"></i>
+                <span>✨ Create NEW Card (<span id="btnBatchCount">0</span>)</span>
+            </button>
+            <button type="button" onclick="openGalleryDrawerForBatch()" class="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition active:scale-95" title="Photo choose karke naya card save karein">
+                <i class="fa-solid fa-images"></i>
+                <span>Pick Photo & Save Card</span>
+            </button>
+            <div id="addToExistingCardWrapper" class="hidden flex items-center gap-1.5 bg-gray-800/80 p-1 rounded-2xl border border-gray-700">
+                <span class="text-[10px] text-gray-400 pl-1">or merge into:</span>
+                <select id="selectTargetCard" class="bg-gray-900 text-amber-300 text-[11px] font-bold py-1 px-2 rounded-xl border border-gray-700 focus:outline-none max-w-[150px] truncate">
                     <!-- Populated dynamically -->
                 </select>
-                <button type="button" onclick="addSelectedRowsToTargetCard()" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-gray-950 font-black text-xs shadow-md flex items-center gap-1 transition active:scale-95" title="Selected rows ko is existing card me jod do">
-                    <i class="fa-solid fa-plus"></i>
-                    <span>Add to Card</span>
+                <button type="button" onclick="addSelectedRowsToTargetCard()" class="px-2.5 py-1 rounded-xl bg-amber-500 hover:bg-amber-400 text-gray-950 font-black text-[11px] flex items-center gap-1 transition" title="Selected rows ko is existing card me merge karein">
+                    <span>Merge</span>
                 </button>
             </div>
-            <button type="button" onclick="saveSelectedIntoCardAndRemove()" class="px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-black text-xs shadow-lg shadow-emerald-500/30 flex items-center gap-1.5 transition active:scale-95" title="Selected rows ko Card me save karke table se hata do taaki next items samne aa sakein">
-                <i class="fa-solid fa-floppy-disk"></i>
-                <span>Save Card & Remove from List</span>
-            </button>
-            <button type="button" onclick="openGalleryDrawerForBatch()" class="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition active:scale-95" title="Photo choose karein aur card me save karein">
-                <i class="fa-solid fa-images"></i>
-                <span>Pick Photo & Save (<span id="btnBatchCount">0</span>)</span>
-            </button>
         </div>
     </div>
 
@@ -1503,7 +1529,50 @@
             XLSX.writeFile(wb, "VyaparIndia_Product_Catalog_Template.xlsx");
         }
 
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('vyapar_grouped_cards', JSON.stringify(groupedProductCards));
+                localStorage.setItem('vyapar_dynamic_rows', JSON.stringify(dynamicRows));
+                localStorage.setItem('vyapar_grouped_next_id', String(groupedCardNextId));
+                localStorage.setItem('vyapar_dynamic_next_id', String(dynamicRowNextId));
+            } catch (e) {}
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const storedCards = localStorage.getItem('vyapar_grouped_cards');
+                const storedRows = localStorage.getItem('vyapar_dynamic_rows');
+                let hasLoaded = false;
+                if (storedCards) {
+                    const parsedCards = JSON.parse(storedCards);
+                    if (Array.isArray(parsedCards) && parsedCards.length > 0) {
+                        groupedProductCards = parsedCards;
+                        groupedCardNextId = parseInt(localStorage.getItem('vyapar_grouped_next_id') || '100');
+                        hasLoaded = true;
+                    }
+                }
+                if (storedRows) {
+                    const parsedRows = JSON.parse(storedRows);
+                    if (Array.isArray(parsedRows) && parsedRows.length > 0) {
+                        dynamicRows = parsedRows;
+                        dynamicRowNextId = parseInt(localStorage.getItem('vyapar_dynamic_next_id') || '1000');
+                        hasLoaded = true;
+                    }
+                }
+                return hasLoaded;
+            } catch (e) {
+                return false;
+            }
+        }
+
         function initDynamicSheet() {
+            if (loadFromLocalStorage()) {
+                renderDynamicRows();
+                renderGroupedProductCards();
+                refreshCategoryFilterTabs();
+                return;
+            }
+
             const rawStored = localStorage.getItem('vyapar_custom_excel_lines');
             if (rawStored) {
                 try {
@@ -1960,6 +2029,7 @@
             }
 
             dynamicRows = newRows;
+            saveToLocalStorage();
             renderDynamicRows();
             refreshCategoryFilterTabs();
             toggleDynamicMode(true);
@@ -1972,7 +2042,7 @@
                 }
             }
 
-            alert(`🎉 Success! Excel sheet se ${newRows.length} products sahi MRP, Selling Price, Code, Packing aur Category ke sath map ho gaye hain!`);
+            alert(`🎉 Success! Excel sheet se ${newRows.length} products sahi MRP, Selling Price, Code, Packing aur Category ke sath map ho gaye hain!\n\n💡 Tip: Ab aap seedhe "⚡ Auto-Distribute Cards" dabakar sabhi 291 products ko unki Product Families (Elbow, Tee, Pipe etc.) me alag-alag Cards me baat sakte hain!`);
         }
 
         function showToastNotification(message) {
@@ -1990,6 +2060,103 @@
                 toast.classList.add('translate-y-[-20px]', 'opacity-0', 'pointer-events-none');
                 toast.classList.remove('translate-y-0', 'opacity-100');
             }, 4500);
+        }
+
+        function extractBaseFamilyName(fullName, currentSize) {
+            let str = (fullName || '').trim();
+            if (currentSize && currentSize.toLowerCase() !== 'standard') {
+                const escaped = currentSize.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                str = str.replace(new RegExp('\\b' + escaped + '\\b', 'gi'), ' ');
+            }
+            // Standardize schedules: e.g. 40SCH -> 40 SCH, 80SCH -> 80 SCH
+            str = str.replace(/(\d+)\s*SCH\b/gi, '$1 SCH');
+            str = str.replace(/SCH\s*(\d+)\b/gi, '$1 SCH');
+
+            // Strip dimension patterns:
+            // 1. Double dimensions: 25X20, 20*15, 25 x 20mm, 1 x 1/2"
+            str = str.replace(/\b\d+(\.\d+)?\s*[*xX]\s*\d+(\.\d+)?(\s*mm)?\b/gi, ' ');
+            str = str.replace(/\b\d+(\.\d+)?\s*[*xX]\s*\d+\/\d+(")?\b/gi, ' ');
+            // 2. Fractional inch: 1/2", 3/4", 1-1/4", 1 1/2"
+            str = str.replace(/\b\d+\s*[-–]?\s*\d+\/\d+(")?\b/gi, ' ');
+            str = str.replace(/\b\d+\/\d+(")?\b/gi, ' ');
+            // 3. Simple mm / inch / single quote / double quote: 15MM, 20 mm, 1", 2"
+            str = str.replace(/\b\d+(\.\d+)?\s*(mm|inch|")\b/gi, ' ');
+            // 4. Standalone inches: e.g. 1" or 2"
+            str = str.replace(/\b\d+(")\b/gi, ' ');
+
+            let base = str.replace(/\s+/g, ' ').trim().replace(/[-–,\s*]+$/, '').trim();
+            return base || fullName;
+        }
+
+        function autoGroupAllDynamicRowsIntoCards() {
+            if (dynamicRows.length === 0) {
+                alert('Table me auto-distribute karne ke liye koi rows nahi hain. Pehle Excel import karein ya "+ Add Line" dabayein.');
+                return;
+            }
+
+            const rowCount = dynamicRows.length;
+            if (!confirm(`Kya aap sabhi ${rowCount} items ko unki Product Family (jaise 90° Elbow, Pipe 40 SCH, Tee, Union, etc.) ke hisab se alag-alag Cards me automatically distribute karna chahte hain?\n\n✨ Isse har product family ka apna alag Card ban jayega aur aapko sirf 1-1 photo link karni hogi!`)) {
+                return;
+            }
+
+            const familyMap = new Map();
+
+            dynamicRows.forEach(row => {
+                const familyKey = extractBaseFamilyName(row.product_name, row.size);
+                if (!familyMap.has(familyKey)) {
+                    familyMap.set(familyKey, []);
+                }
+                familyMap.get(familyKey).push(row);
+            });
+
+            let newCardsCreated = 0;
+            familyMap.forEach((rowsInFamily, familyName) => {
+                const firstRow = rowsInFamily[0];
+                const assignedImg = rowsInFamily.find(r => r.image_url)?.image_url || '';
+                const assignedAsset = rowsInFamily.find(r => r.asset_url)?.asset_url || (assignedImg ? ('/' + assignedImg.replace(/^\//, '')) : '');
+
+                const newCard = {
+                    card_id: groupedCardNextId++,
+                    parent_name: familyName,
+                    category: firstRow.category || firstRow.group_type || 'General Hardware',
+                    image_url: assignedImg,
+                    asset_url: assignedAsset,
+                    variants: rowsInFamily.map(r => ({
+                        id: r.id,
+                        product_code: r.product_code || '',
+                        hsn_code: r.hsn_code || '39174000',
+                        size: r.size || 'Standard',
+                        packing_1: r.packing_1 || '',
+                        packing_2: r.packing_2 || '',
+                        mrp: r.mrp,
+                        purchase_cost: r.purchase_cost,
+                        cost_price_2: r.cost_price_2 || 0,
+                        cost_price_3: r.cost_price_3 || 0,
+                        retail_price: r.retail_price,
+                        stock: r.stock || 100
+                    }))
+                };
+
+                groupedProductCards.push(newCard);
+                newCardsCreated++;
+            });
+
+            // Empty the dynamic rows as all are now packaged in clean Cards!
+            dynamicRows = [];
+
+            clearDynamicRowSelection();
+            renderDynamicRows();
+            renderGroupedProductCards();
+            refreshCategoryFilterTabs();
+            updateFloatingBatchBar();
+            saveToLocalStorage();
+
+            showToastNotification(`🚀 Zabardast! Sabhi ${rowCount} items ${familyMap.size} alag-alag Cards me distribute ho gaye hain! Ab bas har Card par "Pick Photo" dabakar photo link karein.`);
+            
+            // Scroll down to cards section smoothly
+            setTimeout(() => {
+                document.getElementById('groupedCardsSection')?.scrollIntoView({ behavior: 'smooth' });
+            }, 300);
         }
 
         function saveSelectedIntoCardAndRemove(specificImgUrl, specificAssetUrl) {
@@ -2016,11 +2183,7 @@
             }
 
             let firstRow = selectedRows[0];
-            let parentTitle = firstRow.product_name;
-            if (firstRow.size && parentTitle.includes(firstRow.size)) {
-                parentTitle = parentTitle.replace(firstRow.size, '').trim();
-            }
-            parentTitle = parentTitle.replace(/[-–,\s]+$/, '').trim() || firstRow.product_name;
+            let parentTitle = extractBaseFamilyName(firstRow.product_name, firstRow.size);
 
             const assignedImg = specificImgUrl || selectedRows.find(r => r.image_url)?.image_url || preselectedImg || '';
             const assignedAsset = specificAssetUrl || selectedRows.find(r => r.asset_url)?.asset_url || (preselectedImg ? ('/' + preselectedImg.replace(/^\//, '')) : '');
@@ -2057,6 +2220,7 @@
             renderGroupedProductCards();
             refreshCategoryFilterTabs();
             updateFloatingBatchBar();
+            saveToLocalStorage();
 
             showToastNotification(`🎉 Shabaash! ${selectedRows.length} items "${parentTitle}" card me save ho gaye aur pending table se hat gaye! Ab table me bache ${dynamicRows.length} items me se "Next 6" select karein.`);
         }
@@ -2615,10 +2779,14 @@
                 alert('Table pehle se hi khali hai.');
                 return;
             }
-            if (confirm('Kya aap table ke sabhi purane rows ko delete karke fresh shuru karna chahte hain?')) {
+            if (confirm('Kya aap table ke sabhi purane rows aur cards ko delete karke fresh shuru karna chahte hain?')) {
                 dynamicRows = [];
                 groupedProductCards = [];
                 localStorage.removeItem('vyapar_custom_excel_lines');
+                localStorage.removeItem('vyapar_grouped_cards');
+                localStorage.removeItem('vyapar_dynamic_rows');
+                localStorage.removeItem('vyapar_grouped_next_id');
+                localStorage.removeItem('vyapar_dynamic_next_id');
                 renderDynamicRows();
                 renderGroupedProductCards();
                 clearDynamicRowSelection();
@@ -2721,9 +2889,13 @@
                 }
 
                 if (data.success) {
+                    localStorage.removeItem('vyapar_grouped_cards');
+                    localStorage.removeItem('vyapar_dynamic_rows');
+                    localStorage.removeItem('vyapar_custom_excel_lines');
                     alert(data.message || 'Sheet saved successfully!');
                     if (data.redirect_url) {
-                        window.location.href = data.redirect_url;
+                        const targetUrl = data.redirect_url + (data.redirect_url.includes('?') ? '&' : '?') + 'mode=saved_job';
+                        window.location.href = targetUrl;
                     }
                 } else {
                     alert(data.message || 'Error saving sheet.');

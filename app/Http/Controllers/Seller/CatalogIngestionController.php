@@ -1471,6 +1471,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
             $baseRetail = floatval($firstVar['retail_price'] ?? ($basePurchase * 1.35));
             $baseMrp = floatval($firstVar['mrp'] ?? ($basePurchase * 1.60));
             $prodHsn = !empty($prodData['hsn_code']) ? $prodData['hsn_code'] : (!empty($firstVar['hsn_code']) ? $firstVar['hsn_code'] : '39174000');
+            $prodSku = !empty($firstVar['product_code']) ? $firstVar['product_code'] : (!empty($firstVar['sku']) ? $firstVar['sku'] : ('PROD-' . strtoupper(Str::random(7))));
 
             $product = Product::create([
                 'user_id' => $userId,
