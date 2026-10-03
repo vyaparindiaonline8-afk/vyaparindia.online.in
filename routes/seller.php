@@ -131,6 +131,21 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/publish/{job}', [CatalogIngestionController::class, 'publish'])->name('publish');
         Route::get('/export-excel/{job}', [CatalogIngestionController::class, 'exportExcel'])->name('export_excel');
         Route::post('/crop-image', [CatalogIngestionController::class, 'cropImage'])->name('crop_image');
+
+        // 📸 Page 1: Bulk Media Vault & Gallery (Store, Preview, Upload & Delete Images)
+        Route::get('/gallery', [CatalogIngestionController::class, 'gallery'])->name('gallery');
+        Route::post('/gallery/upload', [CatalogIngestionController::class, 'uploadToGallery'])->name('gallery.upload');
+        Route::post('/gallery/delete', [CatalogIngestionController::class, 'deleteFromGallery'])->name('gallery.delete');
+        Route::post('/gallery/bulk-delete', [CatalogIngestionController::class, 'bulkDeleteFromGallery'])->name('gallery.bulk_delete');
+
+        // 📄 Page 2: Interactive PDF Studio (Side-by-Side Editable Canvas + Live Gallery)
+        Route::get('/pdf-studio', [CatalogIngestionController::class, 'pdfStudio'])->name('pdf_studio');
+        Route::post('/pdf-studio/crop-to-gallery', [CatalogIngestionController::class, 'savePdfCropToGallery'])->name('pdf_studio.crop');
+
+        // 📊 Page 3: Excel Multi-Row Mapper (6-8 Line Batch Image Assigner & Publisher)
+        Route::get('/excel-mapper/{job?}', [CatalogIngestionController::class, 'excelMapper'])->name('excel_mapper');
+        Route::post('/excel-mapper/assign-batch', [CatalogIngestionController::class, 'assignBatchImage'])->name('excel_mapper.assign_batch');
+        Route::post('/excel-mapper/publish-direct', [CatalogIngestionController::class, 'publishDirectFromMapper'])->name('excel_mapper.publish_direct');
     });
 
     // 📦 Inventory & 1-Click Restock Manager

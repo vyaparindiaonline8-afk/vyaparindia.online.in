@@ -400,4 +400,552 @@ class CatalogIngestionController extends Controller
 
         return back()->with('success', "Successfully restocked +{$qty} units (Current balance: {$newStock})!");
     }
+
+    /**
+     * Helper to collect all available gallery images for seller.
+     */
+    protected function getAllGalleryImages($userId): array
+    {
+        $images = [];
+
+        // 1. Plasto High-Res Item Library
+        $plastoDir = public_path('images/catalog/plasto/items');
+        if (is_dir($plastoDir)) {
+            $files = scandir($plastoDir);
+            foreach ($files as $f) {
+                if (in_array(strtolower(pathinfo($f, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'webp'])) {
+                    $fullPath = $plastoDir . DIRECTORY_SEPARATOR . $f;
+                    $relUrl = 'images/catalog/plasto/items/' . $f;
+                    $name = ucwords(str_replace(['_', '-'], ' ', pathinfo($f, PATHINFO_FILENAME)));
+                    $images[] = [
+                        'id' => md5($relUrl),
+                        'filename' => $f,
+                        'name' => $name,
+                        'url' => $relUrl,
+                        'asset_url' => asset($relUrl),
+                        'full_path' => $fullPath,
+                        'size_kb' => round(filesize($fullPath) / 1024, 1),
+                        'created_at' => date('d M Y, H:i', filemtime($fullPath)),
+                        'source' => 'plasto_master',
+                        'deletable' => true,
+                    ];
+                }
+            }
+        }
+
+        // 2. User Extracted Crops & Uploads
+        $userCropsDir = public_path('storage/catalog_extracted/seller_' . $userId);
+        if (is_dir($userCropsDir)) {
+            $files = scandir($userCropsDir);
+            foreach ($files as $f) {
+                if (in_array(strtolower(pathinfo($f, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'webp'])) {
+                    $fullPath = $userCropsDir . DIRECTORY_SEPARATOR . $f;
+                    $relUrl = 'storage/catalog_extracted/seller_' . $userId . '/' . $f;
+                    $name = ucwords(str_replace(['crop_', 'p_', '_', '-'], ' ', pathinfo($f, PATHINFO_FILENAME)));
+                    $images[] = [
+                        'id' => md5($relUrl),
+                        'filename' => $f,
+                        'name' => trim($name),
+                        'url' => $relUrl,
+                        'asset_url' => asset($relUrl),
+                        'full_path' => $fullPath,
+                        'size_kb' => round(filesize($fullPath) / 1024, 1),
+                        'created_at' => date('d M Y, H:i', filemtime($fullPath)),
+                        'source' => 'custom_crop',
+                        'deletable' => true,
+                    ];
+                }
+            }
+        }
+
+        // 3. Shared Custom Crops
+        $sharedDir = public_path('storage/catalog_extracted/custom_crops');
+        if (is_dir($sharedDir)) {
+            $files = scandir($sharedDir);
+            foreach ($files as $f) {
+                if (in_array(strtolower(pathinfo($f, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'webp'])) {
+                    $fullPath = $sharedDir . DIRECTORY_SEPARATOR . $f;
+                    $relUrl = 'storage/catalog_extracted/custom_crops/' . $f;
+                    $name = ucwords(str_replace(['crop_', '_', '-'], ' ', pathinfo($f, PATHINFO_FILENAME)));
+                    $images[] = [
+                        'id' => md5($relUrl),
+                        'filename' => $f,
+                        'name' => trim($name),
+                        'url' => $relUrl,
+                        'asset_url' => asset($relUrl),
+                        'full_path' => $fullPath,
+                        'size_kb' => round(filesize($fullPath) / 1024, 1),
+                        'created_at' => date('d M Y, H:i', filemtime($fullPath)),
+                        'source' => 'custom_crop',
+                        'deletable' => true,
+                    ];
+                }
+            }
+        }
+
+        // Sort latest first
+        usort($images, function ($a, $b) {
+            return ($b['created_at'] ?? 0) <=> ($a['created_at'] ?? 0);
+        });
+
+        return $images;
+    }
+
+    /**
+     * 📸 Page 1: Media Vault & Bulk Image Gallery (Store, Preview, Upload, Delete)
+     */
+    public function gallery(Request $request)
+    {
+        $userId = Auth::id();
+        $allImages = $this->getAllGalleryImages($userId);
+        
+        $query = trim($request->input('q', ''));
+        if ($query !== '') {
+            $allImages = array_filter($allImages, function ($img) use ($query) {
+                return stripos($img['name'], $query) !== false || stripos($img['filename'], $query) !== false;
+            });
+        }
+
+        $totalImages = count($allImages);
+        $plastoCount = count(array_filter($allImages, fn($i) => $i['source'] === 'plasto_master'));
+        $customCount = count(array_filter($allImages, fn($i) => $i['source'] === 'custom_crop'));
+
+        return view('seller.catalog.gallery', [
+            'images' => array_values($allImages),
+            'totalImages' => $totalImages,
+            'plastoCount' => $plastoCount,
+            'customCount' => $customCount,
+            'searchQuery' => $query,
+        ]);
+    }
+
+    /**
+     * Upload an image directly into the Media Vault.
+     */
+    public function uploadToGallery(Request $request)
+    {
+        $request->validate([
+            'image_file' => 'required|image|mimes:jpeg,png,jpg,webp|max:10240',
+        ]);
+
+        $userId = Auth::id();
+        $targetDir = public_path('storage/catalog_extracted/seller_' . $userId);
+        if (!is_dir($targetDir)) {
+            mkdir($targetDir, 0755, true);
+        }
+
+        $file = $request->file('image_file');
+        $fileName = 'upload_' . time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+        $file->move($targetDir, $fileName);
+
+        if ($request->wantsJson()) {
+            $relUrl = 'storage/catalog_extracted/seller_' . $userId . '/' . $fileName;
+            return response()->json([
+                'success' => true,
+                'message' => 'Image successfully added to your Media Vault!',
+                'image' => [
+                    'filename' => $fileName,
+                    'url' => $relUrl,
+                    'asset_url' => asset($relUrl),
+                ],
+            ]);
+        }
+
+        return back()->with('success', 'Image uploaded successfully to your Photo Vault!');
+    }
+
+    /**
+     * Delete an image from Gallery Vault.
+     */
+    public function deleteFromGallery(Request $request)
+    {
+        $request->validate([
+            'image_url' => 'required|string',
+        ]);
+
+        $relUrl = ltrim($request->input('image_url'), '/');
+        $fullPath = public_path($relUrl);
+
+        // Security check: ensure path is within allowed directories
+        $allowedPrefixes = [
+            public_path('images/catalog/plasto/items'),
+            public_path('storage/catalog_extracted'),
+        ];
+
+        $isAllowed = false;
+        foreach ($allowedPrefixes as $prefix) {
+            if (str_starts_with(realpath(dirname($fullPath)) ?: dirname($fullPath), $prefix)) {
+                $isAllowed = true;
+                break;
+            }
+        }
+
+        if ($isAllowed && file_exists($fullPath)) {
+            @unlink($fullPath);
+            return response()->json([
+                'success' => true,
+                'message' => 'Image successfully deleted from Gallery Vault.',
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'File not found or permission denied.',
+        ], 404);
+    }
+
+    /**
+     * Bulk Delete multiple images from Gallery Vault.
+     */
+    public function bulkDeleteFromGallery(Request $request)
+    {
+        $request->validate([
+            'image_urls' => 'required|array|min:1',
+            'image_urls.*' => 'required|string',
+        ]);
+
+        $deletedCount = 0;
+        foreach ($request->input('image_urls') as $url) {
+            $relUrl = ltrim($url, '/');
+            $fullPath = public_path($relUrl);
+            if (file_exists($fullPath)) {
+                @unlink($fullPath);
+                $deletedCount++;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'deleted_count' => $deletedCount,
+            'message' => "Successfully deleted {$deletedCount} images.",
+        ]);
+    }
+
+    /**
+     * 📄 Page 2: Interactive PDF Studio (Side-by-Side Canvas + Real-Time Right Gallery)
+     */
+    public function pdfStudio(Request $request)
+    {
+        $userId = Auth::id();
+        $galleryImages = $this->getAllGalleryImages($userId);
+
+        // 24 Plasto Catalog Pages
+        $pages = [];
+        for ($p = 1; $p <= 24; $p++) {
+            $pageImg = "images/catalog/plasto/page_{$p}.jpg";
+            $headerImg = "images/catalog/plasto/headers/header_{$p}.jpg";
+            $pages[] = [
+                'page' => $p,
+                'image_url' => asset($pageImg),
+                'header_url' => file_exists(public_path($headerImg)) ? asset($headerImg) : null,
+                'exists' => file_exists(public_path($pageImg)),
+            ];
+        }
+
+        // Detailed product and text metadata per page
+        $pageMetadata = [
+            1 => ['title' => 'Cover Page & Brand Overview', 'items' => ['Plasto Quality & Trust', 'ISO Certified']],
+            2 => ['title' => 'UPVC Plumbing Pipes & Standards', 'items' => ['UPVC SCH 40 Pipes', 'UPVC SCH 80 Pipes', 'SDR 11 Pipes']],
+            3 => ['title' => 'UPVC Fittings (Elbow, Tee, Coupler, End Cap)', 'items' => ['UPVC 90° Elbow', 'UPVC Equal Tee', 'UPVC Coupler / Socket', 'UPVC End Cap']],
+            4 => ['title' => 'UPVC Brass Insert Fittings', 'items' => ['UPVC Brass Elbow', 'UPVC Brass Tee', 'UPVC Brass FTA', 'UPVC Brass MTA']],
+            5 => ['title' => 'CPVC Hot & Cold Water Pipes', 'items' => ['CPVC SDR 11 Pipes', 'CPVC SDR 13.5 Pipes', 'Lead Free Certified']],
+            6 => ['title' => 'CPVC Fittings (Elbow, Tee, Union, Tank Nipple)', 'items' => ['CPVC 90° Elbow', 'CPVC Equal Tee', 'CPVC Coupler', 'CPVC Union', 'CPVC Tank Nipple']],
+            7 => ['title' => 'CPVC Brass Insert Fittings', 'items' => ['CPVC Brass Elbow', 'CPVC Brass Tee', 'CPVC Brass MTA', 'CPVC Brass FTA', '3 in 1 Diverter']],
+            8 => ['title' => 'Valves & Control Solutions', 'items' => ['CPVC Ball Valve', 'UPVC Ball Valve', 'Concealed Valve']],
+            9 => ['title' => 'Reducer Fittings', 'items' => ['Reducer Elbow', 'Reducer Tee', 'Reducer Bushing']],
+            10 => ['title' => 'Specialty Plumbing Fittings', 'items' => ['Step Over Bend', 'Cross Tee', 'Flange Set']],
+            11 => ['title' => 'Compact Valves & Adapters', 'items' => ['UPVC Compact Ball Valve', 'Threaded Adapter']],
+            12 => ['title' => 'Pipe Clips & Clamps', 'items' => ['UPVC Pipe Clip', 'CPVC Pipe Clamp', 'Nails & Wall Plugs']],
+            13 => ['title' => 'Garden & Flexible Pipes', 'items' => ['Plasto Heavy Duty Garden Pipe', 'Braided Hose']],
+            14 => ['title' => 'SWR Drainage System Overview', 'items' => ['Ring Fit SWR Pipes', 'Past Fit SWR Pipes']],
+            15 => ['title' => 'SWR Pipes 75mm & 110mm', 'items' => ['SWR 75mm Type A & B', 'SWR 110mm Type A & B']],
+            16 => ['title' => 'SWR Single Tee, Double Tee & Bends', 'items' => ['SWR Single Tee with Door', 'SWR Double Tee', 'SWR Bend 87.5°', 'SWR Shoe Bend']],
+            17 => ['title' => 'SWR Traps & Vent Cowls', 'items' => ['Nahani Trap with Jali', 'Deep Seal Trap', 'Vent Cowl 75mm & 110mm']],
+            18 => ['title' => 'SWR Accessories & Rings', 'items' => ['Rubber Ring', 'Cleaning Pipe', 'Door Plug']],
+            19 => ['title' => 'Agri Pipes & Agricultural Fittings', 'items' => ['Agri Pressure Pipes', 'Agri Moulded Fittings']],
+            20 => ['title' => 'Agri Bends & Reducers', 'items' => ['Agri Fabricated Bend', 'Agri Reducing Tee']],
+            21 => ['title' => 'Solvent Cements & Lubricants', 'items' => ['Heavy Duty UPVC Solvent Cement', 'CPVC Fast Setting Solvent', 'Rubber Ring Lubricant']],
+            22 => ['title' => 'Agri Solvent Cement & Sealants', 'items' => ['Agri Solvent Cement Tube', 'Thread Seal Tape']],
+            23 => ['title' => 'Water Storage Tanks & Accessories', 'items' => ['6 Layer Water Tank', 'Tank Threaded Lid', 'Air Vent Pipe']],
+            24 => ['title' => 'Warranty, Standards & Technical Data', 'items' => ['ASTM Standards', 'IS 4985 Compliance', 'Plasto Quality Guarantee']],
+        ];
+
+        return view('seller.catalog.pdf_studio', compact('pages', 'galleryImages', 'pageMetadata'));
+    }
+
+    /**
+     * Crop region from PDF and immediately push to Live Gallery.
+     */
+    public function savePdfCropToGallery(Request $request)
+    {
+        $request->validate([
+            'image_data' => 'required|string',
+            'title' => 'nullable|string|max:100',
+            'page' => 'nullable|integer',
+        ]);
+
+        $data = $request->input('image_data');
+        if (preg_match('/^data:image\/(\w+);base64,/', $data, $type)) {
+            $data = substr($data, strpos($data, ',') + 1);
+            $type = strtolower($type[1]);
+            $data = base64_decode($data);
+            if ($data === false) {
+                return response()->json(['success' => false, 'message' => 'Invalid image base64'], 422);
+            }
+        } else {
+            return response()->json(['success' => false, 'message' => 'Malformed image payload'], 422);
+        }
+
+        $userId = Auth::id();
+        $targetDir = public_path('storage/catalog_extracted/seller_' . $userId);
+        if (!is_dir($targetDir)) {
+            mkdir($targetDir, 0755, true);
+        }
+
+        $titleSlug = Str::slug($request->input('title', 'product_crop')) ?: 'product_crop';
+        $page = $request->input('page', 1);
+        $fileName = "crop_p{$page}_{$titleSlug}_" . time() . '.' . ($type === 'png' ? 'png' : 'jpg');
+        $fullPath = $targetDir . DIRECTORY_SEPARATOR . $fileName;
+
+        file_put_contents($fullPath, $data);
+
+        $relUrl = 'storage/catalog_extracted/seller_' . $userId . '/' . $fileName;
+        $name = ucwords(str_replace(['_', '-'], ' ', $request->input('title') ?: "Page {$page} Crop"));
+
+        $newImage = [
+            'id' => md5($relUrl),
+            'filename' => $fileName,
+            'name' => $name,
+            'url' => $relUrl,
+            'asset_url' => asset($relUrl),
+            'size_kb' => round(filesize($fullPath) / 1024, 1),
+            'created_at' => date('d M Y, H:i'),
+            'source' => 'custom_crop',
+            'deletable' => true,
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Image cropped and saved directly to your Gallery Vault!',
+            'image' => $newImage,
+        ]);
+    }
+
+    /**
+     * 📊 Page 3: Excel Multi-Row Mapper (Select 6-8 Lines -> 1-Click Batch Image Link)
+     */
+    public function excelMapper(Request $request, $jobId = null)
+    {
+        $userId = Auth::id();
+        $job = null;
+
+        if ($jobId) {
+            $job = CatalogIngestionJob::where('id', $jobId)->where('user_id', $userId)->first();
+        }
+
+        if (!$job) {
+            $job = CatalogIngestionJob::where('user_id', $userId)->latest()->first();
+        }
+
+        // If still no job, auto-seed the Plasto Master Job
+        if (!$job) {
+            $masterFile = 'catalogs/PLASTO_WITH_IMAGES_MASTER.xlsx';
+            $job = CatalogIngestionJob::create([
+                'user_id' => $userId,
+                'filename' => 'PLASTO_MASTER_CATALOG_WITH_IMAGES.xlsx',
+                'file_path' => $masterFile,
+                'status' => 'pending',
+                'total_products_detected' => 0,
+            ]);
+            $job = $this->ingestionService->processCatalog($job);
+        }
+
+        $extractedData = $job->extracted_data ?? ['products' => []];
+        $products = $extractedData['products'] ?? [];
+        $categories = Category::all();
+
+        // Build flat rows list for 6-8 row table selector
+        $flatRows = [];
+        $rowIndex = 0;
+        foreach ($products as $pIdx => $prod) {
+            $prodName = $prod['name'];
+            $cat = $prod['category'] ?? 'Industrial & Commercial';
+            $img = $prod['image_url'] ?? null;
+            $variants = $prod['variants'] ?? [];
+
+            foreach ($variants as $vIdx => $v) {
+                $flatRows[] = [
+                    'row_id' => $rowIndex,
+                    'parent_idx' => $pIdx,
+                    'variant_idx' => $vIdx,
+                    'product_name' => $prodName,
+                    'variant_name' => $v['variant_name'] ?? 'Standard',
+                    'size' => $v['size'] ?? 'Standard',
+                    'category' => $cat,
+                    'mrp' => floatval($v['mrp'] ?? 0),
+                    'purchase_cost' => floatval($v['raw_rate'] ?? 0),
+                    'wholesale_price' => floatval($v['wholesale_price'] ?? 0),
+                    'retail_price' => floatval($v['retail_price'] ?? 0),
+                    'image_url' => $img,
+                ];
+                $rowIndex++;
+            }
+        }
+
+        $galleryImages = $this->getAllGalleryImages($userId);
+
+        return view('seller.catalog.excel_mapper', compact(
+            'job',
+            'products',
+            'flatRows',
+            'galleryImages',
+            'categories'
+        ));
+    }
+
+    /**
+     * Batch assign an image to multiple selected rows / products in Excel Mapper.
+     */
+    public function assignBatchImage(Request $request)
+    {
+        $request->validate([
+            'job_id' => 'required|exists:catalog_ingestion_jobs,id',
+            'image_url' => 'required|string',
+            'parent_indexes' => 'nullable|array',
+            'row_indexes' => 'nullable|array',
+        ]);
+
+        $job = CatalogIngestionJob::where('id', $request->input('job_id'))
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
+
+        $data = $job->extracted_data;
+        $imageUrl = $request->input('image_url');
+        $updatedCount = 0;
+
+        // Mode 1: Assign by Parent Product Indexes (e.g. Card IDs)
+        if ($request->has('parent_indexes') && is_array($request->input('parent_indexes'))) {
+            foreach ($request->input('parent_indexes') as $idx) {
+                if (isset($data['products'][$idx])) {
+                    $data['products'][$idx]['image_url'] = $imageUrl;
+                    $updatedCount++;
+                }
+            }
+        }
+
+        // Mode 2: Assign by Flat Row Indexes (e.g. 6-8 selected spreadsheet rows)
+        if ($request->has('row_indexes') && is_array($request->input('row_indexes'))) {
+            // Re-flatten to find the parent index of each row
+            $rowIndex = 0;
+            $parentToUpdate = [];
+            foreach ($data['products'] as $pIdx => $prod) {
+                foreach ($prod['variants'] as $vIdx => $v) {
+                    if (in_array($rowIndex, $request->input('row_indexes'))) {
+                        $parentToUpdate[$pIdx] = true;
+                    }
+                    $rowIndex++;
+                }
+            }
+
+            foreach (array_keys($parentToUpdate) as $pIdx) {
+                if (isset($data['products'][$pIdx])) {
+                    $data['products'][$pIdx]['image_url'] = $imageUrl;
+                    $updatedCount++;
+                }
+            }
+        }
+
+        $job->update(['extracted_data' => $data]);
+
+        return response()->json([
+            'success' => true,
+            'updated_count' => $updatedCount,
+            'image_url' => $imageUrl,
+            'asset_url' => asset($imageUrl),
+            'message' => "Successfully assigned image to selected products/rows!",
+        ]);
+    }
+
+    /**
+     * Direct Publish from Excel Mapper into Supabase DB.
+     */
+    public function publishDirectFromMapper(Request $request)
+    {
+        $userId = Auth::id();
+        $jobId = $request->input('job_id');
+
+        $job = CatalogIngestionJob::where('id', $jobId)
+            ->where('user_id', $userId)
+            ->firstOrFail();
+
+        $data = $job->extracted_data;
+        $products = $data['products'] ?? [];
+
+        if (empty($products)) {
+            return back()->withErrors(['No products found in draft to publish.']);
+        }
+
+        $defaultCategory = Category::firstOrCreate(['name' => 'Industrial & Commercial'], ['slug' => 'industrial-commercial']);
+        $publishedCount = 0;
+
+        foreach ($products as $prodData) {
+            $catId = $defaultCategory->id;
+            $gst = 18;
+            $variants = $prodData['variants'] ?? [];
+            $hasMultipleVariants = count($variants) > 1;
+
+            $firstVar = $variants[0] ?? [];
+            $basePurchase = floatval($firstVar['raw_rate'] ?? 0);
+            $baseWholesale = floatval($firstVar['wholesale_price'] ?? ($basePurchase * 1.15));
+            $baseRetail = floatval($firstVar['retail_price'] ?? ($basePurchase * 1.35));
+            $baseMrp = floatval($firstVar['mrp'] ?? ($basePurchase * 1.60));
+
+            $product = Product::create([
+                'user_id' => $userId,
+                'category_id' => $catId,
+                'name' => $prodData['name'],
+                'slug' => Str::slug($prodData['name']) . '-' . Str::random(5),
+                'description' => "High grade {$prodData['name']} manufactured to industrial specifications.",
+                'hsn_code' => '39174000',
+                'image' => $prodData['image_url'] ?? null,
+                'purchase_price' => $basePurchase,
+                'wholesale_price' => $baseWholesale,
+                'price' => $baseRetail,
+                'mrp' => $baseMrp,
+                'gst_percent' => $gst,
+                'stock_quantity' => 100,
+                'track_inventory' => false,
+                'has_variants' => $hasMultipleVariants,
+                'sku' => 'PLST-' . strtoupper(Str::random(6)),
+            ]);
+
+            foreach ($variants as $v) {
+                $rawRate = floatval($v['raw_rate'] ?? 0);
+                $wPrice = floatval($v['wholesale_price'] ?? ($rawRate * 1.15));
+                $rPrice = floatval($v['retail_price'] ?? ($rawRate * 1.35));
+                $vMrp = floatval($v['mrp'] ?? ($rawRate * 1.60));
+
+                ProductVariant::create([
+                    'product_id' => $product->id,
+                    'variant_name' => $v['variant_name'] ?? 'Standard',
+                    'size' => $v['size'] ?? 'Standard',
+                    'grade' => $v['grade'] ?? 'Industrial',
+                    'raw_rate' => $rawRate,
+                    'wholesale_price' => $wPrice,
+                    'retail_price' => $rPrice,
+                    'mrp' => $vMrp,
+                    'stock_quantity' => 100,
+                    'sku' => 'VAR-' . strtoupper(Str::random(7)),
+                ]);
+            }
+
+            $publishedCount++;
+        }
+
+        $job->update(['status' => 'published']);
+
+        return redirect()->route('seller.inventory.index')
+            ->with('success', "🎉 Mubarakan! {$publishedCount} grouped products (291 sizes) live store me successfully publish ho gaye hain!");
+    }
 }
+

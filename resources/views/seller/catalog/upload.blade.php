@@ -27,6 +27,15 @@
                     <a href="{{ route('seller.dashboard') }}" class="text-xs font-bold text-gray-600 hover:text-blue-600 transition flex items-center gap-1.5">
                         <i class="fa-solid fa-arrow-left"></i> Dashboard
                     </a>
+                    <a href="{{ route('seller.catalog.gallery') }}" class="text-xs font-bold text-gray-600 hover:text-blue-600 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-images text-indigo-600"></i> Media Vault
+                    </a>
+                    <a href="{{ route('seller.catalog.pdf_studio') }}" class="text-xs font-bold text-gray-600 hover:text-blue-600 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-pdf text-purple-600"></i> PDF Studio
+                    </a>
+                    <a href="{{ route('seller.catalog.excel_mapper') }}" class="text-xs font-bold text-gray-600 hover:text-blue-600 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-table-cells text-emerald-600"></i> Excel Mapper
+                    </a>
                     <a href="{{ route('seller.inventory.index') }}" class="text-xs font-bold text-gray-600 hover:text-blue-600 transition flex items-center gap-1.5">
                         <i class="fa-solid fa-boxes-stacked"></i> Inventory
                     </a>
