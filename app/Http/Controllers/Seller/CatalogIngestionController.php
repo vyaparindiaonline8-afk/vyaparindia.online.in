@@ -629,52 +629,7 @@ class CatalogIngestionController extends Controller
         $userId = Auth::id();
         $galleryImages = $this->getAllGalleryImages($userId);
 
-        // Check if any catalog pages exist on disk
-        $pages = [];
-        for ($p = 1; $p <= 24; $p++) {
-            $pageImg = "images/catalog/plasto/page_{$p}.jpg";
-            $headerImg = "images/catalog/plasto/headers/header_{$p}.jpg";
-            $exists = file_exists(public_path($pageImg));
-            if ($exists) {
-                $pages[] = [
-                    'page' => $p,
-                    'image_url' => asset($pageImg),
-                    'header_url' => file_exists(public_path($headerImg)) ? asset($headerImg) : null,
-                    'exists' => true,
-                ];
-            }
-        }
-        $hasPages = count($pages) > 0;
-
-        // Detailed product and text metadata per page
-        $pageMetadata = [
-            1 => ['title' => 'Cover Page & Brand Overview', 'items' => ['Plasto Quality & Trust', 'ISO Certified']],
-            2 => ['title' => 'UPVC Plumbing Pipes & Standards', 'items' => ['UPVC SCH 40 Pipes', 'UPVC SCH 80 Pipes', 'SDR 11 Pipes']],
-            3 => ['title' => 'UPVC Fittings (Elbow, Tee, Coupler, End Cap)', 'items' => ['UPVC 90° Elbow', 'UPVC Equal Tee', 'UPVC Coupler / Socket', 'UPVC End Cap']],
-            4 => ['title' => 'UPVC Brass Insert Fittings', 'items' => ['UPVC Brass Elbow', 'UPVC Brass Tee', 'UPVC Brass FTA', 'UPVC Brass MTA']],
-            5 => ['title' => 'CPVC Hot & Cold Water Pipes', 'items' => ['CPVC SDR 11 Pipes', 'CPVC SDR 13.5 Pipes', 'Lead Free Certified']],
-            6 => ['title' => 'CPVC Fittings (Elbow, Tee, Union, Tank Nipple)', 'items' => ['CPVC 90° Elbow', 'CPVC Equal Tee', 'CPVC Coupler', 'CPVC Union', 'CPVC Tank Nipple']],
-            7 => ['title' => 'CPVC Brass Insert Fittings', 'items' => ['CPVC Brass Elbow', 'CPVC Brass Tee', 'CPVC Brass MTA', 'CPVC Brass FTA', '3 in 1 Diverter']],
-            8 => ['title' => 'Valves & Control Solutions', 'items' => ['CPVC Ball Valve', 'UPVC Ball Valve', 'Concealed Valve']],
-            9 => ['title' => 'Reducer Fittings', 'items' => ['Reducer Elbow', 'Reducer Tee', 'Reducer Bushing']],
-            10 => ['title' => 'Specialty Plumbing Fittings', 'items' => ['Step Over Bend', 'Cross Tee', 'Flange Set']],
-            11 => ['title' => 'Compact Valves & Adapters', 'items' => ['UPVC Compact Ball Valve', 'Threaded Adapter']],
-            12 => ['title' => 'Pipe Clips & Clamps', 'items' => ['UPVC Pipe Clip', 'CPVC Pipe Clamp', 'Nails & Wall Plugs']],
-            13 => ['title' => 'Garden & Flexible Pipes', 'items' => ['Plasto Heavy Duty Garden Pipe', 'Braided Hose']],
-            14 => ['title' => 'SWR Drainage System Overview', 'items' => ['Ring Fit SWR Pipes', 'Past Fit SWR Pipes']],
-            15 => ['title' => 'SWR Pipes 75mm & 110mm', 'items' => ['SWR 75mm Type A & B', 'SWR 110mm Type A & B']],
-            16 => ['title' => 'SWR Single Tee, Double Tee & Bends', 'items' => ['SWR Single Tee with Door', 'SWR Double Tee', 'SWR Bend 87.5°', 'SWR Shoe Bend']],
-            17 => ['title' => 'SWR Traps & Vent Cowls', 'items' => ['Nahani Trap with Jali', 'Deep Seal Trap', 'Vent Cowl 75mm & 110mm']],
-            18 => ['title' => 'SWR Accessories & Rings', 'items' => ['Rubber Ring', 'Cleaning Pipe', 'Door Plug']],
-            19 => ['title' => 'Agri Pipes & Agricultural Fittings', 'items' => ['Agri Pressure Pipes', 'Agri Moulded Fittings']],
-            20 => ['title' => 'Agri Bends & Reducers', 'items' => ['Agri Fabricated Bend', 'Agri Reducing Tee']],
-            21 => ['title' => 'Solvent Cements & Lubricants', 'items' => ['Heavy Duty UPVC Solvent Cement', 'CPVC Fast Setting Solvent', 'Rubber Ring Lubricant']],
-            22 => ['title' => 'Agri Solvent Cement & Sealants', 'items' => ['Agri Solvent Cement Tube', 'Thread Seal Tape']],
-            23 => ['title' => 'Water Storage Tanks & Accessories', 'items' => ['6 Layer Water Tank', 'Tank Threaded Lid', 'Air Vent Pipe']],
-            24 => ['title' => 'Warranty, Standards & Technical Data', 'items' => ['ASTM Standards', 'IS 4985 Compliance', 'Plasto Quality Guarantee']],
-        ];
-
-        return view('seller.catalog.pdf_studio', compact('pages', 'galleryImages', 'pageMetadata', 'hasPages'));
+        return view('seller.catalog.pdf_studio', compact('galleryImages'));
     }
 
     /**
