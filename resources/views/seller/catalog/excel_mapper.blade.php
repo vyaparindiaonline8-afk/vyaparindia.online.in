@@ -268,6 +268,10 @@
                         <button type="button" onclick="selectNDynamicRows(8)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700">First 8</button>
                         <button type="button" onclick="toggleSelectAllDynamic(true)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700">All</button>
                         <button type="button" onclick="clearDynamicRowSelection()" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-600">Clear</button>
+                        <button type="button" onclick="openColumnMapperModal()" id="btnOpenColumnMapper" class="px-3 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-extrabold text-xs border border-teal-200 flex items-center gap-1.5 transition ml-1" title="Excel Sheet ke columns ko dobara map karein">
+                            <i class="fa-solid fa-table-columns text-teal-600"></i>
+                            <span>Map Columns</span>
+                        </button>
                         <button type="button" onclick="groupSelectedRowsIntoCard()" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition ml-2">
                             <i class="fa-solid fa-layer-group"></i>
                             <span>Group (6-8) Rows into 1 Card</span>
@@ -593,6 +597,170 @@
                 <i class="fa-solid fa-images"></i>
                 <span>Assign Image (<span id="btnBatchCount">0</span>)</span>
             </button>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 📊 EXCEL COLUMN MAPPING MODAL              -->
+    <!-- ========================================== -->
+    <div id="excelColumnMapModal" class="fixed inset-0 bg-black/70 backdrop-blur-xs z-[9999] hidden flex items-center justify-center p-4 overflow-y-auto" onclick="closeColumnMapperModal()">
+        <div class="bg-white rounded-3xl max-w-3xl w-full shadow-2xl border border-gray-200 overflow-hidden flex flex-col my-8 max-h-[90vh]" onclick="event.stopPropagation()">
+            
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-gray-100 bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg shadow-md shadow-emerald-600/30">
+                        <i class="fa-solid fa-table-columns"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-black text-gray-900 flex items-center gap-2">
+                            <span>Excel Column Mapper</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-bold" id="mapTotalRowsCount">0 Rows Found</span>
+                        </h3>
+                        <p class="text-xs text-gray-600 font-medium">
+                            Apni Excel sheet ke columns ko sahi fields ke sath match karein taaki <b>MRP (₹)</b> aur <b>Sizes</b> accurate load hon!
+                        </p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeColumnMapperModal()" class="h-8 w-8 rounded-xl bg-white hover:bg-gray-100 text-gray-500 hover:text-gray-800 flex items-center justify-center text-sm shadow-2xs transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div class="p-6 space-y-6 overflow-y-auto flex-1">
+                
+                <!-- Quick Settings: Header Row -->
+                <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-lightbulb text-amber-500 text-base"></i>
+                        <span class="font-bold text-amber-900">Sheet me Data (Items) kis Row number se shuru hota hai?</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="font-bold text-gray-700">Data Starts At Row:</label>
+                        <input type="number" id="mapDataStartRow" value="2" min="1" max="50" onchange="updateMappingPreview()" class="w-16 px-2 py-1 rounded-lg border border-amber-300 font-bold text-center bg-white">
+                    </div>
+                </div>
+
+                <!-- Column Mapping Selectors Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
+                    <!-- 1. Product Name -->
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-gray-200 space-y-1.5">
+                        <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                            <span>📦 Product / Item Name:</span>
+                            <span class="text-[10px] text-rose-500 font-bold">*Required</span>
+                        </label>
+                        <select id="mapColName" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <!-- Populated dynamically -->
+                        </select>
+                        <p class="text-[10px] text-gray-500">Item description ya pipe/fitting ka naam (jaise: UPVC Agri Elbow)</p>
+                    </div>
+
+                    <!-- 2. Size / Dimension -->
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-gray-200 space-y-1.5">
+                        <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                            <span>📏 Size / Dimension / Variant:</span>
+                            <span class="text-[10px] text-rose-500 font-bold">*Required</span>
+                        </label>
+                        <select id="mapColSize" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <!-- Populated dynamically -->
+                        </select>
+                        <p class="text-[10px] text-gray-500">Size column (jaise: 15mm, 20mm, 25mm, 1 inch, 1/2")</p>
+                    </div>
+
+                    <!-- 3. MRP (₹) -->
+                    <div class="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200 space-y-1.5">
+                        <label class="text-xs font-black text-emerald-900 flex items-center justify-between">
+                            <span>🏷️ MRP / List Price (₹):</span>
+                            <span class="text-[10px] text-emerald-700 font-bold">*Main Price</span>
+                        </label>
+                        <select id="mapColMrp" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-3 rounded-xl border border-emerald-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <!-- Populated dynamically -->
+                        </select>
+                        <p class="text-[10px] text-emerald-700 font-medium">⚠️ Dhyan dein: S.No (1, 2) select na ho, asli MRP column select karein!</p>
+                    </div>
+
+                    <!-- 4. Purchase Cost / Dealer Rate (₹) -->
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-gray-200 space-y-1.5">
+                        <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                            <span>💰 Purchase Cost / Buying Rate (₹):</span>
+                            <span class="text-[10px] text-gray-500 font-semibold">(Optional)</span>
+                        </label>
+                        <select id="mapColCost" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <!-- Populated dynamically -->
+                        </select>
+                        <p class="text-[10px] text-gray-500">Agar sheet me nahi hai, to MRP ka 65% auto calculate ho jayega.</p>
+                    </div>
+
+                    <!-- 5. Retail / Selling Price (₹) -->
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-gray-200 space-y-1.5">
+                        <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                            <span>🛒 Selling Price / Retail Rate (₹):</span>
+                            <span class="text-[10px] text-gray-500 font-semibold">(Optional)</span>
+                        </label>
+                        <select id="mapColRetail" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <!-- Populated dynamically -->
+                        </select>
+                        <p class="text-[10px] text-gray-500">Jis rate par bechna chahte hain. Default: MRP ka 88%.</p>
+                    </div>
+
+                    <!-- 6. Category -->
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-gray-200 space-y-1.5">
+                        <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                            <span>📂 Category / Group Type:</span>
+                            <span class="text-[10px] text-gray-500 font-semibold">(Optional)</span>
+                        </label>
+                        <select id="mapColCategory" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-2 px-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <!-- Populated dynamically -->
+                        </select>
+                        <p class="text-[10px] text-gray-500">UPVC, CPVC, SWR, Agri fittings auto-detect ho jayenge.</p>
+                    </div>
+
+                </div>
+
+                <!-- Live 3-Row Preview Table -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-xs font-black text-gray-800 flex items-center gap-1.5">
+                            <i class="fa-solid fa-eye text-indigo-600"></i>
+                            <span>Live Preview (Sheet ke First 3 Items Kese Load Honge):</span>
+                        </h4>
+                        <span class="text-[10px] text-gray-500 font-medium">Verify kar lein ki MRP sahi aa rahi hai</span>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-gray-50 text-[10px] uppercase font-bold text-gray-500 border-b border-gray-200">
+                                <tr>
+                                    <th class="p-2.5">Category</th>
+                                    <th class="p-2.5">Product Name</th>
+                                    <th class="p-2.5">Size / Variant</th>
+                                    <th class="p-2.5 font-bold text-emerald-800">MRP (₹)</th>
+                                    <th class="p-2.5">Cost (₹)</th>
+                                    <th class="p-2.5">Retail (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mappingPreviewTbody" class="divide-y divide-gray-100 font-medium">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+                <button type="button" onclick="closeColumnMapperModal()" class="px-4 py-2.5 rounded-xl bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-200 transition">
+                    Cancel
+                </button>
+                <button type="button" onclick="applyExcelColumnMapping()" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Apply Mapping & Load All Products</span>
+                </button>
+            </div>
+
         </div>
     </div>
 
@@ -1138,6 +1306,9 @@
             handleExcelFileUpload({ target: { files: [file] } });
         }
 
+        let uploadedExcelRawRows = [];
+        let uploadedExcelFileName = '';
+
         function handleExcelFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1156,85 +1327,11 @@
                         return;
                     }
 
-                    let startIndex = 0;
-                    let colIdx = { name: 0, size: 1, mrp: 2, cost: 3, retail: 4, category: -1, image: -1 };
+                    uploadedExcelRawRows = jsonRows;
+                    uploadedExcelFileName = file.name;
 
-                    const firstRow = jsonRows[0].map(c => String(c || '').toLowerCase().trim());
-                    const hasHeader = firstRow.some(c => 
-                        c.includes('item') || c.includes('product') || c.includes('name') || 
-                        c.includes('size') || c.includes('rate') || c.includes('price') || 
-                        c.includes('mrp') || c.includes('particular') || c.includes('desc')
-                    );
-
-                    if (hasHeader) {
-                        startIndex = 1;
-                        firstRow.forEach((col, idx) => {
-                            if (col.includes('item') || col.includes('product') || col.includes('name') || col.includes('desc') || col.includes('particular')) colIdx.name = idx;
-                            else if (col.includes('size') || col.includes('dimension') || col.includes('dia') || col.includes('inch') || col.includes('mm')) colIdx.size = idx;
-                            else if (col.includes('mrp') || col.includes('list') || col.includes('price') || col.includes('rate')) colIdx.mrp = idx;
-                            else if (col.includes('purchase') || col.includes('cost') || col.includes('buy')) colIdx.cost = idx;
-                            else if (col.includes('retail') || col.includes('sell') || col.includes('net') || col.includes('sale')) colIdx.retail = idx;
-                            else if (col.includes('cat') || col.includes('group') || col.includes('type')) colIdx.category = idx;
-                            else if (col.includes('img') || col.includes('photo') || col.includes('image')) colIdx.image = idx;
-                        });
-                    }
-
-                    const newRows = [];
-                    for (let i = startIndex; i < jsonRows.length; i++) {
-                        const row = jsonRows[i];
-                        if (!row || row.length === 0 || row.every(c => c === null || c === undefined || String(c).trim() === '')) continue;
-
-                        const rawName = String(row[colIdx.name] || '').trim();
-                        if (!rawName) continue;
-
-                        const rawSize = (colIdx.size !== -1 && row[colIdx.size] !== undefined) ? String(row[colIdx.size]).trim() : '';
-                        const rawMrp = parseFloat(String(row[colIdx.mrp] || '0').replace(/[^0-9.]/g, '')) || 0;
-                        const rawCost = (colIdx.cost !== -1 && row[colIdx.cost]) ? parseFloat(String(row[colIdx.cost]).replace(/[^0-9.]/g, '')) : Math.round(rawMrp * 0.65);
-                        const rawRetail = (colIdx.retail !== -1 && row[colIdx.retail]) ? parseFloat(String(row[colIdx.retail]).replace(/[^0-9.]/g, '')) : Math.round(rawMrp * 0.88);
-                        
-                        let cat = 'UPVC';
-                        if (colIdx.category !== -1 && row[colIdx.category]) {
-                            const cVal = String(row[colIdx.category]).toUpperCase();
-                            if (cVal.includes('CPVC')) cat = 'CPVC';
-                            else if (cVal.includes('SWR')) cat = 'SWR';
-                            else if (cVal.includes('AGRI') || cVal.includes('OTHER')) cat = 'AGRI_OTHER';
-                        } else {
-                            const combined = (rawName + ' ' + rawSize).toUpperCase();
-                            if (combined.includes('CPVC')) cat = 'CPVC';
-                            else if (combined.includes('SWR') || combined.includes('TRAP') || combined.includes('DRAIN')) cat = 'SWR';
-                            else if (combined.includes('AGRI') || combined.includes('SOLVENT')) cat = 'AGRI_OTHER';
-                        }
-
-                        let parsedSize = rawSize;
-                        if (!parsedSize) {
-                            const sizeMatch = rawName.match(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/i);
-                            parsedSize = sizeMatch ? sizeMatch[0] : `Var-${i}`;
-                        }
-
-                        const img = (colIdx.image !== -1 && row[colIdx.image]) ? String(row[colIdx.image]).trim() : '';
-
-                        newRows.push({
-                            id: dynamicRowNextId++,
-                            product_name: rawName,
-                            size: parsedSize,
-                            group_type: cat,
-                            mrp: rawMrp || 100,
-                            purchase_cost: rawCost || 65,
-                            retail_price: rawRetail || 88,
-                            image_url: img,
-                            asset_url: img ? (img.startsWith('http') ? img : ('/' + img.replace(/^\//, ''))) : ''
-                        });
-                    }
-
-                    if (newRows.length === 0) {
-                        alert('File se valid product data nahi mila.');
-                        return;
-                    }
-
-                    dynamicRows = dynamicRows.concat(newRows);
-                    renderDynamicRows();
-                    toggleDynamicMode(true);
-                    alert(`✅ Excel sheet se ${newRows.length} rows safaltapoorvak import ho gayi hain!`);
+                    // Immediately open the interactive Column Mapper Modal!
+                    openColumnMapperModal();
                 } catch (err) {
                     console.error('Excel parse error:', err);
                     alert('Excel file read karne me error: ' + err.message);
@@ -1242,6 +1339,277 @@
             };
             reader.readAsArrayBuffer(file);
             event.target.value = '';
+        }
+
+        function openColumnMapperModal() {
+            if (!uploadedExcelRawRows || uploadedExcelRawRows.length === 0) {
+                document.getElementById('excelFileInput').click();
+                return;
+            }
+
+            const modal = document.getElementById('excelColumnMapModal');
+            if (!modal) return;
+
+            const totalRows = uploadedExcelRawRows.length;
+            const countEl = document.getElementById('mapTotalRowsCount');
+            if (countEl) countEl.innerText = `${totalRows} Rows Found`;
+
+            // Detect header row by scanning first 8 rows
+            let headerRowIdx = 0;
+            let maxScore = -1;
+            for (let r = 0; r < Math.min(8, totalRows); r++) {
+                const row = uploadedExcelRawRows[r];
+                if (!Array.isArray(row)) continue;
+                let score = 0;
+                row.forEach(c => {
+                    const str = String(c || '').toLowerCase().trim();
+                    if (str.includes('particular') || str.includes('item') || str.includes('product') || str.includes('name') || str.includes('desc') || str.includes('description')) score += 3;
+                    if (str.includes('size') || str.includes('dim') || str.includes('dia') || str.includes('inch') || str.includes('mm')) score += 3;
+                    if (str.includes('mrp') || str.includes('price') || str.includes('rate') || str.includes('list')) score += 3;
+                    if (str.includes('cost') || str.includes('purchase') || str.includes('basic') || str.includes('net') || str.includes('dealer')) score += 2;
+                });
+                if (score > maxScore) {
+                    maxScore = score;
+                    headerRowIdx = r;
+                }
+            }
+
+            const startRowInput = document.getElementById('mapDataStartRow');
+            if (startRowInput) startRowInput.value = headerRowIdx + 2;
+
+            const headerRow = uploadedExcelRawRows[headerRowIdx] || [];
+            const sampleDataRow = uploadedExcelRawRows[headerRowIdx + 1] || [];
+
+            // Build dropdown options
+            const colSelects = ['mapColName', 'mapColSize', 'mapColMrp', 'mapColCost', 'mapColRetail', 'mapColCategory'];
+            const colLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+            colSelects.forEach(selId => {
+                const sel = document.getElementById(selId);
+                if (!sel) return;
+                const isRequired = selId === 'mapColName' || selId === 'mapColSize' || selId === 'mapColMrp';
+                let opts = isRequired ? '<option value="">-- Choose Column --</option>' : '<option value="-1">-- None (Auto Calculate) --</option>';
+
+                const maxCols = Math.max(headerRow.length, sampleDataRow.length);
+                for (let c = 0; c < maxCols; c++) {
+                    const colLetter = c < 26 ? colLetters[c] : `Col ${c + 1}`;
+                    const headName = String(headerRow[c] || '').trim();
+                    const sampleVal = String(sampleDataRow[c] || '').trim();
+                    const label = headName ? `${colLetter}: "${headName}" (Sample: "${sampleVal.slice(0, 18)}")` : `${colLetter}: (Sample: "${sampleVal.slice(0, 18)}")`;
+                    opts += `<option value="${c}">${escapeHtml(label)}</option>`;
+                }
+                sel.innerHTML = opts;
+            });
+
+            // Smart auto-selection
+            let selectedCols = { name: -1, size: -1, mrp: -1, cost: -1, retail: -1, category: -1 };
+
+            headerRow.forEach((col, idx) => {
+                const c = String(col || '').toLowerCase().trim();
+                const isSrNo = (c === 's.no' || c === 's.no.' || c === 'sr.no' || c === 'sr no' || c === 'sl.no' || c === 'no' || c === '#' || c === 'sn' || c === 's no');
+                if (isSrNo) return; // Prevent serial numbers from becoming product name or MRP!
+
+                if (selectedCols.name === -1 && (c.includes('particular') || c.includes('item') || c.includes('product') || c.includes('name') || c.includes('desc'))) {
+                    selectedCols.name = idx;
+                } else if (selectedCols.size === -1 && (c.includes('size') || c.includes('dimension') || c.includes('dia') || c.includes('inch') || c.includes('mm'))) {
+                    selectedCols.size = idx;
+                } else if (selectedCols.mrp === -1 && (c.includes('mrp') || c.includes('list') || c.includes('price') || c.includes('m.r.p'))) {
+                    selectedCols.mrp = idx;
+                } else if (selectedCols.cost === -1 && (c.includes('purchase') || c.includes('cost') || c.includes('basic') || c.includes('net') || c.includes('dealer') || c.includes('buy'))) {
+                    selectedCols.cost = idx;
+                } else if (selectedCols.retail === -1 && (c.includes('retail') || c.includes('sell') || c.includes('sale'))) {
+                    selectedCols.retail = idx;
+                } else if (selectedCols.category === -1 && (c.includes('cat') || c.includes('group') || c.includes('type'))) {
+                    selectedCols.category = idx;
+                }
+            });
+
+            // Fallback for MRP: column with 'rate'
+            if (selectedCols.mrp === -1) {
+                headerRow.forEach((col, idx) => {
+                    const c = String(col || '').toLowerCase().trim();
+                    const isSrNo = (c === 's.no' || c === 's.no.' || c === 'sr.no' || c === 'sr no' || c === 'sl.no' || c === 'no' || c === '#' || c === 'sn');
+                    if (!isSrNo && c.includes('rate') && selectedCols.cost !== idx) {
+                        selectedCols.mrp = idx;
+                    }
+                });
+            }
+
+            // Defaults if still not found
+            if (selectedCols.name !== -1) document.getElementById('mapColName').value = selectedCols.name;
+            else if (headerRow.length > 1) document.getElementById('mapColName').value = 1;
+
+            if (selectedCols.size !== -1) document.getElementById('mapColSize').value = selectedCols.size;
+            else if (headerRow.length > 2) document.getElementById('mapColSize').value = 2;
+
+            if (selectedCols.mrp !== -1) document.getElementById('mapColMrp').value = selectedCols.mrp;
+            if (selectedCols.cost !== -1) document.getElementById('mapColCost').value = selectedCols.cost;
+            if (selectedCols.retail !== -1) document.getElementById('mapColRetail').value = selectedCols.retail;
+            if (selectedCols.category !== -1) document.getElementById('mapColCategory').value = selectedCols.category;
+
+            updateMappingPreview();
+            modal.classList.remove('hidden');
+        }
+
+        function closeColumnMapperModal() {
+            const modal = document.getElementById('excelColumnMapModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function updateMappingPreview() {
+            const tbody = document.getElementById('mappingPreviewTbody');
+            if (!tbody || !uploadedExcelRawRows || uploadedExcelRawRows.length === 0) return;
+
+            const nameIdx = parseInt(document.getElementById('mapColName')?.value ?? -1);
+            const sizeIdx = parseInt(document.getElementById('mapColSize')?.value ?? -1);
+            const mrpIdx = parseInt(document.getElementById('mapColMrp')?.value ?? -1);
+            const costIdx = parseInt(document.getElementById('mapColCost')?.value ?? -1);
+            const retailIdx = parseInt(document.getElementById('mapColRetail')?.value ?? -1);
+            const catIdx = parseInt(document.getElementById('mapColCategory')?.value ?? -1);
+            const startRow = Math.max(0, parseInt(document.getElementById('mapDataStartRow')?.value || 2) - 1);
+
+            let previewHtml = '';
+            let rowsShown = 0;
+
+            for (let r = startRow; r < uploadedExcelRawRows.length && rowsShown < 3; r++) {
+                const row = uploadedExcelRawRows[r];
+                if (!row || row.length === 0 || row.every(c => c === null || c === undefined || String(c).trim() === '')) continue;
+
+                const name = (nameIdx !== -1 && row[nameIdx] !== undefined) ? String(row[nameIdx]).trim() : 'Sample Product';
+                let size = (sizeIdx !== -1 && row[sizeIdx] !== undefined) ? String(row[sizeIdx]).trim() : '';
+                if (!size) {
+                    const sizeMatch = name.match(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/i);
+                    size = sizeMatch ? sizeMatch[0] : 'Standard';
+                }
+
+                const rawMrpStr = (mrpIdx !== -1 && row[mrpIdx] !== undefined) ? String(row[mrpIdx]).replace(/[^0-9.]/g, '') : '0';
+                const mrp = parseFloat(rawMrpStr) || 0;
+
+                const rawCostStr = (costIdx !== -1 && row[costIdx] !== undefined && String(row[costIdx]).trim() !== '') ? String(row[costIdx]).replace(/[^0-9.]/g, '') : '';
+                const cost = rawCostStr ? (parseFloat(rawCostStr) || Math.round(mrp * 0.65)) : Math.round(mrp * 0.65);
+
+                const rawRetailStr = (retailIdx !== -1 && row[retailIdx] !== undefined && String(row[retailIdx]).trim() !== '') ? String(row[retailIdx]).replace(/[^0-9.]/g, '') : '';
+                const retail = rawRetailStr ? (parseFloat(rawRetailStr) || Math.round(mrp * 0.88)) : Math.round(mrp * 0.88);
+
+                let cat = 'UPVC';
+                if (catIdx !== -1 && row[catIdx] !== undefined && String(row[catIdx]).trim() !== '') {
+                    const cStr = String(row[catIdx]).toUpperCase();
+                    if (cStr.includes('CPVC')) cat = 'CPVC';
+                    else if (cStr.includes('SWR')) cat = 'SWR';
+                    else if (cStr.includes('AGRI') || cStr.includes('OTHER')) cat = 'AGRI_OTHER';
+                } else {
+                    const combined = (name + ' ' + size).toUpperCase();
+                    if (combined.includes('CPVC')) cat = 'CPVC';
+                    else if (combined.includes('SWR') || combined.includes('TRAP')) cat = 'SWR';
+                    else if (combined.includes('AGRI') || combined.includes('SOLVENT')) cat = 'AGRI_OTHER';
+                }
+
+                previewHtml += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-2.5">
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-black ${cat === 'UPVC' ? 'bg-blue-100 text-blue-800' : (cat === 'CPVC' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800')}">${cat}</span>
+                        </td>
+                        <td class="p-2.5 font-bold text-gray-900">${escapeHtml(name)}</td>
+                        <td class="p-2.5 font-mono text-gray-700">${escapeHtml(size)}</td>
+                        <td class="p-2.5 font-mono font-black text-emerald-700 text-sm">₹${mrp.toFixed(2)}</td>
+                        <td class="p-2.5 font-mono text-gray-600">₹${cost.toFixed(2)}</td>
+                        <td class="p-2.5 font-mono text-gray-800">₹${retail.toFixed(2)}</td>
+                    </tr>
+                `;
+                rowsShown++;
+            }
+
+            if (!previewHtml) {
+                previewHtml = `<tr><td colspan="6" class="p-4 text-center text-gray-400">Is row number par koi data nahi mila. "Data Starts At Row" number check karein.</td></tr>`;
+            }
+
+            tbody.innerHTML = previewHtml;
+        }
+
+        function applyExcelColumnMapping() {
+            const nameIdx = parseInt(document.getElementById('mapColName')?.value ?? -1);
+            const sizeIdx = parseInt(document.getElementById('mapColSize')?.value ?? -1);
+            const mrpIdx = parseInt(document.getElementById('mapColMrp')?.value ?? -1);
+            const costIdx = parseInt(document.getElementById('mapColCost')?.value ?? -1);
+            const retailIdx = parseInt(document.getElementById('mapColRetail')?.value ?? -1);
+            const catIdx = parseInt(document.getElementById('mapColCategory')?.value ?? -1);
+            const startRow = Math.max(0, parseInt(document.getElementById('mapDataStartRow')?.value || 2) - 1);
+
+            if (isNaN(nameIdx) || nameIdx === -1) {
+                alert('Kripya "Product / Item Name" column select karein.');
+                return;
+            }
+            if (isNaN(mrpIdx) || mrpIdx === -1) {
+                alert('Kripya "MRP / List Price" column select karein.');
+                return;
+            }
+
+            const newRows = [];
+            for (let i = startRow; i < uploadedExcelRawRows.length; i++) {
+                const row = uploadedExcelRawRows[i];
+                if (!row || row.length === 0 || row.every(c => c === null || c === undefined || String(c).trim() === '')) continue;
+
+                const rawName = String(row[nameIdx] || '').trim();
+                if (!rawName) continue;
+
+                let rawSize = (sizeIdx !== -1 && row[sizeIdx] !== undefined) ? String(row[sizeIdx]).trim() : '';
+                if (!rawSize) {
+                    const sizeMatch = rawName.match(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/i);
+                    rawSize = sizeMatch ? sizeMatch[0] : 'Standard';
+                }
+
+                const rawMrp = parseFloat(String(row[mrpIdx] || '0').replace(/[^0-9.]/g, '')) || 0;
+                const rawCost = (costIdx !== -1 && row[costIdx] !== undefined && String(row[costIdx]).trim() !== '') 
+                    ? (parseFloat(String(row[costIdx]).replace(/[^0-9.]/g, '')) || Math.round(rawMrp * 0.65))
+                    : Math.round(rawMrp * 0.65);
+                const rawRetail = (retailIdx !== -1 && row[retailIdx] !== undefined && String(row[retailIdx]).trim() !== '')
+                    ? (parseFloat(String(row[retailIdx]).replace(/[^0-9.]/g, '')) || Math.round(rawMrp * 0.88))
+                    : Math.round(rawMrp * 0.88);
+
+                let cat = 'UPVC';
+                if (catIdx !== -1 && row[catIdx] !== undefined && String(row[catIdx]).trim() !== '') {
+                    const cVal = String(row[catIdx]).toUpperCase();
+                    if (cVal.includes('CPVC')) cat = 'CPVC';
+                    else if (cVal.includes('SWR')) cat = 'SWR';
+                    else if (cVal.includes('AGRI') || cVal.includes('OTHER')) cat = 'AGRI_OTHER';
+                } else {
+                    const combined = (rawName + ' ' + rawSize).toUpperCase();
+                    if (combined.includes('CPVC')) cat = 'CPVC';
+                    else if (combined.includes('SWR') || combined.includes('TRAP') || combined.includes('DRAIN')) cat = 'SWR';
+                    else if (combined.includes('AGRI') || combined.includes('SOLVENT')) cat = 'AGRI_OTHER';
+                }
+
+                newRows.push({
+                    id: dynamicRowNextId++,
+                    product_name: rawName,
+                    size: rawSize,
+                    group_type: cat,
+                    mrp: rawMrp,
+                    purchase_cost: rawCost,
+                    retail_price: rawRetail,
+                    image_url: '',
+                    asset_url: ''
+                });
+            }
+
+            if (newRows.length === 0) {
+                alert('Chune gaye mapping ke anusaar koi valid rows nahi mili.');
+                return;
+            }
+
+            dynamicRows = newRows;
+            renderDynamicRows();
+            toggleDynamicMode(true);
+            closeColumnMapperModal();
+
+            if (uploadedExcelFileName) {
+                const sheetNameInput = document.getElementById('dynamicSheetName');
+                if (sheetNameInput) {
+                    sheetNameInput.value = uploadedExcelFileName.replace(/\.[^/.]+$/, "");
+                }
+            }
+
+            alert(`🎉 Success! Excel sheet se ${newRows.length} products sahi MRP aur Sizes ke sath map ho gaye hain!`);
         }
 
         function groupSelectedRowsIntoCard() {
