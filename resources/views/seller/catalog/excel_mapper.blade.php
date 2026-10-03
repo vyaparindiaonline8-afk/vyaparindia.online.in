@@ -262,12 +262,13 @@
                         <span class="text-xs font-black text-gray-800 uppercase tracking-wider">Dynamic Spreadsheet Lines:</span>
                         <span class="text-xs text-gray-500" id="dynamicTableSubtitle">(Select 6-8 lines to link photo or group into 1 card)</span>
                     </div>
-                    <div class="flex items-center gap-2 text-xs">
-                        <span class="text-gray-500">Quick Select:</span>
-                        <button type="button" onclick="selectNDynamicRows(6)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700">First 6</button>
-                        <button type="button" onclick="selectNDynamicRows(8)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700">First 8</button>
-                        <button type="button" onclick="toggleSelectAllDynamic(true)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700">All</button>
-                        <button type="button" onclick="clearDynamicRowSelection()" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-600" title="Selected checkboxes uncheck karein">Deselect</button>
+                    <div class="flex items-center gap-2 text-xs flex-wrap">
+                        <span class="text-gray-500 font-semibold">Quick Select:</span>
+                        <button type="button" onclick="selectNDynamicRows(4)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700" title="Top ke 4 rows select karein">Next 4</button>
+                        <button type="button" onclick="selectNDynamicRows(6)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700" title="Top ke 6 rows select karein">Next 6</button>
+                        <button type="button" onclick="selectNDynamicRows(8)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700" title="Top ke 8 rows select karein">Next 8</button>
+                        <button type="button" onclick="selectSameDynamicFamily()" class="px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 font-bold text-blue-700" title="Ek hi item ke sabhi sizes ek sath select karein">Same Family</button>
+                        <button type="button" onclick="clearDynamicRowSelection()" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-600" title="Selected checkboxes uncheck karein">Clear</button>
                         <button type="button" onclick="resetDynamicTable()" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 flex items-center gap-1 transition" title="Purane sabhi rows ko delete karein">
                             <i class="fa-solid fa-trash-can"></i>
                             <span>Clear All Rows</span>
@@ -276,9 +277,9 @@
                             <i class="fa-solid fa-table-columns text-teal-600"></i>
                             <span>Map Columns</span>
                         </button>
-                        <button type="button" onclick="groupSelectedRowsIntoCard()" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition ml-2">
+                        <button type="button" onclick="groupSelectedRowsIntoCard()" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition ml-1">
                             <i class="fa-solid fa-layer-group"></i>
-                            <span>Group (6-8) Rows into 1 Card</span>
+                            <span>Group Selected into Card</span>
                         </button>
                     </div>
                 </div>
@@ -444,12 +445,13 @@
                     <span class="text-xs font-black text-gray-800 uppercase tracking-wider">Excel Spreadsheet Rows:</span>
                     <span class="text-xs text-gray-500">({{ count($flatRows) }} size variants total)</span>
                 </div>
-                <div class="flex items-center gap-2 text-xs">
-                    <span class="text-gray-500">Quick Select:</span>
-                    <button type="button" onclick="selectNRows(6)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700">First 6</button>
-                    <button type="button" onclick="selectNRows(8)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700">First 8</button>
-                    <button type="button" onclick="selectSameProductRows()" class="px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 font-bold text-blue-700">Same Family</button>
-                    <button type="button" onclick="clearRowSelection()" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-600">Clear</button>
+                <div class="flex items-center gap-2 text-xs flex-wrap">
+                    <span class="text-gray-500 font-semibold">Quick Select:</span>
+                    <button type="button" onclick="selectNRows(4)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700" title="Top ke 4 rows select karein">Next 4</button>
+                    <button type="button" onclick="selectNRows(6)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700" title="Top ke 6 rows select karein">Next 6</button>
+                    <button type="button" onclick="selectNRows(8)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700" title="Top ke 8 rows select karein">Next 8</button>
+                    <button type="button" onclick="selectSameProductRows()" class="px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 font-bold text-blue-700" title="Ek hi item ke sabhi sizes ek sath select karein">Same Family</button>
+                    <button type="button" onclick="clearRowSelection(); clearDynamicRowSelection();" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-600">Clear</button>
                 </div>
             </div>
 
@@ -620,15 +622,24 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-2">
-            <button type="button" onclick="clearRowSelection()" class="px-3 py-2 rounded-xl text-gray-400 hover:text-white text-xs font-bold transition">
+        <div class="flex items-center gap-2 flex-wrap">
+            <button type="button" onclick="clearRowSelection(); clearDynamicRowSelection();" class="px-3 py-2 rounded-xl text-gray-400 hover:text-white text-xs font-bold transition">
                 Deselect
             </button>
-            <button type="button" onclick="groupSelectedRowsIntoCard()" class="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-1.5 transition active:scale-95" title="Combine selected rows into 1 Product Card">
+            <div id="addToExistingCardWrapper" class="hidden flex items-center gap-1.5 bg-gray-800/80 p-1 rounded-2xl border border-amber-400/30">
+                <select id="selectTargetCard" class="bg-gray-900 text-amber-300 text-xs font-bold py-1.5 px-2 rounded-xl border border-gray-700 focus:outline-none max-w-[180px] truncate">
+                    <!-- Populated dynamically -->
+                </select>
+                <button type="button" onclick="addSelectedRowsToTargetCard()" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-gray-950 font-black text-xs shadow-md flex items-center gap-1 transition active:scale-95" title="Selected rows ko is existing card me jod do">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Add to Card</span>
+                </button>
+            </div>
+            <button type="button" onclick="groupSelectedRowsIntoCard()" class="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-1.5 transition active:scale-95" title="Combine selected rows into a new Product Card">
                 <i class="fa-solid fa-layer-group"></i>
-                <span>Group into 1 Card</span>
+                <span>Group into New Card</span>
             </button>
-            <button type="button" onclick="openGalleryDrawerForBatch()" class="px-5 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-black text-xs shadow-lg shadow-emerald-500/30 flex items-center gap-2 transition active:scale-95">
+            <button type="button" onclick="openGalleryDrawerForBatch()" class="px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-black text-xs shadow-lg shadow-emerald-500/30 flex items-center gap-2 transition active:scale-95">
                 <i class="fa-solid fa-images"></i>
                 <span>Assign Image (<span id="btnBatchCount">0</span>)</span>
             </button>
@@ -1165,9 +1176,24 @@
             const bar = document.getElementById('floatingBatchBar');
             const selCountEl = document.getElementById('floatingSelectedCount');
             const btnBatchEl = document.getElementById('btnBatchCount');
+            const addToCardWrap = document.getElementById('addToExistingCardWrapper');
+            const selectTargetCard = document.getElementById('selectTargetCard');
             
             if (selCountEl) selCountEl.innerText = count;
             if (btnBatchEl) btnBatchEl.innerText = count;
+
+            if (addToCardWrap && selectTargetCard) {
+                if (groupedProductCards.length > 0 && count > 0) {
+                    addToCardWrap.classList.remove('hidden');
+                    let opts = '';
+                    groupedProductCards.forEach(c => {
+                        opts += `<option value="${c.card_id}">${escapeHtml(c.parent_name)} (${c.variants.length} sizes)</option>`;
+                    });
+                    selectTargetCard.innerHTML = opts;
+                } else {
+                    addToCardWrap.classList.add('hidden');
+                }
+            }
 
             if (bar) {
                 if (count > 0) {
@@ -2088,6 +2114,13 @@
                                     ${variantRowsHtml}
                                 </tbody>
                             </table>
+                            <div class="p-2.5 border-t border-gray-100 flex items-center justify-between bg-white/70">
+                                <button type="button" onclick="addVariantToCard(${c.card_id})" class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1.5 transition">
+                                    <i class="fa-solid fa-plus text-[10px]"></i>
+                                    <span>+ Add Missed Size Variant</span>
+                                </button>
+                                <span class="text-[11px] text-gray-400 font-medium">Agar koi size chhut gaya ho to yahan click karke direct add karein</span>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -2148,6 +2181,84 @@
             groupedProductCards = groupedProductCards.filter(c => c.card_id !== cardId);
             renderDynamicRows();
             renderGroupedProductCards();
+            refreshCategoryFilterTabs();
+            updateFloatingBatchBar();
+        }
+
+        function addVariantToCard(cardId) {
+            const card = groupedProductCards.find(c => c.card_id === cardId);
+            if (!card) return;
+            const lastVar = card.variants[card.variants.length - 1];
+            const newVariant = {
+                id: dynamicRowNextId++,
+                product_code: '',
+                size: '',
+                packing_1: lastVar ? lastVar.packing_1 : '',
+                packing_2: lastVar ? lastVar.packing_2 : '',
+                mrp: lastVar ? lastVar.mrp : 100,
+                purchase_cost: lastVar ? lastVar.purchase_cost : 60,
+                cost_price_2: lastVar ? (lastVar.cost_price_2 || 0) : 0,
+                cost_price_3: lastVar ? (lastVar.cost_price_3 || 0) : 0,
+                retail_price: lastVar ? lastVar.retail_price : 85,
+                stock: 100
+            };
+            card.variants.push(newVariant);
+            renderGroupedProductCards();
+        }
+
+        function addSelectedRowsToTargetCard() {
+            const selectEl = document.getElementById('selectTargetCard');
+            const targetCardId = parseInt(selectEl?.value);
+            if (isNaN(targetCardId)) {
+                alert('Pehle koi Product Card select karein.');
+                return;
+            }
+
+            const card = groupedProductCards.find(c => c.card_id === targetCardId);
+            if (!card) {
+                alert('Chuna gaya Product Card nahi mila.');
+                return;
+            }
+
+            let checkedIds = [];
+            if (isDynamicMode) {
+                checkedIds = Array.from(document.querySelectorAll('.dynamic-row-checkbox:checked')).map(cb => parseInt(cb.value));
+            } else {
+                checkedIds = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => parseInt(cb.value));
+            }
+
+            if (checkedIds.length === 0) {
+                alert('Table me se kam se kam 1 row select karein.');
+                return;
+            }
+
+            const rowsToAdd = dynamicRows.filter(r => checkedIds.includes(r.id));
+            rowsToAdd.forEach(r => {
+                card.variants.push({
+                    id: r.id,
+                    product_code: r.product_code || '',
+                    size: r.size || 'Standard',
+                    packing_1: r.packing_1 || '',
+                    packing_2: r.packing_2 || '',
+                    mrp: r.mrp,
+                    purchase_cost: r.purchase_cost,
+                    cost_price_2: r.cost_price_2 || 0,
+                    cost_price_3: r.cost_price_3 || 0,
+                    retail_price: r.retail_price,
+                    stock: r.stock || 100
+                });
+            });
+
+            // Remove transferred rows from flat table
+            dynamicRows = dynamicRows.filter(r => !checkedIds.includes(r.id));
+
+            clearDynamicRowSelection();
+            renderDynamicRows();
+            renderGroupedProductCards();
+            refreshCategoryFilterTabs();
+            updateFloatingBatchBar();
+
+            alert(`🎉 Success! ${rowsToAdd.length} row(s) ko "${card.parent_name}" card me jod diya gaya hai.`);
         }
 
         function deleteGroupedCard(cardId) {
@@ -2375,11 +2486,37 @@
 
         function selectNDynamicRows(n) {
             clearDynamicRowSelection();
-            const cbs = document.querySelectorAll('.dynamic-row-checkbox');
-            for (let i = 0; i < Math.min(n, cbs.length); i++) {
-                cbs[i].checked = true;
-                cbs[i].closest('tr').classList.add('row-selected');
+            const visibleRows = Array.from(document.querySelectorAll('.dynamic-row-item')).filter(tr => tr.style.display !== 'none');
+            for (let i = 0; i < Math.min(n, visibleRows.length); i++) {
+                const cb = visibleRows[i].querySelector('.dynamic-row-checkbox');
+                if (cb) {
+                    cb.checked = true;
+                    visibleRows[i].classList.add('row-selected');
+                }
             }
+            updateFloatingBatchBar();
+        }
+
+        function selectSameDynamicFamily() {
+            clearDynamicRowSelection();
+            const visibleRows = Array.from(document.querySelectorAll('.dynamic-row-item')).filter(tr => tr.style.display !== 'none');
+            if (visibleRows.length === 0) return;
+            const firstRowInput = visibleRows[0].querySelector('input[placeholder="Product Name"]');
+            const firstName = firstRowInput ? firstRowInput.value.trim() : '';
+            // Strip dimensions to extract base product name
+            const baseFamily = firstName.replace(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/ig, '').trim().toLowerCase();
+
+            visibleRows.forEach(tr => {
+                const nameInput = tr.querySelector('input[placeholder="Product Name"]');
+                const name = nameInput ? nameInput.value.trim().toLowerCase() : '';
+                if (name.includes(baseFamily) || (baseFamily.length > 5 && baseFamily.includes(name.slice(0, 10)))) {
+                    const cb = tr.querySelector('.dynamic-row-checkbox');
+                    if (cb) {
+                        cb.checked = true;
+                        tr.classList.add('row-selected');
+                    }
+                }
+            });
             updateFloatingBatchBar();
         }
 
