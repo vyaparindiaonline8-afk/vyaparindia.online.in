@@ -41,6 +41,10 @@
                 </div>
 
                 <div class="flex items-center gap-2">
+                    <button type="button" onclick="toggleDynamicMode(true)" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <span>+ Import New Excel</span>
+                    </button>
                     @if($job)
                         <a href="{{ route('seller.catalog.export_excel', $job->id) }}" class="px-3.5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition flex items-center gap-1.5">
                             <i class="fa-solid fa-file-excel text-emerald-600"></i>
@@ -50,16 +54,11 @@
                         <form action="{{ route('seller.catalog.excel_mapper.publish_direct') }}" method="POST" id="directPublishForm" onsubmit="return confirm('Kya aap in sabhi products ko apne live store par publish karna chahte hain?');">
                             @csrf
                             <input type="hidden" name="job_id" value="{{ $job->id }}">
-                            <button type="submit" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95">
+                            <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 flex items-center gap-2 transition active:scale-95">
                                 <i class="fa-solid fa-cloud-arrow-up"></i>
-                                <span>Publish to Live Store</span>
+                                <span>Publish Job #{{ $job->id }}</span>
                             </button>
                         </form>
-                    @else
-                        <a href="{{ route('seller.catalog.upload') }}" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-2 transition">
-                            <i class="fa-solid fa-cloud-arrow-up"></i>
-                            <span>Upload Fresh Excel / PDF</span>
-                        </a>
                     @endif
                 </div>
             </div>
@@ -93,10 +92,27 @@
         @endif
 
         <!-- ========================================== -->
+        <!-- 🎛️ TOP MODE SWITCHER TABS                  -->
+        <!-- ========================================== -->
+        <div class="flex flex-wrap items-center gap-3 bg-white p-2 rounded-2xl border border-gray-200 shadow-2xs">
+            <button type="button" onclick="toggleDynamicMode(true)" id="tabDynamicExcelMode" class="flex-1 py-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 bg-emerald-600 text-white shadow-xs">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>1. Fresh Excel Upload & Photo Linker</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] bg-white/20 text-white font-bold">Active</span>
+            </button>
+            @if($job && !empty($products))
+                <button type="button" onclick="toggleDynamicMode(false)" id="tabSavedJobMode" class="flex-1 py-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200">
+                    <i class="fa-solid fa-box-archive text-indigo-600"></i>
+                    <span>2. View Saved Job (#{{ $job->id }}: {{ $job->filename }})</span>
+                </button>
+            @endif
+        </div>
+
+        <!-- ========================================== -->
         <!-- 📑 DYNAMIC SAAS SPREADSHEET TABLE          -->
         <!-- (Supports PDF Extracted Lines & 6-8 Link)  -->
         <!-- ========================================== -->
-        <div id="dynamicSheetContainer" class="{{ (!$job || empty($products)) ? '' : 'hidden' }} space-y-4">
+        <div id="dynamicSheetContainer" class="space-y-4">
             <!-- Dynamic Controls Header -->
             <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
@@ -1015,7 +1031,7 @@
         // ==========================================
         // 📑 DYNAMIC SAAS SPREADSHEET TABLE LOGIC
         // ==========================================
-        let isDynamicMode = {{ (!$job || empty($products)) ? 'true' : 'false' }};
+        let isDynamicMode = true;
         let dynamicRows = [];
         let dynamicRowNextId = 1;
         let groupedProductCards = [];
@@ -1026,14 +1042,28 @@
             const dynContainer = document.getElementById('dynamicSheetContainer');
             const viewTable = document.getElementById('viewTableContainer');
             const viewCards = document.getElementById('viewCardsContainer');
+            const tabDyn = document.getElementById('tabDynamicExcelMode');
+            const tabSaved = document.getElementById('tabSavedJobMode');
 
             if (enable) {
                 if (dynContainer) dynContainer.classList.remove('hidden');
                 if (viewTable) viewTable.classList.add('hidden');
                 if (viewCards) viewCards.classList.add('hidden');
+                if (tabDyn) {
+                    tabDyn.className = "flex-1 py-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 bg-emerald-600 text-white shadow-xs";
+                }
+                if (tabSaved) {
+                    tabSaved.className = "flex-1 py-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200";
+                }
             } else {
                 if (dynContainer) dynContainer.classList.add('hidden');
                 if (viewTable) viewTable.classList.remove('hidden');
+                if (tabDyn) {
+                    tabDyn.className = "flex-1 py-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200";
+                }
+                if (tabSaved) {
+                    tabSaved.className = "flex-1 py-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 bg-emerald-600 text-white shadow-xs";
+                }
             }
             clearDynamicRowSelection();
             clearRowSelection();
@@ -1806,6 +1836,13 @@
         window.addEventListener('DOMContentLoaded', () => {
             initDynamicSheet();
             loadGalleryImagesAjax();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('mode') === 'saved_job') {
+                toggleDynamicMode(false);
+            } else {
+                toggleDynamicMode(true);
+            }
 
             // Restore any locally cached crops into Photo Bank Drawer if missing
             try {

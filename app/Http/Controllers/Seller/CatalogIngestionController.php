@@ -1089,9 +1089,11 @@ Please respond clearly in simple professional Hinglish/English with bullet point
 
         if ($jobId) {
             $job = CatalogIngestionJob::where('id', $jobId)->where('user_id', $userId)->first();
-        } else {
-            $job = CatalogIngestionJob::where('user_id', $userId)->latest()->first();
+        } elseif ($request->has('job_id')) {
+            $job = CatalogIngestionJob::where('id', $request->input('job_id'))->where('user_id', $userId)->first();
         }
+
+        $recentJobs = CatalogIngestionJob::where('user_id', $userId)->latest()->take(5)->get();
 
         if (!$job) {
             $galleryImages = $this->getAllGalleryImages($userId);
@@ -1101,6 +1103,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                 'flatRows' => [],
                 'categories' => Category::all(),
                 'galleryImages' => $galleryImages,
+                'recentJobs' => $recentJobs,
                 'upvcCount' => 0,
                 'cpvcCount' => 0,
                 'swrCount' => 0,
@@ -1174,6 +1177,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
             'flatRows',
             'galleryImages',
             'categories',
+            'recentJobs',
             'upvcCount',
             'cpvcCount',
             'swrCount',
