@@ -522,12 +522,9 @@ class CatalogIngestionController extends Controller
                     ];
                 }
 
-                foreach ($newMediaToInsert as $mediaItem) {
+                if (!empty($newMediaToInsert)) {
                     try {
-                        \App\Models\SellerMedia::firstOrCreate(
-                            ['file_path' => $mediaItem['file_path']],
-                            $mediaItem
-                        );
+                        \App\Models\SellerMedia::insertOrIgnore($newMediaToInsert);
                     } catch (\Throwable $e) {}
                 }
             }
