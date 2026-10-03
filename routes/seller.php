@@ -141,6 +141,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         // 📄 Page 2: Interactive PDF Studio (Side-by-Side Editable Canvas + Live Gallery)
         Route::get('/pdf-studio', [CatalogIngestionController::class, 'pdfStudio'])->name('pdf_studio');
         Route::post('/pdf-studio/crop-to-gallery', [CatalogIngestionController::class, 'savePdfCropToGallery'])->name('pdf_studio.crop');
+        Route::post('/ai-copilot', [CatalogIngestionController::class, 'aiCopilotChat'])->name('ai_copilot');
 
         // 📊 Page 3: Excel Multi-Row Mapper (6-8 Line Batch Image Assigner & Publisher)
         Route::get('/excel-mapper/{job?}', [CatalogIngestionController::class, 'excelMapper'])->name('excel_mapper');

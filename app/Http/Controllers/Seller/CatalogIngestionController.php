@@ -11,6 +11,7 @@ use App\Models\StockMovement;
 use App\Services\AICatalogIngestionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -408,6 +409,31 @@ class CatalogIngestionController extends Controller
     {
         $images = [];
 
+        // 0. User Cropped Images Library
+        $cropsDir = public_path('images/catalog/crops/seller_' . $userId);
+        if (is_dir($cropsDir)) {
+            $files = scandir($cropsDir);
+            foreach ($files as $f) {
+                if (in_array(strtolower(pathinfo($f, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'webp'])) {
+                    $fullPath = $cropsDir . DIRECTORY_SEPARATOR . $f;
+                    $relUrl = 'images/catalog/crops/seller_' . $userId . '/' . $f;
+                    $name = ucwords(str_replace(['crop_', 'p_', '_', '-'], ' ', pathinfo($f, PATHINFO_FILENAME)));
+                    $images[] = [
+                        'id' => md5($relUrl),
+                        'filename' => $f,
+                        'name' => trim($name),
+                        'url' => $relUrl,
+                        'asset_url' => asset($relUrl),
+                        'full_path' => $fullPath,
+                        'size_kb' => round(filesize($fullPath) / 1024, 1),
+                        'created_at' => date('d M Y, H:i', filemtime($fullPath)),
+                        'source' => 'custom_crop',
+                        'deletable' => true,
+                    ];
+                }
+            }
+        }
+
         // 1. Plasto High-Res Item Library
         $plastoDir = public_path('images/catalog/plasto/items');
         if (is_dir($plastoDir)) {
@@ -569,6 +595,7 @@ class CatalogIngestionController extends Controller
         // Security check: ensure path is within allowed directories
         $allowedPrefixes = [
             public_path('images/catalog/plasto/items'),
+            public_path('images/catalog/crops'),
             public_path('storage/catalog_extracted'),
         ];
 
@@ -656,7 +683,7 @@ class CatalogIngestionController extends Controller
         }
 
         $userId = Auth::id();
-        $targetDir = public_path('storage/catalog_extracted/seller_' . $userId);
+        $targetDir = public_path('images/catalog/crops/seller_' . $userId);
         if (!is_dir($targetDir)) {
             mkdir($targetDir, 0755, true);
         }
@@ -668,7 +695,7 @@ class CatalogIngestionController extends Controller
 
         file_put_contents($fullPath, $data);
 
-        $relUrl = 'storage/catalog_extracted/seller_' . $userId . '/' . $fileName;
+        $relUrl = 'images/catalog/crops/seller_' . $userId . '/' . $fileName;
         $name = ucwords(str_replace(['_', '-'], ' ', $request->input('title') ?: "Page {$page} Crop"));
 
         $newImage = [
@@ -688,6 +715,106 @@ class CatalogIngestionController extends Controller
             'message' => 'Image cropped and saved directly to your Gallery Vault!',
             'image' => $newImage,
         ]);
+    }
+
+    /**
+     * 🤖 AI Catalog Copilot Backend Proxy (Supports OPENAI_KEY, OPENAI_API_KEY, and GEMINI_API_KEY).
+     */
+    public function aiCopilotChat(Request $request)
+    {
+        $request->validate([
+            'prompt' => 'required|string',
+            'page' => 'nullable|integer',
+            'page_text' => 'nullable|string',
+            'api_key' => 'nullable|string',
+        ]);
+
+        $userKey = trim($request->input('api_key') ?? '');
+        
+        // Priority 1: OpenAI Key from .env / Render or user input
+        $openAiKey = (str_starts_with($userKey, 'sk-')) 
+            ? $userKey 
+            : (env('OPENAI_KEY') ?: env('OPENAI_API_KEY') ?: ($userKey ?: null));
+
+        // Priority 2: Google Gemini Key
+        $geminiKey = (str_starts_with($userKey, 'AIza'))
+            ? $userKey
+            : (env('GEMINI_API_KEY') ?: env('GEMINI_KEY') ?: ($userKey ?: null));
+
+        $prompt = $request->input('prompt');
+        $page = $request->input('page', 1);
+        $pageText = $request->input('page_text', '');
+
+        $systemPrompt = "You are VyaparIndia AI Catalog Copilot, an expert AI assistant specializing in plumbing, PVC/CPVC/UPVC/SWR pipes & fittings, hardware catalogs, pricing, HSN codes, and B2B wholesale listings.
+Current Catalog Page: Page {$page}.
+Extracted text on active page:
+\"\"\"
+" . substr($pageText, 0, 3000) . "
+\"\"\"
+
+User question: \"{$prompt}\"
+Please respond clearly in simple professional Hinglish/English with bullet points, product names, dimensions, or calculations as needed.";
+
+        // If OpenAI key is present (starts with sk- or env variable set)
+        if ($openAiKey && (str_starts_with($openAiKey, 'sk-') || !$geminiKey)) {
+            try {
+                $response = Http::withToken($openAiKey)
+                    ->timeout(35)
+                    ->post('https://api.openai.com/v1/chat/completions', [
+                        'model' => 'gpt-4o-mini',
+                        'messages' => [
+                            ['role' => 'system', 'content' => $systemPrompt],
+                            ['role' => 'user', 'content' => $prompt],
+                        ],
+                        'temperature' => 0.7,
+                    ]);
+
+                if ($response->successful()) {
+                    $reply = $response->json('choices.0.message.content');
+                    return response()->json([
+                        'success' => true,
+                        'reply' => $reply,
+                        'provider' => 'OpenAI (GPT-4o mini)',
+                    ]);
+                } else {
+                    $errMsg = $response->json('error.message') ?? 'OpenAI API error occurred.';
+                    return response()->json(['success' => false, 'message' => $errMsg], 400);
+                }
+            } catch (\Exception $e) {
+                return response()->json(['success' => false, 'message' => 'OpenAI connection error: ' . $e->getMessage()], 500);
+            }
+        }
+
+        // If Google Gemini key is present
+        if ($geminiKey) {
+            try {
+                $response = Http::timeout(35)
+                    ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$geminiKey}", [
+                        'contents' => [
+                            ['parts' => [['text' => $systemPrompt]]]
+                        ]
+                    ]);
+
+                if ($response->successful()) {
+                    $reply = $response->json('candidates.0.content.parts.0.text');
+                    return response()->json([
+                        'success' => true,
+                        'reply' => $reply,
+                        'provider' => 'Google Gemini 1.5 Flash',
+                    ]);
+                } else {
+                    $errMsg = $response->json('error.message') ?? 'Gemini API error occurred.';
+                    return response()->json(['success' => false, 'message' => $errMsg], 400);
+                }
+            } catch (\Exception $e) {
+                return response()->json(['success' => false, 'message' => 'Gemini connection error: ' . $e->getMessage()], 500);
+            }
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Koi AI API Key nahi mili. Kripya apne .env ya Render me OPENAI_KEY ya OPENAI_API_KEY dalein, ya Copilot settings me key paste karein.',
+        ], 400);
     }
 
     /**
