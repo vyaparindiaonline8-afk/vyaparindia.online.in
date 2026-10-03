@@ -267,7 +267,11 @@
                         <button type="button" onclick="selectNDynamicRows(6)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700">First 6</button>
                         <button type="button" onclick="selectNDynamicRows(8)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700">First 8</button>
                         <button type="button" onclick="toggleSelectAllDynamic(true)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700">All</button>
-                        <button type="button" onclick="clearDynamicRowSelection()" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-600">Clear</button>
+                        <button type="button" onclick="clearDynamicRowSelection()" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-600" title="Selected checkboxes uncheck karein">Deselect</button>
+                        <button type="button" onclick="resetDynamicTable()" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 flex items-center gap-1 transition" title="Purane sabhi rows ko delete karein">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span>Clear All Rows</span>
+                        </button>
                         <button type="button" onclick="openColumnMapperModal()" id="btnOpenColumnMapper" class="px-3 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-extrabold text-xs border border-teal-200 flex items-center gap-1.5 transition ml-1" title="Excel Sheet ke columns ko dobara map karein">
                             <i class="fa-solid fa-table-columns text-teal-600"></i>
                             <span>Map Columns</span>
@@ -2052,6 +2056,21 @@
             const selAll = document.getElementById('dynamicSelectAll');
             if (selAll) selAll.checked = false;
             updateFloatingBatchBar();
+        }
+
+        function resetDynamicTable() {
+            if (dynamicRows.length === 0 && groupedProductCards.length === 0) {
+                alert('Table pehle se hi khali hai.');
+                return;
+            }
+            if (confirm('Kya aap table ke sabhi purane rows ko delete karke fresh shuru karna chahte hain?')) {
+                dynamicRows = [];
+                groupedProductCards = [];
+                localStorage.removeItem('vyapar_custom_excel_lines');
+                renderDynamicRows();
+                renderGroupedProductCards();
+                clearDynamicRowSelection();
+            }
         }
 
         function exportDynamicToCsv() {
