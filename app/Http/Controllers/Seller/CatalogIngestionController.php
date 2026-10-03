@@ -467,15 +467,18 @@ class CatalogIngestionController extends Controller
             Log::warning('SellerMedia DB fetch warning: ' . $e->getMessage());
         }
 
-        // 2. Live Cloudinary Sync (Fetches all crops uploaded across all sessions with 60s cache)
+        // 2. Live Cloudinary Sync (Fetches all crops uploaded across all sessions)
         try {
-            $cloudResources = \Illuminate\Support\Facades\Cache::remember('cloudinary_resources_vyaparindia', 60, function () {
-                $res = CloudinaryService::listResources('vyaparindia', 500);
-                if (empty($res)) {
-                    $res = CloudinaryService::listResources('', 500);
+            $cloudResources = \Illuminate\Support\Facades\Cache::get('cloudinary_resources_vyaparindia');
+            if (empty($cloudResources)) {
+                $cloudResources = CloudinaryService::listResources('vyaparindia', 500);
+                if (empty($cloudResources)) {
+                    $cloudResources = CloudinaryService::listResources('', 500);
                 }
-                return $res;
-            });
+                if (!empty($cloudResources)) {
+                    \Illuminate\Support\Facades\Cache::put('cloudinary_resources_vyaparindia', $cloudResources, 300);
+                }
+            }
 
             if (!empty($cloudResources)) {
                 $newMediaToInsert = [];
@@ -519,8 +522,13 @@ class CatalogIngestionController extends Controller
                     ];
                 }
 
-                if (!empty($newMediaToInsert)) {
-                    \App\Models\SellerMedia::insert($newMediaToInsert);
+                foreach ($newMediaToInsert as $mediaItem) {
+                    try {
+                        \App\Models\SellerMedia::firstOrCreate(
+                            ['file_path' => $mediaItem['file_path']],
+                            $mediaItem
+                        );
+                    } catch (\Throwable $e) {}
                 }
             }
         } catch (\Throwable $e) {
@@ -700,6 +708,20 @@ class CatalogIngestionController extends Controller
             'plastoCount' => $plastoCount,
             'customCount' => $customCount,
             'searchQuery' => $query,
+        ]);
+    }
+
+    /**
+     * Return all Photo Bank Gallery images as JSON for dynamic frontend UI.
+     */
+    public function galleryJson(Request $request)
+    {
+        $userId = Auth::id() ?: 1;
+        $images = $this->getAllGalleryImages($userId);
+        return response()->json([
+            'success' => true,
+            'count' => count($images),
+            'images' => array_values($images),
         ]);
     }
 

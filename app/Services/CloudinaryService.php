@@ -30,6 +30,11 @@ class CloudinaryService
             }
         }
 
+        // Guaranteed production fallbacks for VyaparIndia Cloudinary
+        $cloudName = $cloudName ?: 'drsiakue4';
+        $apiKey = $apiKey ?: '816858413276152';
+        $apiSecret = $apiSecret ?: 'Iny3v648z1FVqRYNvMIYzoyLoEs';
+
         return [$cloudName, $apiKey, $apiSecret];
     }
 

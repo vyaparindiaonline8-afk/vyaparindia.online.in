@@ -154,6 +154,61 @@
                 </div>
             </div>
 
+            <!-- ======================================================== -->
+            <!-- 📷 LIVE PHOTO BANK TRAY (DIRECT ON-PAGE ACCESS)           -->
+            <!-- ======================================================== -->
+            <div class="bg-white rounded-3xl border border-gray-200 shadow-sm p-4 space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-2.5">
+                        <div class="h-9 w-9 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-base shadow-xs">
+                            <i class="fa-solid fa-camera-retro"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-black text-gray-900 flex items-center gap-2">
+                                <span>Live Photo Bank</span>
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] bg-indigo-100 text-indigo-800 font-black" id="onPagePhotoCount">{{ count($galleryImages) }} Photos</span>
+                            </h3>
+                            <p class="text-[11px] text-gray-500">
+                                Select 1 or more rows below & click any photo to attach. (Cloudinary + Central Bank)
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="relative w-48 sm:w-64">
+                            <input type="text" id="onPagePhotoSearch" placeholder="Search photos (Elbow, Tee, Plumber)..." oninput="filterOnPagePhotoBank(this.value)" class="w-full pl-8 pr-3 py-1.5 rounded-xl border border-gray-300 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-gray-50 focus:bg-white">
+                            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-gray-400 text-xs"></i>
+                        </div>
+                        <button type="button" onclick="openGalleryDrawer('browse', null)" class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-expand"></i>
+                            <span>Full View Drawer</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Horizontal Photo Strip -->
+                <div class="overflow-x-auto pb-2 border-t border-gray-100 pt-2" id="onPagePhotoStripContainer">
+                    <div class="flex items-center gap-3 min-w-max py-1" id="onPagePhotoGrid">
+                        @forelse($galleryImages as $g)
+                            <div class="on-page-photo-card flex items-center gap-2.5 p-2 bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-400 rounded-2xl cursor-pointer transition shrink-0 group" onclick="handleOnPagePhotoClick('{{ $g['url'] }}', '{{ $g['asset_url'] }}')" data-name="{{ strtolower($g['name']) }}">
+                                <div class="h-14 w-14 bg-white rounded-xl p-1 flex items-center justify-center overflow-hidden border border-gray-200 group-hover:scale-105 transition">
+                                    <img src="{{ $g['asset_url'] }}" alt="{{ $g['name'] }}" class="max-h-full max-w-full object-contain">
+                                </div>
+                                <div class="max-w-[120px]">
+                                    <h5 class="text-[11px] font-bold text-gray-800 truncate" title="{{ $g['name'] }}">{{ $g['name'] }}</h5>
+                                    <span class="text-[9px] text-indigo-600 font-semibold block">{{ $g['source'] === 'plasto_master' ? 'Master' : 'Crop' }}</span>
+                                    <span class="text-[9px] text-emerald-600 font-bold group-hover:underline">Attach &rarr;</span>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="py-4 px-4 text-center text-gray-400 text-xs flex items-center gap-2" id="onPagePhotoLoadingMsg">
+                                <i class="fa-solid fa-spinner fa-spin text-indigo-500"></i>
+                                <span>Loading Photo Bank from Cloudinary...</span>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+
             <!-- Dynamic Table Card -->
             <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
                 <div class="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/70">
@@ -772,7 +827,7 @@
             const query = q.toLowerCase().trim();
             let visible = 0;
             document.querySelectorAll('.drawer-img-card').forEach(card => {
-                const name = card.getAttribute('data-name');
+                const name = card.getAttribute('data-name') || '';
                 const match = (!query || name.includes(query));
                 card.style.display = match ? '' : 'none';
                 if (match) visible++;
@@ -781,9 +836,57 @@
             if (countEl) countEl.innerText = `${visible} Photos`;
         }
 
+        function filterOnPagePhotoBank(q) {
+            const query = q.toLowerCase().trim();
+            let visible = 0;
+            document.querySelectorAll('.on-page-photo-card').forEach(card => {
+                const name = card.getAttribute('data-name') || '';
+                const match = (!query || name.includes(query));
+                card.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            const countEl = document.getElementById('onPagePhotoCount');
+            if (countEl) countEl.innerText = `${visible} Photos`;
+        }
+
+        function handleOnPagePhotoClick(relUrl, assetUrl) {
+            if (isDynamicMode) {
+                const checked = Array.from(document.querySelectorAll('.dynamic-row-checkbox:checked')).map(cb => parseInt(cb.value));
+                if (checked.length > 0) {
+                    checked.forEach(rId => updateDynamicRowThumbnail(rId, relUrl, assetUrl));
+                    clearDynamicRowSelection();
+                    return;
+                }
+            } else {
+                const checked = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => parseInt(cb.value));
+                if (checked.length > 0) {
+                    assignImageToBatch(relUrl, checked);
+                    return;
+                }
+            }
+            // If no rows currently checked, open drawer so user can inspect or select
+            openGalleryDrawer('browse', null);
+        }
+
         // User picks an image from drawer
         function selectDrawerImage(relUrl, assetUrl) {
-            if (!currentTargetType) {
+            if (!currentTargetType || currentTargetType === 'browse') {
+                if (isDynamicMode) {
+                    const checked = Array.from(document.querySelectorAll('.dynamic-row-checkbox:checked')).map(cb => parseInt(cb.value));
+                    if (checked.length > 0) {
+                        checked.forEach(rId => updateDynamicRowThumbnail(rId, relUrl, assetUrl));
+                        clearDynamicRowSelection();
+                        closeGalleryDrawer();
+                        return;
+                    }
+                } else {
+                    const checked = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => parseInt(cb.value));
+                    if (checked.length > 0) {
+                        assignImageToBatch(relUrl, checked);
+                        closeGalleryDrawer();
+                        return;
+                    }
+                }
                 closeGalleryDrawer();
                 return;
             }
@@ -1592,41 +1695,91 @@
             return (str || '').toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
 
+        function renderPhotosIntoUi(images) {
+            if (!Array.isArray(images) || images.length === 0) return;
+
+            const grid = document.getElementById('drawerImagesGrid');
+            const onPageGrid = document.getElementById('onPagePhotoGrid');
+            const emptyPrompt = document.getElementById('drawerEmptyPrompt');
+            const onPageLoading = document.getElementById('onPagePhotoLoadingMsg');
+
+            if (emptyPrompt) emptyPrompt.remove();
+            if (onPageLoading) onPageLoading.remove();
+
+            images.forEach(img => {
+                const imgUrl = img.url || img.asset_url;
+                const assetUrl = img.asset_url || img.url;
+                const name = img.name || 'Catalog Item';
+                const source = img.source === 'plasto_master' ? 'Master' : 'Crop';
+
+                // Check if already in drawer
+                if (grid && !grid.querySelector(`.drawer-img-card[onclick*="${imgUrl}"]`)) {
+                    const card = document.createElement('div');
+                    card.className = "drawer-img-card border border-gray-200 rounded-2xl p-2 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-400 cursor-pointer text-center group transition";
+                    card.setAttribute('data-name', name.toLowerCase());
+                    card.onclick = () => selectDrawerImage(imgUrl, assetUrl);
+                    card.innerHTML = `
+                        <div class="h-20 w-full bg-white rounded-xl p-1 mb-1.5 flex items-center justify-center overflow-hidden border border-gray-100 group-hover:scale-105 transition">
+                            <img src="${assetUrl}" alt="${escapeHtml(name)}" class="max-h-full max-w-full object-contain">
+                        </div>
+                        <h5 class="text-[11px] font-bold text-gray-800 truncate" title="${escapeHtml(name)}">${escapeHtml(name)}</h5>
+                        <span class="text-[9px] text-indigo-600 font-semibold">${source}</span>
+                    `;
+                    grid.appendChild(card);
+                }
+
+                // Check if already in on-page tray
+                if (onPageGrid && !onPageGrid.querySelector(`.on-page-photo-card[onclick*="${imgUrl}"]`)) {
+                    const trayCard = document.createElement('div');
+                    trayCard.className = "on-page-photo-card flex items-center gap-2.5 p-2 bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-400 rounded-2xl cursor-pointer transition shrink-0 group";
+                    trayCard.setAttribute('data-name', name.toLowerCase());
+                    trayCard.onclick = () => handleOnPagePhotoClick(imgUrl, assetUrl);
+                    trayCard.innerHTML = `
+                        <div class="h-14 w-14 bg-white rounded-xl p-1 flex items-center justify-center overflow-hidden border border-gray-200 group-hover:scale-105 transition">
+                            <img src="${assetUrl}" alt="${escapeHtml(name)}" class="max-h-full max-w-full object-contain">
+                        </div>
+                        <div class="max-w-[120px]">
+                            <h5 class="text-[11px] font-bold text-gray-800 truncate" title="${escapeHtml(name)}">${escapeHtml(name)}</h5>
+                            <span class="text-[9px] text-indigo-600 font-semibold block">${source}</span>
+                            <span class="text-[9px] text-emerald-600 font-bold group-hover:underline">Attach &rarr;</span>
+                        </div>
+                    `;
+                    onPageGrid.appendChild(trayCard);
+                }
+            });
+
+            const totalDrawer = document.querySelectorAll('.drawer-img-card').length;
+            const countEl = document.getElementById('drawerImagesCount');
+            if (countEl) countEl.innerText = `${totalDrawer} Photos`;
+
+            const onPageCount = document.querySelectorAll('.on-page-photo-card').length;
+            const onPageCountEl = document.getElementById('onPagePhotoCount');
+            if (onPageCountEl) onPageCountEl.innerText = `${onPageCount} Photos`;
+        }
+
+        function loadGalleryImagesAjax() {
+            fetch("{{ route('seller.catalog.gallery_json') }}")
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.success && Array.isArray(data.images) && data.images.length > 0) {
+                        renderPhotosIntoUi(data.images);
+                    }
+                })
+                .catch(err => {
+                    console.warn('AJAX photo bank fetch error:', err);
+                });
+        }
+
         // Initialize when DOM is ready
         window.addEventListener('DOMContentLoaded', () => {
             initDynamicSheet();
+            loadGalleryImagesAjax();
 
             // Restore any locally cached crops into Photo Bank Drawer if missing
             try {
                 const cached = JSON.parse(localStorage.getItem('vyapar_cached_crops') || '[]');
                 if (cached.length > 0) {
-                    const grid = document.getElementById('drawerImagesGrid');
-                    const emptyPrompt = document.getElementById('drawerEmptyPrompt');
-                    if (emptyPrompt) emptyPrompt.remove();
-
-                    cached.forEach(img => {
-                        const existing = document.querySelector(`.drawer-img-card[onclick*="${img.url}"]`);
-                        if (!existing && grid) {
-                            const div = document.createElement('div');
-                            div.className = "drawer-img-card border border-emerald-300 rounded-2xl p-2 bg-emerald-50/30 hover:bg-emerald-50 hover:border-emerald-400 cursor-pointer text-center group transition";
-                            div.setAttribute('data-name', (img.name || '').toLowerCase());
-                            div.onclick = () => selectDrawerImage(img.url, img.asset_url || img.url);
-                            div.innerHTML = `
-                                <div class="h-20 w-full bg-white rounded-xl p-1 mb-1.5 flex items-center justify-center overflow-hidden border border-emerald-100 group-hover:scale-105 transition">
-                                    <img src="${img.asset_url || img.url}" alt="${img.name}" class="max-h-full max-w-full object-contain">
-                                </div>
-                                <h5 class="text-[11px] font-bold text-gray-800 truncate" title="${img.name}">${img.name}</h5>
-                                <span class="text-[9px] text-emerald-600 font-bold">Local Crop</span>
-                            `;
-                            grid.prepend(div);
-                        }
-                    });
-
-                    const countEl = document.getElementById('drawerImagesCount');
-                    if (countEl) {
-                        const totalCards = document.querySelectorAll('.drawer-img-card').length;
-                        countEl.innerText = `${totalCards} Photos`;
-                    }
+                    renderPhotosIntoUi(cached);
                 }
             } catch (e) {}
         });
