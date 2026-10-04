@@ -159,7 +159,27 @@ class MiniSiteController extends Controller
         }
 
         if ($request->filled('category')) {
-            $query->where('category_id', $request->input('category'));
+            $catParam = $request->input('category');
+            $query->where(function ($q) use ($catParam) {
+                if (is_numeric($catParam)) {
+                    $q->where('category_id', $catParam);
+                } else {
+                    $q->whereHas('category', function ($sub) use ($catParam) {
+                        $sub->where('slug', $catParam)
+                            ->orWhere('name', 'like', "%{$catParam}%");
+                    });
+                }
+            });
+        }
+
+        // 🎯 Curated 3-6 Selected Products Quick Link (e.g. ?items=145,147,150)
+        $isCurated = false;
+        if ($request->filled('items')) {
+            $itemIds = array_filter(array_map('intval', explode(',', $request->input('items'))));
+            if (!empty($itemIds)) {
+                $query->whereIn('id', $itemIds);
+                $isCurated = true;
+            }
         }
 
         // Smart Category & Sales Sorting
@@ -181,7 +201,7 @@ class MiniSiteController extends Controller
             $q->where('user_id', $sellerPage->user_id);
         })->get();
 
-        return view('seller-site.products', compact('sellerPage', 'products', 'categories', 'sort'));
+        return view('seller-site.products', compact('sellerPage', 'products', 'categories', 'sort', 'isCurated'));
     }
 
     public function product(SellerPage $sellerPage, $productSlug)

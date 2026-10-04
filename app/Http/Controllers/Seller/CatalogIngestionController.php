@@ -377,15 +377,27 @@ class CatalogIngestionController extends Controller
     /**
      * Unified Inventory & Stock Management View.
      */
-    public function inventory()
+    public function inventory(Request $request)
     {
         $sellerId = Auth::id();
-        $products = Product::where('user_id', $sellerId)
+        $query = Product::where('user_id', $sellerId)
             ->with(['variants', 'stockMovements' => function ($q) {
                 $q->latest()->take(5);
-            }])
-            ->latest()
-            ->paginate(15);
+            }]);
+
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->input('category'));
+        }
+
+        if ($request->filled('search')) {
+            $s = $request->input('search');
+            $query->where(function ($q) use ($s) {
+                $q->where('name', 'like', "%{$s}%")
+                  ->orWhere('sku', 'like', "%{$s}%");
+            });
+        }
+
+        $products = $query->latest()->paginate(25)->withQueryString();
 
         $totalCatalogItems = Product::where('user_id', $sellerId)->count();
         $lowStockCount = Product::where('user_id', $sellerId)
@@ -397,7 +409,230 @@ class CatalogIngestionController extends Controller
             ->where('stock_quantity', '<=', 0)
             ->count();
 
-        return view('seller.inventory.index', compact('products', 'totalCatalogItems', 'lowStockCount', 'outOfStockCount'));
+        $sellerCategories = Category::whereHas('products', function ($q) use ($sellerId) {
+            $q->where('user_id', $sellerId);
+        })->get();
+
+        $sellerPage = Auth::user()->sellerPage;
+
+        return view('seller.inventory.index', compact('products', 'totalCatalogItems', 'lowStockCount', 'outOfStockCount', 'sellerCategories', 'sellerPage'));
+    }
+
+    /**
+     * Download Price List / Rate Revision Template for logged-in seller.
+     */
+    public function exportPriceTemplate()
+    {
+        $sellerId = Auth::id();
+        $products = Product::where('user_id', $sellerId)->with('variants')->get();
+
+        $csvData = [];
+        $csvData[] = ['SKU / Code', 'Product Name', 'Size / Variant Name', 'Cost (Purchase Rate)', 'Wholesale Price (B2B)', 'Retail Price (D2C)', 'MRP', 'Current Stock'];
+
+        foreach ($products as $p) {
+            if ($p->variants->isNotEmpty()) {
+                foreach ($p->variants as $v) {
+                    $csvData[] = [
+                        $v->sku ?: ($p->sku ?: "PRD-{$p->id}"),
+                        $p->name,
+                        $v->variant_name ?: ($v->size ?: 'Standard'),
+                        $v->purchase_price ?: $v->raw_rate,
+                        $v->wholesale_price,
+                        $v->retail_price ?: $p->price,
+                        $v->mrp ?: $p->mrp,
+                        $v->stock_quantity ?? $p->stock_quantity ?? 100,
+                    ];
+                }
+            } else {
+                $csvData[] = [
+                    $p->sku ?: "PRD-{$p->id}",
+                    $p->name,
+                    'Standard',
+                    $p->purchase_price,
+                    $p->wholesale_price,
+                    $p->price,
+                    $p->mrp,
+                    $p->stock_quantity ?? 100,
+                ];
+            }
+        }
+
+        $filename = "VyaparIndia_RateList_Update_" . date('Y_m_d_His') . ".csv";
+        $handle = fopen('php://memory', 'w+');
+        foreach ($csvData as $row) {
+            fputcsv($handle, $row);
+        }
+        fseek($handle, 0);
+
+        return response(stream_get_contents($handle), 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ]);
+    }
+
+    /**
+     * Fast Bulk Price List / Rate Revision via Excel or CSV.
+     */
+    public function bulkRateUpdate(Request $request)
+    {
+        @set_time_limit(300);
+        $sellerId = Auth::id();
+        $rows = [];
+
+        // Check if rows sent as JSON (from SheetJS client parser)
+        if ($request->filled('rate_rows')) {
+            $decoded = json_decode($request->input('rate_rows'), true);
+            if (is_array($decoded)) {
+                $rows = $decoded;
+            }
+        } elseif ($request->hasFile('price_file')) {
+            // Native CSV parser fallback
+            $file = $request->file('price_file');
+            $path = $file->getRealPath();
+            if (($handle = fopen($path, 'r')) !== false) {
+                $header = null;
+                while (($data = fgetcsv($handle, 2000, ',')) !== false) {
+                    if (!$header) {
+                        $header = array_map(fn($h) => strtolower(trim(preg_replace('/[^a-zA-Z0-9_]/', '', str_replace([' ', '/', '-'], '_', $h)))), $data);
+                        continue;
+                    }
+                    if (count($data) >= 3) {
+                        $row = [];
+                        foreach ($header as $idx => $key) {
+                            $row[$key] = $data[$idx] ?? '';
+                        }
+                        $rows[] = $row;
+                    }
+                }
+                fclose($handle);
+            }
+        }
+
+        if (empty($rows)) {
+            return back()->with('error', 'No valid rate rows found to update. Please upload a valid CSV or Excel sheet.');
+        }
+
+        $updatedVariants = 0;
+        $updatedProducts = [];
+
+        DB::transaction(function () use ($rows, $sellerId, &$updatedVariants, &$updatedProducts) {
+            $sellerProducts = Product::where('user_id', $sellerId)->with('variants')->get();
+
+            $variantsBySku = [];
+            $variantsByNameSize = [];
+            $productsByName = [];
+
+            foreach ($sellerProducts as $p) {
+                $cleanPName = strtolower(trim($p->name));
+                $productsByName[$cleanPName] = $p;
+
+                foreach ($p->variants as $v) {
+                    if ($v->sku) {
+                        $variantsBySku[strtolower(trim($v->sku))] = $v;
+                    }
+                    $cleanVName = strtolower(trim($v->variant_name ?: ($v->size ?: 'standard')));
+                    $variantsByNameSize[$cleanPName . '___' . $cleanVName] = $v;
+                }
+            }
+
+            foreach ($rows as $row) {
+                $sku = strtolower(trim($row['sku__code'] ?? ($row['sku_code'] ?? ($row['sku'] ?? ($row['product_code'] ?? '')))));
+                $pName = strtolower(trim($row['product_name'] ?? ($row['name'] ?? ($row['item_name'] ?? ''))));
+                $vName = strtolower(trim($row['size__variant_name'] ?? ($row['size_variant_name'] ?? ($row['size'] ?? ($row['variant_name'] ?? ($row['variant'] ?? 'standard'))))));
+
+                // Clean rates helper
+                $getVal = function(array $keys) use ($row) {
+                    foreach ($keys as $k) {
+                        if (isset($row[$k]) && $row[$k] !== '' && !is_null($row[$k])) {
+                            return floatval($row[$k]);
+                        }
+                    }
+                    return null;
+                };
+
+                $cost = $getVal(['cost__purchase_rate_', 'cost_purchase_rate', 'cost', 'purchase_price', 'raw_rate']);
+                $retail = $getVal(['retail_price__d2c_', 'retail_price_d2c', 'retail_price', 'price', 'rate_a']);
+                $wholesale = $getVal(['wholesale_price__b2b_', 'wholesale_price_b2b', 'wholesale_price', 'rate_b']);
+                $mrp = $getVal(['mrp']);
+                $stockRaw = $getVal(['current_stock', 'stock']);
+                $stock = !is_null($stockRaw) ? intval($stockRaw) : null;
+
+                // Find matching variant
+                $matchedVariant = null;
+                if ($sku && isset($variantsBySku[$sku])) {
+                    $matchedVariant = $variantsBySku[$sku];
+                } elseif (isset($variantsByNameSize[$pName . '___' . $vName])) {
+                    $matchedVariant = $variantsByNameSize[$pName . '___' . $vName];
+                } elseif (isset($productsByName[$pName]) && $productsByName[$pName]->variants->isNotEmpty()) {
+                    foreach ($productsByName[$pName]->variants as $pv) {
+                        $pvName = strtolower(trim($pv->variant_name ?: $pv->size));
+                        if ($vName && (str_contains($pvName, $vName) || str_contains($vName, $pvName))) {
+                            $matchedVariant = $pv;
+                            break;
+                        }
+                    }
+                }
+
+                if ($matchedVariant) {
+                    $updates = [];
+                    if (!is_null($cost) && $cost > 0) {
+                        $updates['raw_rate'] = $cost;
+                        $updates['purchase_price'] = $cost;
+                    }
+                    if (!is_null($retail) && $retail > 0) $updates['retail_price'] = $retail;
+                    if (!is_null($wholesale) && $wholesale > 0) $updates['wholesale_price'] = $wholesale;
+                    if (!is_null($mrp) && $mrp > 0) $updates['mrp'] = $mrp;
+                    if (!is_null($stock)) $updates['stock_quantity'] = $stock;
+
+                    if (!empty($updates)) {
+                        $matchedVariant->update($updates);
+                        $updatedVariants++;
+                        $updatedProducts[$matchedVariant->product_id] = true;
+                    }
+                } elseif (isset($productsByName[$pName])) {
+                    $pObj = $productsByName[$pName];
+                    $updates = [];
+                    if (!is_null($cost) && $cost > 0) $updates['purchase_price'] = $cost;
+                    if (!is_null($retail) && $retail > 0) $updates['price'] = $retail;
+                    if (!is_null($wholesale) && $wholesale > 0) $updates['wholesale_price'] = $wholesale;
+                    if (!is_null($mrp) && $mrp > 0) $updates['mrp'] = $mrp;
+                    if (!is_null($stock)) $updates['stock_quantity'] = $stock;
+
+                    if (!empty($updates)) {
+                        $pObj->update($updates);
+                        $updatedProducts[$pObj->id] = true;
+                    }
+                }
+            }
+
+            // Sync parent products baseline from first variant
+            foreach (array_keys($updatedProducts) as $pId) {
+                $p = Product::with('variants')->find($pId);
+                if ($p && $p->variants->isNotEmpty()) {
+                    $first = $p->variants->first();
+                    $p->update([
+                        'purchase_price' => $first->purchase_price ?: $first->raw_rate,
+                        'price' => $first->retail_price ?: $p->price,
+                        'wholesale_price' => $first->wholesale_price ?: $p->wholesale_price,
+                        'mrp' => $first->mrp ?: $p->mrp,
+                    ]);
+                }
+            }
+        });
+
+        $prodCount = count($updatedProducts);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "🎉 Shandar! Nayi Rate List ke anusar {$updatedVariants} sizes aur {$prodCount} products ke rates turant update ho gaye hain!",
+                'updated_variants' => $updatedVariants,
+                'updated_products' => $prodCount,
+            ]);
+        }
+
+        return redirect()->route('seller.inventory.index')
+            ->with('success', "🎉 Shandar! Nayi Rate List ke anusar {$updatedVariants} sizes aur {$prodCount} products ke rates turant update ho gaye hain!");
     }
 
     /**
@@ -471,15 +706,42 @@ class CatalogIngestionController extends Controller
         $images = [];
         $seenUrls = [];
 
-        // 1. Registered SellerMedia from Database (Permanent Central Cloudinary & Custom Crops)
+        // 1. Registered SellerMedia from Database:
+        // - Personal: ALWAYS include all images owned by $userId
+        // - Universal Central: Include images from other sellers ONLY IF permission_granted == true AND is_universal == true AND NOT fashion/clothing
         try {
-            $dbMedia = \App\Models\SellerMedia::latest()->get();
+            $dbMedia = \App\Models\SellerMedia::where(function ($q) use ($userId) {
+                $q->where('user_id', $userId)
+                  ->orWhere(function ($sub) {
+                      $sub->where('is_universal', true)
+                          ->where('permission_granted', true);
+                  });
+            })->latest()->get();
+
+            $fashionKeywords = ['cloth', 'dress', 'shirt', 'pant', 'sari', 'saree', 'suit', 'fashion', 'kurti', 'tshirt', 'jeans', 'fabric', 'apparel', 'garment', 'dupatta', 'top', 'tunic'];
+
             foreach ($dbMedia as $m) {
+                // If it belongs to another seller, ensure no personal fashion/clothes enter the Central Hub
+                if ($m->user_id != $userId) {
+                    $fn = strtolower($m->filename);
+                    $ct = strtolower($m->category_type ?? '');
+                    $isFashion = false;
+                    foreach ($fashionKeywords as $kw) {
+                        if (str_contains($fn, $kw) || str_contains($ct, $kw)) {
+                            $isFashion = true;
+                            break;
+                        }
+                    }
+                    if ($isFashion) continue;
+                }
+
                 $url = $m->file_path;
                 if (isset($seenUrls[$url])) continue;
                 $seenUrls[$url] = true;
                 $assetUrl = (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) ? $url : asset($url);
                 $name = $m->filename ? ucwords(str_replace(['crop_', 'p_', '_', '-'], ' ', pathinfo($m->filename, PATHINFO_FILENAME))) : 'Catalog Image';
+                $isMine = ($m->user_id == $userId);
+
                 $images[] = [
                     'id' => md5($url),
                     'filename' => $m->filename,
@@ -488,8 +750,11 @@ class CatalogIngestionController extends Controller
                     'asset_url' => $assetUrl,
                     'size_kb' => 35.0,
                     'created_at' => $m->created_at ? $m->created_at->format('d M Y, H:i') : date('d M Y, H:i'),
-                    'source' => 'custom_crop',
-                    'deletable' => true,
+                    'source' => $isMine ? 'personal_vault' : 'universal_central',
+                    'is_universal' => (bool)$m->is_universal,
+                    'permission_granted' => (bool)$m->permission_granted,
+                    'is_mine' => $isMine,
+                    'deletable' => $isMine,
                 ];
             }
         } catch (\Throwable $e) {
@@ -766,25 +1031,67 @@ class CatalogIngestionController extends Controller
             'image_file' => 'required|image|mimes:jpeg,png,jpg,webp|max:10240',
         ]);
 
-        $userId = Auth::id();
-        $targetDir = public_path('storage/catalog_extracted/seller_' . $userId);
-        if (!is_dir($targetDir)) {
-            mkdir($targetDir, 0755, true);
+        $userId = Auth::id() ?: 1;
+        $file = $request->file('image_file');
+        $originalName = $file->getClientOriginalName();
+        $fileName = 'upload_' . time() . '_' . Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+
+        $shareToCentral = $request->boolean('share_to_central', false);
+        $categoryType = $request->input('category_type', 'general');
+
+        // Protect Central Universal Hub: clothes/fashion/unbranded must never enter central hub
+        $fashionKeywords = ['cloth', 'dress', 'shirt', 'pant', 'sari', 'saree', 'suit', 'fashion', 'kurti', 'tshirt', 'jeans', 'fabric', 'apparel', 'garment', 'dupatta', 'top', 'tunic'];
+        $isFashion = false;
+        $nameLower = strtolower($originalName . ' ' . $categoryType);
+        foreach ($fashionKeywords as $kw) {
+            if (str_contains($nameLower, $kw)) {
+                $isFashion = true;
+                break;
+            }
+        }
+        $isUniversal = $shareToCentral && !$isFashion;
+
+        // 1. Try Cloudinary CDN first
+        $cloudinaryUrl = CloudinaryService::upload($file, "vyaparindia/catalog/seller_{$userId}");
+
+        // 2. Local fallback if Cloudinary not available
+        if (!$cloudinaryUrl) {
+            $targetDir = public_path('storage/catalog_extracted/seller_' . $userId);
+            if (!is_dir($targetDir)) {
+                mkdir($targetDir, 0755, true);
+            }
+            $file->move($targetDir, $fileName);
+            $storedUrl = 'storage/catalog_extracted/seller_' . $userId . '/' . $fileName;
+        } else {
+            $storedUrl = $cloudinaryUrl;
         }
 
-        $file = $request->file('image_file');
-        $fileName = 'upload_' . time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
-        $file->move($targetDir, $fileName);
+        try {
+            \App\Models\SellerMedia::create([
+                'user_id' => $userId,
+                'filename' => $fileName,
+                'file_path' => $storedUrl,
+                'is_assigned' => false,
+                'is_universal' => $isUniversal,
+                'permission_granted' => $shareToCentral,
+                'category_type' => $categoryType,
+            ]);
+            \Illuminate\Support\Facades\Cache::forget('cloudinary_resources_vyaparindia');
+        } catch (\Throwable $e) {
+            Log::warning('SellerMedia insert error: ' . $e->getMessage());
+        }
+
+        $assetUrl = (str_starts_with($storedUrl, 'http://') || str_starts_with($storedUrl, 'https://')) ? $storedUrl : asset($storedUrl);
 
         if ($request->wantsJson()) {
-            $relUrl = 'storage/catalog_extracted/seller_' . $userId . '/' . $fileName;
             return response()->json([
                 'success' => true,
-                'message' => 'Image successfully added to your Media Vault!',
+                'message' => $isUniversal ? 'Image saved to your vault & contributed to Universal Central Bank!' : 'Image saved 100% PRIVATE to your personal vault.',
                 'image' => [
                     'filename' => $fileName,
-                    'url' => $relUrl,
-                    'asset_url' => asset($relUrl),
+                    'url' => $storedUrl,
+                    'asset_url' => $assetUrl,
+                    'is_universal' => $isUniversal,
                 ],
             ]);
         }
@@ -906,6 +1213,21 @@ class CatalogIngestionController extends Controller
             $cloudinaryUrl = CloudinaryService::uploadBase64($rawData, "vyaparindia/catalog/seller_{$userId}");
             if ($cloudinaryUrl) {
                 $fileName = basename(parse_url($cloudinaryUrl, PHP_URL_PATH));
+                $shareToCentral = $request->boolean('share_to_central', false);
+                $categoryType = $request->input('category_type', 'hardware');
+
+                // Protect Central Hub from clothes/fashion
+                $fashionKeywords = ['cloth', 'dress', 'shirt', 'pant', 'sari', 'saree', 'suit', 'fashion', 'kurti', 'tshirt', 'jeans', 'fabric', 'apparel', 'garment', 'dupatta', 'top', 'tunic'];
+                $isFashion = false;
+                $nameLower = strtolower($name . ' ' . $categoryType);
+                foreach ($fashionKeywords as $kw) {
+                    if (str_contains($nameLower, $kw)) {
+                        $isFashion = true;
+                        break;
+                    }
+                }
+                $isUniversal = $shareToCentral && !$isFashion;
+
                 $newImage = [
                     'id' => md5($cloudinaryUrl),
                     'filename' => $fileName,
@@ -914,7 +1236,10 @@ class CatalogIngestionController extends Controller
                     'asset_url' => $cloudinaryUrl,
                     'size_kb' => 35.0,
                     'created_at' => date('d M Y, H:i'),
-                    'source' => 'custom_crop',
+                    'source' => 'personal_vault',
+                    'is_universal' => $isUniversal,
+                    'permission_granted' => $shareToCentral,
+                    'is_mine' => true,
                     'deletable' => true,
                 ];
                 $this->addCropToRegistry($userId, $newImage);
@@ -924,6 +1249,9 @@ class CatalogIngestionController extends Controller
                         'filename' => $fileName,
                         'file_path' => $cloudinaryUrl,
                         'is_assigned' => false,
+                        'is_universal' => $isUniversal,
+                        'permission_granted' => $shareToCentral,
+                        'category_type' => $categoryType,
                     ]);
                 } catch (\Throwable $e) {
                     Log::warning('SellerMedia insert error: ' . $e->getMessage());
@@ -933,7 +1261,7 @@ class CatalogIngestionController extends Controller
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Image saved to Cloudinary Cloud & Media Vault!',
+                    'message' => $isUniversal ? 'Crop saved to your vault & contributed to Universal Central Bank!' : 'Crop saved 100% PRIVATE to your personal vault.',
                     'image' => $newImage,
                 ]);
             }

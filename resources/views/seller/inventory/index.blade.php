@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory & Stock Lifecycle Manager - VyaparIndia</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
@@ -24,10 +25,18 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-4">
-                    <a href="{{ route('seller.catalog.upload') }}" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <button type="button" onclick="openRateUpdateModal()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black transition flex items-center gap-1.5 shadow-md shadow-indigo-600/20 active:scale-95">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                        <span>Update Rates via Excel</span>
+                    </button>
+                    <a href="{{ route('seller.inventory.export_price_template') }}" class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition flex items-center gap-1.5" title="Download current rate list (.csv)">
+                        <i class="fa-solid fa-download text-emerald-600"></i>
+                        <span class="hidden sm:inline">Export Price List</span>
+                    </a>
+                    <a href="{{ route('seller.catalog.upload') }}" class="px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition flex items-center gap-1.5 border border-blue-200">
                         <i class="fa-solid fa-file-pdf"></i>
-                        <span>Upload PDF Catalog</span>
+                        <span class="hidden sm:inline">Upload PDF</span>
                     </a>
                     <a href="{{ route('seller.dashboard') }}" class="text-xs font-bold text-gray-600 hover:text-blue-600 transition">
                         Dashboard
@@ -98,6 +107,74 @@
             </div>
         </div>
 
+        <!-- 📂 Category Filter & Instant WhatsApp Share Bar -->
+        <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs space-y-4">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <!-- Search & Category Filters -->
+                <form action="{{ route('seller.inventory.index') }}" method="GET" class="flex flex-wrap items-center gap-3 flex-1">
+                    <div class="relative min-w-[220px] flex-1">
+                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Search products by name or SKU..." class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-xs font-medium focus:ring-2 focus:ring-indigo-600 focus:outline-none">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                    </div>
+
+                    <select name="category" onchange="this.form.submit()" class="px-3 py-2 rounded-xl border border-gray-200 text-xs font-bold bg-gray-50 focus:bg-white cursor-pointer">
+                        <option value="">All Categories ({{ $totalCatalogItems }})</option>
+                        @foreach($sellerCategories as $sc)
+                            <option value="{{ $sc->id }}" {{ request('category') == $sc->id ? 'selected' : '' }}>
+                                {{ $sc->name }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-gray-800 transition">
+                        Filter
+                    </button>
+                    @if(request('search') || request('category'))
+                        <a href="{{ route('seller.inventory.index') }}" class="p-2 text-gray-400 hover:text-gray-700" title="Reset Filters">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </a>
+                    @endif
+                </form>
+
+                <!-- 📂 1-Click Category Share on WhatsApp -->
+                @if(request('category') && $sellerPage)
+                    @php
+                        $selCat = $sellerCategories->firstWhere('id', request('category'));
+                        $catTitle = $selCat ? $selCat->name : 'Selected Category';
+                        $catPublicUrl = route('minisite.products', ['sellerPage' => $sellerPage->slug, 'category' => request('category')]);
+                        $waCatText = urlencode("Namaste! VyaparIndia store se hamari *{$catTitle}* ki poori range aur latest ratelist yahan dekhein:\n{$catPublicUrl}");
+                    @endphp
+                    <div class="flex items-center gap-2 bg-emerald-50 px-3.5 py-2 rounded-2xl border border-emerald-200 shrink-0">
+                        <span class="text-xs font-black text-emerald-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-layer-group text-emerald-600"></i>
+                            <span>{{ $catTitle }}</span>
+                        </span>
+                        <a href="https://api.whatsapp.com/send?text={{ $waCatText }}" target="_blank" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-xs transition">
+                            <i class="fa-brands fa-whatsapp text-sm"></i>
+                            <span>Share on WhatsApp</span>
+                        </a>
+                        <button type="button" onclick="navigator.clipboard.writeText('{{ $catPublicUrl }}'); alert('Category link copied: {{ $catPublicUrl }}');" class="px-2.5 py-1.5 rounded-xl bg-white hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200 shadow-2xs transition" title="Copy Category Link">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                @endif
+            </div>
+
+            <!-- Pro-Tip Banner -->
+            <div class="pt-2 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 text-[11px] text-gray-500">
+                <span class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-info text-indigo-500"></i>
+                    <span><strong>Pro-Tip:</strong> Niche table me se koi bhi <strong>3 se 6 products select</strong> karke unka direct WhatsApp link banayein aur buyer ko bhejein!</span>
+                </span>
+                @if($sellerPage)
+                    <a href="{{ route('minisite.products', $sellerPage->slug) }}" target="_blank" class="text-indigo-600 font-bold hover:underline flex items-center gap-1">
+                        <span>View Public Store</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                    </a>
+                @endif
+            </div>
+        </div>
+
         <!-- Inventory Table Section -->
         <div class="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
             <div class="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -113,6 +190,9 @@
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
                         <tr class="bg-gray-50 text-gray-600 font-bold border-b border-gray-200">
+                            <th class="py-3 px-3 w-10 text-center">
+                                <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAllProducts(this.checked)" class="rounded text-indigo-600 h-4 w-4 cursor-pointer" title="Select All">
+                            </th>
                             <th class="py-3 px-4">Product / Item</th>
                             <th class="py-3 px-4">Variants / Sizes</th>
                             <th class="py-3 px-4">HSN & GST</th>
@@ -124,6 +204,10 @@
                     <tbody class="divide-y divide-gray-100 bg-white">
                         @forelse($products as $product)
                             <tr class="hover:bg-gray-50/60 transition">
+                                <!-- Checkbox for Quick Curated Share -->
+                                <td class="py-3.5 px-3 text-center">
+                                    <input type="checkbox" class="product-curate-chk rounded text-indigo-600 h-4 w-4 cursor-pointer" value="{{ $product->id }}" data-name="{{ addslashes($product->name) }}" onchange="updateCuratedBar()">
+                                </td>
                                 <!-- Product Basic Info -->
                                 <td class="py-3.5 px-4">
                                     <div class="flex items-center gap-3">
@@ -292,8 +376,103 @@
         </div>
     </div>
 
+    <!-- 🎯 Floating Curated Selection Bar (3-6 items WhatsApp Share) -->
+    <div id="curatedFloatingBar" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white px-5 py-3.5 rounded-3xl shadow-2xl border border-gray-700 flex items-center gap-4 transition-all duration-300 hidden">
+        <div class="flex items-center gap-2.5">
+            <span class="h-8 w-8 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xs font-black shadow-xs">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </span>
+            <div class="leading-tight">
+                <span class="text-xs font-black block"><span id="selectedProductCount">0</span> Products Selected</span>
+                <span class="text-[10px] text-gray-400">Curated link ready to share</span>
+            </div>
+        </div>
+        <div class="h-6 w-px bg-gray-700"></div>
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="shareCuratedOnWhatsapp()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95 transition">
+                <i class="fa-brands fa-whatsapp text-sm"></i>
+                <span>Share on WhatsApp</span>
+            </button>
+            <button type="button" onclick="copyCuratedShareLink()" class="px-3.5 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs flex items-center gap-1.5 border border-gray-600 transition" title="Copy curated link">
+                <i class="fa-regular fa-copy"></i>
+                <span>Copy Link</span>
+            </button>
+            <button type="button" onclick="clearCuratedSelection()" class="h-8 w-8 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center text-xs transition" title="Clear selection">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 📈 Modal: Quick Rate Revision via Excel/CSV -->
+    <div id="rateUpdateModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                <div class="flex items-center gap-2.5">
+                    <div class="h-9 w-9 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-base">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black text-gray-900">Bulk Price / Rate List Update</h3>
+                        <p class="text-[11px] text-gray-500">Excel ya CSV upload karein, rates turant update ho jayenge</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeRateUpdateModal()" class="text-gray-400 hover:text-gray-600 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Download Template Helper -->
+            <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-3">
+                <div class="text-[11px] text-amber-900 leading-snug">
+                    <strong>Pehle Current Price List Download Karein:</strong><br>
+                    Isme aapke sabhi live products aur unke SKUs pehle se bhare hue milenge.
+                </div>
+                <a href="{{ route('seller.inventory.export_price_template') }}" class="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs shrink-0 flex items-center gap-1 shadow-xs">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Download (.csv)</span>
+                </a>
+            </div>
+
+            <!-- Upload Area -->
+            <div class="border-2 border-dashed border-gray-300 hover:border-indigo-500 rounded-2xl p-6 text-center bg-gray-50 cursor-pointer transition group" onclick="document.getElementById('rateFileInput').click()">
+                <i class="fa-solid fa-file-excel text-emerald-600 text-3xl mb-2 group-hover:scale-110 transition"></i>
+                <h4 class="text-xs font-bold text-gray-800">Upload Updated Excel (.xlsx, .xls, .csv)</h4>
+                <p class="text-[11px] text-gray-400 mt-0.5">Click karein ya file yahan drop karein</p>
+                <input type="file" id="rateFileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleRateFileSelect(event)">
+            </div>
+
+            <!-- Preview box -->
+            <div id="rateFilePreviewBox" class="hidden p-3 bg-indigo-50 rounded-2xl border border-indigo-200 space-y-2">
+                <div class="flex items-center justify-between text-xs font-bold text-indigo-900">
+                    <span id="rateFileName">file.xlsx</span>
+                    <span id="rateRowCount" class="px-2 py-0.5 rounded-full bg-indigo-200 text-indigo-800 text-[10px]">0 Rows Found</span>
+                </div>
+                <p class="text-[11px] text-gray-600">
+                    Ready to update! Click below to apply new rates to database.
+                </p>
+            </div>
+
+            <!-- Form -->
+            <form action="{{ route('seller.inventory.bulk_rate_update') }}" method="POST" id="rateUpdateForm" onsubmit="return submitRateUpdateForm(event)">
+                @csrf
+                <input type="hidden" name="rate_rows" id="rateRowsJson" value="">
+                
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                    <button type="button" onclick="closeRateUpdateModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold">
+                        Cancel
+                    </button>
+                    <button type="submit" id="btnApplyRates" disabled class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-black shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>Apply New Rates</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const sellerSlug = @json($sellerPage ? $sellerPage->slug : null);
 
         function quickRestock(productId, variantId, qty) {
             fetch("{{ route('seller.inventory.restock') }}", {
@@ -341,6 +520,130 @@
             const modal = document.getElementById('restockModal');
             modal.classList.add('hidden');
             modal.classList.remove('flex');
+        }
+
+        // ==========================================
+        // 🎯 CURATED 3-6 PRODUCTS QUICK SHARE
+        // ==========================================
+        function toggleSelectAllProducts(checked) {
+            document.querySelectorAll('.product-curate-chk').forEach(cb => {
+                cb.checked = checked;
+            });
+            updateCuratedBar();
+        }
+
+        function updateCuratedBar() {
+            const checkedBoxes = document.querySelectorAll('.product-curate-chk:checked');
+            const count = checkedBoxes.length;
+            const bar = document.getElementById('curatedFloatingBar');
+            const countEl = document.getElementById('selectedProductCount');
+
+            if (count > 0) {
+                countEl.textContent = count;
+                bar.classList.remove('hidden');
+            } else {
+                bar.classList.add('hidden');
+            }
+        }
+
+        function clearCuratedSelection() {
+            document.querySelectorAll('.product-curate-chk').forEach(cb => cb.checked = false);
+            const selectAll = document.getElementById('selectAllCheckbox');
+            if (selectAll) selectAll.checked = false;
+            updateCuratedBar();
+        }
+
+        function getCuratedShareUrl() {
+            if (!sellerSlug) {
+                alert('Pehle apna MiniStore setup karein taaki public link generate ho sake!');
+                return null;
+            }
+            const checked = Array.from(document.querySelectorAll('.product-curate-chk:checked')).map(cb => cb.value);
+            if (checked.length === 0) return null;
+
+            return window.location.origin + '/' + sellerSlug + '/products?items=' + checked.join(',');
+        }
+
+        function shareCuratedOnWhatsapp() {
+            const url = getCuratedShareUrl();
+            if (!url) return;
+
+            const count = document.querySelectorAll('.product-curate-chk:checked').length;
+            const msg = encodeURIComponent(`Namaste! VyaparIndia store se aapke liye chune hue khaas products (${count} items) ki details aur photo list yahan dekhein:\n${url}`);
+            window.open('https://api.whatsapp.com/send?text=' + msg, '_blank');
+        }
+
+        function copyCuratedShareLink() {
+            const url = getCuratedShareUrl();
+            if (!url) return;
+
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Curated products share link copied to clipboard!\n\n' + url);
+            });
+        }
+
+        // ==========================================
+        // 📈 BULK RATE UPDATE VIA EXCEL / CSV
+        // ==========================================
+        function openRateUpdateModal() {
+            const modal = document.getElementById('rateUpdateModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeRateUpdateModal() {
+            const modal = document.getElementById('rateUpdateModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function handleRateFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('rateFileName').textContent = file.name;
+            const previewBox = document.getElementById('rateFilePreviewBox');
+            const rowCountEl = document.getElementById('rateRowCount');
+            const btnApply = document.getElementById('btnApplyRates');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[sheetName];
+                    const jsonRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+                    if (jsonRows.length === 0) {
+                        alert('Sheet is empty or no valid rows found!');
+                        return;
+                    }
+
+                    document.getElementById('rateRowsJson').value = JSON.stringify(jsonRows);
+                    rowCountEl.textContent = `${jsonRows.length} Rows Detected`;
+                    previewBox.classList.remove('hidden');
+                    btnApply.disabled = false;
+                } catch (err) {
+                    console.error(err);
+                    alert('Error parsing Excel file. Please ensure it is a valid .xlsx, .xls or .csv file.');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function submitRateUpdateForm(event) {
+            const rowsJson = document.getElementById('rateRowsJson').value;
+            if (!rowsJson) {
+                alert('Pehle updated Excel sheet select karein!');
+                event.preventDefault();
+                return false;
+            }
+
+            const btn = document.getElementById('btnApplyRates');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating Rates...';
+            return true;
         }
     </script>
 </body>

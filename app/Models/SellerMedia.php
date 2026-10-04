@@ -14,11 +14,16 @@ class SellerMedia extends Model
         'filename',
         'file_path',
         'is_assigned',
+        'is_universal',
+        'permission_granted',
+        'category_type',
         'product_id',
     ];
 
     protected $casts = [
         'is_assigned' => 'boolean',
+        'is_universal' => 'boolean',
+        'permission_granted' => 'boolean',
     ];
 
     public function user()

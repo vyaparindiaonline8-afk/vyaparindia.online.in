@@ -68,6 +68,67 @@
         </div>
     </div>
 
+    <!-- 🎯 Curated 3-6 Items Special Collection Banner -->
+    @if(request('items') || !empty($isCurated))
+        @php
+            $curatedUrl = request()->fullUrl();
+            $waCuratedMsg = urlencode("Namaste! Aapke liye chune hue khaas products ({$products->total()} items) ki list aur photos yahan dekhein:\n{$curatedUrl}");
+        @endphp
+        <div class="mt-6 p-4 rounded-3xl bg-gradient-to-r from-amber-50 via-indigo-50 to-emerald-50 border border-indigo-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3.5">
+                <div class="h-11 w-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xl shadow-md shadow-indigo-600/20 shrink-0">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-gray-900 flex items-center gap-2">
+                        <span>Special Curated Selection</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-700">{{ $products->total() }} Selected Items</span>
+                    </h3>
+                    <p class="text-xs text-gray-600 mt-0.5">
+                        These items were specially hand-picked by {{ $sellerPage->page_title }} for your direct review.
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="https://api.whatsapp.com/send?text={{ $waCuratedMsg }}" target="_blank" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition">
+                    <i class="fa-brands fa-whatsapp text-sm"></i> Share via WhatsApp
+                </a>
+                <a href="{{ route('minisite.products', $sellerPage->slug) }}" class="px-3 py-2 rounded-xl bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-200 shadow-2xs transition">
+                    View Full Catalog &rarr;
+                </a>
+            </div>
+        </div>
+    @endif
+
+    <!-- 📂 Category-wise Public Share Tool -->
+    @if(request('category'))
+        @php
+            $currCat = $categories->firstWhere('id', request('category')) ?? $categories->firstWhere('slug', request('category'));
+            $catTitle = $currCat ? $currCat->name : 'Selected Category';
+            $catShareUrl = request()->fullUrl();
+            $waCatMsg = urlencode("Namaste! Hamare store {$sellerPage->page_title} par {$catTitle} ki poori range aur latest rates yahan dekhein:\n{$catShareUrl}");
+        @endphp
+        <div class="mt-4 p-3.5 rounded-2xl bg-emerald-50/80 border border-emerald-200 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+                <div class="h-8 w-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <div>
+                    <span class="text-xs font-black text-emerald-950">{{ $catTitle }} Range</span>
+                    <span class="ml-1.5 text-[11px] text-emerald-700 font-bold">({{ $products->total() }} products found)</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="https://api.whatsapp.com/send?text={{ $waCatMsg }}" target="_blank" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition">
+                    <i class="fa-brands fa-whatsapp text-sm"></i> Share Category Link
+                </a>
+                <button type="button" onclick="navigator.clipboard.writeText('{{ $catShareUrl }}'); this.innerHTML = '<i class=\'fa-solid fa-check text-emerald-600\'></i> Copied!'; setTimeout(() => this.innerHTML = '<i class=\'fa-solid fa-copy\'></i> Copy Link', 2000);" class="px-3 py-1.5 rounded-xl bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs border border-gray-200 shadow-2xs transition flex items-center gap-1">
+                    <i class="fa-solid fa-copy"></i> Copy Link
+                </button>
+            </div>
+        </div>
+    @endif
+
     <!-- Product Grid -->
     <div class="mt-6">
         @if($products->isEmpty())

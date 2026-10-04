@@ -87,6 +87,17 @@
                         oninput="filterGalleryLive(this.value)">
                     <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400 text-xs"></i>
                 </div>
+                <div class="flex items-center gap-1.5 p-1 bg-gray-100 rounded-xl">
+                    <button type="button" onclick="filterBySource('all')" id="btnSourceAll" class="source-tab-btn px-3 py-1 rounded-lg text-xs font-bold bg-white text-gray-900 shadow-xs">
+                        All Photos
+                    </button>
+                    <button type="button" onclick="filterBySource('personal_vault')" id="btnSourcePersonal" class="source-tab-btn px-3 py-1 rounded-lg text-xs font-bold text-gray-600 hover:text-gray-900">
+                        🔒 My Vault
+                    </button>
+                    <button type="button" onclick="filterBySource('universal_central')" id="btnSourceCentral" class="source-tab-btn px-3 py-1 rounded-lg text-xs font-bold text-gray-600 hover:text-gray-900">
+                        🌐 Central Hub
+                    </button>
+                </div>
                 <div class="flex items-center gap-1.5 text-xs text-gray-500">
                     <span class="font-bold text-gray-800" id="visibleCount">{{ $totalImages }}</span> photos found
                 </div>
