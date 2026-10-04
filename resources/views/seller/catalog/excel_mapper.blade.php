@@ -50,12 +50,18 @@
                         <span>Excel Template</span>
                     </button>
                     @if($job)
-                        <form action="{{ route('seller.catalog.excel_mapper.publish_direct') }}" method="POST" id="directPublishForm" onsubmit="return confirm('Kya aap in sabhi products ko apne live store par publish karna chahte hain?');">
+                        @if($job->status === 'published')
+                            <a href="{{ route('seller.inventory.index') }}" class="px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 font-extrabold text-xs flex items-center gap-1.5 hover:bg-emerald-100 transition shadow-xs" title="View published items in store inventory">
+                                <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                                <span>Published Live</span>
+                            </a>
+                        @endif
+                        <form action="{{ route('seller.catalog.excel_mapper.publish_direct') }}" method="POST" id="directPublishForm" onsubmit="if(!confirm('Kya aap in sabhi products ko apne live store par publish karna chahte hain?')) return false; const btn = this.querySelector('button'); btn.disabled = true; btn.innerHTML = '<i class=\'fa-solid fa-spinner fa-spin\'></i> Publishing...'; return true;">
                             @csrf
                             <input type="hidden" name="job_id" value="{{ $job->id }}">
                             <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 flex items-center gap-2 transition active:scale-95">
                                 <i class="fa-solid fa-cloud-arrow-up"></i>
-                                <span>Publish Saved Job #{{ $job->id }}</span>
+                                <span>{{ $job->status === 'published' ? 'Update & Re-Publish #' . $job->id : 'Publish Saved Job #' . $job->id }}</span>
                             </button>
                         </form>
                     @endif

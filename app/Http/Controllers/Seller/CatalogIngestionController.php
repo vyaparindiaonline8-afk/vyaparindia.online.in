@@ -210,6 +210,7 @@ class CatalogIngestionController extends Controller
      */
     public function publish(Request $request, CatalogIngestionJob $job)
     {
+        @set_time_limit(300);
         if ($job->user_id !== Auth::id()) {
             abort(403, 'Unauthorized action.');
         }
@@ -239,128 +240,135 @@ class CatalogIngestionController extends Controller
         $defaultCategory = Category::firstOrCreate(['name' => 'Industrial & Commercial'], ['slug' => 'industrial-commercial']);
         $publishedCount = 0;
 
-        foreach ($validated['products'] as $prodData) {
-            $catId = $prodData['category_id'] ?? $defaultCategory->id;
-            $gst = floatval($prodData['gst_percent'] ?? 18);
-            $hasMultipleVariants = count($prodData['variants']) > 1;
+        DB::transaction(function () use ($validated, $sellerId, $defaultCategory, $job, &$publishedCount) {
+            foreach ($validated['products'] as $prodData) {
+                $catId = $prodData['category_id'] ?? $defaultCategory->id;
+                $gst = floatval($prodData['gst_percent'] ?? 18);
+                $hasMultipleVariants = count($prodData['variants']) > 1;
 
-            // Optional stock tracking ("dale to thik na dale to thik")
-            $trackStock = !is_null($prodData['stock_quantity']) && $prodData['stock_quantity'] !== '';
-            $initialStock = $trackStock ? intval($prodData['stock_quantity']) : null;
+                // Optional stock tracking ("dale to thik na dale to thik")
+                $trackStock = !is_null($prodData['stock_quantity']) && $prodData['stock_quantity'] !== '';
+                $initialStock = $trackStock ? intval($prodData['stock_quantity']) : null;
 
-            // First variant prices used as parent product baseline
-            $firstVar = $prodData['variants'][0];
-            $basePurchase = floatval($firstVar['raw_rate'] ?? 0);
-            $baseWholesale = floatval($firstVar['wholesale_price'] ?? ($basePurchase * 1.15));
-            $baseRetail = floatval($firstVar['retail_price'] ?? ($basePurchase * 1.35));
-            $baseMrp = floatval($firstVar['mrp'] ?? ($basePurchase * 1.60));
+                // First variant prices used as parent product baseline
+                $firstVar = $prodData['variants'][0];
+                $basePurchase = floatval($firstVar['raw_rate'] ?? 0);
+                $baseWholesale = floatval($firstVar['wholesale_price'] ?? ($basePurchase * 1.15));
+                $baseRetail = floatval($firstVar['retail_price'] ?? ($basePurchase * 1.35));
+                $baseMrp = floatval($firstVar['mrp'] ?? ($basePurchase * 1.60));
 
-            $product = Product::create([
-                'user_id' => $sellerId,
-                'category_id' => $catId,
-                'name' => $prodData['name'],
-                'slug' => Str::slug($prodData['name']) . '-' . Str::random(5),
-                'description' => $prodData['description'] ?? '',
-                'hsn_code' => $prodData['hsn_code'] ?? '39174000',
-                'image' => $prodData['image_url'] ?? null,
-                'purchase_price' => $basePurchase,
-                'wholesale_price' => $baseWholesale,
-                'price' => $baseRetail,
-                'mrp' => $baseMrp,
-                'gst_percent' => $gst,
-                'stock_quantity' => $initialStock,
-                'track_inventory' => $trackStock,
-                'has_variants' => $hasMultipleVariants,
-                'sku' => 'PRD-' . strtoupper(Str::random(6)),
-            ]);
-
-            // If product has initial stock, create initial stock movement audit
-            if ($trackStock && $initialStock > 0) {
-                StockMovement::create([
-                    'product_id' => $product->id,
-                    'variant_id' => null,
-                    'user_id' => $sellerId,
-                    'type' => 'in_restock',
-                    'quantity' => $initialStock,
-                    'balance_after' => $initialStock,
-                    'reason' => 'Initial catalog ingestion import',
-                    'reference_type' => 'catalog_ingestion',
-                    'reference_id' => $job->id,
-                ]);
-            }
-
-            // Create Variants
-            $totalVariantStock = 0;
-            $hasAnyVariantStock = false;
-
-            foreach ($prodData['variants'] as $vIndex => $vData) {
-                $vRawRate = floatval($vData['raw_rate'] ?? $basePurchase);
-                $tradeDisc = floatval($prodData['trade_discount_percent'] ?? 0);
-                $landingCostNet = round($vRawRate * (1 - ($tradeDisc / 100)), 2);
-                $landingCostWithGst = round($landingCostNet * (1 + ($gst / 100)), 2);
-
-                $vWholesale = !empty($vData['wholesale_price']) ? floatval($vData['wholesale_price']) : round($landingCostWithGst * 1.15, 2);
-                $vRetail = !empty($vData['retail_price']) ? floatval($vData['retail_price']) : round($landingCostWithGst * 1.35, 2);
-                $vMrp = !empty($vData['mrp']) ? floatval($vData['mrp']) : round($landingCostWithGst * 1.60, 2);
-
-                $vTrackStock = !is_null($vData['stock_quantity']) && $vData['stock_quantity'] !== '';
-                $vStock = $vTrackStock ? intval($vData['stock_quantity']) : null;
-
-                if ($vTrackStock) {
-                    $totalVariantStock += ($vStock ?? 0);
-                    $hasAnyVariantStock = true;
-                }
-
-                $variant = ProductVariant::create([
-                    'product_id' => $product->id,
-                    'variant_name' => $vData['variant_name'],
-                    'sku' => 'SKU-' . $product->id . '-' . ($vIndex + 1),
-                    'purchase_price' => $vRawRate,
-                    'trade_discount_percent' => $tradeDisc,
-                    'gst_percent' => $gst,
-                    'net_landing_cost' => $landingCostWithGst,
-                    'wholesale_price' => $vWholesale,
-                    'retail_price' => $vRetail,
-                    'mrp' => $vMrp,
-                    'stock_quantity' => $vStock,
-                    'track_inventory' => $vTrackStock,
-                    'is_active' => true,
-                    'attributes' => [
-                        'size' => $vData['size'] ?? null,
-                        'grade' => $vData['grade'] ?? null,
+                $product = Product::updateOrCreate(
+                    [
+                        'user_id' => $sellerId,
+                        'name' => $prodData['name'],
                     ],
-                ]);
+                    [
+                        'category_id' => $catId,
+                        'slug' => Str::slug($prodData['name']) . '-' . Str::random(5),
+                        'description' => $prodData['description'] ?? '',
+                        'hsn_code' => $prodHsn = ($prodData['hsn_code'] ?? '39174000'),
+                        'image' => $prodData['image_url'] ?? null,
+                        'purchase_price' => $basePurchase,
+                        'wholesale_price' => $baseWholesale,
+                        'price' => $baseRetail,
+                        'mrp' => $baseMrp,
+                        'gst_percent' => $gst,
+                        'stock_quantity' => $initialStock,
+                        'track_inventory' => $trackStock,
+                        'has_variants' => $hasMultipleVariants,
+                        'sku' => 'PRD-' . strtoupper(Str::random(6)),
+                    ]
+                );
 
-                if ($vTrackStock && $vStock > 0) {
+                // If product has initial stock, create initial stock movement audit
+                if ($trackStock && $initialStock > 0) {
                     StockMovement::create([
                         'product_id' => $product->id,
-                        'variant_id' => $variant->id,
+                        'variant_id' => null,
                         'user_id' => $sellerId,
                         'type' => 'in_restock',
-                        'quantity' => $vStock,
-                        'balance_after' => $vStock,
+                        'quantity' => $initialStock,
+                        'balance_after' => $initialStock,
                         'reason' => 'Initial catalog ingestion import',
                         'reference_type' => 'catalog_ingestion',
                         'reference_id' => $job->id,
                     ]);
                 }
+
+                // Clean Variants
+                ProductVariant::where('product_id', $product->id)->delete();
+                $totalVariantStock = 0;
+                $hasAnyVariantStock = false;
+
+                foreach ($prodData['variants'] as $vIndex => $vData) {
+                    $vRawRate = floatval($vData['raw_rate'] ?? $basePurchase);
+                    $tradeDisc = floatval($prodData['trade_discount_percent'] ?? 0);
+                    $landingCostNet = round($vRawRate * (1 - ($tradeDisc / 100)), 2);
+                    $landingCostWithGst = round($landingCostNet * (1 + ($gst / 100)), 2);
+
+                    $vWholesale = !empty($vData['wholesale_price']) ? floatval($vData['wholesale_price']) : round($landingCostWithGst * 1.15, 2);
+                    $vRetail = !empty($vData['retail_price']) ? floatval($vData['retail_price']) : round($landingCostWithGst * 1.35, 2);
+                    $vMrp = !empty($vData['mrp']) ? floatval($vData['mrp']) : round($landingCostWithGst * 1.60, 2);
+
+                    $vTrackStock = !is_null($vData['stock_quantity']) && $vData['stock_quantity'] !== '';
+                    $vStock = $vTrackStock ? intval($vData['stock_quantity']) : null;
+
+                    if ($vTrackStock) {
+                        $totalVariantStock += ($vStock ?? 0);
+                        $hasAnyVariantStock = true;
+                    }
+
+                    $variant = ProductVariant::create([
+                        'product_id' => $product->id,
+                        'variant_name' => $vData['variant_name'],
+                        'sku' => 'SKU-' . $product->id . '-' . ($vIndex + 1),
+                        'purchase_price' => $vRawRate,
+                        'trade_discount_percent' => $tradeDisc,
+                        'gst_percent' => $gst,
+                        'net_landing_cost' => $landingCostWithGst,
+                        'wholesale_price' => $vWholesale,
+                        'retail_price' => $vRetail,
+                        'mrp' => $vMrp,
+                        'stock_quantity' => $vStock,
+                        'track_inventory' => $vTrackStock,
+                        'is_active' => true,
+                        'attributes' => [
+                            'size' => $vData['size'] ?? null,
+                            'grade' => $vData['grade'] ?? null,
+                        ],
+                    ]);
+
+                    if ($vTrackStock && $vStock > 0) {
+                        StockMovement::create([
+                            'product_id' => $product->id,
+                            'variant_id' => $variant->id,
+                            'user_id' => $sellerId,
+                            'type' => 'in_restock',
+                            'quantity' => $vStock,
+                            'balance_after' => $vStock,
+                            'reason' => 'Initial catalog ingestion import',
+                            'reference_type' => 'catalog_ingestion',
+                            'reference_id' => $job->id,
+                        ]);
+                    }
+                }
+
+                // If variants had stock specified, sync aggregate stock to parent
+                if ($hasAnyVariantStock) {
+                    $product->update([
+                        'stock_quantity' => $totalVariantStock,
+                        'track_inventory' => true,
+                    ]);
+                }
+
+                $publishedCount++;
             }
 
-            // If variants had stock specified, sync aggregate stock to parent
-            if ($hasAnyVariantStock) {
-                $product->update([
-                    'stock_quantity' => $totalVariantStock,
-                    'track_inventory' => true,
-                ]);
-            }
-
-            $publishedCount++;
-        }
-
-        $job->update([
-            'status' => 'published',
-            'extracted_data' => $validated,
-        ]);
+            $job->update([
+                'status' => 'published',
+                'extracted_data' => $validated,
+            ]);
+        });
 
         return redirect()->route('seller.inventory.index')
             ->with('success', "🎉 Successfully published {$publishedCount} products with dynamic variants into your live catalog!");
@@ -1481,6 +1489,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
      */
     public function publishDirectFromMapper(Request $request)
     {
+        @set_time_limit(300);
         $userId = Auth::id();
         $jobId = $request->input('job_id');
 
@@ -1496,80 +1505,101 @@ Please respond clearly in simple professional Hinglish/English with bullet point
         }
 
         $publishedCount = 0;
+        $categoriesCache = [];
 
-        foreach ($products as $prodData) {
-            $catName = !empty($prodData['category']) ? trim($prodData['category']) : (!empty($prodData['group_type']) ? trim($prodData['group_type']) : 'General Hardware');
-            $category = Category::firstOrCreate(
-                ['name' => $catName],
-                ['slug' => Str::slug($catName) . '-' . Str::random(4)]
-            );
-            $catId = $category->id;
-            $gst = 18;
-            $variants = $prodData['variants'] ?? [];
-            $hasMultipleVariants = count($variants) > 1;
-
-            $firstVar = $variants[0] ?? [];
-            $basePurchase = floatval($firstVar['raw_rate'] ?? 0);
-            $baseWholesale = floatval($firstVar['wholesale_price'] ?? ($basePurchase * 1.15));
-            $baseRetail = floatval($firstVar['retail_price'] ?? ($basePurchase * 1.35));
-            $baseMrp = floatval($firstVar['mrp'] ?? ($basePurchase * 1.60));
-            $prodHsn = !empty($prodData['hsn_code']) ? $prodData['hsn_code'] : (!empty($firstVar['hsn_code']) ? $firstVar['hsn_code'] : '39174000');
-            $prodSku = !empty($firstVar['product_code']) ? $firstVar['product_code'] : (!empty($firstVar['sku']) ? $firstVar['sku'] : ('PROD-' . strtoupper(Str::random(7))));
-
-            $product = Product::create([
-                'user_id' => $userId,
-                'category_id' => $catId,
-                'name' => $prodData['name'],
-                'slug' => Str::slug($prodData['name']) . '-' . Str::random(5),
-                'description' => "High grade {$prodData['name']} manufactured to industrial specifications.",
-                'hsn_code' => $prodHsn,
-                'image' => $prodData['image_url'] ?? null,
-                'purchase_price' => $basePurchase,
-                'wholesale_price' => $baseWholesale,
-                'price' => $baseRetail,
-                'mrp' => $baseMrp,
-                'gst_percent' => $gst,
-                'stock_quantity' => intval($firstVar['stock_quantity'] ?? 100),
-                'track_inventory' => false,
-                'has_variants' => $hasMultipleVariants,
-                'sku' => $prodSku,
-            ]);
-
-            foreach ($variants as $v) {
-                $rawRate = floatval($v['raw_rate'] ?? 0);
-                $wPrice = floatval($v['wholesale_price'] ?? ($rawRate * 1.15));
-                $rPrice = floatval($v['retail_price'] ?? ($rawRate * 1.35));
-                $vMrp = floatval($v['mrp'] ?? ($rawRate * 1.60));
-                $vSku = !empty($v['product_code']) ? $v['product_code'] : (!empty($v['sku']) ? $v['sku'] : ('VAR-' . strtoupper(Str::random(7))));
+        DB::transaction(function () use ($products, $userId, $job, &$publishedCount, &$categoriesCache) {
+            foreach ($products as $prodData) {
+                $catName = !empty($prodData['category']) ? trim($prodData['category']) : (!empty($prodData['group_type']) ? trim($prodData['group_type']) : 'General Hardware');
                 
-                $attributes = [
-                    'size' => $v['size'] ?? 'Standard',
-                    'packing_1' => $v['packing_1'] ?? '',
-                    'packing_2' => $v['packing_2'] ?? '',
-                    'cost_price_2' => $v['cost_price_2'] ?? 0,
-                    'cost_price_3' => $v['cost_price_3'] ?? 0,
-                ];
+                if (!isset($categoriesCache[$catName])) {
+                    $category = Category::firstOrCreate(
+                        ['name' => $catName],
+                        ['slug' => Str::slug($catName) . '-' . Str::random(4)]
+                    );
+                    $categoriesCache[$catName] = $category->id;
+                }
+                $catId = $categoriesCache[$catName];
+                $gst = 18;
+                $variants = $prodData['variants'] ?? [];
+                $hasMultipleVariants = count($variants) > 1;
 
-                ProductVariant::create([
-                    'product_id' => $product->id,
-                    'variant_name' => $v['variant_name'] ?? 'Standard',
-                    'size' => $v['size'] ?? 'Standard',
-                    'grade' => $v['grade'] ?? 'Industrial',
-                    'raw_rate' => $rawRate,
-                    'purchase_price' => $rawRate,
-                    'wholesale_price' => $wPrice,
-                    'retail_price' => $rPrice,
-                    'mrp' => $vMrp,
-                    'stock_quantity' => intval($v['stock_quantity'] ?? 100),
-                    'sku' => $vSku,
-                    'attributes' => $attributes,
-                ]);
+                $firstVar = $variants[0] ?? [];
+                $basePurchase = floatval($firstVar['raw_rate'] ?? 0);
+                $baseWholesale = floatval($firstVar['wholesale_price'] ?? ($basePurchase * 1.15));
+                $baseRetail = floatval($firstVar['retail_price'] ?? ($basePurchase * 1.35));
+                $baseMrp = floatval($firstVar['mrp'] ?? ($basePurchase * 1.60));
+                $prodHsn = !empty($prodData['hsn_code']) ? $prodData['hsn_code'] : (!empty($firstVar['hsn_code']) ? $firstVar['hsn_code'] : '39174000');
+                $prodSku = !empty($firstVar['product_code']) ? $firstVar['product_code'] : (!empty($firstVar['sku']) ? $firstVar['sku'] : ('PROD-' . strtoupper(Str::random(7))));
+
+                $product = Product::updateOrCreate(
+                    [
+                        'user_id' => $userId,
+                        'name' => $prodData['name'],
+                    ],
+                    [
+                        'category_id' => $catId,
+                        'slug' => Str::slug($prodData['name']) . '-' . Str::random(5),
+                        'description' => "High grade {$prodData['name']} manufactured to industrial specifications.",
+                        'hsn_code' => $prodHsn,
+                        'image' => $prodData['image_url'] ?? null,
+                        'purchase_price' => $basePurchase,
+                        'wholesale_price' => $baseWholesale,
+                        'price' => $baseRetail,
+                        'mrp' => $baseMrp,
+                        'gst_percent' => $gst,
+                        'stock_quantity' => intval($firstVar['stock_quantity'] ?? 100),
+                        'track_inventory' => false,
+                        'has_variants' => $hasMultipleVariants,
+                        'sku' => $prodSku,
+                    ]
+                );
+
+                // Clean variant sync
+                ProductVariant::where('product_id', $product->id)->delete();
+
+                $variantRecords = [];
+                $now = now();
+                foreach ($variants as $v) {
+                    $rawRate = floatval($v['raw_rate'] ?? 0);
+                    $wPrice = floatval($v['wholesale_price'] ?? ($rawRate * 1.15));
+                    $rPrice = floatval($v['retail_price'] ?? ($rawRate * 1.35));
+                    $vMrp = floatval($v['mrp'] ?? ($rawRate * 1.60));
+                    $vSku = !empty($v['product_code']) ? $v['product_code'] : (!empty($v['sku']) ? $v['sku'] : ('VAR-' . strtoupper(Str::random(7))));
+                    
+                    $attributes = [
+                        'size' => $v['size'] ?? 'Standard',
+                        'packing_1' => $v['packing_1'] ?? '',
+                        'packing_2' => $v['packing_2'] ?? '',
+                        'cost_price_2' => $v['cost_price_2'] ?? 0,
+                        'cost_price_3' => $v['cost_price_3'] ?? 0,
+                    ];
+
+                    $variantRecords[] = [
+                        'product_id' => $product->id,
+                        'variant_name' => $v['variant_name'] ?? 'Standard',
+                        'size' => $v['size'] ?? 'Standard',
+                        'grade' => $v['grade'] ?? 'Industrial',
+                        'purchase_price' => $rawRate,
+                        'wholesale_price' => $wPrice,
+                        'retail_price' => $rPrice,
+                        'mrp' => $vMrp,
+                        'stock_quantity' => intval($v['stock_quantity'] ?? 100),
+                        'sku' => $vSku,
+                        'attributes' => json_encode($attributes),
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+
+                if (!empty($variantRecords)) {
+                    ProductVariant::insert($variantRecords);
+                }
+
+                $publishedCount++;
             }
 
-            $publishedCount++;
-        }
-
-        $job->update(['status' => 'published']);
+            $job->update(['status' => 'published']);
+        });
 
         return redirect()->route('seller.inventory.index')
             ->with('success', "🎉 Mubarakan! {$publishedCount} grouped products (291 sizes) live store me successfully publish ho gaye hain!");
