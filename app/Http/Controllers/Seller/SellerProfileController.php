@@ -27,6 +27,14 @@ class SellerProfileController extends Controller
             'state' => 'required|string|max:255',
             'country' => 'required|string|max:255',
             'gst_number' => 'nullable|string|max:255',
+            'office_phone' => 'nullable|string|max:30',
+            'google_map_url' => 'nullable|string|max:1000',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'facebook_url' => 'nullable|string|max:500',
+            'instagram_url' => 'nullable|string|max:500',
+            'youtube_url' => 'nullable|string|max:500',
+            'google_business_url' => 'nullable|string|max:500',
             'dispatch_radius' => 'nullable|integer|min:0',
             'upi_id' => 'nullable|string|max:100',
             'bank_name' => 'nullable|string|max:150',
@@ -35,7 +43,19 @@ class SellerProfileController extends Controller
             'bank_account_holder' => 'nullable|string|max:150',
         ]);
 
-        Auth::user()->sellerProfile()->create($request->all());
+        $profile = Auth::user()->sellerProfile()->create($request->all());
+
+        // Sync with SellerPage if exists
+        $sellerPage = Auth::user()->sellerPage;
+        if ($sellerPage) {
+            $sellerPage->update([
+                'support_phone' => $request->office_phone ?? $sellerPage->support_phone,
+                'google_map_link' => $request->google_map_url ?? $sellerPage->google_map_link,
+                'facebook_link' => $request->facebook_url ?? $sellerPage->facebook_link,
+                'instagram_link' => $request->instagram_url ?? $sellerPage->instagram_link,
+                'youtube_link' => $request->youtube_url ?? $sellerPage->youtube_link,
+            ]);
+        }
 
         return redirect()->route('seller.dashboard')->with('success', 'Seller profile created successfully.');
     }
@@ -64,6 +84,14 @@ class SellerProfileController extends Controller
             'state' => 'required|string|max:255',
             'country' => 'required|string|max:255',
             'gst_number' => 'nullable|string|max:255',
+            'office_phone' => 'nullable|string|max:30',
+            'google_map_url' => 'nullable|string|max:1000',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'facebook_url' => 'nullable|string|max:500',
+            'instagram_url' => 'nullable|string|max:500',
+            'youtube_url' => 'nullable|string|max:500',
+            'google_business_url' => 'nullable|string|max:500',
             'dispatch_radius' => 'nullable|integer|min:0',
             'upi_id' => 'nullable|string|max:100',
             'bank_name' => 'nullable|string|max:150',
@@ -73,6 +101,18 @@ class SellerProfileController extends Controller
         ]);
 
         $profile->update($request->all());
+
+        // Sync with SellerPage if exists
+        $sellerPage = Auth::user()->sellerPage;
+        if ($sellerPage) {
+            $sellerPage->update([
+                'support_phone' => $request->office_phone ?? $sellerPage->support_phone,
+                'google_map_link' => $request->google_map_url ?? $sellerPage->google_map_link,
+                'facebook_link' => $request->facebook_url ?? $sellerPage->facebook_link,
+                'instagram_link' => $request->instagram_url ?? $sellerPage->instagram_link,
+                'youtube_link' => $request->youtube_url ?? $sellerPage->youtube_link,
+            ]);
+        }
 
         return redirect()->route('seller.dashboard')->with('success', 'Seller profile updated successfully.');
     }

@@ -57,43 +57,79 @@
         </div>
 
         <!-- Filter Bar -->
-        <div class="bg-white border border-gray-200 rounded-2xl p-4 mb-6 shadow-xs flex flex-wrap items-center justify-between gap-4">
-            <!-- Date Filter Tabs -->
-            <div class="flex flex-wrap items-center gap-2">
-                <span class="text-xs font-bold text-gray-500 mr-1">Date:</span>
-                @php
-                    $d = request('date', 'all');
-                @endphp
-                <a href="{{ route('seller.orders.index', array_merge(request()->query(), ['date' => 'all'])) }}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {{ $d === 'all' ? 'bg-blue-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-                    All Time
-                </a>
-                <a href="{{ route('seller.orders.index', array_merge(request()->query(), ['date' => 'today'])) }}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {{ $d === 'today' ? 'bg-blue-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-                    <i class="fa-solid fa-calendar-day mr-1"></i> Today
-                </a>
-                <a href="{{ route('seller.orders.index', array_merge(request()->query(), ['date' => 'yesterday'])) }}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {{ $d === 'yesterday' ? 'bg-blue-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-                    Yesterday
-                </a>
-                <a href="{{ route('seller.orders.index', array_merge(request()->query(), ['date' => 'this_week'])) }}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {{ $d === 'this_week' ? 'bg-blue-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-                    This Week
-                </a>
-                <a href="{{ route('seller.orders.index', array_merge(request()->query(), ['date' => 'this_month'])) }}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {{ $d === 'this_month' ? 'bg-blue-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-                    This Month
-                </a>
+        <div class="bg-white border border-gray-200 rounded-2xl p-4 mb-6 shadow-xs space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <!-- Date Filter Tabs -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-bold text-gray-500 mr-1">Quick Date:</span>
+                    @php
+                        $d = request('date', 'all');
+                        $hasCustom = request('from_date') || request('to_date');
+                    @endphp
+                    <a href="{{ route('seller.orders.index', array_merge(request()->except(['from_date', 'to_date']), ['date' => 'all'])) }}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {{ ($d === 'all' && !$hasCustom) ? 'bg-blue-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                        All Time
+                    </a>
+                    <a href="{{ route('seller.orders.index', array_merge(request()->except(['from_date', 'to_date']), ['date' => 'today'])) }}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {{ ($d === 'today' && !$hasCustom) ? 'bg-blue-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                        <i class="fa-solid fa-calendar-day mr-1"></i> Today
+                    </a>
+                    <a href="{{ route('seller.orders.index', array_merge(request()->except(['from_date', 'to_date']), ['date' => 'yesterday'])) }}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {{ ($d === 'yesterday' && !$hasCustom) ? 'bg-blue-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                        Yesterday
+                    </a>
+                    <a href="{{ route('seller.orders.index', array_merge(request()->except(['from_date', 'to_date']), ['date' => 'this_week'])) }}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {{ ($d === 'this_week' && !$hasCustom) ? 'bg-blue-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                        This Week
+                    </a>
+                    <a href="{{ route('seller.orders.index', array_merge(request()->except(['from_date', 'to_date']), ['date' => 'this_month'])) }}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {{ ($d === 'this_month' && !$hasCustom) ? 'bg-blue-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                        This Month
+                    </a>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-gray-500">Status:</span>
+                    <select onchange="window.location.href=this.value" class="text-xs font-bold bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-hidden">
+                        @php $currStatus = request('status', 'all'); @endphp
+                        <option value="{{ route('seller.orders.index', array_merge(request()->query(), ['status' => 'all'])) }}" {{ $currStatus === 'all' ? 'selected' : '' }}>All Status</option>
+                        <option value="{{ route('seller.orders.index', array_merge(request()->query(), ['status' => 'pending'])) }}" {{ $currStatus === 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="{{ route('seller.orders.index', array_merge(request()->query(), ['status' => 'processing'])) }}" {{ $currStatus === 'processing' ? 'selected' : '' }}>Processing</option>
+                        <option value="{{ route('seller.orders.index', array_merge(request()->query(), ['status' => 'shipped'])) }}" {{ $currStatus === 'shipped' ? 'selected' : '' }}>Shipped</option>
+                        <option value="{{ route('seller.orders.index', array_merge(request()->query(), ['status' => 'delivered'])) }}" {{ $currStatus === 'delivered' ? 'selected' : '' }}>Delivered</option>
+                        <option value="{{ route('seller.orders.index', array_merge(request()->query(), ['status' => 'cancelled'])) }}" {{ $currStatus === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                    </select>
+                </div>
             </div>
 
-            <!-- Status Filter -->
-            <div class="flex items-center gap-2">
-                <span class="text-xs font-bold text-gray-500">Status:</span>
-                <select onchange="window.location.href=this.value" class="text-xs font-bold bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-hidden">
-                    @php $currStatus = request('status', 'all'); @endphp
-                    <option value="{{ route('seller.orders.index', array_merge(request()->query(), ['status' => 'all'])) }}" {{ $currStatus === 'all' ? 'selected' : '' }}>All Status</option>
-                    <option value="{{ route('seller.orders.index', array_merge(request()->query(), ['status' => 'pending'])) }}" {{ $currStatus === 'pending' ? 'selected' : '' }}>Pending</option>
-                    <option value="{{ route('seller.orders.index', array_merge(request()->query(), ['status' => 'processing'])) }}" {{ $currStatus === 'processing' ? 'selected' : '' }}>Processing</option>
-                    <option value="{{ route('seller.orders.index', array_merge(request()->query(), ['status' => 'shipped'])) }}" {{ $currStatus === 'shipped' ? 'selected' : '' }}>Shipped</option>
-                    <option value="{{ route('seller.orders.index', array_merge(request()->query(), ['status' => 'delivered'])) }}" {{ $currStatus === 'delivered' ? 'selected' : '' }}>Delivered</option>
-                    <option value="{{ route('seller.orders.index', array_merge(request()->query(), ['status' => 'cancelled'])) }}" {{ $currStatus === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                </select>
-            </div>
+            <!-- Custom Date Range Form -->
+            <form action="{{ route('seller.orders.index') }}" method="GET" class="pt-3 border-t border-gray-100 flex flex-wrap items-center gap-3">
+                @if(request('status') && request('status') !== 'all')
+                    <input type="hidden" name="status" value="{{ request('status') }}">
+                @endif
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-gray-600 flex items-center gap-1.5">
+                        <i class="fa-solid fa-calendar-week text-blue-600"></i> Custom Date:
+                    </span>
+                    <div class="flex items-center gap-1.5">
+                        <label class="text-[11px] text-gray-500">From:</label>
+                        <input type="date" name="from_date" value="{{ request('from_date', $fromDate ?? '') }}" class="text-xs font-medium px-2.5 py-1.5 border border-gray-300 rounded-lg bg-gray-50 focus:border-blue-500 focus:outline-hidden">
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <label class="text-[11px] text-gray-500">To:</label>
+                        <input type="date" name="to_date" value="{{ request('to_date', $toDate ?? '') }}" class="text-xs font-medium px-2.5 py-1.5 border border-gray-300 rounded-lg bg-gray-50 focus:border-blue-500 focus:outline-hidden">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button type="submit" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs transition flex items-center gap-1">
+                        <i class="fa-solid fa-filter"></i>
+                        <span>Apply Filter</span>
+                    </button>
+                    @if(request('from_date') || request('to_date') || (request('date') && request('date') !== 'all') || (request('status') && request('status') !== 'all'))
+                        <a href="{{ route('seller.orders.index') }}" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg transition flex items-center gap-1" title="Reset all filters">
+                            <i class="fa-solid fa-rotate-left"></i>
+                            <span>Reset</span>
+                        </a>
+                    @endif
+                </div>
+            </form>
         </div>
 
         <!-- Orders Table / Empty State -->

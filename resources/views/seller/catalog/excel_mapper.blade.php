@@ -1056,7 +1056,8 @@
 
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        const jobId = {{ $job ? $job->id : 'null' }};
+        let jobId = {{ $job ? $job->id : 'null' }};
+        const serverJobProducts = @json($products ?? []);
 
         let currentTargetType = null; // 'row', 'card', or 'batch'
         let currentTargetId = null;
@@ -1538,6 +1539,118 @@
             } catch (e) {}
         }
 
+        function hydrateFromJobProducts(jobProds) {
+            if (!Array.isArray(jobProds) || jobProds.length === 0) return false;
+            groupedProductCards = [];
+            dynamicRows = [];
+
+            jobProds.forEach((prod) => {
+                const variants = prod.variants || [];
+                const img = prod.image_url || '';
+                const assetUrl = img ? (img.startsWith('http') ? img : ('/' + img.replace(/^\//, ''))) : '';
+                const cat = prod.category || prod.group_type || 'General Hardware';
+
+                if (variants.length > 1 || (variants.length === 1 && img)) {
+                    groupedProductCards.push({
+                        card_id: groupedCardNextId++,
+                        parent_name: prod.name,
+                        category: cat,
+                        image_url: img,
+                        asset_url: assetUrl,
+                        variants: variants.map((v) => ({
+                            id: dynamicRowNextId++,
+                            product_code: v.product_code || v.sku || '',
+                            hsn_code: v.hsn_code || '39174000',
+                            size: v.size || v.variant_name || 'Standard',
+                            packing_1: v.packing_1 || '',
+                            packing_2: v.packing_2 || '',
+                            mrp: parseFloat(v.mrp) || 100,
+                            purchase_cost: parseFloat(v.raw_rate || v.purchase_cost) || 60,
+                            cost_price_2: parseFloat(v.cost_price_2) || 0,
+                            cost_price_3: parseFloat(v.cost_price_3) || 0,
+                            retail_price: parseFloat(v.retail_price || v.wholesale_price) || 85,
+                            stock: parseInt(v.stock_quantity || v.stock) || 100
+                        }))
+                    });
+                } else if (variants.length === 1) {
+                    const v = variants[0];
+                    dynamicRows.push({
+                        id: dynamicRowNextId++,
+                        product_code: v.product_code || v.sku || '',
+                        hsn_code: v.hsn_code || '39174000',
+                        product_name: prod.name,
+                        size: v.size || v.variant_name || 'Standard',
+                        packing_1: v.packing_1 || '',
+                        packing_2: v.packing_2 || '',
+                        group_type: cat,
+                        category: cat,
+                        mrp: parseFloat(v.mrp) || 100,
+                        purchase_cost: parseFloat(v.raw_rate || v.purchase_cost) || 60,
+                        cost_price_2: parseFloat(v.cost_price_2) || 0,
+                        cost_price_3: parseFloat(v.cost_price_3) || 0,
+                        retail_price: parseFloat(v.retail_price || v.wholesale_price) || 85,
+                        stock: parseInt(v.stock_quantity || v.stock) || 100,
+                        image_url: img,
+                        asset_url: assetUrl
+                    });
+                } else {
+                    dynamicRows.push({
+                        id: dynamicRowNextId++,
+                        product_code: '',
+                        hsn_code: prod.hsn_code || '39174000',
+                        product_name: prod.name,
+                        size: 'Standard',
+                        packing_1: '',
+                        packing_2: '',
+                        group_type: cat,
+                        category: cat,
+                        mrp: 100,
+                        purchase_cost: 60,
+                        cost_price_2: 0,
+                        cost_price_3: 0,
+                        retail_price: 85,
+                        stock: 100,
+                        image_url: img,
+                        asset_url: assetUrl
+                    });
+                }
+            });
+
+            saveToLocalStorage();
+            return true;
+        }
+
+        let autoSaveTimer = null;
+        function autoSaveDraftToBackend() {
+            if (autoSaveTimer) clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                if (dynamicRows.length === 0 && groupedProductCards.length === 0) return;
+                const sheetTitle = (document.getElementById('dynamicSheetName')?.value || 'Catalog Sheet').trim();
+                fetch("{{ route('seller.catalog.excel_mapper.create_sheet') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": csrfToken,
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify({
+                        job_id: jobId,
+                        sheet_name: sheetTitle,
+                        rows: dynamicRows,
+                        grouped_cards: groupedProductCards
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.job_id) {
+                        jobId = data.job_id;
+                        console.log('✅ Auto-saved catalog sheet draft to database, job_id:', jobId);
+                    }
+                })
+                .catch(err => console.warn('Auto-save background sync error:', err));
+            }, 600);
+        }
+
         function loadFromLocalStorage() {
             try {
                 const storedCards = localStorage.getItem('vyapar_grouped_cards');
@@ -1573,6 +1686,16 @@
                 return;
             }
 
+            // Hydrate from server database job if localStorage was cleared or fresh session
+            if (serverJobProducts && serverJobProducts.length > 0) {
+                if (hydrateFromJobProducts(serverJobProducts)) {
+                    renderDynamicRows();
+                    renderGroupedProductCards();
+                    refreshCategoryFilterTabs();
+                    return;
+                }
+            }
+
             const rawStored = localStorage.getItem('vyapar_custom_excel_lines');
             if (rawStored) {
                 try {
@@ -1597,7 +1720,8 @@
                 }
             }
 
-            if (dynamicRows.length === 0) {
+            // Only load dummy sample rows if there is NO server database job and NO local rows
+            if (!jobId && (!serverJobProducts || serverJobProducts.length === 0) && dynamicRows.length === 0 && groupedProductCards.length === 0) {
                 loadSampleDynamicRows();
             }
             renderGroupedProductCards();
@@ -2030,6 +2154,7 @@
 
             dynamicRows = newRows;
             saveToLocalStorage();
+            autoSaveDraftToBackend();
             renderDynamicRows();
             refreshCategoryFilterTabs();
             toggleDynamicMode(true);
@@ -2150,6 +2275,7 @@
             refreshCategoryFilterTabs();
             updateFloatingBatchBar();
             saveToLocalStorage();
+            autoSaveDraftToBackend();
 
             showToastNotification(`🚀 Zabardast! Sabhi ${rowCount} items ${familyMap.size} alag-alag Cards me distribute ho gaye hain! Ab bas har Card par "Pick Photo" dabakar photo link karein.`);
             
@@ -2221,6 +2347,7 @@
             refreshCategoryFilterTabs();
             updateFloatingBatchBar();
             saveToLocalStorage();
+            autoSaveDraftToBackend();
 
             showToastNotification(`🎉 Shabaash! ${selectedRows.length} items "${parentTitle}" card me save ho gaye aur pending table se hat gaye! Ab table me bache ${dynamicRows.length} items me se "Next 6" select karein.`);
         }
@@ -2416,6 +2543,8 @@
             renderGroupedProductCards();
             refreshCategoryFilterTabs();
             updateFloatingBatchBar();
+            saveToLocalStorage();
+            autoSaveDraftToBackend();
         }
 
         function addVariantToCard(cardId) {
@@ -2438,6 +2567,8 @@
             };
             card.variants.push(newVariant);
             renderGroupedProductCards();
+            saveToLocalStorage();
+            autoSaveDraftToBackend();
         }
 
         function addSelectedRowsToTargetCard() {
@@ -2492,6 +2623,8 @@
             renderGroupedProductCards();
             refreshCategoryFilterTabs();
             updateFloatingBatchBar();
+            saveToLocalStorage();
+            autoSaveDraftToBackend();
 
             alert(`🎉 Success! ${rowsToAdd.length} row(s) ko "${card.parent_name}" card me jod diya gaya hai.`);
         }
@@ -2500,6 +2633,8 @@
             if (!confirm('Kya aap is Grouped Product Card ko delete karna chahte hain?')) return;
             groupedProductCards = groupedProductCards.filter(c => c.card_id !== cardId);
             renderGroupedProductCards();
+            saveToLocalStorage();
+            autoSaveDraftToBackend();
         }
 
         function loadLinesIntoDynamicRows(lines) {

@@ -102,6 +102,36 @@
             </div>
         </div>
 
+        <!-- 🤖 AI Growth & Performance Advisor -->
+        <div class="mb-8 p-5 bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 text-white rounded-3xl shadow-lg border border-indigo-700/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div class="flex items-start gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-xl text-amber-300 shrink-0">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs font-black tracking-wider uppercase text-amber-300">AI Performance Advisor</span>
+                        <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold">Live Store Health: 94%</span>
+                    </div>
+                    <p class="text-xs text-indigo-100 font-medium leading-relaxed">
+                        @if($slowMoving->count() > 0)
+                            Aapke <b>{{ $slowMoving->count() }} products</b> ko buyers dekh rahe hain par order kam hain. Inka selling price 5-10% review karne se conversion turant badhega.
+                        @elseif($topSelling->count() > 0)
+                            Aapka top item <b>"{{ $topSelling->first()->name }}"</b> sabse zyada bik raha hai! Demand continue rakhne ke liye buffer stock bana kar rakhein.
+                        @else
+                            Store performance active hai! Naye products add karke aur WhatsApp broadcast bhej kar daily orders badhayein.
+                        @endif
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0 w-full md:w-auto">
+                <a href="{{ route('seller.catalog.excel_mapper') }}" class="px-4 py-2.5 rounded-xl bg-white text-indigo-950 font-black text-xs hover:bg-indigo-50 transition shadow-sm flex items-center gap-1.5 w-full md:w-auto justify-center">
+                    <i class="fa-solid fa-cloud-arrow-up text-indigo-600"></i>
+                    <span>Add More Products</span>
+                </a>
+            </div>
+        </div>
+
         <!-- 3 Insight Cards (Top Selling, Most Viewed, Slow Moving) -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <!-- Top Selling -->
@@ -215,7 +245,7 @@
                     <tbody class="divide-y divide-gray-100 text-xs">
                         @foreach($products as $p)
                             @php
-                                $pRevenue = $p->orders->sum(fn($o) => ($p->pivot->price ?? $p->price) * ($p->pivot->quantity ?? 1));
+                                $pRevenue = $p->orders->sum(fn($o) => ($o->pivot->price ?? $p->price) * ($o->pivot->quantity ?? 1));
                                 $isTop = $p->orders_count >= 5;
                                 $isSlow = $p->orders_count == 0 && $p->views_count >= 10;
                             @endphp

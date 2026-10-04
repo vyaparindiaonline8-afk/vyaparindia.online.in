@@ -66,10 +66,14 @@
                         <input type="text" name="phone_number" value="{{ old('phone_number', $profile->phone_number ?? '') }}" required placeholder="e.g. 9876543210" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:border-blue-500 focus:outline-hidden">
                     </div>
                     <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Office / Landline Phone (Optional)</label>
+                        <input type="text" name="office_phone" value="{{ old('office_phone', $profile->office_phone ?? '') }}" placeholder="e.g. 0771-2345678 or 9425000000" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:border-blue-500 focus:outline-hidden">
+                    </div>
+                    <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">GSTIN Number (Optional)</label>
                         <input type="text" name="gst_number" value="{{ old('gst_number', $profile->gst_number ?? '') }}" placeholder="e.g. 22AAAAA0000A1Z5" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-medium uppercase focus:border-blue-500 focus:outline-hidden">
                     </div>
-                    <div>
+                    <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-gray-700 mb-1">Local Delivery / Dispatch Radius (KM)</label>
                         <input type="number" name="dispatch_radius" value="{{ old('dispatch_radius', $profile->dispatch_radius ?? 25) }}" placeholder="25" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:border-blue-500 focus:outline-hidden">
                     </div>
@@ -96,7 +100,58 @@
                 </div>
             </div>
 
-            <!-- Section 2: UPI & Banking Setup -->
+            <!-- Section 2: GPS Location & Social Media Presence -->
+            <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
+                <div class="flex items-center gap-2 border-b border-gray-100 pb-3">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-gray-900">GPS Location & Social Media Profiles</h2>
+                        <p class="text-[11px] text-gray-500">Google Map link, Google Business, Facebook, Instagram aur YouTube links yahan add karein.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">
+                            <i class="fa-solid fa-location-dot text-rose-500 mr-1"></i> Google Maps / GPS Location URL
+                        </label>
+                        <input type="url" name="google_map_url" value="{{ old('google_map_url', $profile->google_map_url ?? '') }}" placeholder="e.g. https://maps.app.goo.gl/xyz123 or https://goo.gl/maps/..." class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:border-blue-500 focus:outline-hidden">
+                        <p class="text-[11px] text-gray-500 mt-1">Apne shop ka Google Maps share link paste karein jisse buyers easily aapki dukan tak pahuchein.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">
+                            <i class="fa-brands fa-google text-blue-500 mr-1"></i> Google Business Profile URL
+                        </label>
+                        <input type="url" name="google_business_url" value="{{ old('google_business_url', $profile->google_business_url ?? '') }}" placeholder="e.g. https://g.page/r/your-business" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:border-blue-500 focus:outline-hidden">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">
+                            <i class="fa-brands fa-facebook text-blue-600 mr-1"></i> Facebook Page URL
+                        </label>
+                        <input type="url" name="facebook_url" value="{{ old('facebook_url', $profile->facebook_url ?? '') }}" placeholder="e.g. https://facebook.com/yourshop" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:border-blue-500 focus:outline-hidden">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">
+                            <i class="fa-brands fa-instagram text-pink-600 mr-1"></i> Instagram Profile URL
+                        </label>
+                        <input type="url" name="instagram_url" value="{{ old('instagram_url', $profile->instagram_url ?? '') }}" placeholder="e.g. https://instagram.com/yourshop" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:border-blue-500 focus:outline-hidden">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">
+                            <i class="fa-brands fa-youtube text-red-600 mr-1"></i> YouTube Channel URL
+                        </label>
+                        <input type="url" name="youtube_url" value="{{ old('youtube_url', $profile->youtube_url ?? '') }}" placeholder="e.g. https://youtube.com/@yourshop" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:border-blue-500 focus:outline-hidden">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: UPI & Banking Setup -->
             <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
                 <div class="flex items-center gap-2 border-b border-gray-100 pb-3">
                     <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">

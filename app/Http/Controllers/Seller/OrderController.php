@@ -19,9 +19,21 @@ class OrderController extends Controller
               });
         })->with(['buyer', 'products']);
 
-        // Date Filter (Per-day order tracking)
+        // Date Filter (Per-day order tracking & Custom Date Range)
         $dateFilter = $request->input('date', 'all');
-        if ($dateFilter === 'today') {
+        $fromDate = $request->input('from_date');
+        $toDate = $request->input('to_date');
+
+        if ($fromDate && $toDate) {
+            $query->whereBetween('created_at', [$fromDate . ' 00:00:00', $toDate . ' 23:59:59']);
+            $dateFilter = 'custom';
+        } elseif ($fromDate) {
+            $query->where('created_at', '>=', $fromDate . ' 00:00:00');
+            $dateFilter = 'custom';
+        } elseif ($toDate) {
+            $query->where('created_at', '<=', $toDate . ' 23:59:59');
+            $dateFilter = 'custom';
+        } elseif ($dateFilter === 'today') {
             $query->whereDate('created_at', now()->today());
         } elseif ($dateFilter === 'yesterday') {
             $query->whereDate('created_at', now()->yesterday());
@@ -53,7 +65,7 @@ class OrderController extends Controller
               });
         })->whereDate('created_at', now()->today())->where('status', '!=', 'cancelled')->sum('total_price');
 
-        return view('seller.orders.index', compact('orders', 'dateFilter', 'todayOrdersCount', 'todayRevenue'));
+        return view('seller.orders.index', compact('orders', 'dateFilter', 'fromDate', 'toDate', 'todayOrdersCount', 'todayRevenue'));
     }
 
     public function show(Order $order)

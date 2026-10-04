@@ -1093,6 +1093,11 @@ Please respond clearly in simple professional Hinglish/English with bullet point
             $job = CatalogIngestionJob::where('id', $request->input('job_id'))->where('user_id', $userId)->first();
         }
 
+        // Auto-load latest job so seller never loses their uploaded excel data
+        if (!$job) {
+            $job = CatalogIngestionJob::where('user_id', $userId)->latest()->first();
+        }
+
         $recentJobs = CatalogIngestionJob::where('user_id', $userId)->latest()->take(5)->get();
 
         if (!$job) {
@@ -1408,28 +1413,45 @@ Please respond clearly in simple professional Hinglish/English with bullet point
             $products[] = $fp;
         }
 
-        $newJob = CatalogIngestionJob::create([
-            'user_id' => $userId,
-            'filename' => $sheetName,
-            'file_path' => 'dynamic_pdf_import',
-            'status' => 'parsed',
-            'total_products_detected' => count($products),
-            'extracted_data' => [
-                'sheet_name' => $sheetName,
-                'products' => $products,
-            ],
-        ]);
+        $existingJobId = $request->input('job_id');
+        $job = null;
+        if ($existingJobId) {
+            $job = CatalogIngestionJob::where('id', $existingJobId)->where('user_id', $userId)->first();
+        }
+
+        if (!$job) {
+            $job = CatalogIngestionJob::create([
+                'user_id' => $userId,
+                'filename' => $sheetName,
+                'file_path' => 'dynamic_pdf_import',
+                'status' => 'parsed',
+                'total_products_detected' => count($products),
+                'extracted_data' => [
+                    'sheet_name' => $sheetName,
+                    'products' => $products,
+                ],
+            ]);
+        } else {
+            $job->update([
+                'filename' => $sheetName,
+                'total_products_detected' => count($products),
+                'extracted_data' => [
+                    'sheet_name' => $sheetName,
+                    'products' => $products,
+                ],
+            ]);
+        }
 
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => "Successfully created '{$sheetName}' with " . count($products) . " products!",
-                'job_id' => $newJob->id,
-                'redirect_url' => route('seller.catalog.excel_mapper', $newJob->id),
+                'message' => "Successfully saved '{$sheetName}' with " . count($products) . " products!",
+                'job_id' => $job->id,
+                'redirect_url' => route('seller.catalog.excel_mapper', $job->id),
             ]);
         }
 
-        return redirect()->route('seller.catalog.excel_mapper', $newJob->id)
+        return redirect()->route('seller.catalog.excel_mapper', $job->id)
             ->with('success', "Sheet '{$sheetName}' created successfully! You can now link images and publish.");
     }
 
