@@ -562,51 +562,43 @@
     <script>
         let currentTargetPidx = null;
 
-        // Pre-defined Plasto high-res items gallery
-        const plastoLibrary = [
-            { name: "UPVC 90° Elbow", url: "images/catalog/plasto/items/upvc_elbow.jpg" },
-            { name: "CPVC 90° Elbow", url: "images/catalog/plasto/items/cpvc_elbow.jpg" },
-            { name: "UPVC Tee", url: "images/catalog/plasto/items/upvc_tee.jpg" },
-            { name: "CPVC Tee", url: "images/catalog/plasto/items/cpvc_tee.jpg" },
-            { name: "UPVC Coupler / Socket", url: "images/catalog/plasto/items/upvc_coupler.jpg" },
-            { name: "CPVC Coupler", url: "images/catalog/plasto/items/cpvc_coupler.jpg" },
-            { name: "Brass Elbow", url: "images/catalog/plasto/items/brass_elbow.jpg" },
-            { name: "Brass Tee", url: "images/catalog/plasto/items/brass_tee.jpg" },
-            { name: "Brass FTA", url: "images/catalog/plasto/items/brass_fta.jpg" },
-            { name: "Brass MTA", url: "images/catalog/plasto/items/brass_mta.jpg" },
-            { name: "CPVC Ball Valve", url: "images/catalog/plasto/items/cpvc_ball_valve.jpg" },
-            { name: "UPVC Ball Valve", url: "images/catalog/plasto/items/upvc_ball_valve.jpg" },
-            { name: "CPVC Pipe", url: "images/catalog/plasto/items/cpvc_pipe.jpg" },
-            { name: "UPVC Pipe", url: "images/catalog/plasto/items/upvc_pipe.jpg" },
-            { name: "SWR Pipe", url: "images/catalog/plasto/items/swr_pipe.jpg" },
-            { name: "SWR Single Tee", url: "images/catalog/plasto/items/swr_single_tee.jpg" },
-            { name: "SWR Bend 87.5°", url: "images/catalog/plasto/items/swr_bend.jpg" },
-            { name: "SWR Vent Cowl", url: "images/catalog/plasto/items/swr_vent_cowl.jpg" },
-            { name: "Nahani Trap", url: "images/catalog/plasto/items/nahani_trap.jpg" },
-            { name: "Solvent Cement Can", url: "images/catalog/plasto/items/solvent_cement.jpg" },
-            { name: "Agri Solvent Tube", url: "images/catalog/plasto/items/agri_solvent.jpg" },
-            { name: "End Cap", url: "images/catalog/plasto/items/end_cap.jpg" },
-            { name: "Tank Nipple", url: "images/catalog/plasto/items/cpvc_tank_nipple.jpg" },
-            { name: "Pipe Clip", url: "images/catalog/plasto/items/pipe_clip.jpg" },
-            { name: "Garden Pipe", url: "images/catalog/plasto/items/garden_pipe.jpg" },
-            { name: "Water Tank Lid", url: "images/catalog/plasto/items/water_tank_lid.jpg" },
-        ];
-
         function renderLibraryGrid() {
             const grid = document.getElementById('libraryGrid');
-            grid.innerHTML = '';
-            plastoLibrary.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'border rounded-2xl p-2 bg-gray-50 hover:bg-blue-50 hover:border-blue-300 cursor-pointer text-center group transition';
-                div.onclick = () => selectLibraryImage(item.url);
-                div.innerHTML = `
-                    <div class="aspect-square flex items-center justify-center p-1 overflow-hidden">
-                        <img src="/${item.url}" alt="${item.name}" class="w-full h-full object-contain group-hover:scale-105 transition">
-                    </div>
-                    <p class="text-[10px] font-bold text-gray-700 mt-1 truncate">${item.name}</p>
-                `;
-                grid.appendChild(div);
-            });
+            if (!grid) return;
+            grid.innerHTML = '<div class="col-span-full py-8 text-center text-xs text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Loading photos from Media Vault...</div>';
+
+            fetch("{{ route('seller.catalog.gallery_json') }}")
+                .then(res => res.json())
+                .then(data => {
+                    grid.innerHTML = '';
+                    const images = (data && data.success && Array.isArray(data.images)) ? data.images : [];
+                    if (images.length === 0) {
+                        grid.innerHTML = `
+                            <div class="col-span-full py-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                <i class="fa-solid fa-camera text-gray-300 text-2xl mb-2"></i>
+                                <p class="text-xs text-gray-500 font-bold">Media Vault me abhi koi photo nahi hai.</p>
+                                <p class="text-[11px] text-gray-400 mt-1">Aap "PDF Cropper" tab se direct PDF se photo crop karke laga sakte hain.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    images.forEach(img => {
+                        const div = document.createElement('div');
+                        div.className = 'border rounded-2xl p-2 bg-gray-50 hover:bg-blue-50 hover:border-blue-300 cursor-pointer text-center group transition';
+                        div.onclick = () => selectLibraryImage(img.url);
+                        div.innerHTML = `
+                            <div class="aspect-square flex items-center justify-center p-1 overflow-hidden bg-white rounded-xl mb-1">
+                                <img src="${img.asset_url || img.url}" alt="${img.name || 'Photo'}" class="w-full h-full object-contain group-hover:scale-105 transition" onerror="this.parentElement.innerHTML='<i class=\\'fa-solid fa-image text-gray-300\\'></i>'">
+                            </div>
+                            <p class="text-[10px] font-bold text-gray-700 truncate" title="${img.name}">${img.name || 'Catalog Item'}</p>
+                        `;
+                        grid.appendChild(div);
+                    });
+                })
+                .catch(err => {
+                    grid.innerHTML = '<div class="col-span-full py-4 text-center text-xs text-gray-400">Media Vault se photos load nahi ho saki.</div>';
+                });
         }
         renderLibraryGrid();
 
@@ -646,8 +638,9 @@
 
         function selectLibraryImage(url) {
             if (currentTargetPidx !== null) {
+                const fullAssetUrl = url.startsWith('http') ? url : ('/' + url.replace(/^\//, ''));
                 document.getElementById('img_val_' + currentTargetPidx).value = url;
-                document.getElementById('img_tag_' + currentTargetPidx).src = '/' + url;
+                document.getElementById('img_tag_' + currentTargetPidx).src = fullAssetUrl;
                 closeImageModal();
             }
         }

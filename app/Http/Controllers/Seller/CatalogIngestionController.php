@@ -127,6 +127,27 @@ class CatalogIngestionController extends Controller
     }
 
     /**
+     * Delete an unneeded draft / previous catalog ingestion job safely.
+     * Note: Gallery images, Media Vault crops, and published products are NOT affected.
+     */
+    public function deleteJob(CatalogIngestionJob $job)
+    {
+        if ($job->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        // Clean up temporary catalog source file if it exists in local storage
+        if ($job->file_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($job->file_path)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($job->file_path);
+        }
+
+        $jobTitle = $job->filename ?: "Job #{$job->id}";
+        $job->delete();
+
+        return back()->with('success', "Catalog draft \"{$jobTitle}\" successfully deleted. Media Vault photos remain completely safe.");
+    }
+
+    /**
      * Save Client-Side Cropped Image
      */
     public function cropImage(Request $request)

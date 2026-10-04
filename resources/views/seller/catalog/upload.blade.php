@@ -260,7 +260,19 @@
                                     <span class="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600">
                                         {{ ucfirst($job->status) }}
                                     </span>
+                                    <a href="{{ route('seller.catalog.excel_mapper', $job->id) }}" class="px-3.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition flex items-center gap-1">
+                                        <span>Open in Mapper</span>
+                                        <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                                    </a>
                                 @endif
+
+                                <form action="{{ route('seller.catalog.job.delete', $job->id) }}" method="POST" onsubmit="return confirm('Kya aap is catalog draft ko delete karna chahte hain?\n\nDhayan de: Isse aapki gallery ki photos ya live store ke products delete NAHI honge.')" class="inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="h-8 w-8 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 flex items-center justify-center text-xs transition" title="Delete this Draft Job">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     @endforeach
