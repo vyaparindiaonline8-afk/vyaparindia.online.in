@@ -82,6 +82,79 @@
             </div>
         </div>
 
+        <!-- Firm & Business Verification Details Card -->
+        <div class="bg-white rounded-3xl p-6 border border-gray-200 shadow-xs">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <div class="h-12 w-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-700 text-white flex items-center justify-center text-xl font-black shadow-sm">
+                        <i class="fa-solid fa-building-circle-check"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-base sm:text-lg font-black text-gray-900">
+                                {{ $sellerProfile->company_name ?? (Auth::user()->name . "'s Firm") }}
+                            </h3>
+                            @if(!empty($sellerProfile->gst_number))
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                    GST Registered
+                                </span>
+                            @else
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                                    GST Pending
+                                </span>
+                            @endif
+                        </div>
+                        <p class="text-xs text-gray-500 mt-0.5">
+                            <i class="fa-solid fa-location-dot text-rose-500 mr-1"></i>
+                            {{ $sellerProfile && $sellerProfile->address ? ($sellerProfile->address . ', ' . $sellerProfile->city . ', ' . $sellerProfile->state) : 'Address not added yet' }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="{{ route('seller.profile.edit') }}" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>Edit Firm Details</span>
+                    </a>
+                    @if($sellerProfile && $sellerProfile->google_business_url)
+                        <a href="{{ $sellerProfile->google_business_url }}" target="_blank" class="px-3 py-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs transition flex items-center gap-1">
+                            <i class="fa-brands fa-google text-blue-600"></i>
+                            <span>Google Profile</span>
+                        </a>
+                    @endif
+                    @if($sellerProfile && $sellerProfile->google_map_url)
+                        <a href="{{ $sellerProfile->google_map_url }}" target="_blank" class="px-3 py-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 font-bold text-xs transition flex items-center gap-1">
+                            <i class="fa-solid fa-map-location-dot text-rose-600"></i>
+                            <span>GPS Location</span>
+                        </a>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Firm Specifics Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 text-xs">
+                <div class="bg-gray-50 p-3 rounded-2xl">
+                    <span class="text-[10px] uppercase font-bold text-gray-400 block">GSTIN / Tax ID</span>
+                    <span class="font-mono font-bold text-gray-800 text-xs">{{ $sellerProfile->gst_number ?? 'Not Added' }}</span>
+                </div>
+                <div class="bg-gray-50 p-3 rounded-2xl">
+                    <span class="text-[10px] uppercase font-bold text-gray-400 block">Primary Contact</span>
+                    <span class="font-bold text-gray-800 text-xs">{{ $sellerProfile->phone_number ?? (Auth::user()->phone ?? 'Not Added') }}</span>
+                </div>
+                <div class="bg-gray-50 p-3 rounded-2xl">
+                    <span class="text-[10px] uppercase font-bold text-gray-400 block">Office / Landline</span>
+                    <span class="font-bold text-gray-800 text-xs">{{ $sellerProfile->office_phone ?? 'Optional' }}</span>
+                </div>
+                <div class="bg-gray-50 p-3 rounded-2xl">
+                    <span class="text-[10px] uppercase font-bold text-gray-400 block">WhatsApp Desk</span>
+                    <span class="font-bold text-emerald-700 text-xs flex items-center gap-1">
+                        <i class="fa-brands fa-whatsapp text-emerald-600"></i>
+                        {{ $minisite->whatsapp_number ?? ($sellerProfile->phone_number ?? 'Not Added') }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
         <!-- Metrics Grid -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <div class="bg-white rounded-3xl p-6 border border-gray-200 shadow-xs flex items-center justify-between">
@@ -368,6 +441,114 @@
                     </div>
                 @endif
             </div>
+        </div>
+
+        <!-- 🛍️ Direct Product Cards Preview (Quick View from Dashboard) -->
+        <div class="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 space-y-6 shadow-xs">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-gray-100 gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg font-black shadow-2xs">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-base sm:text-lg text-gray-900 flex items-center gap-2">
+                            <span>Your Product Cards & Live Catalog</span>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-800">{{ $totalProducts }} Products</span>
+                        </h3>
+                        <p class="text-xs text-gray-500">Aapke sabhi cards yahan direct available hain. Store par kaisa dikhta hai yahan se direct preview aur edit karein.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('seller.inventory.index') }}" class="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs border border-emerald-200 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                        <span>Inventory & Rates</span>
+                    </a>
+                    @if($minisite)
+                        <a href="{{ route('minisite.products', $minisite->slug) }}" target="_blank" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            <span>View Storefront Grid</span>
+                        </a>
+                    @endif
+                </div>
+            </div>
+
+            @if($myProducts->isEmpty())
+                <div class="p-12 text-center text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                    <i class="fa-solid fa-box-open text-4xl mb-3 text-gray-300"></i>
+                    <p class="text-sm font-bold text-gray-700">Koi product card abhi nahi bana hai</p>
+                    <p class="text-xs text-gray-400 mt-1">AI Catalog Ingestion ya Photo Studio se apne products list karein.</p>
+                    <a href="{{ route('seller.catalog.upload') }}" class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 transition">
+                        <i class="fa-solid fa-plus"></i> Import Catalog & PDF
+                    </a>
+                </div>
+            @else
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                    @foreach($myProducts as $prod)
+                        <div class="bg-gray-50/70 hover:bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all p-3 flex flex-col justify-between group">
+                            <div>
+                                <div class="relative aspect-square rounded-xl bg-white border border-gray-100 overflow-hidden flex items-center justify-center mb-3">
+                                    @if($prod->image_url)
+                                        <img src="{{ $prod->image_url }}" alt="{{ $prod->name }}" class="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300">
+                                    @else
+                                        <div class="text-gray-300 text-center">
+                                            <i class="fa-solid fa-image text-3xl"></i>
+                                            <p class="text-[10px] mt-1 font-bold">No Image</p>
+                                        </div>
+                                    @endif
+                                    @if($prod->category)
+                                        <span class="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[9px] font-black bg-white/90 shadow-2xs text-gray-800">
+                                            {{ $prod->category->name }}
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <h4 class="font-extrabold text-xs text-gray-900 line-clamp-2" title="{{ $prod->name }}">
+                                    {{ $prod->name }}
+                                </h4>
+
+                                <div class="mt-2 flex items-baseline justify-between">
+                                    <div>
+                                        <span class="text-gray-400 font-bold block text-[10px] uppercase">Selling Rate</span>
+                                        <span class="text-sm font-black text-gray-900">₹{{ number_format($prod->price, 2) }}</span>
+                                    </div>
+                                    @if($prod->variants->count() > 0)
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                            {{ $prod->variants->count() }} Sizes
+                                        </span>
+                                    @endif
+                                </div>
+
+                                @if($prod->variants->count() > 0)
+                                    <div class="mt-2 text-[10px] text-gray-500 font-mono truncate">
+                                        Sizes: {{ $prod->variants->take(3)->pluck('variant_name')->implode(', ') }}{{ $prod->variants->count() > 3 ? '...' : '' }}
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div class="mt-3 pt-2.5 border-t border-gray-200/80 flex items-center gap-1.5">
+                                @if($minisite)
+                                    <a href="{{ route('minisite.product', ['sellerPage' => $minisite->slug, 'productSlug' => $prod->slug]) }}" target="_blank" class="flex-1 py-1.5 px-2 rounded-lg bg-white hover:bg-gray-100 text-gray-700 font-bold text-[11px] border border-gray-200 text-center transition flex items-center justify-center gap-1" title="Storefront view">
+                                        <i class="fa-solid fa-eye text-xs text-indigo-600"></i>
+                                        <span>Preview</span>
+                                    </a>
+                                @endif
+                                <a href="{{ route('seller.products.edit', $prod->id) }}" class="py-1.5 px-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] border border-indigo-200 transition" title="Edit Card Details">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                @if($totalProducts > 12)
+                    <div class="text-center pt-2">
+                        <a href="{{ route('seller.inventory.index') }}" class="inline-flex items-center gap-2 text-xs font-black text-indigo-600 hover:text-indigo-800">
+                            <span>View All {{ $totalProducts }} Product Cards in Inventory &rarr;</span>
+                        </a>
+                    </div>
+                @endif
+            @endif
         </div>
     </div>
 </body>

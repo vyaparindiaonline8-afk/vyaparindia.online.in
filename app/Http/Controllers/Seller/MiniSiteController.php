@@ -148,7 +148,7 @@ class MiniSiteController extends Controller
 
     public function products(SellerPage $sellerPage, Request $request)
     {
-        $query = $sellerPage->user->products();
+        $query = $sellerPage->user->products()->with(['variants', 'category', 'pricingTiers']);
 
         if ($request->filled('search')) {
             $search = $request->input('search');

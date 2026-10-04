@@ -2264,7 +2264,7 @@
                         cost_price_2: r.cost_price_2 || 0,
                         cost_price_3: r.cost_price_3 || 0,
                         retail_price: r.retail_price,
-                        stock: r.stock || 100
+                        stock: (r.stock !== undefined && r.stock !== null && r.stock !== '') ? parseInt(r.stock) : 0
                     }))
                 };
 
@@ -2338,7 +2338,7 @@
                     cost_price_2: r.cost_price_2 || 0,
                     cost_price_3: r.cost_price_3 || 0,
                     retail_price: r.retail_price,
-                    stock: r.stock || 100
+                    stock: (r.stock !== undefined && r.stock !== null && r.stock !== '') ? parseInt(r.stock) : 0
                 }))
             };
 
@@ -2411,7 +2411,7 @@
                                 <div class="flex items-center"><span class="text-gray-400 mr-0.5">₹</span><input type="number" step="0.5" value="${v.retail_price}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'retail_price', parseFloat(this.value) || 0)" class="w-16 text-xs font-bold text-emerald-700 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent"></div>
                             </td>
                             <td class="p-2 font-mono">
-                                <input type="number" value="${v.stock || 100}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'stock', parseInt(this.value) || 0)" class="w-14 text-xs font-mono text-gray-700 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent">
+                                <input type="number" value="${(v.stock !== undefined && v.stock !== null && v.stock !== '') ? v.stock : 0}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'stock', parseInt(this.value) || 0)" class="w-14 text-xs font-mono text-gray-700 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent">
                             </td>
                             <td class="p-2 text-right">
                                 <button type="button" onclick="deleteVariantFromCard(${c.card_id}, ${v.id})" class="h-6 w-6 rounded bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition inline-flex items-center justify-center text-[10px]" title="Remove size"><i class="fa-solid fa-xmark"></i></button>
@@ -2449,6 +2449,10 @@
                                     <i class="fa-solid fa-images"></i>
                                     <span>Pick Photo</span>
                                 </button>
+                                <button type="button" onclick="saveSingleCardChanges(${c.card_id})" id="btn_save_card_${c.card_id}" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition active:scale-95" title="Save this card with all edited sizes & rates">
+                                    <i class="fa-solid fa-floppy-disk"></i>
+                                    <span>Save Card</span>
+                                </button>
                                 <button type="button" onclick="ungroupCard(${c.card_id})" class="px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-extrabold border border-amber-200 flex items-center gap-1.5 transition" title="Restore back to flat table rows">
                                     <i class="fa-solid fa-arrow-rotate-left"></i>
                                     <span>Ungroup</span>
@@ -2484,7 +2488,10 @@
                                     <i class="fa-solid fa-plus text-[10px]"></i>
                                     <span>+ Add Missed Size Variant</span>
                                 </button>
-                                <span class="text-[11px] text-gray-400 font-medium">Agar koi size chhut gaya ho to yahan click karke direct add karein</span>
+                                <button type="button" onclick="saveSingleCardChanges(${c.card_id})" class="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-xs flex items-center gap-1.5 transition">
+                                    <i class="fa-solid fa-check"></i>
+                                    <span>Save Changes to Card</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -2494,16 +2501,48 @@
             grid.innerHTML = html;
         }
 
+        function saveSingleCardChanges(cardId) {
+            const card = groupedProductCards.find(c => c.card_id === cardId);
+            if (!card) return;
+
+            saveToLocalStorage();
+            if (typeof autoSaveDraftToBackend === 'function') autoSaveDraftToBackend();
+
+            const btn = document.getElementById(`btn_save_card_${cardId}`);
+            if (btn) {
+                const orig = btn.innerHTML;
+                btn.innerHTML = `<i class="fa-solid fa-circle-check text-white"></i> <span>Saved ✓</span>`;
+                btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+                btn.classList.add('bg-emerald-700');
+                setTimeout(() => {
+                    btn.innerHTML = orig;
+                    btn.classList.remove('bg-emerald-700');
+                    btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+                }, 2000);
+            }
+            if (typeof showToast === 'function') {
+                showToast(`Card "${card.parent_name}" saved successfully!`, 'success');
+            }
+        }
+
         function updateGroupedCardField(cardId, field, val) {
             const card = groupedProductCards.find(c => c.card_id === cardId);
-            if (card) card[field] = val;
+            if (card) {
+                card[field] = val;
+                saveToLocalStorage();
+                if (typeof autoSaveDraftToBackend === 'function') autoSaveDraftToBackend();
+            }
         }
 
         function updateGroupedVariantField(cardId, variantId, field, val) {
             const card = groupedProductCards.find(c => c.card_id === cardId);
             if (card) {
                 const v = card.variants.find(item => item.id === variantId);
-                if (v) v[field] = val;
+                if (v) {
+                    v[field] = val;
+                    saveToLocalStorage();
+                    if (typeof autoSaveDraftToBackend === 'function') autoSaveDraftToBackend();
+                }
             }
         }
 
@@ -2569,7 +2608,7 @@
                 cost_price_2: lastVar ? (lastVar.cost_price_2 || 0) : 0,
                 cost_price_3: lastVar ? (lastVar.cost_price_3 || 0) : 0,
                 retail_price: lastVar ? lastVar.retail_price : 85,
-                stock: 100
+                stock: 0
             };
             card.variants.push(newVariant);
             renderGroupedProductCards();
@@ -2617,7 +2656,7 @@
                     cost_price_2: r.cost_price_2 || 0,
                     cost_price_3: r.cost_price_3 || 0,
                     retail_price: r.retail_price,
-                    stock: r.stock || 100
+                    stock: (r.stock !== undefined && r.stock !== null && r.stock !== '') ? parseInt(r.stock) : 0
                 });
             });
 
@@ -2809,7 +2848,7 @@
                             </div>
                         </td>
                         <td class="p-3 font-mono">
-                            <input type="number" value="${r.stock || 100}" oninput="updateDynamicRowField(${r.id}, 'stock', parseInt(this.value) || 0)" class="w-14 text-xs font-mono text-gray-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 rounded-lg p-1 bg-transparent" title="Stock Quantity">
+                            <input type="number" value="${(r.stock !== undefined && r.stock !== null && r.stock !== '') ? r.stock : 0}" oninput="updateDynamicRowField(${r.id}, 'stock', parseInt(this.value) || 0)" class="w-14 text-xs font-mono text-gray-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 rounded-lg p-1 bg-transparent" title="Stock Quantity">
                         </td>
                         <td class="p-3 text-right">
                             <div class="flex items-center justify-end gap-1">
@@ -2960,7 +2999,7 @@
                         v.cost_price_2 || 0,
                         v.cost_price_3 || 0,
                         v.retail_price,
-                        v.stock || 100,
+                        (v.stock !== undefined && v.stock !== null) ? v.stock : 0,
                         escapeCsv(c.image_url)
                     ].join(',') + "\n";
                 });
@@ -2982,7 +3021,7 @@
                     r.cost_price_2 || 0,
                     r.cost_price_3 || 0,
                     r.retail_price,
-                    r.stock || 100,
+                    (r.stock !== undefined && r.stock !== null) ? r.stock : 0,
                     escapeCsv(r.image_url)
                 ].join(',') + "\n";
             });

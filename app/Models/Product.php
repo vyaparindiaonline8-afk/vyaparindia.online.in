@@ -142,13 +142,12 @@ class Product extends Model
     public function getAverageRatingAttribute()
     {
         $avg = $this->reviews()->avg('rating');
-        return $avg ? round($avg, 1) : 4.8;
+        return $avg ? round($avg, 1) : 5.0;
     }
 
     public function getReviewsCountAttribute()
     {
-        $cnt = $this->reviews()->count();
-        return $cnt > 0 ? $cnt : rand(45, 180);
+        return $this->reviews()->count();
     }
 
     public function getImageUrlAttribute()

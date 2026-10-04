@@ -269,7 +269,21 @@
                     <p class="text-xs text-gray-600 leading-relaxed">
                         {{ $sellerPage->tagline ?: ($sellerPage->welcome_message ?: 'Direct manufacturer and verified supplier on VyaparIndia.') }}
                     </p>
-                    @if($sellerPage->address)
+                    @php
+                        $firmProfile = $sellerPage->user ? $sellerPage->user->sellerProfile : null;
+                    @endphp
+                    @if($firmProfile && $firmProfile->gst_number)
+                        <div class="text-[11px] font-mono text-gray-600 pt-0.5 flex items-center gap-1.5">
+                            <span class="px-1.5 py-0.5 bg-gray-100 rounded text-[10px] font-bold text-gray-800">GSTIN</span>
+                            <span class="font-bold text-gray-900">{{ $firmProfile->gst_number }}</span>
+                        </div>
+                    @endif
+                    @if($firmProfile && ($firmProfile->address || $firmProfile->city))
+                        <div class="text-xs text-gray-500 flex items-start gap-2 pt-1">
+                            <i class="fa-solid fa-location-dot mt-0.5 text-rose-500"></i>
+                            <span>{{ $firmProfile->address ? $firmProfile->address . ', ' : '' }}{{ $firmProfile->city }}{{ $firmProfile->state ? ', ' . $firmProfile->state : '' }}</span>
+                        </div>
+                    @elseif($sellerPage->address)
                         <div class="text-xs text-gray-500 flex items-start gap-2 pt-1">
                             <i class="fa-solid fa-location-dot mt-0.5 text-gray-400"></i>
                             <span>{{ $sellerPage->address }}{{ $sellerPage->city ? ', ' . $sellerPage->city : '' }}{{ $sellerPage->pincode ? ' - ' . $sellerPage->pincode : '' }}</span>

@@ -273,37 +273,10 @@
                 </div>
                 @endforeach
             @else
-                <!-- Default Social Proof Verified Reviews -->
-                <div class="pt-4 text-xs space-y-1.5">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <span class="font-bold text-gray-900">Pooja Sharma</span>
-                            <span class="text-gray-400 text-[11px]">(Noida, UP)</span>
-                            <span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-md">✓ Verified Purchase</span>
-                        </div>
-                        <span class="text-gray-400 text-[10px]">2 days ago</span>
-                    </div>
-                    <div class="flex text-amber-400 text-xs">
-                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
-                    </div>
-                    <h4 class="font-bold text-gray-900">Super fast delivery & premium display!</h4>
-                    <p class="text-gray-600 leading-relaxed">Ordered this 2 days ago, received packaging in pristine condition with fast dispatch. The AMOLED screen and battery life are genuinely unbelievable at this price point.</p>
-                </div>
-
-                <div class="pt-4 text-xs space-y-1.5">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <span class="font-bold text-gray-900">Vikram Malhotra</span>
-                            <span class="text-gray-400 text-[11px]">(Delhi NCR)</span>
-                            <span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-md">✓ Verified Purchase</span>
-                        </div>
-                        <span class="text-gray-400 text-[10px]">4 days ago</span>
-                    </div>
-                    <div class="flex text-amber-400 text-xs">
-                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
-                    </div>
-                    <h4 class="font-bold text-gray-900">Best value for money gadget</h4>
-                    <p class="text-gray-600 leading-relaxed">Smooth touch interface, accurate step tracking and seamless bluetooth calling. Highly recommended for daily use.</p>
+                <div class="p-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                    <i class="fa-solid fa-comments text-gray-300 text-3xl mb-2"></i>
+                    <p class="text-xs font-bold text-gray-700">Be the first to review this product!</p>
+                    <p class="text-[11px] text-gray-400 mt-0.5">Apna feedback share karne ke liye upar 'Write a Customer Review' button dabayein.</p>
                 </div>
             @endif
         </div>
@@ -360,6 +333,32 @@
         currentProduct.variant_id = selectedVariant.id;
     }
 
+    const pricingTiers = @json($product->pricingTiers ?? []);
+
+    function getEffectiveUnitPrice(qty) {
+        let base = parseFloat(selectedVariant ? (selectedVariant.retail_price || selectedVariant.wholesale_price || currentProduct.price) : currentProduct.price);
+        if (pricingTiers && pricingTiers.length > 0) {
+            const match = pricingTiers
+                .slice()
+                .sort((a,b) => b.min_quantity - a.min_quantity)
+                .find(t => qty >= t.min_quantity && (!t.max_quantity || qty <= t.max_quantity));
+            if (match && match.unit_price > 0) {
+                return parseFloat(match.unit_price);
+            }
+        }
+        return base;
+    }
+
+    function recalcDetailPrice() {
+        let qty = parseInt(document.getElementById('detail-qty')?.value || 1);
+        let effPrice = getEffectiveUnitPrice(qty);
+        currentProduct.price = effPrice;
+        const priceEl = document.getElementById('display-price');
+        if (priceEl) {
+            priceEl.textContent = '₹' + effPrice.toFixed(2);
+        }
+    }
+
     // Initialize first variant if exists
     if (productVariants && productVariants.length > 0) {
         selectVariant(0);
@@ -371,6 +370,7 @@
         val += delta;
         if (val < 1) val = 1;
         input.value = val;
+        recalcDetailPrice();
     }
 
     function addDetailToBag() {

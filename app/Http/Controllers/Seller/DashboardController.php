@@ -24,8 +24,13 @@ class DashboardController extends Controller
         $totalRevenue = (clone $ordersQuery)->where('status', '!=', 'cancelled')->sum('total_price');
         $recentOrders = (clone $ordersQuery)->with('products')->latest()->take(5)->get();
 
+        $sellerProfile = Auth::user()->sellerProfile;
+        $myProducts = Auth::user()->products()->with(['variants', 'category'])->latest()->take(12)->get();
+
         return view('seller.dashboard', compact(
             'minisite',
+            'sellerProfile',
+            'myProducts',
             'totalProducts',
             'totalOrders',
             'pendingOrders',

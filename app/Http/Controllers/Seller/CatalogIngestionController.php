@@ -452,7 +452,7 @@ class CatalogIngestionController extends Controller
                     $p->wholesale_price,
                     $p->price,
                     $p->mrp,
-                    $p->stock_quantity ?? 100,
+                    $p->stock_quantity ?? 0,
                 ];
             }
         }
@@ -1544,7 +1544,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                     'cost_price_3' => floatval($v['cost_price_3'] ?? 0),
                     'wholesale_price' => floatval($v['wholesale_price'] ?? 0),
                     'retail_price' => floatval($v['retail_price'] ?? 0),
-                    'stock' => intval($v['stock_quantity'] ?? 100),
+                    'stock' => intval($v['stock_quantity'] ?? 0),
                     'image_url' => $img,
                 ];
                 $rowIndex++;
@@ -1679,7 +1679,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                 $vCost2 = floatval($v['cost_price_2'] ?? 0);
                 $vCost3 = floatval($v['cost_price_3'] ?? 0);
                 $vRetail = floatval($v['retail_price'] ?? ($vMrp * 0.85));
-                $vStock = intval($v['stock'] ?? ($v['stock_quantity'] ?? 100));
+                $vStock = isset($v['stock']) && $v['stock'] !== '' ? intval($v['stock']) : (isset($v['stock_quantity']) && $v['stock_quantity'] !== '' ? intval($v['stock_quantity']) : 0);
 
                 $vHsn = trim($v['hsn_code'] ?? '39174000');
                 $cardVariants[] = [
@@ -1697,7 +1697,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                     'wholesale_price' => $vCost2 > 0 ? $vCost2 : round($vCost * 1.15, 2),
                     'retail_price' => $vRetail,
                     'mrp' => $vMrp,
-                    'stock_quantity' => $vStock > 0 ? $vStock : 100,
+                    'stock_quantity' => $vStock,
                 ];
             }
 
@@ -1727,7 +1727,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
             $cost2 = floatval($r['cost_price_2'] ?? 0);
             $cost3 = floatval($r['cost_price_3'] ?? 0);
             $retail = floatval($r['retail_price'] ?? ($mrp * 0.85));
-            $stock = intval($r['stock'] ?? ($r['stock_quantity'] ?? 100));
+            $stock = isset($r['stock']) && $r['stock'] !== '' ? intval($r['stock']) : (isset($r['stock_quantity']) && $r['stock_quantity'] !== '' ? intval($r['stock_quantity']) : 0);
             $img = !empty($r['image_url']) ? $r['image_url'] : null;
             $groupType = !empty($r['group_type']) ? trim($r['group_type']) : (!empty($r['category']) ? trim($r['category']) : 'General Hardware');
             $categoryName = !empty($r['category']) ? trim($r['category']) : $groupType;
@@ -1762,7 +1762,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                 'wholesale_price' => $cost2 > 0 ? $cost2 : round($cost * 1.15, 2),
                 'retail_price' => $retail,
                 'mrp' => $mrp,
-                'stock_quantity' => $stock > 0 ? $stock : 100,
+                'stock_quantity' => $stock,
             ];
         }
 
@@ -1875,7 +1875,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                         'price' => $baseRetail,
                         'mrp' => $baseMrp,
                         'gst_percent' => $gst,
-                        'stock_quantity' => intval($firstVar['stock_quantity'] ?? 100),
+                        'stock_quantity' => intval($firstVar['stock_quantity'] ?? 0),
                         'track_inventory' => false,
                         'has_variants' => $hasMultipleVariants,
                         'sku' => $prodSku,
@@ -1911,7 +1911,7 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                         'wholesale_price' => $wPrice,
                         'retail_price' => $rPrice,
                         'mrp' => $vMrp,
-                        'stock_quantity' => intval($v['stock_quantity'] ?? 100),
+                        'stock_quantity' => intval($v['stock_quantity'] ?? 0),
                         'sku' => $vSku,
                         'attributes' => json_encode($attributes),
                         'created_at' => $now,

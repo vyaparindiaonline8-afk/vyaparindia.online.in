@@ -141,41 +141,94 @@
                 </a>
             </div>
         @else
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                 @foreach($products as $product)
-                    <div class="bg-white rounded-2xl border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all flex flex-col overflow-hidden group">
-                        <!-- Product Image -->
-                        <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]) }}" class="relative block aspect-square bg-gray-100 overflow-hidden">
-                            <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
-                            @if($product->category)
-                                <span class="absolute top-2.5 left-2.5 bg-white/90 backdrop-blur-xs text-gray-800 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs">
-                                    {{ $product->category->name }}
-                                </span>
-                            @endif
-                        </a>
+                    @php
+                        $variants = $product->variants;
+                        $firstVar = $variants->first();
+                        $initPrice = $firstVar ? ($firstVar->retail_price ?: ($firstVar->wholesale_price ?: $product->price)) : $product->price;
+                        $initMrp = $firstVar ? ($firstVar->mrp ?: ($initPrice * 1.35)) : ($product->mrp ?: ($product->price * 1.35));
+                    @endphp
+                    <div class="bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden group p-3.5 space-y-3" id="card_box_{{ $product->id }}">
+                        <!-- Product Image & Category Badge -->
+                        <div>
+                            <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]) }}" class="relative block aspect-square bg-gray-50 rounded-xl overflow-hidden border border-gray-100 mb-3 flex items-center justify-center">
+                                @if($product->image_url)
+                                    <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300">
+                                @else
+                                    <div class="text-gray-300 text-center">
+                                        <i class="fa-solid fa-image text-3xl"></i>
+                                    </div>
+                                @endif
+                                @if($product->category)
+                                    <span class="absolute top-2 left-2 bg-white/95 backdrop-blur-xs text-gray-800 text-[10px] font-black px-2 py-0.5 rounded-md shadow-2xs">
+                                        {{ $product->category->name }}
+                                    </span>
+                                @endif
+                            </a>
 
-                        <!-- Product Info -->
-                        <div class="p-4 flex-1 flex flex-col">
-                            <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]) }}" class="font-bold text-xs sm:text-sm text-gray-900 hover:text-brand-custom line-clamp-2 transition-colors">
+                            <!-- Product Title -->
+                            <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]) }}" class="font-extrabold text-xs sm:text-sm text-gray-900 hover:text-indigo-600 line-clamp-2 transition-colors" title="{{ $product->name }}">
                                 {{ $product->name }}
                             </a>
-                            <div class="mt-2 flex items-baseline gap-2">
-                                <span class="text-base font-extrabold text-gray-900">₹{{ number_format($product->price, 2) }}</span>
-                                <span class="text-xs text-gray-400 line-through">₹{{ number_format($product->price * 1.3, 2) }}</span>
-                            </div>
 
-                            <!-- Action Buttons -->
-                            <div class="mt-4 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 mt-auto">
-                                <button onclick='addToCart(@json($product))' class="py-2 px-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5" title="Add to Bag">
-                                    <i class="fa-solid fa-bag-shopping text-xs"></i>
-                                    <span class="hidden sm:inline">Add</span>
-                                </button>
+                            <!-- Flexible Size / Variant Selection on Card -->
+                            @if($variants && $variants->count() > 1)
+                                <div class="mt-2.5">
+                                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                                        Choose Size / Variant:
+                                    </label>
+                                    <select id="card_variant_{{ $product->id }}" onchange="onCardVariantChanged({{ $product->id }})" class="w-full text-xs font-bold border border-gray-200 rounded-xl px-2.5 py-1.5 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none transition">
+                                        @foreach($variants as $idx => $v)
+                                            @php
+                                                $vPrice = $v->retail_price ?: ($v->wholesale_price ?: $product->price);
+                                                $vMrp = $v->mrp ?: ($vPrice * 1.35);
+                                            @endphp
+                                            <option value="{{ $v->id }}" data-price="{{ $vPrice }}" data-mrp="{{ $vMrp }}" data-name="{{ $v->variant_name }}" data-stock="{{ $v->stock_quantity ?? 0 }}" {{ $idx === 0 ? 'selected' : '' }}>
+                                                {{ $v->variant_name }} (₹{{ number_format($vPrice, 2) }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            @elseif($variants && $variants->count() === 1)
+                                <div class="mt-2 text-[11px] font-bold text-gray-500 flex items-center gap-1.5">
+                                    <span class="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 font-mono text-[10px]">{{ $variants[0]->variant_name }}</span>
+                                    <input type="hidden" id="card_variant_{{ $product->id }}" value="{{ $variants[0]->id }}" data-price="{{ $initPrice }}" data-mrp="{{ $initMrp }}" data-name="{{ $variants[0]->variant_name }}">
+                                </div>
+                            @endif
 
-                                <button onclick="buySingleOnWhatsapp('{{ addslashes($product->name) }}', '{{ $product->price }}', '{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]) }}')" class="py-2 px-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5" title="Order via WhatsApp">
-                                    <i class="fa-brands fa-whatsapp text-sm"></i>
-                                    <span class="hidden sm:inline">Order</span>
-                                </button>
+                            <!-- Dynamic Live Price & Calculated Total -->
+                            <div class="mt-3 flex items-baseline justify-between">
+                                <div>
+                                    <div class="flex items-baseline gap-1.5">
+                                        <span class="text-base sm:text-lg font-black text-gray-900" id="card_unit_price_{{ $product->id }}">₹{{ number_format($initPrice, 2) }}</span>
+                                        <span class="text-xs text-gray-400 line-through" id="card_mrp_{{ $product->id }}">₹{{ number_format($initMrp, 2) }}</span>
+                                    </div>
+                                    <div class="text-[11px] font-bold text-emerald-700" id="card_total_box_{{ $product->id }}">
+                                        Total: <span id="card_total_price_{{ $product->id }}" class="font-extrabold">₹{{ number_format($initPrice, 2) }}</span>
+                                    </div>
+                                </div>
+
+                                <!-- Quantity Stepper [-] [ 1 ] [+] on Card -->
+                                <div class="inline-flex items-center border border-gray-200 rounded-xl bg-gray-50 overflow-hidden shadow-2xs">
+                                    <button type="button" onclick="stepCardQty({{ $product->id }}, -1)" class="px-2.5 py-1 text-xs font-bold text-gray-600 hover:bg-gray-200 transition-colors">-</button>
+                                    <input type="number" id="card_qty_{{ $product->id }}" value="1" min="1" onchange="onCardQtyInput({{ $product->id }})" class="w-8 text-center text-xs font-bold text-gray-900 border-none bg-transparent focus:outline-none p-0" readonly>
+                                    <button type="button" onclick="stepCardQty({{ $product->id }}, 1)" class="px-2.5 py-1 text-xs font-bold text-gray-600 hover:bg-gray-200 transition-colors">+</button>
+                                </div>
                             </div>
+                        </div>
+
+                        <!-- 1-Click Action Buttons Right on the Card -->
+                        <div class="pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 mt-auto">
+                            <button type="button" onclick="addCardToBag({{ $product->id }})" id="btn_add_bag_{{ $product->id }}" class="py-2 px-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs transition flex items-center justify-center gap-1.5" title="Add to Shopping Bag">
+                                <i class="fa-solid fa-bag-shopping text-xs"></i>
+                                <span>Add to Bag</span>
+                            </button>
+
+                            <button type="button" onclick="orderCardOnWhatsapp({{ $product->id }})" class="py-2 px-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-xs shadow-emerald-500/20" title="Direct WhatsApp Order">
+                                <i class="fa-brands fa-whatsapp text-sm"></i>
+                                <span>WhatsApp</span>
+                            </button>
                         </div>
                     </div>
                 @endforeach
@@ -188,4 +241,148 @@
         @endif
     </div>
 </div>
+
+@push('scripts')
+<script>
+    const STORE_PRODUCTS = @json($products->items());
+    const STORE_PAGE_SLUG = @json($sellerPage->slug);
+    const STORE_PAGE_TITLE = @json($sellerPage->page_title);
+    const STORE_WA_NUM = @json($sellerPage->whatsapp_number ?? '');
+
+    function getCardSelectedState(prodId) {
+        const prod = STORE_PRODUCTS.find(p => p.id === prodId);
+        if (!prod) return null;
+
+        const qtyEl = document.getElementById(`card_qty_${prodId}`);
+        const qty = Math.max(1, parseInt(qtyEl?.value || 1));
+
+        let unitPrice = parseFloat(prod.price || 0);
+        let mrp = parseFloat(prod.mrp || (unitPrice * 1.35));
+        let variantName = '';
+        let variantId = null;
+
+        const varSelect = document.getElementById(`card_variant_${prodId}`);
+        if (varSelect) {
+            if (varSelect.tagName === 'SELECT') {
+                const opt = varSelect.options[varSelect.selectedIndex];
+                if (opt) {
+                    unitPrice = parseFloat(opt.getAttribute('data-price') || unitPrice);
+                    mrp = parseFloat(opt.getAttribute('data-mrp') || mrp);
+                    variantName = opt.getAttribute('data-name') || '';
+                    variantId = parseInt(opt.value);
+                }
+            } else if (varSelect.tagName === 'INPUT') {
+                unitPrice = parseFloat(varSelect.getAttribute('data-price') || unitPrice);
+                mrp = parseFloat(varSelect.getAttribute('data-mrp') || mrp);
+                variantName = varSelect.getAttribute('data-name') || '';
+                variantId = parseInt(varSelect.value);
+            }
+        }
+
+        // Check if product has volume pricing tiers
+        if (prod.pricing_tiers && prod.pricing_tiers.length > 0) {
+            const matchingTier = prod.pricing_tiers
+                .slice()
+                .sort((a,b) => b.min_quantity - a.min_quantity)
+                .find(t => qty >= t.min_quantity && (!t.max_quantity || qty <= t.max_quantity));
+            if (matchingTier && matchingTier.unit_price > 0) {
+                unitPrice = parseFloat(matchingTier.unit_price);
+            }
+        }
+
+        const total = unitPrice * qty;
+
+        return {
+            product: prod,
+            variantId: variantId,
+            variantName: variantName,
+            quantity: qty,
+            unitPrice: unitPrice,
+            mrp: mrp,
+            total: total
+        };
+    }
+
+    function onCardVariantChanged(prodId) {
+        recalcCardTotal(prodId);
+    }
+
+    function stepCardQty(prodId, delta) {
+        const qtyEl = document.getElementById(`card_qty_${prodId}`);
+        if (!qtyEl) return;
+        let val = Math.max(1, (parseInt(qtyEl.value) || 1) + delta);
+        qtyEl.value = val;
+        recalcCardTotal(prodId);
+    }
+
+    function onCardQtyInput(prodId) {
+        const qtyEl = document.getElementById(`card_qty_${prodId}`);
+        if (qtyEl) {
+            qtyEl.value = Math.max(1, parseInt(qtyEl.value) || 1);
+        }
+        recalcCardTotal(prodId);
+    }
+
+    function recalcCardTotal(prodId) {
+        const state = getCardSelectedState(prodId);
+        if (!state) return;
+
+        const unitEl = document.getElementById(`card_unit_price_${prodId}`);
+        const mrpEl = document.getElementById(`card_mrp_${prodId}`);
+        const totalEl = document.getElementById(`card_total_price_${prodId}`);
+
+        if (unitEl) unitEl.innerText = '₹' + state.unitPrice.toFixed(2);
+        if (mrpEl) mrpEl.innerText = '₹' + state.mrp.toFixed(2);
+        if (totalEl) totalEl.innerText = '₹' + state.total.toFixed(2);
+    }
+
+    function addCardToBag(prodId) {
+        const state = getCardSelectedState(prodId);
+        if (!state) return;
+
+        const cartItem = {
+            id: state.product.id,
+            name: state.product.name + (state.variantName ? ` (${state.variantName})` : ''),
+            price: state.unitPrice,
+            image: state.product.image_url,
+            variant_id: state.variantId,
+            variant_name: state.variantName
+        };
+
+        if (typeof addToCart === 'function') {
+            addToCart(cartItem, state.quantity, true);
+        }
+
+        const btn = document.getElementById(`btn_add_bag_${prodId}`);
+        if (btn) {
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-check text-emerald-600"></i> Added!`;
+            setTimeout(() => { btn.innerHTML = origHtml; }, 1800);
+        }
+    }
+
+    function orderCardOnWhatsapp(prodId) {
+        const state = getCardSelectedState(prodId);
+        if (!state) return;
+
+        if (!STORE_WA_NUM) {
+            alert('WhatsApp number store owner dwara set nahi kiya gaya hai.');
+            return;
+        }
+
+        const prodUrl = window.location.origin + '/' + STORE_PAGE_SLUG + '/p/' + state.product.slug;
+        const varTxt = state.variantName ? ` (${state.variantName})` : '';
+
+        const msg = `*Namaste! New Order Inquiry from ${STORE_PAGE_TITLE}*\n\n` +
+                    `🛍️ *Product:* ${state.product.name}${varTxt}\n` +
+                    `🔢 *Quantity:* ${state.quantity}\n` +
+                    `💰 *Rate:* ₹${state.unitPrice.toFixed(2)} per unit\n` +
+                    `💵 *Total Amount:* ₹${state.total.toFixed(2)}\n` +
+                    `🔗 *Item Link:* ${prodUrl}\n\n` +
+                    `Kripya payment details aur delivery time confirm karein.`;
+
+        window.open(`https://api.whatsapp.com/send?phone=${STORE_WA_NUM}&text=${encodeURIComponent(msg)}`, '_blank');
+    }
+</script>
+@endpush
 @endsection
