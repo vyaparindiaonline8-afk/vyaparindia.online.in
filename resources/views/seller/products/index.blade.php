@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body class="bg-gray-50 text-gray-800 antialiased min-h-screen">
 
@@ -167,13 +168,56 @@
             </div>
         </div>
 
+        <!-- 📁 Rate Folders / Collections Filter Bar -->
+        <div class="bg-white rounded-3xl border border-gray-200 p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+                <span class="text-xs font-black text-gray-500 shrink-0 flex items-center gap-1.5 mr-1">
+                    <i class="fa-solid fa-folder-tree text-indigo-600"></i>
+                    <span>रेट फोल्डर्स:</span>
+                </span>
+
+                <!-- All Tab -->
+                <a href="{{ route('seller.products.index') }}" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold shrink-0 transition flex items-center gap-1.5 {{ empty($activeFolder) || $activeFolder === 'all' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 hover:bg-gray-200 text-gray-700' }}">
+                    <span>सभी आइटम्स (All)</span>
+                </a>
+
+                @if(!empty($folders) && $folders->count() > 0)
+                    @foreach($folders as $fName)
+                        <a href="{{ route('seller.products.index', ['folder' => $fName]) }}" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold shrink-0 transition flex items-center gap-1.5 {{ ($activeFolder ?? '') === $fName ? 'bg-indigo-600 text-white shadow-xs' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200' }}">
+                            <i class="fa-solid fa-folder text-[10px]"></i>
+                            <span>{{ $fName }}</span>
+                        </a>
+                    @endforeach
+                @else
+                    <span class="text-[11px] text-gray-400 italic shrink-0">
+                        (नीचे आइटम्स को टिक करके फोल्डर में जोड़ें)
+                    </span>
+                @endif
+            </div>
+
+            @if(!empty($activeFolder) && $activeFolder !== 'all')
+                <div class="flex items-center gap-2 shrink-0">
+                    <span class="text-xs font-bold text-indigo-900 bg-indigo-50 px-2.5 py-1 rounded-xl border border-indigo-200">
+                        Active Folder: <strong>{{ $activeFolder }}</strong> ({{ $products->count() }} items)
+                    </span>
+                    <a href="{{ route('seller.products.export_sheet', ['type' => 'rates', 'folder' => $activeFolder]) }}" class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-xs transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-download"></i>
+                        <span>इस फोल्डर की रेट शीट (.csv)</span>
+                    </a>
+                </div>
+            @endif
+        </div>
+
         <!-- Product Table -->
         <div class="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
                         <tr class="bg-gray-50 text-gray-600 font-bold border-b border-gray-200">
-                            <th class="py-3 px-4">Item</th>
+                            <th class="py-3 px-3 w-10 text-center">
+                                <input type="checkbox" id="selectAllProductsChk" onchange="toggleSelectAllProducts(this.checked)" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer" title="Select All">
+                            </th>
+                            <th class="py-3 px-4">Item & Rate Folder</th>
                             <th class="py-3 px-4">Category</th>
                             <th class="py-3 px-4">Selling Price</th>
                             <th class="py-3 px-4">Variants</th>
@@ -183,7 +227,10 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @forelse($products as $product)
-                            <tr class="hover:bg-gray-50/60 transition">
+                            <tr class="hover:bg-gray-50/60 transition" id="row-prod-{{ $product->id }}">
+                                <td class="py-3 px-3 text-center">
+                                    <input type="checkbox" value="{{ $product->id }}" data-name="{{ addslashes($product->name) }}" data-folder="{{ $product->group_name }}" class="product-item-chk rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer" onchange="onProductSelectionChange()">
+                                </td>
                                 <td class="py-3 px-4">
                                     <div class="flex items-center gap-3">
                                         <div class="h-10 w-10 rounded-xl bg-gray-100 overflow-hidden flex items-center justify-center shrink-0 border border-gray-100">
@@ -195,7 +242,19 @@
                                         </div>
                                         <div>
                                             <div class="font-extrabold text-gray-900 text-sm">{{ $product->name }}</div>
-                                            <div class="text-[10px] text-gray-400 font-mono">{{ $product->sku ?? 'PRD-STD' }}</div>
+                                            <div class="flex items-center gap-2 mt-0.5">
+                                                <span class="text-[10px] text-gray-400 font-mono">{{ $product->sku ?? 'PRD-STD' }}</span>
+                                                @if($product->group_name)
+                                                    <a href="{{ route('seller.products.index', ['folder' => $product->group_name]) }}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-[10px] font-extrabold transition">
+                                                        <i class="fa-solid fa-folder text-[9px]"></i>
+                                                        <span>{{ $product->group_name }}</span>
+                                                    </a>
+                                                @else
+                                                    <button type="button" onclick="openAssignFolderModalSingle({{ $product->id }}, '{{ addslashes($product->name) }}')" class="text-[10px] text-gray-400 hover:text-indigo-600 font-semibold inline-flex items-center gap-1 transition">
+                                                        <i class="fa-solid fa-plus text-[9px]"></i> फोल्डर सेट करें
+                                                    </button>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
                                 </td>
@@ -240,7 +299,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="py-12 text-center text-gray-400">
+                                <td colspan="7" class="py-12 text-center text-gray-400">
                                     <i class="fa-solid fa-box-open text-4xl mb-2 text-gray-300"></i>
                                     <p class="font-bold text-gray-600">No products added yet</p>
                                     <p class="text-xs mt-1">Start listing items or upload a catalog PDF.</p>
@@ -340,7 +399,233 @@
         </div>
     </div>
 
+    <!-- 🎯 Floating Batch Actions Bar (Shown when items are ticked/selected) -->
+    <div id="floatingBatchActionBar" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-white px-5 py-3.5 rounded-3xl shadow-2xl border border-slate-700/80 backdrop-blur-md hidden items-center gap-3 sm:gap-4 animate-in fade-in slide-in-from-bottom-4 duration-200 max-w-2xl w-[94%] sm:w-auto">
+        <div class="flex items-center gap-2 shrink-0">
+            <span class="h-6 w-6 rounded-full bg-emerald-500 text-slate-900 font-black text-xs flex items-center justify-center" id="selectedBadgeCount">0</span>
+            <span class="text-xs font-bold text-slate-200 hidden sm:inline">आइटम्स चुने गए</span>
+        </div>
+
+        <div class="h-4 w-px bg-slate-700 hidden sm:block"></div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+            <!-- Download Selected Rate Sheet -->
+            <button type="button" onclick="downloadSelectedRateSheet()" class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition flex items-center gap-1.5 shadow-xs">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+                <span>रेट शीट डाउनलोड (.csv)</span>
+            </button>
+
+            <!-- Assign to Folder -->
+            <button type="button" onclick="openAssignFolderModalForSelected()" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs transition flex items-center gap-1.5 shadow-xs">
+                <i class="fa-solid fa-folder-plus"></i>
+                <span>फोल्डर में जोड़ें</span>
+            </button>
+
+            <!-- Clear Selection -->
+            <button type="button" onclick="clearAllProductSelections()" class="h-7 w-7 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-xs transition" title="Clear selection">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 📁 Folder Assignment Modal -->
+    <div id="assignFolderModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in duration-200">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                <div class="flex items-center gap-2.5">
+                    <div class="h-9 w-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-base">
+                        <i class="fa-solid fa-folder-plus"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-sm text-gray-900">रेट फोल्डर में जोड़ें / अलग करें</h3>
+                        <p class="text-[11px] text-gray-500" id="assignFolderModalSubtitle">चयनित आइटम्स के लिए फोल्डर चुनें</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAssignFolderModal()" class="h-7 w-7 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center text-xs transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Quick Presets -->
+            <div class="space-y-1.5">
+                <label class="text-[11px] font-bold text-gray-600 uppercase tracking-wider">क्विक फोल्डर प्रेसेट्स:</label>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="setPresetFolder('दैनिक भाव (Daily Rates)')" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition">
+                        ⚡ दैनिक भाव (Daily Rates)
+                    </button>
+                    <button type="button" onclick="setPresetFolder('मंडी भाव (Commodity)')" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold transition">
+                        🌾 मंडी भाव (Commodity)
+                    </button>
+                    <button type="button" onclick="setPresetFolder('पाइप्स & फिटिंग्स')" class="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition">
+                        🔧 पाइप्स & फिटिंग्स
+                    </button>
+                    <button type="button" onclick="setPresetFolder('फास्ट मूविंग')" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold transition">
+                        📦 फास्ट मूविंग
+                    </button>
+                </div>
+            </div>
+
+            <!-- Custom Folder Name Input Form -->
+            <form onsubmit="return submitAssignFolderForm(event)" class="space-y-4 pt-2">
+                <input type="hidden" id="assignProductIdsInput" value="">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">फोल्डर का नाम लिखें या चुनें:</label>
+                    <input type="text" id="targetFolderNameInput" required placeholder="जैसे: दैनिक भाव, मंडी भाव, सेनेटरी..." class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 text-xs font-semibold outline-hidden">
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                    <button type="button" onclick="closeAssignFolderModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold">
+                        रद्द करें
+                    </button>
+                    <button type="submit" id="btnSubmitAssignFolder" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-check"></i>
+                        <span>फोल्डर में सेव करें</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
+        const csrfToken = document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : '';
+
+        // ==========================================
+        // 🎯 SELECTION & TICKING SYSTEM
+        // ==========================================
+        function toggleSelectAllProducts(checked) {
+            document.querySelectorAll('.product-item-chk').forEach(cb => {
+                cb.checked = checked;
+            });
+            onProductSelectionChange();
+        }
+
+        function onProductSelectionChange() {
+            const checkedBoxes = document.querySelectorAll('.product-item-chk:checked');
+            const count = checkedBoxes.length;
+            const bar = document.getElementById('floatingBatchActionBar');
+            const countEl = document.getElementById('selectedBadgeCount');
+            const selectAllChk = document.getElementById('selectAllProductsChk');
+
+            if (count > 0) {
+                countEl.textContent = count;
+                bar.classList.remove('hidden');
+                bar.classList.add('flex');
+            } else {
+                bar.classList.add('hidden');
+                bar.classList.remove('flex');
+                if (selectAllChk) selectAllChk.checked = false;
+            }
+        }
+
+        function getSelectedProductIds() {
+            return Array.from(document.querySelectorAll('.product-item-chk:checked')).map(cb => cb.value);
+        }
+
+        function clearAllProductSelections() {
+            document.querySelectorAll('.product-item-chk').forEach(cb => cb.checked = false);
+            const selectAllChk = document.getElementById('selectAllProductsChk');
+            if (selectAllChk) selectAllChk.checked = false;
+            onProductSelectionChange();
+        }
+
+        function downloadSelectedRateSheet() {
+            const ids = getSelectedProductIds();
+            if (ids.length === 0) {
+                alert('Pehle kam se kam ek product select karein!');
+                return;
+            }
+            const url = "{{ route('seller.products.export_sheet') }}?type=rates&items=" + ids.join(',');
+            window.location.href = url;
+        }
+
+        // ==========================================
+        // 📁 FOLDER ASSIGNMENT SYSTEM
+        // ==========================================
+        function openAssignFolderModalForSelected() {
+            const ids = getSelectedProductIds();
+            if (ids.length === 0) {
+                alert('Pehle kam se kam ek product select karein!');
+                return;
+            }
+            document.getElementById('assignProductIdsInput').value = ids.join(',');
+            document.getElementById('assignFolderModalSubtitle').textContent = `${ids.length} चयनित आइटम्स के लिए फोल्डर नाम सेट करें`;
+            document.getElementById('targetFolderNameInput').value = '';
+            
+            const modal = document.getElementById('assignFolderModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function openAssignFolderModalSingle(productId, productName) {
+            document.getElementById('assignProductIdsInput').value = productId;
+            document.getElementById('assignFolderModalSubtitle').textContent = `"${productName}" के लिए फोल्डर नाम सेट करें`;
+            document.getElementById('targetFolderNameInput').value = '';
+            
+            const modal = document.getElementById('assignFolderModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeAssignFolderModal() {
+            const modal = document.getElementById('assignFolderModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function setPresetFolder(name) {
+            document.getElementById('targetFolderNameInput').value = name;
+        }
+
+        function submitAssignFolderForm(event) {
+            event.preventDefault();
+            const productIds = document.getElementById('assignProductIdsInput').value;
+            const folderName = document.getElementById('targetFolderNameInput').value.trim();
+
+            if (!productIds || !folderName) {
+                alert('Kripya folder name bharein!');
+                return false;
+            }
+
+            const btn = document.getElementById('btnSubmitAssignFolder');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> सेव हो रहा है...';
+
+            fetch("{{ route('seller.products.assign_folder') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-CSRF-TOKEN": csrfToken
+                },
+                body: JSON.stringify({
+                    product_ids: productIds,
+                    folder_name: folderName
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Error assigning folder');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> <span>फोल्डर में सेव करें</span>';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Failed to update folder. Please try again.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> <span>फोल्डर में सेव करें</span>';
+            });
+
+            return false;
+        }
+
+        // ==========================================
+        // 📊 EXCEL IMPORT MODAL SYSTEM
+        // ==========================================
         function openExcelSyncModal() {
             const modal = document.getElementById('excelSyncModal');
             modal.classList.remove('hidden');
@@ -382,7 +667,6 @@
                     btnApply.disabled = false;
                 } catch (err) {
                     console.error(err);
-                    // Fallback to native multipart form submit if SheetJS fails
                     rowCountEl.textContent = 'File Ready for Server Processing';
                     previewBox.classList.remove('hidden');
                     btnApply.disabled = false;

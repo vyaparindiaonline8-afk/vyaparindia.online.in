@@ -23,16 +23,37 @@ class ProductSpreadsheetController extends Controller
         $seller = Auth::user();
         $type = $request->query('type', 'rates');
         
-        $products = Product::where('user_id', $seller->id)
+        $query = Product::where('user_id', $seller->id)
             ->with(['category', 'variants'])
-            ->orderBy('id', 'asc')
-            ->get();
+            ->orderBy('id', 'asc');
+
+        $ids = [];
+        if ($request->filled('items')) {
+            $ids = array_filter(array_map('intval', explode(',', $request->query('items'))));
+            if (!empty($ids)) {
+                $query->whereIn('id', $ids);
+            }
+        }
+
+        $folderParam = trim($request->query('folder', ''));
+        if ($folderParam !== '' && $folderParam !== 'all') {
+            $query->where('group_name', $folderParam);
+        }
+
+        $products = $query->get();
 
         $rows = [];
         $timestamp = date('Y_m_d_His');
+        $prefix = "VyaparIndia";
+        if (!empty($ids)) {
+            $prefix .= "_Selected_" . count($ids) . "_Items";
+        } elseif (!empty($folderParam) && $folderParam !== 'all') {
+            $cleanFolder = preg_replace('/[^a-zA-Z0-9_-]/', '_', Str::ascii($folderParam)) ?: 'Folder';
+            $prefix .= "_{$cleanFolder}";
+        }
 
         if ($type === 'full') {
-            $filename = "VyaparIndia_Catalog_Master_{$timestamp}.csv";
+            $filename = "{$prefix}_Catalog_Master_{$timestamp}.csv";
             $headers = [
                 'Product ID (Do Not Change)',
                 'Variant ID (Optional)',
@@ -95,7 +116,7 @@ class ProductSpreadsheetController extends Controller
             }
         } else {
             // Default: 'rates' - Daily Dynamic Rate Revision Sheet
-            $filename = "VyaparIndia_Daily_Rates_{$timestamp}.csv";
+            $filename = "{$prefix}_Daily_Rates_{$timestamp}.csv";
             $headers = [
                 'Product ID (Do Not Change)',
                 'Variant ID (Optional)',
@@ -440,6 +461,46 @@ class ProductSpreadsheetController extends Controller
             $msg .= ". Note: {$skippedCount} rows skip hui (ID match na hone ya khali hone ke karan).";
         } else {
             $msg .= "!";
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    /**
+     * Batch assign selected products to a specific Folder / Rate Group (e.g. "दैनिक भाव", "मंडी भाव", "पाइप फिटिंग्स").
+     */
+    public function assignFolder(Request $request)
+    {
+        $seller = Auth::user();
+        $request->validate([
+            'product_ids' => 'required',
+            'folder_name' => 'required|string|max:100',
+        ]);
+
+        $rawIds = $request->input('product_ids');
+        $ids = is_array($rawIds) ? $rawIds : array_filter(array_map('intval', explode(',', (string)$rawIds)));
+        $folderName = trim($request->input('folder_name'));
+
+        if (empty($ids)) {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'No products selected'], 422);
+            }
+            return back()->with('error', 'Kripya kam se kam ek product select karein.');
+        }
+
+        $updated = Product::where('user_id', $seller->id)
+            ->whereIn('id', $ids)
+            ->update(['group_name' => $folderName]);
+
+        $msg = "Safalta! " . count($ids) . " items ko '{$folderName}' folder me set kar diya gaya hai.";
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $msg,
+                'folder_name' => $folderName,
+                'updated_count' => $updated,
+            ]);
         }
 
         return back()->with('success', $msg);

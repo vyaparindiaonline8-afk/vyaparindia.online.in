@@ -12,10 +12,25 @@ use App\Services\CloudinaryService;
 
 class ProductController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $products = Auth::user()->products;
-        return view('seller.products.index', compact('products'));
+        $user = Auth::user();
+        $query = $user->products()->with(['category', 'variants']);
+
+        $activeFolder = $request->query('folder');
+        if ($activeFolder && $activeFolder !== 'all') {
+            $query->where('group_name', $activeFolder);
+        }
+
+        $products = $query->latest()->get();
+
+        $folders = $user->products()
+            ->whereNotNull('group_name')
+            ->where('group_name', '!=', '')
+            ->distinct()
+            ->pluck('group_name');
+
+        return view('seller.products.index', compact('products', 'folders', 'activeFolder'));
     }
 
     public function create()
