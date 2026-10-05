@@ -78,8 +78,8 @@
         <div class="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-xs grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
             <!-- Product Image -->
             <div class="space-y-4">
-                <div class="aspect-square bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 flex items-center justify-center relative group">
-                    <img src="{{ $imgSrc }}" alt="{{ $product->name }}" class="w-full h-full object-cover">
+                <div class="aspect-square bg-slate-50 rounded-3xl overflow-hidden border border-slate-200 flex items-center justify-center p-4 sm:p-6 relative group shadow-xs">
+                    <img id="main-product-image" src="{{ $imgSrc }}" alt="{{ $product->name }}" class="max-w-full max-h-full object-contain crisp-img transition-all duration-300">
                     <!-- Floating Wishlist Heart Button -->
                     <form action="{{ route('wishlist.toggle', $product) }}" method="POST" class="absolute top-3 right-3 z-10">
                         @csrf
@@ -89,6 +89,41 @@
                         </button>
                     </form>
                 </div>
+
+                <!-- Gallery Thumbnails if additional images exist -->
+                @if($product->images && $product->images->count() > 0)
+                    <div class="flex items-center gap-2.5 overflow-x-auto pb-2">
+                        <button type="button" onclick="swapMainImage('{{ $imgSrc }}', this)" class="thumb-btn shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-blue-600 overflow-hidden bg-white p-1.5 flex items-center justify-center focus:outline-hidden transition shadow-2xs">
+                            <img src="{{ $imgSrc }}" class="w-full h-full object-contain crisp-img">
+                        </button>
+                        @foreach($product->images as $gImg)
+                            <button type="button" onclick="swapMainImage('{{ $gImg->url }}', this)" class="thumb-btn shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-gray-200 hover:border-gray-400 overflow-hidden bg-white p-1.5 flex items-center justify-center focus:outline-hidden transition">
+                                <img src="{{ $gImg->url }}" class="w-full h-full object-contain crisp-img">
+                            </button>
+                        @endforeach
+                    </div>
+                @endif
+
+                <!-- Product Video / Live Demo -->
+                @if($product->video_url)
+                    <div class="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                                <i class="fa-brands fa-youtube text-red-600 text-sm"></i>
+                                <span>Watch Live Demo / Unboxing</span>
+                            </span>
+                            <a href="{{ $product->video_url }}" target="_blank" class="text-[11px] font-bold text-red-600 hover:underline flex items-center gap-1">
+                                <span>Open Video</span>
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                            </a>
+                        </div>
+                        @if($product->video_embed_url)
+                            <div class="aspect-video w-full rounded-xl overflow-hidden bg-black shadow-xs">
+                                <iframe src="{{ $product->video_embed_url }}" class="w-full h-full" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </div>
+                        @endif
+                    </div>
+                @endif
             </div>
 
             <!-- Product Details -->
@@ -426,6 +461,21 @@
             let msg = `Hello ${sellerName},\n\nI want to place an order for *${prodName}* via VyaparIndia:\n\n${selected.join('\n')}\n\n*Total Quantity:* ${totalQty} pcs\n*Estimated Value:* ₹${totalVal.toFixed(2)}\n\nPlease confirm availability and payment/delivery terms.`;
 
             window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        function swapMainImage(url, el) {
+            const mainImg = document.getElementById('main-product-image');
+            if (mainImg) {
+                mainImg.src = url;
+            }
+            document.querySelectorAll('.thumb-btn').forEach(btn => {
+                btn.classList.remove('border-blue-600');
+                btn.classList.add('border-gray-200');
+            });
+            if (el) {
+                el.classList.remove('border-gray-200');
+                el.classList.add('border-blue-600');
+            }
         }
     </script>
 </body>

@@ -72,10 +72,10 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
             <!-- Product Image Left -->
             <div class="space-y-4">
-                <div class="aspect-square bg-gray-100 rounded-2xl overflow-hidden border border-gray-100 relative">
-                    <img id="main-product-image" src="{{ $product->image_url }}" alt="{{ $product->name }}" class="w-full h-full object-cover transition duration-300">
+                <div class="aspect-square bg-slate-50 rounded-3xl overflow-hidden border border-slate-200 p-4 sm:p-6 flex items-center justify-center relative shadow-xs">
+                    <img id="main-product-image" src="{{ $product->image_url }}" alt="{{ $product->name }}" class="max-w-full max-h-full object-contain crisp-img transition-all duration-300">
                     @if($product->category)
-                        <span class="absolute top-4 left-4 bg-white/90 backdrop-blur-xs text-gray-800 text-xs font-bold px-3 py-1 rounded-lg shadow-xs">
+                        <span class="absolute top-4 left-4 bg-white/95 backdrop-blur-xs text-gray-800 text-xs font-bold px-3 py-1 rounded-xl shadow-xs border border-gray-100">
                             {{ $product->category->name }}
                         </span>
                     @endif
@@ -84,12 +84,12 @@
                 <!-- Gallery Thumbnails if additional images exist -->
                 @if($product->images && $product->images->count() > 0)
                     <div class="flex items-center gap-2.5 overflow-x-auto pb-2">
-                        <button type="button" onclick="swapMainImage('{{ $product->image_url }}', this)" class="thumb-btn shrink-0 w-16 h-16 rounded-xl border-2 border-indigo-600 overflow-hidden bg-gray-50 focus:outline-hidden transition shadow-2xs">
-                            <img src="{{ $product->image_url }}" class="w-full h-full object-cover">
+                        <button type="button" onclick="swapMainImage('{{ $product->image_url }}', this)" class="thumb-btn shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-indigo-600 overflow-hidden bg-white p-1.5 flex items-center justify-center focus:outline-hidden transition shadow-2xs">
+                            <img src="{{ $product->image_url }}" class="w-full h-full object-contain crisp-img">
                         </button>
                         @foreach($product->images as $gImg)
-                            <button type="button" onclick="swapMainImage('{{ $gImg->url }}', this)" class="thumb-btn shrink-0 w-16 h-16 rounded-xl border-2 border-gray-200 hover:border-gray-400 overflow-hidden bg-gray-50 focus:outline-hidden transition">
-                                <img src="{{ $gImg->url }}" class="w-full h-full object-cover">
+                            <button type="button" onclick="swapMainImage('{{ $gImg->url }}', this)" class="thumb-btn shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-gray-200 hover:border-gray-400 overflow-hidden bg-white p-1.5 flex items-center justify-center focus:outline-hidden transition">
+                                <img src="{{ $gImg->url }}" class="w-full h-full object-contain crisp-img">
                             </button>
                         @endforeach
                     </div>
@@ -164,7 +164,7 @@
 
                 <!-- Dynamic Sizes & Variants Matrix -->
                 @if($product->variants && $product->variants->count() > 0)
-                <div class="mt-5 space-y-2">
+                <div class="mt-5 space-y-3">
                     <div class="flex items-center justify-between">
                         <label class="block text-xs font-bold uppercase tracking-wider text-gray-700">
                             Select Size / Variant Option:
@@ -184,7 +184,92 @@
                             </button>
                         @endforeach
                     </div>
+
+                    <!-- 📦 B2B Multi-Size Wholesale Matrix Order Table -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-xs space-y-3 mt-3">
+                        <div class="flex items-center justify-between pb-2 border-b border-gray-200">
+                            <div>
+                                <h3 class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-layer-group text-indigo-600"></i>
+                                    <span>All Available Sizes & Rate List</span>
+                                </h3>
+                                <p class="text-[10px] text-gray-500">Pick quantities for each size to order together</p>
+                            </div>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 font-mono">
+                                {{ $product->variants->count() }} Sizes
+                            </span>
+                        </div>
+
+                        <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-gray-50 text-gray-500 text-[10px] font-bold uppercase border-b border-gray-200">
+                                    <tr>
+                                        <th class="p-2 sm:p-2.5">Size / Dimension</th>
+                                        <th class="p-2 sm:p-2.5">Rate (₹)</th>
+                                        <th class="p-2 sm:p-2.5">MRP</th>
+                                        <th class="p-2 sm:p-2.5 text-center w-28">Quantity</th>
+                                        <th class="p-2 sm:p-2.5 text-right">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 font-medium">
+                                    @foreach($product->variants as $idx => $v)
+                                        @php
+                                            $vPrice = floatval($v->retail_price ?: ($v->wholesale_price ?: $product->price));
+                                            $vMrp = floatval($v->mrp ?: ($vPrice * 1.35));
+                                            $vSize = $v->size ?: ($v->variant_name ?: 'Standard');
+                                        @endphp
+                                        <tr class="hover:bg-indigo-50/40 transition matrix-row" data-id="{{ $v->id }}" data-size="{{ $vSize }}" data-price="{{ $vPrice }}">
+                                            <td class="p-2 sm:p-2.5 font-black text-gray-900 font-mono text-xs">
+                                                {{ $vSize }}
+                                            </td>
+                                            <td class="p-2 sm:p-2.5 font-mono font-bold text-emerald-700">
+                                                ₹{{ number_format($vPrice, 2) }}
+                                            </td>
+                                            <td class="p-2 sm:p-2.5 font-mono text-gray-400 text-[11px]">
+                                                @if($vMrp > $vPrice)
+                                                    <span class="line-through">₹{{ number_format($vMrp, 2) }}</span>
+                                                @else
+                                                    ₹{{ number_format($vPrice, 2) }}
+                                                @endif
+                                            </td>
+                                            <td class="p-2 sm:p-2.5 text-center">
+                                                <div class="inline-flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white shadow-2xs">
+                                                    <button type="button" onclick="adjustMatrixItemQty({{ $v->id }}, -1)" class="w-6 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold active:bg-gray-200 transition text-xs">-</button>
+                                                    <input type="number" min="0" value="0" id="matrix_input_{{ $v->id }}" oninput="calculateMatrixSummary()" class="w-10 h-6 text-center text-xs font-bold font-mono border-x border-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-600 p-0">
+                                                    <button type="button" onclick="adjustMatrixItemQty({{ $v->id }}, 1)" class="w-6 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold active:bg-gray-200 transition text-xs">+</button>
+                                                </div>
+                                            </td>
+                                            <td class="p-2 sm:p-2.5 text-right font-mono font-bold text-gray-900" id="matrix_subtotal_{{ $v->id }}">
+                                                ₹0.00
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Matrix Order Live Total Bar -->
+                        <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <div class="text-[11px] text-gray-700 font-bold">
+                                    Total Selected: <span class="text-emerald-800 font-black" id="matrixSummaryQty">0 Pcs</span> | Estimate: <span class="text-gray-900 font-black text-xs sm:text-sm" id="matrixSummaryTotal">₹0.00</span>
+                                </div>
+                            </div>
+                            @if($sellerPage->whatsapp_number)
+                                <button type="button" onclick="orderMultiSizesOnWhatsApp()" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 transition active:scale-95">
+                                    <i class="fa-brands fa-whatsapp text-sm"></i>
+                                    <span>Order Selected Sizes</span>
+                                </button>
+                            @endif
+                        </div>
+                    </div>
                 </div>
+                @else
+                    <!-- Standard Size Badge -->
+                    <div class="mt-4 p-3 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between text-xs">
+                        <span class="font-bold text-gray-600">Product Size:</span>
+                        <span class="font-extrabold text-gray-900 bg-white px-2.5 py-1 rounded-lg border border-gray-200">Standard / Single Unit</span>
+                    </div>
                 @endif
 
                 <!-- Short Highlights & Local Delivery Radius -->
@@ -509,6 +594,79 @@
             el.classList.remove('border-gray-200');
             el.classList.add('border-indigo-600');
         }
+    }
+
+    function adjustMatrixItemQty(id, delta) {
+        const inp = document.getElementById(`matrix_input_${id}`);
+        if (!inp) return;
+        let val = parseInt(inp.value) || 0;
+        val += delta;
+        if (val < 0) val = 0;
+        inp.value = val;
+        calculateMatrixSummary();
+    }
+
+    function calculateMatrixSummary() {
+        let totalQty = 0;
+        let totalVal = 0;
+        document.querySelectorAll('.matrix-row').forEach(row => {
+            const id = row.getAttribute('data-id');
+            const price = parseFloat(row.getAttribute('data-price')) || 0;
+            const inp = document.getElementById(`matrix_input_${id}`);
+            const qty = inp ? (parseInt(inp.value) || 0) : 0;
+            const subtotal = qty * price;
+            const subtotalEl = document.getElementById(`matrix_subtotal_${id}`);
+            if (subtotalEl) {
+                subtotalEl.textContent = '₹' + subtotal.toFixed(2);
+            }
+            totalQty += qty;
+            totalVal += subtotal;
+        });
+
+        const qtyEl = document.getElementById('matrixSummaryQty');
+        const totalEl = document.getElementById('matrixSummaryTotal');
+        if (qtyEl) qtyEl.textContent = totalQty + ' Pcs';
+        if (totalEl) totalEl.textContent = '₹' + totalVal.toFixed(2);
+    }
+
+    function orderMultiSizesOnWhatsApp() {
+        if (!WHATSAPP_NUM) {
+            alert('WhatsApp number not set.');
+            return;
+        }
+        let items = [];
+        let totalAmount = 0;
+        let totalUnits = 0;
+
+        document.querySelectorAll('.matrix-row').forEach(row => {
+            const id = row.getAttribute('data-id');
+            const size = row.getAttribute('data-size');
+            const price = parseFloat(row.getAttribute('data-price')) || 0;
+            const inp = document.getElementById(`matrix_input_${id}`);
+            const qty = inp ? (parseInt(inp.value) || 0) : 0;
+            if (qty > 0) {
+                const sub = qty * price;
+                totalAmount += sub;
+                totalUnits += qty;
+                items.push(`• *${size}*: ${qty} pcs @ ₹${price.toFixed(2)} = ₹${sub.toFixed(2)}`);
+            }
+        });
+
+        if (items.length === 0) {
+            alert('Kripya kam se kam ek size ke aage quantity select karein.');
+            return;
+        }
+
+        let text = `*New Multi-Size Order Inquiry from ${STORE_NAME}*\n\n` +
+                   `🛍️ *Product:* ${currentProduct.name}\n` +
+                   `📦 *Sizes Breakdown:*\n` + items.join('\n') + `\n\n` +
+                   `🔢 *Total Items:* ${totalUnits} Pcs\n` +
+                   `💵 *Estimated Total:* ₹${totalAmount.toFixed(2)}\n` +
+                   `🔗 *Link:* ${window.location.href}\n\n` +
+                   `Please confirm availability, dispatch and freight.`;
+
+        const url = `https://wa.me/${WHATSAPP_NUM}?text=${encodeURIComponent(text)}`;
+        window.open(url, '_blank');
     }
 </script>
 @endpush
