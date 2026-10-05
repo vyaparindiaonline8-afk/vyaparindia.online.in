@@ -30,6 +30,7 @@ class Product extends Model
         'user_id',
         'category_id',
         'views_count',
+        'attributes',
     ];
 
     protected $casts = [
@@ -42,6 +43,7 @@ class Product extends Model
         'track_inventory' => 'boolean',
         'has_variants' => 'boolean',
         'views_count' => 'integer',
+        'attributes' => 'array',
     ];
 
     public function productViews()

@@ -138,68 +138,14 @@
             <p class="text-xs text-gray-500 max-w-sm mx-auto mt-1">This seller is currently setting up their catalog. Please check back soon!</p>
         </div>
     @else
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            @foreach($products as $product)
-                <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col group relative">
-                    <!-- Image -->
-                    <div class="aspect-square bg-slate-50 relative overflow-hidden block flex items-center justify-center p-2 border-b border-gray-100">
-                        <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]) }}" class="w-full h-full flex items-center justify-center">
-                            <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="w-full h-full object-contain crisp-img group-hover:scale-105 transition-transform duration-500">
-                        </a>
-                        @if($product->brand)
-                            <span class="absolute top-2.5 left-2.5 bg-blue-600/90 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs">
-                                {{ $product->brand }}
-                            </span>
-                        @elseif($product->category)
-                            <span class="absolute top-2.5 left-2.5 bg-white/90 backdrop-blur-xs text-gray-800 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs">
-                                {{ $product->category->name }}
-                            </span>
-                        @endif
-
-                        <!-- Card WhatsApp Share -->
-                        @php
-                            $homeProdUrl = route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]);
-                            $homeProdWaMsg = urlencode("Namaste! Check out {$product->name} on {$sellerPage->page_title}: Price ₹" . number_format($product->price, 2) . "\nView details: {$homeProdUrl}");
-                        @endphp
-                        <a href="https://api.whatsapp.com/send?text={{ $homeProdWaMsg }}" target="_blank" class="absolute top-2.5 right-2.5 h-7 w-7 rounded-full bg-white/90 hover:bg-emerald-500 hover:text-white text-emerald-600 shadow-sm flex items-center justify-center text-xs transition" title="Share on WhatsApp">
-                            <i class="fa-brands fa-whatsapp text-sm"></i>
-                        </a>
-                    </div>
-
-                    <!-- Product Info -->
-                    <div class="p-4 flex-1 flex flex-col">
-                        <div class="flex items-center gap-1 text-amber-400 text-[11px] mb-1 font-semibold">
-                            <i class="fa-solid fa-star"></i>
-                            <span class="text-gray-900 font-bold ml-0.5">{{ $product->average_rating }}</span>
-                            <span class="text-gray-400 font-normal">({{ $product->reviews_count }})</span>
-                        </div>
-                        <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]) }}" class="font-bold text-xs sm:text-sm text-gray-900 hover:text-brand-custom line-clamp-2 transition-colors">
-                            {{ $product->name }}
-                        </a>
-                        <div class="mt-2 flex items-baseline gap-2">
-                            <span class="text-base font-extrabold text-gray-900">₹{{ number_format($product->price, 2) }}</span>
-                            <span class="text-xs text-gray-400 line-through">₹{{ number_format($product->price * 1.3, 2) }}</span>
-                            <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">30% OFF</span>
-                        </div>
-
-                        <!-- Action Buttons -->
-                        <div class="mt-4 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 mt-auto">
-                            <!-- Add to Cart -->
-                            <button onclick='addToCart(@json($product))' class="py-2 px-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5" title="Add to Bag">
-                                <i class="fa-solid fa-bag-shopping text-xs"></i>
-                                <span class="hidden sm:inline">Add</span>
-                            </button>
-
-                            <!-- WhatsApp Buy -->
-                            <button onclick="buySingleOnWhatsapp('{{ addslashes($product->name) }}', '{{ $product->price }}', '{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]) }}')" class="py-2 px-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5" title="Order via WhatsApp">
-                                <i class="fa-brands fa-whatsapp text-sm"></i>
-                                <span class="hidden sm:inline">Order</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            @endforeach
-        </div>
+            @php
+                $cardComponent = isset($businessModule) ? $businessModule->getCardComponent() : 'seller-site.modules.card_hardware_pipes';
+            @endphp
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                @foreach($products as $product)
+                    @include($cardComponent, ['product' => $product, 'sellerPage' => $sellerPage])
+                @endforeach
+            </div>
     @endif
 </section>
 

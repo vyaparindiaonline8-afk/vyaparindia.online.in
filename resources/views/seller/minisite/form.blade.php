@@ -113,11 +113,78 @@
                 </div>
             </div>
 
-            <!-- 2. Visual Media: Logo & Hero Banner -->
+            <!-- 2. Business Category & Industry Theme Preset -->
+            <div class="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
+                <div class="flex items-center gap-2.5 pb-4 border-b border-gray-100">
+                    <div class="h-8 w-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">
+                        2
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-base text-gray-900">Business Category & Storefront Theme Preset</h2>
+                        <p class="text-xs text-gray-500">Choose your industry to automatically activate specialized product cards, attribute matrices, and custom ordering formats</p>
+                    </div>
+                </div>
+
+                @php
+                    $selectedBusinessType = old('business_type', $minisite->business_type ?? 'hardware_pipes');
+                @endphp
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="businessModuleGrid">
+                    @foreach($businessModules as $id => $module)
+                        @php
+                            $isSelected = ($selectedBusinessType === $id);
+                        @endphp
+                        <label class="cursor-pointer relative block p-5 rounded-2xl border-2 transition-all duration-200 module-card {{ $isSelected ? 'border-blue-600 bg-blue-50/40 shadow-xs ring-2 ring-blue-500/20' : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50' }}">
+                            <input type="radio" name="business_type" value="{{ $id }}" class="sr-only module-radio" {{ $isSelected ? 'checked' : '' }} onchange="highlightSelectedModule(this)">
+                            
+                            <div class="flex items-start justify-between gap-3 mb-3">
+                                <div class="h-10 w-10 rounded-xl flex items-center justify-center text-lg {{ $isSelected ? 'bg-blue-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700' }} module-icon-box">
+                                    <i class="fa-solid {{ $module->getIcon() }}"></i>
+                                </div>
+                                <span class="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full {{ $isSelected ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600' }} module-badge">
+                                    {{ $module->getThemeBadge() }}
+                                </span>
+                            </div>
+
+                            <div class="font-bold text-sm text-gray-900 mb-1 flex items-center justify-between">
+                                <span>{{ $module->getName() }}</span>
+                                <span class="check-indicator {{ $isSelected ? 'text-blue-600' : 'text-gray-300' }}">
+                                    <i class="fa-solid fa-circle-check text-base"></i>
+                                </span>
+                            </div>
+                            <p class="text-[11px] text-gray-500 mb-3 leading-relaxed">
+                                {{ $module->getSubtitle() }}
+                            </p>
+
+                            <!-- Industry Attributes Highlights -->
+                            <div class="pt-3 border-t border-gray-100 space-y-1 text-[11px] text-gray-600">
+                                @if($id === 'hardware_pipes')
+                                    <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-blue-500 text-[10px]"></i> Size Matrix (mm / inch) & Class</div>
+                                    <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-blue-500 text-[10px]"></i> List Price, Discounts & Packing</div>
+                                @elseif($id === 'fashion_lifestyle')
+                                    <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-rose-500 text-[10px]"></i> S, M, L, XL, XXL Size Chips</div>
+                                    <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-rose-500 text-[10px]"></i> Color Swatches & 4:5 Portrait Lookbook</div>
+                                @elseif($id === 'food_dining')
+                                    <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-emerald-500 text-[10px]"></i> 🟢 Veg / 🔴 Non-Veg Status</div>
+                                    <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-amber-500 text-[10px]"></i> Spice Level Rating & Prep Time</div>
+                                @elseif($id === 'anaj_mandi')
+                                    <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-yellow-600 text-[10px]"></i> Per Quintal / Bori / Katta Rates</div>
+                                    <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-yellow-600 text-[10px]"></i> Live Mandi Bhav Ticker & Lot Sauda</div>
+                                @elseif($id === 'grocery_fmcg')
+                                    <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-teal-600 text-[10px]"></i> 100g, 250g, 500g, 1kg Pack Sizes</div>
+                                    <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-teal-600 text-[10px]"></i> 1-Tap Quick Quantity Stepper (+/-)</div>
+                                @endif
+                            </div>
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- 3. Visual Media: Logo & Hero Banner -->
             <div class="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
                 <div class="flex items-center gap-2.5 pb-4 border-b border-gray-100">
                     <div class="h-8 w-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm">
-                        2
+                        3
                     </div>
                     <div>
                         <h2 class="font-bold text-base text-gray-900">Visual Media & Theme Colors</h2>
@@ -171,11 +238,11 @@
                 </div>
             </div>
 
-            <!-- 3. WhatsApp & Contact Channels -->
+            <!-- 4. WhatsApp & Contact Channels -->
             <div class="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
                 <div class="flex items-center gap-2.5 pb-4 border-b border-gray-100">
                     <div class="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
-                        3
+                        4
                     </div>
                     <div>
                         <h2 class="font-bold text-base text-gray-900">WhatsApp & Direct Ordering Channels</h2>
@@ -235,11 +302,11 @@
                 </div>
             </div>
 
-            <!-- 4. Location & Store Policies -->
+            <!-- 5. Location & Store Policies -->
             <div class="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
                 <div class="flex items-center gap-2.5 pb-4 border-b border-gray-100">
                     <div class="h-8 w-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center font-bold text-sm">
-                        4
+                        5
                     </div>
                     <div>
                         <h2 class="font-bold text-base text-gray-900">Address & Store Policies</h2>
@@ -294,11 +361,11 @@
                 </div>
             </div>
 
-            <!-- 5. Payment & Banking Setup (UPI / Bank Transfer) -->
+            <!-- 6. Payment & Banking Setup (UPI / Bank Transfer) -->
             <div class="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
                 <div class="flex items-center gap-2.5 pb-4 border-b border-gray-100">
                     <div class="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
-                        5
+                        6
                     </div>
                     <div>
                         <h2 class="font-bold text-base text-gray-900">UPI ID & Bank Account for Customer Payments</h2>
@@ -359,5 +426,54 @@
             </div>
         </form>
     </div>
+
+    <script>
+        function highlightSelectedModule(selectedRadio) {
+            const grid = document.getElementById('businessModuleGrid');
+            if (!grid) return;
+            
+            const cards = grid.querySelectorAll('.module-card');
+            cards.forEach(card => {
+                const radio = card.querySelector('.module-radio');
+                const iconBox = card.querySelector('.module-icon-box');
+                const badge = card.querySelector('.module-badge');
+                const check = card.querySelector('.check-indicator');
+
+                if (radio && radio.checked) {
+                    card.classList.remove('border-gray-200', 'bg-white', 'hover:border-gray-300', 'hover:bg-gray-50/50');
+                    card.classList.add('border-blue-600', 'bg-blue-50/40', 'shadow-xs', 'ring-2', 'ring-blue-500/20');
+                    
+                    if (iconBox) {
+                        iconBox.classList.remove('bg-gray-100', 'text-gray-700');
+                        iconBox.classList.add('bg-blue-600', 'text-white', 'shadow-xs');
+                    }
+                    if (badge) {
+                        badge.classList.remove('bg-gray-100', 'text-gray-600');
+                        badge.classList.add('bg-blue-100', 'text-blue-800');
+                    }
+                    if (check) {
+                        check.classList.remove('text-gray-300');
+                        check.classList.add('text-blue-600');
+                    }
+                } else {
+                    card.classList.remove('border-blue-600', 'bg-blue-50/40', 'shadow-xs', 'ring-2', 'ring-blue-500/20');
+                    card.classList.add('border-gray-200', 'bg-white', 'hover:border-gray-300', 'hover:bg-gray-50/50');
+                    
+                    if (iconBox) {
+                        iconBox.classList.remove('bg-blue-600', 'text-white', 'shadow-xs');
+                        iconBox.classList.add('bg-gray-100', 'text-gray-700');
+                    }
+                    if (badge) {
+                        badge.classList.remove('bg-blue-100', 'text-blue-800');
+                        badge.classList.add('bg-gray-100', 'text-gray-600');
+                    }
+                    if (check) {
+                        check.classList.remove('text-blue-600');
+                        check.classList.add('text-gray-300');
+                    }
+                }
+            });
+        }
+    </script>
 </body>
 </html>

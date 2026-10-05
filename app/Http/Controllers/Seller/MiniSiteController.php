@@ -8,6 +8,7 @@ use App\Models\SellerPage;
 use App\Models\Review;
 use App\Services\AISlipScannerService;
 use App\Services\CloudinaryService;
+use App\Services\BusinessModules\BusinessModuleManager;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -19,7 +20,8 @@ class MiniSiteController extends Controller
         if (Auth::user()->sellerPage) {
             return redirect()->route('seller.minisite.edit');
         }
-        return view('seller.minisite.form');
+        $businessModules = BusinessModuleManager::all();
+        return view('seller.minisite.form', compact('businessModules'));
     }
 
     public function store(Request $request)
@@ -53,6 +55,7 @@ class MiniSiteController extends Controller
             'bank_account_holder' => 'nullable|string|max:150',
             'show_payment_details_to_buyer' => 'nullable|boolean',
             'policies' => 'nullable|string',
+            'business_type' => 'nullable|string|max:50',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,webp,svg|max:2048',
             'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
         ]);
@@ -67,6 +70,7 @@ class MiniSiteController extends Controller
         $validated['enable_cod'] = $request->has('enable_cod');
         $validated['enable_whatsapp_order'] = $request->has('enable_whatsapp_order');
         $validated['show_payment_details_to_buyer'] = $request->has('show_payment_details_to_buyer');
+        $validated['business_type'] = $request->input('business_type', 'hardware_pipes');
 
         Auth::user()->sellerPage()->create($validated);
 
@@ -79,7 +83,8 @@ class MiniSiteController extends Controller
         if (!$minisite) {
             return redirect()->route('seller.minisite.create');
         }
-        return view('seller.minisite.form', compact('minisite'));
+        $businessModules = BusinessModuleManager::all();
+        return view('seller.minisite.form', compact('minisite', 'businessModules'));
     }
 
     public function update(Request $request)
@@ -108,6 +113,7 @@ class MiniSiteController extends Controller
             'pincode' => 'nullable|string|max:20',
             'theme_color' => 'nullable|string|max:7',
             'theme_style' => 'nullable|string|in:modern,minimal,vibrant',
+            'business_type' => 'nullable|string|max:50',
             'currency' => 'nullable|string|max:10',
             'enable_cod' => 'nullable|boolean',
             'enable_whatsapp_order' => 'nullable|boolean',
@@ -155,7 +161,8 @@ class MiniSiteController extends Controller
         $products = $sellerPage->user->products()->latest()->take(12)->get();
         $totalProducts = $sellerPage->user->products()->count();
         $authorizedBrands = $sellerPage->authorized_brands ?? [];
-        return view('seller-site.home', compact('sellerPage', 'products', 'totalProducts', 'authorizedBrands'));
+        $businessModule = BusinessModuleManager::forSellerPage($sellerPage);
+        return view('seller-site.home', compact('sellerPage', 'products', 'totalProducts', 'authorizedBrands', 'businessModule'));
     }
 
     public function products(SellerPage $sellerPage, Request $request)
@@ -247,6 +254,7 @@ class MiniSiteController extends Controller
         })->get();
 
         $authorizedBrands = $sellerPage->authorized_brands ?? [];
+        $businessModule = BusinessModuleManager::forSellerPage($sellerPage);
 
         return view('seller-site.products', compact(
             'sellerPage',
@@ -255,6 +263,7 @@ class MiniSiteController extends Controller
             'availableBrands',
             'availableGroups',
             'authorizedBrands',
+            'businessModule',
             'sort',
             'isCurated'
         ));

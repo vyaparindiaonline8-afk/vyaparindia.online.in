@@ -42,6 +42,8 @@ class SellerPage extends Model
         'show_payment_details_to_buyer',
         'policies',
         'authorized_brands',
+        'business_type',
+        'business_settings',
     ];
 
     protected $casts = [
@@ -49,6 +51,7 @@ class SellerPage extends Model
         'enable_whatsapp_order' => 'boolean',
         'show_payment_details_to_buyer' => 'boolean',
         'authorized_brands' => 'array',
+        'business_settings' => 'array',
     ];
 
     public function user()
