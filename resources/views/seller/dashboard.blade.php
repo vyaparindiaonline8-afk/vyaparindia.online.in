@@ -235,6 +235,20 @@
                         <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
                     </a>
 
+                    <a href="{{ route('seller.products.index') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 border border-emerald-300 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-file-excel text-emerald-600 text-lg"></i>
+                            <div>
+                                <div class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                                    <span>एक्सेल सिंक & दैनिक भाव रिवीज़न</span>
+                                    <span class="text-[9px] font-bold bg-emerald-600 text-white px-1.5 py-0.5 rounded-full">1-Click</span>
+                                </div>
+                                <div class="text-[11px] text-gray-500">हार्डवेयर, मंडी व ग्रोसरी के रेट्स 1-क्लिक में एक्सेल से अपडेट करें</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+                    </a>
+
                     <a href="{{ route('seller.inventory.index') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors">
                         <div class="flex items-center gap-3">
                             <i class="fa-solid fa-boxes-stacked text-emerald-600 text-lg"></i>

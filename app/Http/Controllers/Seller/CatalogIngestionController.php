@@ -429,12 +429,14 @@ class CatalogIngestionController extends Controller
         $products = Product::where('user_id', $sellerId)->with('variants')->get();
 
         $csvData = [];
-        $csvData[] = ['SKU / Code', 'Product Name', 'Size / Variant Name', 'Cost (Purchase Rate)', 'Wholesale Price (B2B)', 'Retail Price (D2C)', 'MRP', 'Current Stock'];
+        $csvData[] = ['Product ID', 'Variant ID', 'SKU / Code', 'Product Name', 'Size / Variant Name', 'Cost (Purchase Rate)', 'Wholesale Price (B2B)', 'Retail Price (D2C)', 'MRP', 'Current Stock'];
 
         foreach ($products as $p) {
             if ($p->variants->isNotEmpty()) {
                 foreach ($p->variants as $v) {
                     $csvData[] = [
+                        $p->id,
+                        $v->id,
                         $v->sku ?: ($p->sku ?: "PRD-{$p->id}"),
                         $p->name,
                         $v->variant_name ?: ($v->size ?: 'Standard'),
@@ -447,6 +449,8 @@ class CatalogIngestionController extends Controller
                 }
             } else {
                 $csvData[] = [
+                    $p->id,
+                    '',
                     $p->sku ?: "PRD-{$p->id}",
                     $p->name,
                     'Standard',
@@ -520,6 +524,8 @@ class CatalogIngestionController extends Controller
         DB::transaction(function () use ($rows, $sellerId, &$updatedVariants, &$updatedProducts) {
             $sellerProducts = Product::where('user_id', $sellerId)->with('variants')->get();
 
+            $productsById = $sellerProducts->keyBy('id');
+            $variantsById = [];
             $variantsBySku = [];
             $variantsByNameSize = [];
             $productsByName = [];
@@ -529,6 +535,7 @@ class CatalogIngestionController extends Controller
                 $productsByName[$cleanPName] = $p;
 
                 foreach ($p->variants as $v) {
+                    $variantsById[$v->id] = $v;
                     if ($v->sku) {
                         $variantsBySku[strtolower(trim($v->sku))] = $v;
                     }
@@ -538,8 +545,11 @@ class CatalogIngestionController extends Controller
             }
 
             foreach ($rows as $row) {
+                $rowProdId = intval($row['product_id'] ?? ($row['id'] ?? ($row['product_id_do_not_change'] ?? 0)));
+                $rowVarId = intval($row['variant_id'] ?? ($row['variant_id_optional'] ?? 0));
                 $sku = strtolower(trim($row['sku__code'] ?? ($row['sku_code'] ?? ($row['sku'] ?? ($row['product_code'] ?? '')))));
-                $pName = strtolower(trim($row['product_name'] ?? ($row['name'] ?? ($row['item_name'] ?? ''))));
+                $pNameRaw = trim($row['product_name'] ?? ($row['name'] ?? ($row['item_name'] ?? '')));
+                $pName = strtolower($pNameRaw);
                 $vName = strtolower(trim($row['size__variant_name'] ?? ($row['size_variant_name'] ?? ($row['size'] ?? ($row['variant_name'] ?? ($row['variant'] ?? 'standard'))))));
 
                 // Clean rates helper
@@ -553,15 +563,30 @@ class CatalogIngestionController extends Controller
                 };
 
                 $cost = $getVal(['cost__purchase_rate_', 'cost_purchase_rate', 'cost', 'purchase_price', 'raw_rate']);
-                $retail = $getVal(['retail_price__d2c_', 'retail_price_d2c', 'retail_price', 'price', 'rate_a']);
+                $retail = $getVal(['retail_price__d2c_', 'retail_price_d2c', 'retail_price', 'price', 'rate_a', 'selling_price']);
                 $wholesale = $getVal(['wholesale_price__b2b_', 'wholesale_price_b2b', 'wholesale_price', 'rate_b']);
                 $mrp = $getVal(['mrp']);
-                $stockRaw = $getVal(['current_stock', 'stock']);
+                $stockRaw = $getVal(['current_stock', 'stock', 'stock_quantity']);
                 $stock = !is_null($stockRaw) ? intval($stockRaw) : null;
 
-                // Find matching variant
+                // Find matching variant or product - ID takes top priority!
                 $matchedVariant = null;
-                if ($sku && isset($variantsBySku[$sku])) {
+                $matchedProduct = null;
+
+                if ($rowVarId && isset($variantsById[$rowVarId])) {
+                    $matchedVariant = $variantsById[$rowVarId];
+                } elseif ($rowProdId && isset($productsById[$rowProdId])) {
+                    $matchedProduct = $productsById[$rowProdId];
+                    if ($matchedProduct->variants->isNotEmpty() && $vName) {
+                        foreach ($matchedProduct->variants as $pv) {
+                            $pvName = strtolower(trim($pv->variant_name ?: $pv->size));
+                            if ($pvName === $vName || str_contains($pvName, $vName) || str_contains($vName, $pvName)) {
+                                $matchedVariant = $pv;
+                                break;
+                            }
+                        }
+                    }
+                } elseif ($sku && isset($variantsBySku[$sku])) {
                     $matchedVariant = $variantsBySku[$sku];
                 } elseif (isset($variantsByNameSize[$pName . '___' . $vName])) {
                     $matchedVariant = $variantsByNameSize[$pName . '___' . $vName];
@@ -573,6 +598,8 @@ class CatalogIngestionController extends Controller
                             break;
                         }
                     }
+                } elseif (isset($productsByName[$pName])) {
+                    $matchedProduct = $productsByName[$pName];
                 }
 
                 if ($matchedVariant) {
@@ -591,9 +618,13 @@ class CatalogIngestionController extends Controller
                         $updatedVariants++;
                         $updatedProducts[$matchedVariant->product_id] = true;
                     }
-                } elseif (isset($productsByName[$pName])) {
-                    $pObj = $productsByName[$pName];
+                } elseif ($matchedProduct) {
+                    $pObj = $matchedProduct;
                     $updates = [];
+                    if (!empty($pNameRaw) && $pNameRaw !== $pObj->name) {
+                        $updates['name'] = $pNameRaw;
+                        $updates['slug'] = \Illuminate\Support\Str::slug($pNameRaw) ?: $pObj->slug;
+                    }
                     if (!is_null($cost) && $cost > 0) $updates['purchase_price'] = $cost;
                     if (!is_null($retail) && $retail > 0) $updates['price'] = $retail;
                     if (!is_null($wholesale) && $wholesale > 0) $updates['wholesale_price'] = $wholesale;

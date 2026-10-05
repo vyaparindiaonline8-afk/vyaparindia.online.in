@@ -21,10 +21,16 @@ use App\Http\Controllers\Seller\DropshipPartnerController;
 use App\Http\Controllers\Seller\PhotoStudioController;
 use App\Http\Controllers\Seller\AnalyticsController;
 use App\Http\Controllers\Seller\BrandMasterController;
+use App\Http\Controllers\Seller\ProductSpreadsheetController;
 
 Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');
+    
+    // 📊 Excel / CSV Round-Trip Sync & Daily Rate Revision Sheet
+    Route::get('products/export-sheet', [ProductSpreadsheetController::class, 'export'])->name('products.export_sheet');
+    Route::post('products/import-sheet', [ProductSpreadsheetController::class, 'import'])->name('products.import_sheet');
+
     Route::resource('products', ProductController::class);
     Route::post('products/{product}/quick-image-update', [ProductController::class, 'quickImageUpdate'])->name('products.quick_image_update');
     Route::delete('products/{product}/images/{image}', [ProductController::class, 'deleteImage'])->name('products.images.destroy');

@@ -422,15 +422,21 @@
             </div>
 
             <!-- Download Template Helper -->
-            <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-3">
+            <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div class="text-[11px] text-amber-900 leading-snug">
-                    <strong>Pehle Current Price List Download Karein:</strong><br>
-                    Isme aapke sabhi live products aur unke SKUs pehle se bhare hue milenge.
+                    <strong>Pehle Current Rate Sheet Download Karein:</strong><br>
+                    Isme aapke sabhi live products unke <strong>Product ID</strong> ke sath milenge. Name, rate ya stock badal kar wapas upload karein!
                 </div>
-                <a href="{{ route('seller.inventory.export_price_template') }}" class="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs shrink-0 flex items-center gap-1 shadow-xs">
-                    <i class="fa-solid fa-download"></i>
-                    <span>Download (.csv)</span>
-                </a>
+                <div class="flex items-center gap-2 shrink-0">
+                    <a href="{{ route('seller.products.export_sheet', ['type' => 'rates']) }}" class="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs flex items-center gap-1 shadow-xs">
+                        <i class="fa-solid fa-download"></i>
+                        <span>दैनिक भाव (.csv)</span>
+                    </a>
+                    <a href="{{ route('seller.products.export_sheet', ['type' => 'full']) }}" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-xs flex items-center gap-1 shadow-xs">
+                        <i class="fa-solid fa-download"></i>
+                        <span>पूरा कैटलॉग (.csv)</span>
+                    </a>
+                </div>
             </div>
 
             <!-- Upload Area -->
