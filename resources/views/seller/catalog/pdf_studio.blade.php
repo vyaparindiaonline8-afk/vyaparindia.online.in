@@ -720,11 +720,16 @@
 
             currentPdfDoc.getPage(pageNum).then(page => {
                 const viewport = page.getViewport({ scale: currentScale });
-                canvas.width = viewport.width;
-                canvas.height = viewport.height;
+                const outputScale = Math.max(2.0, window.devicePixelRatio || 2.0);
+
+                canvas.width = Math.floor(viewport.width * outputScale);
+                canvas.height = Math.floor(viewport.height * outputScale);
+                canvas.style.width = Math.floor(viewport.width) + "px";
+                canvas.style.height = Math.floor(viewport.height) + "px";
 
                 const renderContext = {
                     canvasContext: ctx,
+                    transform: [outputScale, 0, 0, outputScale, 0, 0],
                     viewport: viewport
                 };
 
@@ -984,7 +989,7 @@
                     0, 0, actualW, actualH
                 );
 
-                const base64Data = cropCanvas.toDataURL('image/jpeg', 0.95);
+                const base64Data = cropCanvas.toDataURL('image/png');
 
                 // POST to backend API
                 fetch("{{ route('seller.catalog.pdf_studio.crop') }}", {

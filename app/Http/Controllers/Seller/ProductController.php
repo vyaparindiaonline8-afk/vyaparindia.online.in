@@ -127,11 +127,45 @@ class ProductController extends Controller
             'slug' => Str::slug($request->name),
             'description' => $request->description,
             'price' => $request->price,
+            'brand' => $request->input('brand', $product->brand),
+            'group_name' => $request->input('group_name', $product->group_name),
             'category_id' => $categoryId,
             'image' => $imageName,
         ]);
 
         return redirect()->route('seller.products.index')->with('success', 'Product updated successfully.');
+    }
+
+    /**
+     * 1-Click Instant Photo Swapper / Image Updater from Product Cards
+     */
+    public function quickImageUpdate(Request $request, Product $product)
+    {
+        if (Auth::id() !== $product->user_id) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'image_url' => 'nullable|string',
+            'image_file' => 'nullable|image|max:4096',
+        ]);
+
+        $imageUrl = $request->input('image_url');
+        if ($request->hasFile('image_file')) {
+            $imageUrl = CloudinaryService::upload($request->file('image_file'), 'vyaparindia/products');
+        }
+
+        if (empty($imageUrl)) {
+            return response()->json(['success' => false, 'message' => 'No image provided'], 422);
+        }
+
+        $product->update(['image' => $imageUrl]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Product image updated successfully!',
+            'image_url' => $product->image_url,
+        ]);
     }
 
     public function destroy(Product $product)

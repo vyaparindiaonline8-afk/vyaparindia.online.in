@@ -24,6 +24,8 @@ class Product extends Model
         'has_variants',
         'sku',
         'hsn_code',
+        'brand',
+        'group_name',
         'image',
         'user_id',
         'category_id',

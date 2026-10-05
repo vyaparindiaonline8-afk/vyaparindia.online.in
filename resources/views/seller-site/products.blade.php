@@ -1,80 +1,220 @@
 @extends('seller-site.layout')
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-    <!-- Header & Search -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-200">
-        <div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Product Catalog</h1>
-            <p class="text-xs sm:text-sm text-gray-500 mt-1">Showing all items available directly from {{ $sellerPage->page_title }}</p>
-        </div>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
 
-        <!-- Search Input -->
-        <form action="{{ route('minisite.products', $sellerPage->slug) }}" method="GET" class="flex items-center gap-2 max-w-md w-full">
-            @if(request('category'))
-                <input type="hidden" name="category" value="{{ request('category') }}">
-            @endif
-            <div class="relative flex-1">
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by name or keyword..." class="w-full pl-10 pr-4 py-2 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent shadow-xs">
-                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400 text-xs"></i>
+    <!-- 🏢 1. Authorized Brands & Dealerships Showcase (With Logos) -->
+    @if(!empty($authorizedBrands) && count($authorizedBrands) > 0)
+        <div class="mb-6 p-4 rounded-3xl bg-white border border-gray-200/80 shadow-xs">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <h2 class="text-xs sm:text-sm font-black text-gray-900 tracking-tight uppercase">
+                        Authorized Brands & Dealerships • हमारे अधिकृत ब्रांड्स
+                    </h2>
+                </div>
+                <span class="text-[11px] font-bold text-gray-400 hidden sm:inline">Click brand logo to filter products</span>
             </div>
-            <button type="submit" class="py-2 px-4 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 transition-colors shadow-xs">
-                Search
-            </button>
-            @if(request('search') || request('category'))
-                <a href="{{ route('minisite.products', $sellerPage->slug) }}" class="p-2 text-gray-400 hover:text-gray-700" title="Clear Filters">
-                    <i class="fa-solid fa-rotate-left"></i>
+            <div class="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-thin">
+                <a href="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('brand', 'page'))) }}" class="shrink-0 px-3.5 py-2 rounded-2xl border transition-all flex items-center gap-2 {{ !request('brand') ? 'bg-gray-900 text-white border-gray-900 shadow-xs' : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100' }}">
+                    <i class="fa-solid fa-layer-group text-xs"></i>
+                    <span class="text-xs font-black">All Brands</span>
                 </a>
-            @endif
+                @foreach($authorizedBrands as $b)
+                    @php
+                        $bName = is_array($b) ? ($b['name'] ?? '') : $b;
+                        $bLogo = is_array($b) ? ($b['logo'] ?? '') : '';
+                        $bTag = is_array($b) ? ($b['tag'] ?? 'Authorized') : 'Authorized';
+                        $isSelected = request('brand') === $bName;
+                    @endphp
+                    @if(!empty($bName))
+                        <a href="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('brand', 'page'), ['brand' => $bName])) }}" class="shrink-0 px-3 py-2 rounded-2xl border transition-all flex items-center gap-2.5 {{ $isSelected ? 'bg-indigo-50 border-indigo-500 ring-2 ring-indigo-500/20 shadow-xs' : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-2xs' }}">
+                            @if(!empty($bLogo))
+                                <img src="{{ $bLogo }}" alt="{{ $bName }}" class="h-6 w-auto max-w-[70px] object-contain crisp-img">
+                            @else
+                                <div class="h-6 w-6 rounded-lg bg-indigo-600 text-white text-[10px] font-black flex items-center justify-center">
+                                    {{ substr($bName, 0, 1) }}
+                                </div>
+                            @endif
+                            <div class="text-left">
+                                <div class="text-xs font-black text-gray-900 leading-tight">{{ $bName }}</div>
+                                <div class="text-[9px] font-bold {{ $isSelected ? 'text-indigo-600' : 'text-gray-400' }}">{{ $bTag }}</div>
+                            </div>
+                        </a>
+                    @endif
+                @endforeach
+            </div>
+        </div>
+    @endif
+
+    <!-- 🔍 2. 3-Tier Hierarchy Search & Filter Bar (Company, Group, Category) -->
+    <div class="bg-white rounded-3xl border border-gray-200 p-4 sm:p-5 shadow-xs mb-6">
+        <form action="{{ route('minisite.products', $sellerPage->slug) }}" method="GET" id="catalog-filter-form" class="space-y-4">
+            
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                        <span>Product Catalog</span>
+                        <span class="text-xs font-bold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
+                            {{ $products->total() }} Products
+                        </span>
+                    </h1>
+                    <p class="text-xs text-gray-500 mt-0.5">Filter by Brand, Group (Plumbing/Sanitary), and Category to find exact items</p>
+                </div>
+
+                <!-- Search Input Box -->
+                <div class="relative flex-1 max-w-md">
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by product name, code, or keyword..." class="w-full pl-9 pr-4 py-2 text-xs bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                </div>
+            </div>
+
+            <!-- The 3 Dropdowns (Brand / Company, Group, Category) + Sort -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                
+                <!-- 🏢 1. Company / Brand Dropdown -->
+                <div>
+                    <label class="block text-[11px] font-extrabold text-gray-700 uppercase tracking-wider mb-1">
+                        <i class="fa-solid fa-building text-blue-600 mr-1"></i> Company / Brand
+                    </label>
+                    <select name="brand" onchange="document.getElementById('catalog-filter-form').submit()" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 font-bold text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                        <option value="">All Brands (सभी कंपनियां)</option>
+                        @if(isset($availableBrands))
+                            @foreach($availableBrands as $brandName)
+                                <option value="{{ $brandName }}" {{ request('brand') === $brandName ? 'selected' : '' }}>
+                                    {{ $brandName }}
+                                </option>
+                            @endforeach
+                        @endif
+                    </select>
+                </div>
+
+                <!-- 📂 2. Group Dropdown -->
+                <div>
+                    <label class="block text-[11px] font-extrabold text-gray-700 uppercase tracking-wider mb-1">
+                        <i class="fa-solid fa-layer-group text-purple-600 mr-1"></i> Group / Division
+                    </label>
+                    <select name="group" onchange="document.getElementById('catalog-filter-form').submit()" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 font-bold text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                        <option value="">All Groups (Plumbing, Sanitary...)</option>
+                        @if(isset($availableGroups))
+                            @foreach($availableGroups as $grpName)
+                                <option value="{{ $grpName }}" {{ request('group') === $grpName ? 'selected' : '' }}>
+                                    {{ $grpName }}
+                                </option>
+                            @endforeach
+                        @endif
+                    </select>
+                </div>
+
+                <!-- 🏷️ 3. Category Dropdown -->
+                <div>
+                    <label class="block text-[11px] font-extrabold text-gray-700 uppercase tracking-wider mb-1">
+                        <i class="fa-solid fa-tags text-emerald-600 mr-1"></i> Category
+                    </label>
+                    <select name="category" onchange="document.getElementById('catalog-filter-form').submit()" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 font-bold text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                        <option value="">All Categories (UPVC, CPVC, SWR...)</option>
+                        @if(isset($categories))
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat->id }}" {{ request('category') == $cat->id ? 'selected' : '' }}>
+                                    {{ $cat->name }}
+                                </option>
+                            @endforeach
+                        @endif
+                    </select>
+                </div>
+
+                <!-- 🔃 4. Smart Sort Selector & Clear -->
+                <div>
+                    <label class="block text-[11px] font-extrabold text-gray-700 uppercase tracking-wider mb-1">
+                        <i class="fa-solid fa-arrow-down-short-wide text-amber-600 mr-1"></i> Sort By
+                    </label>
+                    <div class="flex items-center gap-1.5">
+                        <select name="sort" onchange="document.getElementById('catalog-filter-form').submit()" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 font-bold text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                            @php $s = request('sort', 'latest'); @endphp
+                            <option value="latest" {{ $s === 'latest' ? 'selected' : '' }}>🆕 Newly Added First</option>
+                            <option value="popular" {{ $s === 'popular' ? 'selected' : '' }}>🔥 Top Selling</option>
+                            <option value="price_asc" {{ $s === 'price_asc' ? 'selected' : '' }}>💰 Price: Low to High</option>
+                            <option value="price_desc" {{ $s === 'price_desc' ? 'selected' : '' }}>💎 Price: High to Low</option>
+                            <option value="oldest" {{ $s === 'oldest' ? 'selected' : '' }}>📅 Oldest First</option>
+                        </select>
+
+                        @if(request('search') || request('brand') || request('group') || request('category'))
+                            <a href="{{ route('minisite.products', $sellerPage->slug) }}" class="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition flex items-center justify-center shrink-0" title="Reset All Filters">
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </a>
+                        @endif
+                    </div>
+                </div>
+
+            </div>
         </form>
     </div>
 
-    <!-- Category Filter Pills & Smart Sort -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-4 border-b border-gray-100">
-        @if(isset($categories) && $categories->isNotEmpty())
-            <div class="flex items-center gap-2 overflow-x-auto scrollbar-none flex-1">
-                <a href="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('category', 'page'))) }}" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors {{ !request('category') ? 'bg-gray-900 text-white shadow-xs' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50' }}">
-                    All Items ({{ $sellerPage->user->products()->count() }})
-                </a>
-                @foreach($categories as $cat)
-                    <a href="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('page'), ['category' => $cat->id])) }}" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors {{ request('category') == $cat->id ? 'bg-gray-900 text-white shadow-xs' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50' }}">
-                        {{ $cat->name }}
-                    </a>
-                @endforeach
+    <!-- 📢 3. Active Hierarchy Filter & 1-Click WhatsApp Share Suite -->
+    @php
+        $activeBrand = request('brand');
+        $activeGroup = request('group');
+        $activeCatId = request('category');
+        $activeCat = $activeCatId ? ($categories->firstWhere('id', $activeCatId) ?? $categories->firstWhere('slug', $activeCatId)) : null;
+        $isAnyFilterActive = $activeBrand || $activeGroup || $activeCat || request('search');
+        $filterShareUrl = request()->fullUrl();
+
+        $filterTitleParts = [];
+        if ($activeBrand) $filterTitleParts[] = $activeBrand;
+        if ($activeGroup) $filterTitleParts[] = $activeGroup;
+        if ($activeCat) $filterTitleParts[] = $activeCat->name;
+        $filterTitle = !empty($filterTitleParts) ? implode(' • ', $filterTitleParts) : 'Our Catalog';
+
+        $waCatalogShareMsg = urlencode("Namaste! Hamare store {$sellerPage->page_title} par [{$filterTitle}] ke sabhi products aur unke wholesale rates yahan dekhein:\n{$filterShareUrl}");
+    @endphp
+
+    @if($isAnyFilterActive)
+        <div class="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+            <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-lg shadow-sm shrink-0">
+                    <i class="fa-brands fa-whatsapp"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-xs font-black text-gray-900">Current Selection:</span>
+                        @if($activeBrand)
+                            <span class="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[11px] font-black">🏢 {{ $activeBrand }}</span>
+                        @endif
+                        @if($activeGroup)
+                            <span class="px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 text-[11px] font-black">📂 {{ $activeGroup }}</span>
+                        @endif
+                        @if($activeCat)
+                            <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[11px] font-black">🏷️ {{ $activeCat->name }}</span>
+                        @endif
+                        @if(request('search'))
+                            <span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[11px] font-black">🔍 "{{ request('search') }}"</span>
+                        @endif
+                        <span class="text-[11px] font-bold text-gray-500">({{ $products->total() }} items)</span>
+                    </div>
+                    <p class="text-[11px] text-gray-600 mt-0.5">Share this exact filtered catalog view directly with clients on WhatsApp.</p>
+                </div>
             </div>
-        @endif
 
-        <!-- Sorting Selector -->
-        <div class="flex items-center gap-2 shrink-0">
-            <span class="text-xs font-bold text-gray-500"><i class="fa-solid fa-arrow-down-short-wide mr-1"></i> Sort:</span>
-            <select onchange="window.location.href=this.value" class="text-xs font-bold bg-white border border-gray-300 rounded-xl px-3 py-1.5 focus:outline-hidden shadow-xs cursor-pointer">
-                @php $s = request('sort', 'latest'); @endphp
-                <option value="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('page'), ['sort' => 'latest'])) }}" {{ $s === 'latest' ? 'selected' : '' }}>
-                    🆕 Newly Added First
-                </option>
-                <option value="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('page'), ['sort' => 'popular'])) }}" {{ $s === 'popular' ? 'selected' : '' }}>
-                    🔥 Top Selling / Most Popular
-                </option>
-                <option value="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('page'), ['sort' => 'price_asc'])) }}" {{ $s === 'price_asc' ? 'selected' : '' }}>
-                    💰 Price: Low to High
-                </option>
-                <option value="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('page'), ['sort' => 'price_desc'])) }}" {{ $s === 'price_desc' ? 'selected' : '' }}>
-                    💎 Price: High to Low
-                </option>
-                <option value="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('page'), ['sort' => 'oldest'])) }}" {{ $s === 'oldest' ? 'selected' : '' }}>
-                    📅 Oldest First
-                </option>
-            </select>
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="https://api.whatsapp.com/send?text={{ $waCatalogShareMsg }}" target="_blank" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition">
+                    <i class="fa-brands fa-whatsapp text-sm"></i>
+                    <span>Share on WhatsApp</span>
+                </a>
+                <button type="button" onclick="navigator.clipboard.writeText('{{ $filterShareUrl }}'); this.innerHTML = '<i class=\'fa-solid fa-check text-emerald-600\'></i> Copied!'; setTimeout(() => this.innerHTML = '<i class=\'fa-solid fa-copy\'></i> Copy Link', 2000);" class="px-3 py-2 rounded-xl bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs border border-gray-200 shadow-2xs transition flex items-center gap-1">
+                    <i class="fa-solid fa-copy"></i>
+                    <span>Copy Link</span>
+                </button>
+            </div>
         </div>
-    </div>
+    @endif
 
-    <!-- 🎯 Curated 3-6 Items Special Collection Banner -->
+    <!-- 🎯 Curated 3-6 Items Special Collection Banner (if ?items=... used) -->
     @if(request('items') || !empty($isCurated))
         @php
             $curatedUrl = request()->fullUrl();
             $waCuratedMsg = urlencode("Namaste! Aapke liye chune hue khaas products ({$products->total()} items) ki list aur photos yahan dekhein:\n{$curatedUrl}");
         @endphp
-        <div class="mt-6 p-4 rounded-3xl bg-gradient-to-r from-amber-50 via-indigo-50 to-emerald-50 border border-indigo-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="mb-6 p-4 rounded-3xl bg-gradient-to-r from-amber-50 via-indigo-50 to-emerald-50 border border-indigo-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex items-center gap-3.5">
                 <div class="h-11 w-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xl shadow-md shadow-indigo-600/20 shrink-0">
                     <i class="fa-solid fa-wand-magic-sparkles"></i>
@@ -100,43 +240,16 @@
         </div>
     @endif
 
-    <!-- 📂 Category-wise Public Share Tool -->
-    @if(request('category'))
-        @php
-            $currCat = $categories->firstWhere('id', request('category')) ?? $categories->firstWhere('slug', request('category'));
-            $catTitle = $currCat ? $currCat->name : 'Selected Category';
-            $catShareUrl = request()->fullUrl();
-            $waCatMsg = urlencode("Namaste! Hamare store {$sellerPage->page_title} par {$catTitle} ki poori range aur latest rates yahan dekhein:\n{$catShareUrl}");
-        @endphp
-        <div class="mt-4 p-3.5 rounded-2xl bg-emerald-50/80 border border-emerald-200 flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-2.5">
-                <div class="h-8 w-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm">
-                    <i class="fa-solid fa-layer-group"></i>
-                </div>
-                <div>
-                    <span class="text-xs font-black text-emerald-950">{{ $catTitle }} Range</span>
-                    <span class="ml-1.5 text-[11px] text-emerald-700 font-bold">({{ $products->total() }} products found)</span>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                <a href="https://api.whatsapp.com/send?text={{ $waCatMsg }}" target="_blank" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition">
-                    <i class="fa-brands fa-whatsapp text-sm"></i> Share Category Link
-                </a>
-                <button type="button" onclick="navigator.clipboard.writeText('{{ $catShareUrl }}'); this.innerHTML = '<i class=\'fa-solid fa-check text-emerald-600\'></i> Copied!'; setTimeout(() => this.innerHTML = '<i class=\'fa-solid fa-copy\'></i> Copy Link', 2000);" class="px-3 py-1.5 rounded-xl bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs border border-gray-200 shadow-2xs transition flex items-center gap-1">
-                    <i class="fa-solid fa-copy"></i> Copy Link
-                </button>
-            </div>
-        </div>
-    @endif
-
-    <!-- Product Grid -->
-    <div class="mt-6">
+    <!-- 📦 4. Product Grid -->
+    <div>
         @if($products->isEmpty())
-            <div class="bg-white rounded-2xl p-16 text-center border border-gray-200 max-w-lg mx-auto my-8">
-                <i class="fa-solid fa-magnifying-glass text-5xl text-gray-300 mb-4"></i>
-                <h3 class="text-lg font-bold text-gray-900">No products found</h3>
-                <p class="text-xs text-gray-500 mt-1">Try clearing your search query or choosing a different category.</p>
-                <a href="{{ route('minisite.products', $sellerPage->slug) }}" class="mt-4 inline-block px-5 py-2 rounded-xl bg-gray-900 text-white font-semibold text-xs hover:bg-gray-800">
+            <div class="bg-white rounded-3xl p-16 text-center border border-gray-200 max-w-lg mx-auto my-8 shadow-xs">
+                <div class="h-16 w-16 mx-auto rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-2xl mb-4">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+                <h3 class="text-base font-bold text-gray-900">No products found</h3>
+                <p class="text-xs text-gray-500 mt-1">Try resetting your filters or selecting a different Brand or Group.</p>
+                <a href="{{ route('minisite.products', $sellerPage->slug) }}" class="mt-4 inline-block px-5 py-2.5 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-gray-800 transition">
                     Reset All Filters
                 </a>
             </div>
@@ -149,26 +262,64 @@
                         $initPrice = $firstVar ? ($firstVar->retail_price ?: ($firstVar->wholesale_price ?: $product->price)) : $product->price;
                         $initMrp = $firstVar ? ($firstVar->mrp ?: ($initPrice * 1.35)) : ($product->mrp ?: ($product->price * 1.35));
                     @endphp
-                    <div class="bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden group p-3.5 space-y-3" id="card_box_{{ $product->id }}">
-                        <!-- Product Image & Category Badge -->
+                    <div class="bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden group p-3.5 space-y-3 relative" id="card_box_{{ $product->id }}">
+                        
+                        <!-- Top Image & Quick Badges -->
                         <div>
-                            <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]) }}" class="relative block aspect-square bg-gray-50 rounded-xl overflow-hidden border border-gray-100 mb-3 flex items-center justify-center">
-                                @if($product->image_url)
-                                    <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300">
-                                @else
-                                    <div class="text-gray-300 text-center">
-                                        <i class="fa-solid fa-image text-3xl"></i>
-                                    </div>
-                                @endif
-                                @if($product->category)
-                                    <span class="absolute top-2 left-2 bg-white/95 backdrop-blur-xs text-gray-800 text-[10px] font-black px-2 py-0.5 rounded-md shadow-2xs">
+                            <div class="relative block aspect-square bg-slate-50 rounded-xl overflow-hidden border border-slate-100 mb-3 flex items-center justify-center p-2">
+                                <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]) }}" class="w-full h-full flex items-center justify-center">
+                                    @if($product->image_url)
+                                        <img src="{{ $product->image_url }}" alt="{{ $product->name }}" id="prod_img_{{ $product->id }}" class="w-full h-full object-contain crisp-img group-hover:scale-105 transition-transform duration-300">
+                                    @else
+                                        <div class="text-gray-300 text-center" id="prod_img_{{ $product->id }}">
+                                            <i class="fa-solid fa-image text-3xl"></i>
+                                        </div>
+                                    @endif
+                                </a>
+
+                                <!-- Brand Badge (Top Left) -->
+                                @if($product->brand)
+                                    <span class="absolute top-2 left-2 bg-blue-600/90 backdrop-blur-xs text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-2xs">
+                                        {{ $product->brand }}
+                                    </span>
+                                @elseif($product->category)
+                                    <span class="absolute top-2 left-2 bg-gray-900/90 backdrop-blur-xs text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-2xs">
                                         {{ $product->category->name }}
                                     </span>
                                 @endif
-                            </a>
+
+                                <!-- 📲 Individual Card 1-Click WhatsApp Share Button (Top Right) -->
+                                <button type="button" onclick="shareProductCardWhatsapp({{ $product->id }})" class="absolute top-2 right-2 h-7 w-7 rounded-full bg-white/90 hover:bg-emerald-500 hover:text-white text-emerald-600 shadow-sm flex items-center justify-center text-xs transition" title="Share this Product on WhatsApp">
+                                    <i class="fa-brands fa-whatsapp text-sm"></i>
+                                </button>
+
+                                <!-- 📷 Store Owner Instant Photo Swapper Button (Bottom Right) -->
+                                @auth
+                                    @if(Auth::id() === $sellerPage->user_id || Auth::user()->is_seller())
+                                        <button type="button" onclick="openPhotoSwapper({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->image_url }}')" class="absolute bottom-2 right-2 px-2 py-1 rounded-md bg-slate-900/80 hover:bg-slate-900 text-white font-bold text-[10px] flex items-center gap-1 shadow-sm backdrop-blur-xs transition" title="Change Photo directly on this card">
+                                            <i class="fa-solid fa-camera"></i>
+                                            <span>Photo</span>
+                                        </button>
+                                    @endif
+                                @endauth
+                            </div>
+
+                            <!-- Group / Category Meta Tags -->
+                            <div class="flex items-center gap-1.5 flex-wrap mb-1.5">
+                                @if($product->group_name)
+                                    <span class="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-bold text-[10px] border border-purple-200">
+                                        📂 {{ $product->group_name }}
+                                    </span>
+                                @endif
+                                @if($product->category)
+                                    <span class="px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 font-bold text-[10px]">
+                                        {{ $product->category->name }}
+                                    </span>
+                                @endif
+                            </div>
 
                             <!-- Product Title -->
-                            <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]) }}" class="font-extrabold text-xs sm:text-sm text-gray-900 hover:text-indigo-600 line-clamp-2 transition-colors" title="{{ $product->name }}">
+                            <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]) }}" class="font-black text-xs sm:text-sm text-gray-900 hover:text-indigo-600 line-clamp-2 transition-colors leading-tight" title="{{ $product->name }}">
                                 {{ $product->name }}
                             </a>
 
@@ -242,6 +393,51 @@
     </div>
 </div>
 
+<!-- 📸 Photo Swapper Modal for Store Owner -->
+<div id="photo-swapper-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-200">
+        <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+            <h3 class="text-sm font-black text-gray-900 flex items-center gap-2">
+                <i class="fa-solid fa-camera text-indigo-600"></i>
+                <span>Change Product Photo</span>
+            </h3>
+            <button type="button" onclick="closePhotoSwapper()" class="text-gray-400 hover:text-gray-600 text-sm">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form id="photo-swapper-form" onsubmit="submitPhotoSwap(event)" class="mt-4 space-y-4">
+            <input type="hidden" id="swap_product_id">
+            
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1" id="swap_product_name_label">Product Name</label>
+                <div class="text-xs text-gray-500 mb-2">Paste a high-resolution image URL or upload a file:</div>
+                <input type="text" id="swap_image_url" placeholder="https://example.com/item.jpg" class="w-full text-xs font-mono border border-gray-300 rounded-xl px-3 py-2 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div class="relative flex py-1 items-center">
+                <div class="flex-grow border-t border-gray-200"></div>
+                <span class="flex-shrink mx-3 text-[11px] font-bold text-gray-400">OR Upload</span>
+                <div class="flex-grow border-t border-gray-200"></div>
+            </div>
+
+            <div>
+                <input type="file" id="swap_image_file" accept="image/*" class="w-full text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                <button type="button" onclick="closePhotoSwapper()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition">
+                    Cancel
+                </button>
+                <button type="submit" id="btn-save-photo-swap" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/20 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Save Photo</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @push('scripts')
 <script>
     const STORE_PRODUCTS = @json($products->items());
@@ -279,24 +475,13 @@
             }
         }
 
-        // Check if product has volume pricing tiers
-        if (prod.pricing_tiers && prod.pricing_tiers.length > 0) {
-            const matchingTier = prod.pricing_tiers
-                .slice()
-                .sort((a,b) => b.min_quantity - a.min_quantity)
-                .find(t => qty >= t.min_quantity && (!t.max_quantity || qty <= t.max_quantity));
-            if (matchingTier && matchingTier.unit_price > 0) {
-                unitPrice = parseFloat(matchingTier.unit_price);
-            }
-        }
-
         const total = unitPrice * qty;
 
         return {
             product: prod,
+            quantity: qty,
             variantId: variantId,
             variantName: variantName,
-            quantity: qty,
             unitPrice: unitPrice,
             mrp: mrp,
             total: total
@@ -370,7 +555,7 @@
             return;
         }
 
-        const prodUrl = window.location.origin + '/' + STORE_PAGE_SLUG + '/p/' + state.product.slug;
+        const prodUrl = window.location.origin + '/' + STORE_PAGE_SLUG + '/product/' + state.product.slug;
         const varTxt = state.variantName ? ` (${state.variantName})` : '';
 
         const msg = `*Namaste! New Order Inquiry from ${STORE_PAGE_TITLE}*\n\n` +
@@ -382,6 +567,84 @@
                     `Kripya payment details aur delivery time confirm karein.`;
 
         window.open(`https://api.whatsapp.com/send?phone=${STORE_WA_NUM}&text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    // 📲 1-Click WhatsApp Share for Individual Product Card
+    function shareProductCardWhatsapp(prodId) {
+        const prod = STORE_PRODUCTS.find(p => p.id === prodId);
+        if (!prod) return;
+
+        const prodUrl = window.location.origin + '/' + STORE_PAGE_SLUG + '/product/' + prod.slug;
+        const msg = `*Namaste! Check out this product on ${STORE_PAGE_TITLE}:*\n\n` +
+                    `🛍️ *${prod.name}*\n` +
+                    (prod.brand ? `🏢 *Brand:* ${prod.brand}\n` : '') +
+                    `💰 *Price:* ₹${parseFloat(prod.price || 0).toFixed(2)}\n\n` +
+                    `🔗 *View Full Specifications & Order Online:*\n${prodUrl}`;
+
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    // 📷 Photo Swapper Functions
+    function openPhotoSwapper(prodId, prodName, currentImg) {
+        document.getElementById('swap_product_id').value = prodId;
+        document.getElementById('swap_product_name_label').innerText = prodName;
+        document.getElementById('swap_image_url').value = currentImg || '';
+        document.getElementById('photo-swapper-modal').classList.remove('hidden');
+    }
+
+    function closePhotoSwapper() {
+        document.getElementById('photo-swapper-modal').classList.add('hidden');
+        document.getElementById('photo-swapper-form').reset();
+    }
+
+    async function submitPhotoSwap(e) {
+        e.preventDefault();
+        const prodId = document.getElementById('swap_product_id').value;
+        const imgUrl = document.getElementById('swap_image_url').value;
+        const fileInput = document.getElementById('swap_image_file');
+        const saveBtn = document.getElementById('btn-save-photo-swap');
+
+        if (!imgUrl && (!fileInput.files || fileInput.files.length === 0)) {
+            alert('Please provide an image URL or choose a photo to upload.');
+            return;
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
+
+        const formData = new FormData();
+        if (imgUrl) formData.append('image_url', imgUrl);
+        if (fileInput.files && fileInput.files[0]) formData.append('image_file', fileInput.files[0]);
+
+        try {
+            const resp = await fetch(`/seller/products/${prodId}/quick-image-update`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: formData
+            });
+
+            const data = await resp.json();
+            if (data.success) {
+                // Update image on page directly
+                const imgEl = document.getElementById(`prod_img_${prodId}`);
+                if (imgEl && imgEl.tagName === 'IMG') {
+                    imgEl.src = data.image_url;
+                } else if (imgEl) {
+                    imgEl.outerHTML = `<img src="${data.image_url}" id="prod_img_${prodId}" class="w-full h-full object-contain crisp-img group-hover:scale-105 transition-transform duration-300">`;
+                }
+                closePhotoSwapper();
+            } else {
+                alert(data.message || 'Failed to update image.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error updating product photo.');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = `<i class="fa-solid fa-check"></i> <span>Save Photo</span>`;
+        }
     }
 </script>
 @endpush

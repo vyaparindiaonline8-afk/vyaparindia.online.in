@@ -133,6 +133,17 @@ class MiniSiteController extends Controller
         $validated['enable_whatsapp_order'] = $request->has('enable_whatsapp_order');
         $validated['show_payment_details_to_buyer'] = $request->has('show_payment_details_to_buyer');
 
+        if ($request->has('authorized_brands')) {
+            $brandsInput = $request->input('authorized_brands');
+            if (is_string($brandsInput)) {
+                $validated['authorized_brands'] = json_decode($brandsInput, true);
+            } elseif (is_array($brandsInput)) {
+                $validated['authorized_brands'] = array_values(array_filter($brandsInput, function ($b) {
+                    return !empty($b['name'] ?? '');
+                }));
+            }
+        }
+
         $minisite->update($validated);
 
         return redirect()->route('seller.minisite.edit')->with('success', 'Mini-Storefront settings updated successfully.');
@@ -143,7 +154,8 @@ class MiniSiteController extends Controller
     {
         $products = $sellerPage->user->products()->latest()->take(12)->get();
         $totalProducts = $sellerPage->user->products()->count();
-        return view('seller-site.home', compact('sellerPage', 'products', 'totalProducts'));
+        $authorizedBrands = $sellerPage->authorized_brands ?? [];
+        return view('seller-site.home', compact('sellerPage', 'products', 'totalProducts', 'authorizedBrands'));
     }
 
     public function products(SellerPage $sellerPage, Request $request)
@@ -154,10 +166,25 @@ class MiniSiteController extends Controller
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('brand', 'like', "%{$search}%")
+                  ->orWhere('group_name', 'like', "%{$search}%");
             });
         }
 
+        // 🏢 1-Tier: Company / Brand Filter
+        if ($request->filled('brand')) {
+            $brandParam = $request->input('brand');
+            $query->where('brand', $brandParam);
+        }
+
+        // 📂 2-Tier: Group Filter (Plumbing, Sanitary, Hardware, etc.)
+        if ($request->filled('group')) {
+            $groupParam = $request->input('group');
+            $query->where('group_name', $groupParam);
+        }
+
+        // 🏷️ 3-Tier: Category Filter (UPVC, CPVC, SWR, etc.)
         if ($request->filled('category')) {
             $catParam = $request->input('category');
             $query->where(function ($q) use ($catParam) {
@@ -197,11 +224,40 @@ class MiniSiteController extends Controller
         }
 
         $products = $query->paginate(16)->withQueryString();
+
+        // Extract available brands, groups, and categories for dynamic dropdown filters
+        $availableBrands = $sellerPage->user->products()
+            ->whereNotNull('brand')
+            ->where('brand', '!=', '')
+            ->distinct()
+            ->pluck('brand')
+            ->sort()
+            ->values();
+
+        $availableGroups = $sellerPage->user->products()
+            ->whereNotNull('group_name')
+            ->where('group_name', '!=', '')
+            ->distinct()
+            ->pluck('group_name')
+            ->sort()
+            ->values();
+
         $categories = \App\Models\Category::whereHas('products', function ($q) use ($sellerPage) {
             $q->where('user_id', $sellerPage->user_id);
         })->get();
 
-        return view('seller-site.products', compact('sellerPage', 'products', 'categories', 'sort', 'isCurated'));
+        $authorizedBrands = $sellerPage->authorized_brands ?? [];
+
+        return view('seller-site.products', compact(
+            'sellerPage',
+            'products',
+            'categories',
+            'availableBrands',
+            'availableGroups',
+            'authorizedBrands',
+            'sort',
+            'isCurated'
+        ));
     }
 
     public function product(SellerPage $sellerPage, $productSlug)

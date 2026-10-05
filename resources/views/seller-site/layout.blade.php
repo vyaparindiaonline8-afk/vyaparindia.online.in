@@ -31,6 +31,16 @@
         .bg-brand-custom { background-color: var(--brand-color); }
         .text-brand-custom { color: var(--brand-color); }
         .border-brand-custom { border-color: var(--brand-color); }
+
+        /* Crisp High-Res Image Optimization */
+        img {
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+        .crisp-img {
+            image-rendering: -webkit-optimize-contrast;
+            object-fit: contain;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen antialiased">
@@ -80,18 +90,37 @@
                     <i class="fa-solid fa-magnifying-glass absolute left-3 text-gray-400 text-xs"></i>
                 </form>
 
-                <!-- Actions: WhatsApp + Cart -->
+                <!-- Actions: Share + WhatsApp + Dashboard + Cart -->
+                    @php
+                        $storeShareUrl = route('minisite.show', $sellerPage->slug);
+                        $storeShareWaMsg = urlencode("Namaste! Check out " . $sellerPage->page_title . " on VyaparIndia. Browse our entire catalog, wholesale rates, and place 1-click orders:\n" . $storeShareUrl);
+                    @endphp
+                    <a href="https://api.whatsapp.com/send?text={{ $storeShareWaMsg }}" target="_blank" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition shadow-2xs" title="Share Full Store on WhatsApp">
+                        <i class="fa-brands fa-whatsapp text-emerald-600"></i>
+                        <span>Share Store</span>
+                    </a>
+
                     <a href="{{ route('minisite.materialScanner', $sellerPage->slug) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition">
                         <i class="fa-solid fa-camera text-indigo-600"></i>
                         <span class="hidden sm:inline">Slip Scanner</span>
                     </a>
 
                     @if($sellerPage->whatsapp_number)
-                        <a href="https://wa.me/{{ $sellerPage->clean_whatsapp_number }}?text=Hello%2C%20I%20have%20an%20inquiry%20about%20your%20products%20on%20{{ urlencode(route('minisite.show', $sellerPage->slug)) }}" target="_blank" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors">
+                        <a href="https://wa.me/{{ $sellerPage->clean_whatsapp_number }}?text=Hello%2C%20I%20have%20an%20inquiry%20about%20your%20products%20on%20{{ urlencode(route('minisite.show', $sellerPage->slug)) }}" target="_blank" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-100 text-gray-700 border border-gray-200 hover:bg-gray-200 transition-colors">
                             <i class="fa-brands fa-whatsapp text-sm text-emerald-600"></i>
-                            <span>Chat with Seller</span>
+                            <span>Chat</span>
                         </a>
                     @endif
+
+                    @auth
+                        @if(Auth::user()->is_seller())
+                            <!-- ⚡ UNMISTAKABLE SELLER DASHBOARD BUTTON -->
+                            <a href="{{ route('seller.dashboard') }}" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-black rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md shadow-blue-500/25 transition transform hover:-translate-y-0.5" title="Go to your Seller Dashboard">
+                                <i class="fa-solid fa-gauge-high"></i>
+                                <span>Seller Dashboard</span>
+                            </a>
+                        @endif
+                    @endauth
 
                     <!-- Cart Drawer Button -->
                     <button onclick="toggleCartDrawer(true)" class="relative p-2.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 transition-colors">
@@ -104,16 +133,52 @@
 
         <!-- Mobile Subnav / Search -->
         <div class="md:hidden border-t border-gray-100 px-4 py-2 bg-gray-50 flex items-center justify-between text-xs font-medium text-gray-600">
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
                 <a href="{{ route('minisite.show', $sellerPage->slug) }}" class="hover:text-gray-900 {{ request()->routeIs('minisite.show') ? 'text-brand-custom font-bold' : '' }}">Home</a>
                 <a href="{{ route('minisite.products', $sellerPage->slug) }}" class="hover:text-gray-900 {{ request()->routeIs('minisite.products') ? 'text-brand-custom font-bold' : '' }}">Products</a>
                 <a href="{{ route('minisite.contact', $sellerPage->slug) }}" class="hover:text-gray-900 {{ request()->routeIs('minisite.contact') ? 'text-brand-custom font-bold' : '' }}">Contact</a>
+                @auth
+                    @if(Auth::user()->is_seller())
+                        <a href="{{ route('seller.dashboard') }}" class="px-2 py-0.5 rounded-md bg-indigo-600 text-white font-bold flex items-center gap-1 shadow-2xs">
+                            <i class="fa-solid fa-gauge-high text-[10px]"></i> Dashboard
+                        </a>
+                    @endif
+                @endauth
             </div>
             <a href="{{ route('minisite.products', $sellerPage->slug) }}" class="text-gray-500 hover:text-gray-700">
                 <i class="fa-solid fa-magnifying-glass"></i> Search
             </a>
         </div>
     </header>
+
+    @auth
+        @if(Auth::user()->is_seller())
+            <!-- ⚡ Sticky Floating Store Owner Hub Badge -->
+            <div class="fixed bottom-20 right-4 z-50 bg-slate-900/95 text-white backdrop-blur-md shadow-2xl rounded-2xl p-2 sm:p-2.5 border border-slate-700 flex items-center gap-2 sm:gap-3 text-xs animate-in fade-in slide-in-from-bottom duration-300">
+                <div class="flex items-center gap-1.5 pl-1">
+                    <span class="flex h-2.5 w-2.5 relative">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <span class="font-extrabold text-slate-200 hidden sm:inline">Store Mode</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <a href="{{ route('seller.dashboard') }}" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-black text-white flex items-center gap-1.5 shadow-xs transition">
+                        <i class="fa-solid fa-gauge-high"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="{{ route('seller.inventory.index') }}" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-slate-200 flex items-center gap-1 transition" title="Manage Stock & Prices">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                        <span class="hidden sm:inline">Stock</span>
+                    </a>
+                    <a href="{{ route('seller.minisite.edit') }}" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-slate-200 flex items-center gap-1 transition" title="Edit Store Details">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span class="hidden sm:inline">Edit</span>
+                    </a>
+                </div>
+            </div>
+        @endif
+    @endauth
 
     <!-- Main Content Body -->
     <main class="flex-grow">

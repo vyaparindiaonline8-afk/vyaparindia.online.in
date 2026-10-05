@@ -26,6 +26,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');
     Route::resource('products', ProductController::class);
+    Route::post('products/{product}/quick-image-update', [ProductController::class, 'quickImageUpdate'])->name('products.quick_image_update');
     Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::put('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.updateStatus');

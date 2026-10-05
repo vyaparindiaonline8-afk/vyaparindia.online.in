@@ -68,8 +68,56 @@
     </div>
 </section>
 
+<!-- 🏢 Authorized Brands & Official Dealerships Showcase -->
+@if(!empty($authorizedBrands) && count($authorizedBrands) > 0)
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-4">
+    <div class="bg-gradient-to-br from-white to-gray-50 rounded-3xl border border-gray-200/90 p-6 sm:p-8 shadow-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <h2 class="text-base sm:text-lg font-black text-gray-900 uppercase tracking-tight">
+                        Authorized Brands & Dealerships • हमारे अधिकृत ब्रांड्स
+                    </h2>
+                </div>
+                <p class="text-xs text-gray-500 mt-0.5">We are official authorized distributors and dealers for top verified brands.</p>
+            </div>
+            <a href="{{ route('minisite.products', $sellerPage->slug) }}" class="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 shrink-0">
+                <span>View Brand Catalog</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            @foreach($authorizedBrands as $brand)
+                @php
+                    $bName = is_array($brand) ? ($brand['name'] ?? '') : $brand;
+                    $bLogo = is_array($brand) ? ($brand['logo'] ?? '') : '';
+                    $bTag = is_array($brand) ? ($brand['tag'] ?? 'Authorized Dealer') : 'Authorized Dealer';
+                @endphp
+                @if(!empty($bName))
+                    <a href="{{ route('minisite.products', ['sellerPage' => $sellerPage->slug, 'brand' => $bName]) }}" class="group bg-white rounded-2xl border border-gray-200 hover:border-indigo-400 p-4 flex flex-col items-center justify-center text-center transition-all hover:shadow-md">
+                        <div class="h-12 w-28 flex items-center justify-center mb-2.5">
+                            @if(!empty($bLogo))
+                                <img src="{{ $bLogo }}" alt="{{ $bName }}" class="max-h-full max-w-full object-contain crisp-img group-hover:scale-105 transition-transform">
+                            @else
+                                <div class="h-10 w-10 rounded-xl bg-indigo-600 text-white font-black text-base flex items-center justify-center shadow-xs">
+                                    {{ substr($bName, 0, 1) }}
+                                </div>
+                            @endif
+                        </div>
+                        <span class="text-xs font-black text-gray-900 group-hover:text-indigo-600 transition-colors">{{ $bName }}</span>
+                        <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full mt-1">{{ $bTag }}</span>
+                    </a>
+                @endif
+            @endforeach
+        </div>
+    </div>
+</section>
+@endif
+
 <!-- Products Showcase -->
-<section id="products-grid" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+<section id="products-grid" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
     <div class="flex items-center justify-between mb-8">
         <div>
             <h2 class="text-xl sm:text-2xl font-extrabold text-gray-900">Featured Products</h2>
@@ -92,16 +140,31 @@
     @else
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             @foreach($products as $product)
-                <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col group">
+                <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col group relative">
                     <!-- Image -->
-                    <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]) }}" class="aspect-square bg-gray-100 relative overflow-hidden block">
-                        <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                        @if($product->category)
+                    <div class="aspect-square bg-slate-50 relative overflow-hidden block flex items-center justify-center p-2 border-b border-gray-100">
+                        <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]) }}" class="w-full h-full flex items-center justify-center">
+                            <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="w-full h-full object-contain crisp-img group-hover:scale-105 transition-transform duration-500">
+                        </a>
+                        @if($product->brand)
+                            <span class="absolute top-2.5 left-2.5 bg-blue-600/90 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs">
+                                {{ $product->brand }}
+                            </span>
+                        @elseif($product->category)
                             <span class="absolute top-2.5 left-2.5 bg-white/90 backdrop-blur-xs text-gray-800 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs">
                                 {{ $product->category->name }}
                             </span>
                         @endif
-                    </a>
+
+                        <!-- Card WhatsApp Share -->
+                        @php
+                            $homeProdUrl = route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]);
+                            $homeProdWaMsg = urlencode("Namaste! Check out {$product->name} on {$sellerPage->page_title}: Price ₹" . number_format($product->price, 2) . "\nView details: {$homeProdUrl}");
+                        @endphp
+                        <a href="https://api.whatsapp.com/send?text={{ $homeProdWaMsg }}" target="_blank" class="absolute top-2.5 right-2.5 h-7 w-7 rounded-full bg-white/90 hover:bg-emerald-500 hover:text-white text-emerald-600 shadow-sm flex items-center justify-center text-xs transition" title="Share on WhatsApp">
+                            <i class="fa-brands fa-whatsapp text-sm"></i>
+                        </a>
+                    </div>
 
                     <!-- Product Info -->
                     <div class="p-4 flex-1 flex flex-col">

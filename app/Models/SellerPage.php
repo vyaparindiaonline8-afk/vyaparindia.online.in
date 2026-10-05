@@ -41,12 +41,14 @@ class SellerPage extends Model
         'bank_account_holder',
         'show_payment_details_to_buyer',
         'policies',
+        'authorized_brands',
     ];
 
     protected $casts = [
         'enable_cod' => 'boolean',
         'enable_whatsapp_order' => 'boolean',
         'show_payment_details_to_buyer' => 'boolean',
+        'authorized_brands' => 'array',
     ];
 
     public function user()

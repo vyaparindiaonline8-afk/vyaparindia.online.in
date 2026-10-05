@@ -264,6 +264,8 @@ class CatalogIngestionController extends Controller
                     ],
                     [
                         'category_id' => $catId,
+                        'brand' => $prodData['brand'] ?? 'Plasto',
+                        'group_name' => $prodData['group_name'] ?? ($prodData['group_type'] ?? 'Plumbing'),
                         'slug' => Str::slug($prodData['name']) . '-' . Str::random(5),
                         'description' => $prodData['description'] ?? '',
                         'hsn_code' => $prodHsn = ($prodData['hsn_code'] ?? '39174000'),
@@ -1857,7 +1859,8 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                 $baseRetail = floatval($firstVar['retail_price'] ?? ($basePurchase * 1.35));
                 $baseMrp = floatval($firstVar['mrp'] ?? ($basePurchase * 1.60));
                 $prodHsn = !empty($prodData['hsn_code']) ? $prodData['hsn_code'] : (!empty($firstVar['hsn_code']) ? $firstVar['hsn_code'] : '39174000');
-                $prodSku = !empty($firstVar['product_code']) ? $firstVar['product_code'] : (!empty($firstVar['sku']) ? $firstVar['sku'] : ('PROD-' . strtoupper(Str::random(7))));
+                $prodBrand = !empty($prodData['brand']) ? trim($prodData['brand']) : (stripos($prodData['name'], 'Astral') !== false ? 'Astral' : (stripos($prodData['name'], 'Supreme') !== false ? 'Supreme' : 'Plasto'));
+                $prodGroup = !empty($prodData['group_type']) ? trim($prodData['group_type']) : (!empty($prodData['group']) ? trim($prodData['group']) : (stripos($catName, 'swr') !== false || stripos($prodData['name'], 'trap') !== false ? 'Sanitary & Drainage' : 'Plumbing'));
 
                 $product = Product::updateOrCreate(
                     [
@@ -1866,6 +1869,8 @@ Please respond clearly in simple professional Hinglish/English with bullet point
                     ],
                     [
                         'category_id' => $catId,
+                        'brand' => $prodBrand,
+                        'group_name' => $prodGroup,
                         'slug' => Str::slug($prodData['name']) . '-' . Str::random(5),
                         'description' => "High grade {$prodData['name']} manufactured to industrial specifications.",
                         'hsn_code' => $prodHsn,
