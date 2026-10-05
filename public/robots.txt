@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Allow: /search
+Allow: /about
+Allow: /help
+Allow: /product/
+
+# Disallow private user & dashboard portals
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /buyer/
+Disallow: /order-verify/
+
+Sitemap: /sitemap.xml

@@ -61,6 +61,18 @@
                 <input type="text" name="name" value="{{ old('name', $product->name) }}" required class="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs font-medium focus:border-blue-500 focus:outline-hidden">
             </div>
 
+            <!-- Brand & Group Name (Optional) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Brand Name (Optional)</label>
+                    <input type="text" name="brand" value="{{ old('brand', $product->brand) }}" placeholder="e.g. Astral, Supreme, Finolex" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs font-medium focus:border-blue-500 focus:outline-hidden">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Product Group / Sub-category</label>
+                    <input type="text" name="group_name" value="{{ old('group_name', $product->group_name) }}" placeholder="e.g. Plumbing, Drainage, Electrical" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs font-medium focus:border-blue-500 focus:outline-hidden">
+                </div>
+            </div>
+
             <!-- Category Section (Pick or Type New) -->
             <div class="bg-blue-50/50 border border-blue-200 rounded-2xl p-5 space-y-4">
                 <div class="flex items-center gap-2">
@@ -91,7 +103,7 @@
                 </div>
             </div>
 
-            <!-- Price & Photo -->
+            <!-- Price & Cover Photo -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">Selling Price (₹) <span class="text-rose-500">*</span></label>
@@ -99,16 +111,53 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Update Product Photo (Optional)</label>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Main Cover Photo (Optional)</label>
                     <input type="file" name="image" accept="image/*" class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
                     @if ($product->image)
                         <div class="mt-2 flex items-center gap-2">
-                            <span class="text-[11px] text-gray-500">Current:</span>
-                            <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="h-10 w-10 object-cover rounded-lg border border-gray-200">
+                            <span class="text-[11px] text-gray-500 font-semibold">Current Main:</span>
+                            <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="h-10 w-10 object-cover rounded-lg border border-gray-200 shadow-xs">
                         </div>
                     @endif
                 </div>
+
+                <!-- Add More Gallery Photos -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">
+                        <i class="fa-solid fa-images text-indigo-600 mr-1"></i> Add More Gallery Photos (4-5 Photos)
+                    </label>
+                    <input type="file" name="images[]" multiple accept="image/*" class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                    <span class="text-[10px] text-gray-400 block mt-1">Select multiple new images to add to the photo gallery</span>
+                </div>
+
+                <!-- Video URL -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">
+                        <i class="fa-brands fa-youtube text-red-600 mr-1"></i> Product Video URL (YouTube / Reel)
+                    </label>
+                    <input type="url" name="video_url" value="{{ old('video_url', $product->video_url) }}" placeholder="https://www.youtube.com/watch?v=... or Shorts / Reel" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs font-medium focus:border-blue-500 focus:outline-hidden">
+                    <span class="text-[10px] text-gray-400 block mt-1">Live demo or unboxing link visible to buyers</span>
+                </div>
             </div>
+
+            <!-- Existing Gallery Photos Grid -->
+            @if($product->images && $product->images->count() > 0)
+                <div class="bg-gray-50 border border-gray-200 rounded-2xl p-4">
+                    <label class="block text-xs font-bold text-gray-800 mb-2">
+                        <i class="fa-solid fa-photo-film text-blue-600 mr-1"></i> Current Gallery Photos ({{ $product->images->count() }})
+                    </label>
+                    <div class="flex flex-wrap gap-3">
+                        @foreach($product->images as $img)
+                            <div class="relative group w-20 h-20 rounded-xl overflow-hidden border border-gray-200 bg-white shadow-xs" id="gallery-img-{{ $img->id }}">
+                                <img src="{{ $img->url }}" class="w-full h-full object-cover">
+                                <button type="button" onclick="deleteGalleryImage({{ $product->id }}, {{ $img->id }})" class="absolute top-1 right-1 w-6 h-6 bg-red-600/90 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-xs opacity-90 hover:opacity-100 hover:scale-110 transition shadow-sm" title="Remove photo">
+                                    <i class="fa-solid fa-trash text-[10px]"></i>
+                                </button>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
 
             <!-- Description -->
             <div>
@@ -127,6 +176,31 @@
                 </button>
             </div>
         </form>
+
+        <script>
+            function deleteGalleryImage(productId, imageId) {
+                if (!confirm('Are you sure you want to remove this photo from the gallery?')) {
+                    return;
+                }
+                fetch(`/seller/products/${productId}/images/${imageId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const el = document.getElementById(`gallery-img-${imageId}`);
+                        if (el) el.remove();
+                    } else {
+                        alert('Could not delete image. Please try again.');
+                    }
+                })
+                .catch(() => alert('Network error deleting image.'));
+            }
+        </script>
 
     </main>
 

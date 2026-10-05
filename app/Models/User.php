@@ -117,23 +117,29 @@ class User extends Authenticatable
     /**
      * Check if user is on Profile-Only Tier (Capped at 50 products)
      */
-    public function isProfileOnly(): bool
+    public function subscriptions()
     {
-        // If user has created an active Mini-Website or Dropship tier, they are not profile-only
-        if ($this->sellerPage()->exists()) {
-            return false;
-        }
-        return ($this->business_tier === 'profile_only' || empty($this->business_tier));
+        return $this->hasMany(Subscription::class);
     }
 
     /**
      * Check if user is eligible to add another product
+     * Promotional Rule: First 1,000 sellers get free mini-website with up to 100 products free!
+     * Premium subscription required only for > 100 products.
      */
     public function canAddProduct(): bool
     {
-        if (!$this->isProfileOnly()) {
-            return true; // Unlimited for Mini-Website & Dropshipping
+        // 1. If active paid subscription exists, unlimited products
+        if ($this->subscriptions()->where('status', 'active')->where('end_date', '>=', now())->exists()) {
+            return true;
         }
+
+        // 2. Promotional Tier: Up to 100 products free for mini-website owners
+        if ($this->sellerPage()->exists()) {
+            return $this->products()->count() < 100;
+        }
+
+        // 3. Profile-only tier: 50 products free
         return $this->products()->count() < 50;
     }
 }

@@ -44,13 +44,24 @@
     </div>
 </section>
 
-<!-- Trust Badges Bar -->
+<!-- Trust Badges Bar & Local Delivery Radius -->
+@if($sellerPage->dispatch_radius)
+<div class="bg-blue-600 text-white text-xs sm:text-sm font-bold py-2.5 px-4 text-center shadow-xs flex items-center justify-center gap-2">
+    <i class="fa-solid fa-location-crosshairs text-base"></i>
+    <span>🚚 Direct Local Delivery available within <strong>{{ $sellerPage->dispatch_radius }} KM</strong> of {{ $sellerPage->city ?: 'our store' }}! Fast doorstep fulfillment.</span>
+</div>
+@endif
+
 <section class="border-b border-gray-200 bg-white py-4 shadow-xs">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-medium text-gray-600">
             <div class="flex items-center justify-center sm:justify-start gap-2.5">
                 <i class="fa-solid fa-truck-fast text-brand-custom text-base"></i>
-                <span>Fast Express Delivery</span>
+                @if($sellerPage->dispatch_radius)
+                    <span class="font-bold text-gray-800">{{ $sellerPage->dispatch_radius }} KM Local Radius</span>
+                @else
+                    <span>Fast Express Delivery</span>
+                @endif
             </div>
             <div class="flex items-center justify-center sm:justify-start gap-2.5">
                 <i class="fa-solid fa-shield-check text-brand-custom text-base"></i>

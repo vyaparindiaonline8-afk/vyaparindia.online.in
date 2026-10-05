@@ -107,4 +107,9 @@ class SellerPage extends Model
         }
         return $num;
     }
+
+    public function getDispatchRadiusAttribute()
+    {
+        return $this->user?->sellerProfile?->dispatch_radius;
+    }
 }

@@ -16,6 +16,7 @@ use App\Http\Controllers\HomeController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/favicon.ico', fn() => response('', 204));
+Route::get('/sitemap.xml', [\App\Http\Controllers\SitemapController::class, 'index'])->name('sitemap');
 Route::get('/product/{product:slug}', [HomeController::class, 'showProduct'])->name('product.show');
 Route::get('/search', [HomeController::class, 'search'])->name('search');
 Route::get('/search-sellers-by-city', [HomeController::class, 'searchSellersByCity'])->name('search_sellers_by_city');

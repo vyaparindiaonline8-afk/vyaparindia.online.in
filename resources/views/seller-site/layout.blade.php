@@ -42,6 +42,37 @@
             object-fit: contain;
         }
     </style>
+
+    <!-- 🌐 Schema.org LocalBusiness JSON-LD Structured Data for Google Indexing -->
+    @php
+        $localBusinessSchema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'LocalBusiness',
+            'name' => $sellerPage->page_title,
+            'description' => $sellerPage->tagline ?: ($sellerPage->welcome_message ?: 'Official Storefront on VyaparIndia'),
+            'url' => url()->current(),
+            'telephone' => $sellerPage->support_phone ?: ($sellerPage->whatsapp_number ?: ''),
+            'address' => [
+                '@type' => 'PostalAddress',
+                'streetAddress' => $sellerPage->address ?: '',
+                'addressLocality' => $sellerPage->city ?: '',
+                'postalCode' => $sellerPage->pincode ?: '',
+                'addressCountry' => 'IN'
+            ],
+            'image' => $sellerPage->logo_url ?: asset('images/logo.png'),
+            'priceRange' => '₹₹'
+        ];
+        if ($sellerPage->dispatch_radius) {
+            $localBusinessSchema['areaServed'] = [
+                '@type' => 'GeoCircle',
+                'geoRadius' => ($sellerPage->dispatch_radius * 1000) . 'm'
+            ];
+        }
+    @endphp
+    <script type="application/ld+json">
+        {!! json_encode($localBusinessSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+    </script>
+    @stack('seo')
 </head>
 <body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen antialiased">
 

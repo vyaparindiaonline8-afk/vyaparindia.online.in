@@ -27,6 +27,7 @@ class Product extends Model
         'brand',
         'group_name',
         'image',
+        'video_url',
         'user_id',
         'category_id',
         'views_count',
@@ -45,6 +46,22 @@ class Product extends Model
         'views_count' => 'integer',
         'attributes' => 'array',
     ];
+
+    public function getVideoEmbedUrlAttribute(): ?string
+    {
+        if (empty($this->video_url)) {
+            return null;
+        }
+
+        $url = trim($this->video_url);
+
+        // YouTube Embed match
+        if (preg_match('/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $url, $matches)) {
+            return 'https://www.youtube.com/embed/' . $matches[1] . '?rel=0';
+        }
+
+        return $url;
+    }
 
     public function productViews()
     {

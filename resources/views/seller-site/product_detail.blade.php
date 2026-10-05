@@ -1,5 +1,55 @@
 @extends('seller-site.layout')
 
+@push('seo')
+@php
+    $productImages = [$product->image_url];
+    if ($product->images) {
+        foreach ($product->images as $pImg) {
+            $productImages[] = $pImg->url;
+        }
+    }
+    $productImages = array_values(array_unique(array_filter($productImages)));
+
+    $productSchema = [
+        '@context' => 'https://schema.org/',
+        '@type' => 'Product',
+        'name' => $product->name,
+        'image' => $productImages,
+        'description' => strip_tags($product->description ?: $product->name),
+        'brand' => [
+            '@type' => 'Brand',
+            'name' => $product->brand ?: $sellerPage->page_title
+        ],
+        'offers' => [
+            '@type' => 'Offer',
+            'url' => url()->current(),
+            'priceCurrency' => 'INR',
+            'price' => (float)$product->price,
+            'priceValidUntil' => now()->addYear()->format('Y-m-d'),
+            'itemCondition' => 'https://schema.org/NewCondition',
+            'availability' => 'https://schema.org/InStock',
+            'seller' => [
+                '@type' => 'Organization',
+                'name' => $sellerPage->page_title
+            ]
+        ]
+    ];
+
+    if ($product->reviews_count > 0 && $product->average_rating > 0) {
+        $productSchema['aggregateRating'] = [
+            '@type' => 'AggregateRating',
+            'ratingValue' => (float)$product->average_rating,
+            'reviewCount' => (int)$product->reviews_count,
+            'bestRating' => '5',
+            'worstRating' => '1'
+        ];
+    }
+@endphp
+<script type="application/ld+json">
+    {!! json_encode($productSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+</script>
+@endpush
+
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Breadcrumbs -->
@@ -23,13 +73,48 @@
             <!-- Product Image Left -->
             <div class="space-y-4">
                 <div class="aspect-square bg-gray-100 rounded-2xl overflow-hidden border border-gray-100 relative">
-                    <img id="main-product-image" src="{{ $product->image_url }}" alt="{{ $product->name }}" class="w-full h-full object-cover">
+                    <img id="main-product-image" src="{{ $product->image_url }}" alt="{{ $product->name }}" class="w-full h-full object-cover transition duration-300">
                     @if($product->category)
                         <span class="absolute top-4 left-4 bg-white/90 backdrop-blur-xs text-gray-800 text-xs font-bold px-3 py-1 rounded-lg shadow-xs">
                             {{ $product->category->name }}
                         </span>
                     @endif
                 </div>
+
+                <!-- Gallery Thumbnails if additional images exist -->
+                @if($product->images && $product->images->count() > 0)
+                    <div class="flex items-center gap-2.5 overflow-x-auto pb-2">
+                        <button type="button" onclick="swapMainImage('{{ $product->image_url }}', this)" class="thumb-btn shrink-0 w-16 h-16 rounded-xl border-2 border-indigo-600 overflow-hidden bg-gray-50 focus:outline-hidden transition shadow-2xs">
+                            <img src="{{ $product->image_url }}" class="w-full h-full object-cover">
+                        </button>
+                        @foreach($product->images as $gImg)
+                            <button type="button" onclick="swapMainImage('{{ $gImg->url }}', this)" class="thumb-btn shrink-0 w-16 h-16 rounded-xl border-2 border-gray-200 hover:border-gray-400 overflow-hidden bg-gray-50 focus:outline-hidden transition">
+                                <img src="{{ $gImg->url }}" class="w-full h-full object-cover">
+                            </button>
+                        @endforeach
+                    </div>
+                @endif
+
+                <!-- Product Video / Live Demo -->
+                @if($product->video_url)
+                    <div class="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                                <i class="fa-brands fa-youtube text-red-600 text-sm"></i>
+                                <span>Watch Live Demo / Unboxing</span>
+                            </span>
+                            <a href="{{ $product->video_url }}" target="_blank" class="text-[11px] font-bold text-red-600 hover:underline flex items-center gap-1">
+                                <span>Open Video</span>
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                            </a>
+                        </div>
+                        @if($product->video_embed_url)
+                            <div class="aspect-video w-full rounded-xl overflow-hidden bg-black shadow-xs">
+                                <iframe src="{{ $product->video_embed_url }}" class="w-full h-full" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </div>
+                        @endif
+                    </div>
+                @endif
             </div>
 
             <!-- Product Details Right -->
@@ -102,16 +187,23 @@
                 </div>
                 @endif
 
-                <!-- Short Highlights -->
-                <div class="mt-6 grid grid-cols-2 gap-3 text-xs text-gray-600">
+                <!-- Short Highlights & Local Delivery Radius -->
+                <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-600">
                     <div class="flex items-center gap-2 p-2.5 rounded-xl bg-gray-50 border border-gray-100">
                         <i class="fa-solid fa-shield-check text-emerald-600 text-base"></i>
-                        <span>100% Quality Checked</span>
+                        <span>100% Genuine Quality Checked</span>
                     </div>
-                    <div class="flex items-center gap-2 p-2.5 rounded-xl bg-gray-50 border border-gray-100">
-                        <i class="fa-solid fa-truck-fast text-blue-600 text-base"></i>
-                        <span>Pan-India Dispatch</span>
-                    </div>
+                    @if($sellerPage->dispatch_radius)
+                        <div class="flex items-center gap-2 p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-950 font-bold">
+                            <i class="fa-solid fa-truck-fast text-blue-600 text-base"></i>
+                            <span>Local Delivery: within {{ $sellerPage->dispatch_radius }} KM of {{ $sellerPage->city ?: 'store' }}</span>
+                        </div>
+                    @else
+                        <div class="flex items-center gap-2 p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                            <i class="fa-solid fa-truck-fast text-blue-600 text-base"></i>
+                            <span>Pan-India Dispatch Available</span>
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Quantity Selector -->
@@ -402,6 +494,21 @@
 
         const url = `https://wa.me/${WHATSAPP_NUM}?text=${encodeURIComponent(text)}`;
         window.open(url, '_blank');
+    }
+
+    function swapMainImage(url, el) {
+        const mainImg = document.getElementById('main-product-image');
+        if (mainImg) {
+            mainImg.src = url;
+        }
+        document.querySelectorAll('.thumb-btn').forEach(btn => {
+            btn.classList.remove('border-indigo-600');
+            btn.classList.add('border-gray-200');
+        });
+        if (el) {
+            el.classList.remove('border-gray-200');
+            el.classList.add('border-indigo-600');
+        }
     }
 </script>
 @endpush

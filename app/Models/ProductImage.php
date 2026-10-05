@@ -28,6 +28,11 @@ class ProductImage extends Model
 
     public function getUrlAttribute(): string
     {
-        return asset($this->image_path);
+        if (empty($this->image_path)) {
+            return asset('images/placeholder-product.png');
+        }
+        return \Illuminate\Support\Str::startsWith($this->image_path, ['http://', 'https://'])
+            ? $this->image_path
+            : asset($this->image_path);
     }
 }

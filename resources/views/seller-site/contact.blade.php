@@ -30,6 +30,13 @@
                     {{ $sellerPage->address ?? '' }}{{ $sellerPage->city ? ', ' . $sellerPage->city : '' }}{{ $sellerPage->pincode ? ' - ' . $sellerPage->pincode : '' }}
                 </p>
 
+                @if($sellerPage->dispatch_radius)
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 text-blue-200 border border-blue-400/30 text-xs font-bold">
+                        <i class="fa-solid fa-truck-fast text-blue-400"></i>
+                        <span>Local Delivery: Within {{ $sellerPage->dispatch_radius }} KM of {{ $sellerPage->city ?: 'store' }}</span>
+                    </div>
+                @endif
+
                 <div class="flex items-center gap-3 flex-wrap pt-2 text-xs text-slate-200">
                     @if($sellerPage->whatsapp_number)
                         <a href="https://wa.me/{{ $sellerPage->clean_whatsapp_number }}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition">
@@ -78,6 +85,18 @@
                             <div class="font-bold text-gray-900">Registered Address</div>
                             <div class="text-gray-500 mt-0.5">{{ $sellerPage->address }}</div>
                             <div class="text-gray-500">{{ $sellerPage->city }}{{ $sellerPage->pincode ? ' - ' . $sellerPage->pincode : '' }}</div>
+                        </div>
+                    </div>
+                @endif
+
+                @if($sellerPage->dispatch_radius)
+                    <div class="flex items-start gap-3 p-3.5 rounded-2xl bg-blue-50 border border-blue-200">
+                        <div class="h-8 w-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-truck-fast"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-blue-950">Local Delivery Area</div>
+                            <div class="text-blue-800 text-xs mt-0.5">We dispatch and deliver directly to customers located within <strong>{{ $sellerPage->dispatch_radius }} KM</strong> of our store in {{ $sellerPage->city ?: 'our city' }}.</div>
                         </div>
                     </div>
                 @endif

@@ -23,7 +23,7 @@ class ProductController extends Controller
         $user = Auth::user();
         if (!$user->canAddProduct()) {
             return redirect()->route('seller.products.index')
-                ->with('error', 'Aapka Basic Profile plan hai jisme maximum 50 products hi allow hain. Unlimited products ke liye Mini-Website ya Dropshipping me upgrade karein.');
+                ->with('error', 'Aapka 100 products ka free promotional quota poora ho chuka hai. Unlimited items add karne ke liye Premium Plan me upgrade karein.');
         }
 
         $categories = Category::all();
@@ -35,7 +35,7 @@ class ProductController extends Controller
         $user = Auth::user();
         if (!$user->canAddProduct()) {
             return redirect()->route('seller.products.index')
-                ->with('error', 'Aapka 50 products ka quota poora ho chuka hai. Unlimited items list karne ke liye Mini-Website activate karein.');
+                ->with('error', 'Aapka 100 products ka free promotional quota poora ho chuka hai. Unlimited items add karne ke liye Premium Plan me upgrade karein.');
         }
 
         $request->validate([
@@ -44,7 +44,9 @@ class ProductController extends Controller
             'price' => 'required|numeric',
             'category_id' => 'nullable|exists:categories,id',
             'new_category_name' => 'nullable|string|max:100',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
+            'video_url' => 'nullable|url|max:500',
         ]);
 
         $categoryId = $request->category_id;
@@ -66,16 +68,32 @@ class ProductController extends Controller
             $imageName = CloudinaryService::upload($request->file('image'), 'vyaparindia/products');
         }
 
-        Auth::user()->products()->create([
+        $product = Auth::user()->products()->create([
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
+            'slug' => Str::slug($request->name) ?: ('prod-' . time()),
             'description' => $request->description,
             'price' => $request->price,
             'category_id' => $categoryId,
             'image' => $imageName,
+            'video_url' => $request->video_url,
         ]);
 
-        return redirect()->route('seller.products.index')->with('success', 'Product created successfully with category.');
+        // 🖼️ Multiple Gallery Images (up to 4-5 images)
+        if ($request->hasFile('images')) {
+            $sort = 1;
+            foreach ($request->file('images') as $extraFile) {
+                if ($extraFile) {
+                    $uploadedPath = CloudinaryService::upload($extraFile, 'vyaparindia/products');
+                    $product->images()->create([
+                        'image_path' => $uploadedPath,
+                        'is_primary' => false,
+                        'sort_order' => $sort++,
+                    ]);
+                }
+            }
+        }
+
+        return redirect()->route('seller.products.index')->with('success', 'Product created successfully with gallery & video.');
     }
 
     public function edit(Product $product)
@@ -84,6 +102,7 @@ class ProductController extends Controller
             abort(403);
         }
 
+        $product->load('images');
         $categories = Category::all();
         return view('seller.products.edit', compact('product', 'categories'));
     }
@@ -100,7 +119,9 @@ class ProductController extends Controller
             'price' => 'required|numeric',
             'category_id' => 'nullable|exists:categories,id',
             'new_category_name' => 'nullable|string|max:100',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
+            'video_url' => 'nullable|url|max:500',
         ]);
 
         $categoryId = $request->category_id;
@@ -124,14 +145,35 @@ class ProductController extends Controller
 
         $product->update([
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
+            'slug' => Str::slug($request->name) ?: $product->slug,
             'description' => $request->description,
             'price' => $request->price,
             'brand' => $request->input('brand', $product->brand),
             'group_name' => $request->input('group_name', $product->group_name),
             'category_id' => $categoryId,
             'image' => $imageName,
+            'video_url' => $request->video_url,
         ]);
+
+        // 🖼️ Upload New Additional Gallery Images
+        if ($request->hasFile('images')) {
+            $nextSort = ($product->images()->max('sort_order') ?? 0) + 1;
+            foreach ($request->file('images') as $extraFile) {
+                if ($extraFile) {
+                    $uploadedPath = CloudinaryService::upload($extraFile, 'vyaparindia/products');
+                    $product->images()->create([
+                        'image_path' => $uploadedPath,
+                        'is_primary' => false,
+                        'sort_order' => $nextSort++,
+                    ]);
+                }
+            }
+        }
+
+        // 🗑️ Delete gallery image if requested
+        if ($request->filled('delete_image_id')) {
+            $product->images()->where('id', $request->delete_image_id)->delete();
+        }
 
         return redirect()->route('seller.products.index')->with('success', 'Product updated successfully.');
     }
@@ -166,6 +208,21 @@ class ProductController extends Controller
             'message' => 'Product image updated successfully!',
             'image_url' => $product->image_url,
         ]);
+    }
+
+    public function deleteImage(Product $product, ProductImage $image)
+    {
+        if (Auth::id() !== $product->user_id || $image->product_id !== $product->id) {
+            abort(403);
+        }
+
+        $image->delete();
+
+        if (request()->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back()->with('success', 'Image removed from gallery.');
     }
 
     public function destroy(Product $product)

@@ -90,7 +90,7 @@
                 </div>
             </div>
 
-            <!-- Price & Stock -->
+            <!-- Price, Photos & Video -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">Selling Price (₹) <span class="text-rose-500">*</span></label>
@@ -98,8 +98,24 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Product Photo</label>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Main Cover Photo</label>
                     <input type="file" name="image" accept="image/*" class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">
+                        <i class="fa-solid fa-images text-indigo-600 mr-1"></i> Additional Photos (Up to 4-5 images)
+                    </label>
+                    <input type="file" name="images[]" multiple accept="image/*" class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                    <span class="text-[10px] text-gray-400 block mt-1">Select multiple images to show different product angles/unboxing</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">
+                        <i class="fa-brands fa-youtube text-red-600 mr-1"></i> Product Video URL (YouTube / Reel)
+                    </label>
+                    <input type="url" name="video_url" value="{{ old('video_url') }}" placeholder="https://www.youtube.com/watch?v=... or Shorts / Reel link" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs font-medium focus:border-blue-500 focus:outline-hidden">
+                    <span class="text-[10px] text-gray-400 block mt-1">Buyers will be able to watch live demo/unboxing on product page</span>
                 </div>
             </div>
 
