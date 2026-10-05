@@ -138,6 +138,7 @@ class MiniSiteController extends Controller
         $validated['enable_cod'] = $request->has('enable_cod');
         $validated['enable_whatsapp_order'] = $request->has('enable_whatsapp_order');
         $validated['show_payment_details_to_buyer'] = $request->has('show_payment_details_to_buyer');
+        $validated['show_last_updated_to_buyers'] = $request->has('show_last_updated_to_buyers');
 
         if ($request->has('authorized_brands')) {
             $brandsInput = $request->input('authorized_brands');
@@ -158,6 +159,11 @@ class MiniSiteController extends Controller
     // Public Storefront methods
     public function show(SellerPage $sellerPage)
     {
+        // 📊 Track storefront visitor impressions
+        if (!Auth::check() || Auth::id() !== $sellerPage->user_id) {
+            $sellerPage->increment('visits_count');
+        }
+
         $products = $sellerPage->user->products()->latest()->take(12)->get();
         $totalProducts = $sellerPage->user->products()->count();
         $authorizedBrands = $sellerPage->authorized_brands ?? [];

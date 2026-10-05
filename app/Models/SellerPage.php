@@ -43,6 +43,8 @@ class SellerPage extends Model
         'policies',
         'authorized_brands',
         'business_type',
+        'visits_count',
+        'show_last_updated_to_buyers',
         'business_settings',
     ];
 
@@ -50,6 +52,7 @@ class SellerPage extends Model
         'enable_cod' => 'boolean',
         'enable_whatsapp_order' => 'boolean',
         'show_payment_details_to_buyer' => 'boolean',
+        'show_last_updated_to_buyers' => 'boolean',
         'authorized_brands' => 'array',
         'business_settings' => 'array',
     ];

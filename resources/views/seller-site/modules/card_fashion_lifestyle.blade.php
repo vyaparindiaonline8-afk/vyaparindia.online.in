@@ -39,18 +39,24 @@
                 <i class="fa-brands fa-whatsapp text-sm"></i>
             </button>
 
-            <!-- 📷 Store Owner Photo Swapper -->
+            <!-- 📷 Store Owner Photo Swapper & ✏️ Edit Button -->
             @auth
-                @if(Auth::id() === $sellerPage->user_id || Auth::user()->is_seller())
-                    <button type="button" onclick="openPhotoSwapper({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->image_url }}')" class="absolute bottom-2.5 right-2.5 px-2.5 py-1 rounded-xl bg-slate-900/85 hover:bg-slate-900 text-white font-black text-[10px] flex items-center gap-1 shadow-md backdrop-blur-sm transition">
-                        <i class="fa-solid fa-camera text-[9px]"></i>
-                        <span>Photo</span>
-                    </button>
+                @if(Auth::id() === $sellerPage->user_id)
+                    <div class="absolute bottom-2.5 right-2.5 flex items-center gap-1">
+                        <a href="{{ route('seller.products.edit', $product->id) }}" target="_blank" class="px-2.5 py-1 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] flex items-center gap-1 shadow-md backdrop-blur-sm transition" title="Edit Price & Details">
+                            <i class="fa-solid fa-pen-to-square text-[9px]"></i>
+                            <span>Edit</span>
+                        </a>
+                        <button type="button" onclick="openPhotoSwapper({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->image_url }}')" class="px-2.5 py-1 rounded-xl bg-slate-900/85 hover:bg-slate-900 text-white font-black text-[10px] flex items-center gap-1 shadow-md backdrop-blur-sm transition" title="Change Photo">
+                            <i class="fa-solid fa-camera text-[9px]"></i>
+                            <span>Photo</span>
+                        </button>
+                    </div>
                 @endif
             @endauth
         </div>
 
-        <!-- Category & Fabric Meta -->
+        <!-- Category & Fabric Meta + Last Updated -->
         <div class="flex items-center gap-1.5 flex-wrap mb-1">
             @if($product->category)
                 <span class="text-[10px] font-black text-rose-600 tracking-wider uppercase">
@@ -59,6 +65,17 @@
             @endif
             @if(!empty($product->attributes['fabric']))
                 <span class="text-[10px] font-medium text-gray-400">• {{ $product->attributes['fabric'] }}</span>
+            @endif
+
+            <!-- 🕒 Last Updated Timestamp -->
+            @if(Auth::check() && Auth::id() === $sellerPage->user_id)
+                <span class="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[9px] border border-slate-200" title="Updated by you">
+                    <i class="fa-regular fa-clock text-[8px]"></i> Updated {{ $product->updated_at ? $product->updated_at->diffForHumans() : 'Recently' }}
+                </span>
+            @elseif(!empty($sellerPage->show_last_updated_to_buyers))
+                <span class="px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-700 font-semibold text-[9px] border border-rose-200" title="Fresh Arrival">
+                    <i class="fa-solid fa-sparkles text-[8px]"></i> New: {{ $product->updated_at ? $product->updated_at->diffForHumans() : 'Latest' }}
+                </span>
             @endif
         </div>
 

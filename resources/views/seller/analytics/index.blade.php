@@ -43,9 +43,23 @@
             </div>
         </div>
 
-        <!-- 4 Top KPI Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <!-- Total Views -->
+        <!-- 5 Top KPI Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+            <!-- 1. Storefront Visits -->
+            <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-gray-500 uppercase">Store Visitors</span>
+                    <div class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                </div>
+                <div class="mt-3 text-2xl font-black text-gray-900">{{ number_format($storeVisits) }}</div>
+                <div class="mt-1 flex items-center gap-1.5 text-[11px] text-gray-500">
+                    <span class="font-bold text-purple-600"><i class="fa-solid fa-store mr-0.5"></i> Website Footfall</span>
+                </div>
+            </div>
+
+            <!-- 2. Total Product Views -->
             <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-bold text-gray-500 uppercase">Product Views</span>
@@ -57,11 +71,11 @@
                 <div class="mt-1 flex items-center gap-2 text-[11px] text-gray-500">
                     <span class="font-bold text-blue-600"><i class="fa-solid fa-calendar-day mr-0.5"></i> Today: {{ $todayViews }}</span>
                     <span>•</span>
-                    <span>This Month: {{ $monthViews }}</span>
+                    <span>Month: {{ $monthViews }}</span>
                 </div>
             </div>
 
-            <!-- Orders Count -->
+            <!-- 3. Confirmed Orders -->
             <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-bold text-gray-500 uppercase">Confirmed Orders</span>
@@ -71,34 +85,38 @@
                 </div>
                 <div class="mt-3 text-2xl font-black text-gray-900">{{ number_format($totalOrdersCount) }}</div>
                 <div class="mt-1 flex items-center gap-2 text-[11px] text-gray-500">
-                    <span class="font-bold text-emerald-600"><i class="fa-solid fa-calendar-day mr-0.5"></i> Today: {{ $todayOrders }}</span>
+                    <span class="font-bold text-emerald-600">₹{{ number_format($totalRevenue, 0) }} Sales</span>
                     <span>•</span>
-                    <span>This Month: {{ $monthOrders }}</span>
+                    <span>{{ $conversionRate }}% CVR</span>
                 </div>
             </div>
 
-            <!-- Total Revenue -->
+            <!-- 4. Dropped / Unpaid Checkouts -->
             <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
                 <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-gray-500 uppercase">Total Sales Volume</span>
-                    <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm">
-                        <i class="fa-solid fa-indian-rupee-sign"></i>
+                    <span class="text-xs font-bold text-gray-500 uppercase">Dropped Checkouts</span>
+                    <div class="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-cart-arrow-down"></i>
                     </div>
                 </div>
-                <div class="mt-3 text-2xl font-black text-gray-900">₹{{ number_format($totalRevenue, 2) }}</div>
-                <div class="mt-1 text-[11px] text-gray-500">Direct sales generated via store</div>
+                <div class="mt-3 text-2xl font-black text-rose-600">{{ number_format($totalAbandonedCount) }}</div>
+                <div class="mt-1 text-[11px] text-gray-500">
+                    <span class="font-bold text-rose-500">₹{{ number_format($totalAbandonedAmount, 0) }}</span> Unpaid / Left Cart
+                </div>
             </div>
 
-            <!-- Conversion Rate -->
+            <!-- 5. Wishlist Bookmarks -->
             <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
                 <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-gray-500 uppercase">Store Conversion Rate</span>
+                    <span class="text-xs font-bold text-gray-500 uppercase">Wishlist Saves</span>
                     <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm">
-                        <i class="fa-solid fa-bolt"></i>
+                        <i class="fa-solid fa-heart"></i>
                     </div>
                 </div>
-                <div class="mt-3 text-2xl font-black text-gray-900">{{ $conversionRate }}%</div>
-                <div class="mt-1 text-[11px] text-gray-500">Orders / Total Impressions ratio</div>
+                <div class="mt-3 text-2xl font-black text-amber-600">{{ number_format($totalWishlistsCount) }}</div>
+                <div class="mt-1 text-[11px] text-gray-500">
+                    <span>Products saved by buyers</span>
+                </div>
             </div>
         </div>
 
@@ -216,6 +234,130 @@
                         <p class="text-xs text-emerald-600 py-3 text-center font-bold">Great! No high-view zero-order products.</p>
                     @endforelse
                 </div>
+            </div>
+        </div>
+
+        <!-- 🛒 & ❤️ Recovery & Customer Interest Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- 1. Dropped / Unpaid Checkouts (ऑर्डर तक गए पर पेमेंट नहीं किया) -->
+            <div class="bg-white border border-gray-200 rounded-3xl p-6 shadow-xs flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-gray-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-sm font-black">
+                                <i class="fa-solid fa-cart-arrow-down"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-black text-sm text-gray-900">Dropped & Unpaid Checkouts</h3>
+                                <p class="text-[11px] text-gray-500">Customers who reached checkout but didn't finish payment</p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-700">
+                            {{ $totalAbandonedCount }} Dropped (₹{{ number_format($totalAbandonedAmount, 0) }})
+                        </span>
+                    </div>
+
+                    <div class="space-y-3">
+                        @forelse($unpaidOrders->take(4) as $uo)
+                            @php
+                                $cleanPhone = preg_replace('/[^0-9]/', '', $uo->customer_phone ?? '');
+                                $waReminderText = urlencode("Namaste " . ($uo->customer_name ?? 'Customer') . "! Your order #" . $uo->id . " worth Rs." . number_format($uo->total_price, 2) . " on " . ($sellerPage->page_title ?? 'our store') . " is pending. Reply here or pay via UPI to confirm fast dispatch!");
+                            @endphp
+                            <div class="p-3 rounded-2xl bg-rose-50/50 border border-rose-100 flex items-center justify-between gap-3 text-xs">
+                                <div>
+                                    <div class="font-extrabold text-gray-900 flex items-center gap-2">
+                                        <span>{{ $uo->customer_name ?: 'Buyer' }}</span>
+                                        <span class="text-[10px] text-gray-400 font-normal">#{{ $uo->id }} • {{ $uo->created_at ? $uo->created_at->diffForHumans() : '' }}</span>
+                                    </div>
+                                    <div class="text-[11px] text-gray-600 mt-0.5">
+                                        {{ $uo->products->count() }} items • <span class="font-bold text-rose-700 font-mono">₹{{ number_format($uo->total_price, 2) }}</span>
+                                        <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 ml-1">Payment Pending</span>
+                                    </div>
+                                </div>
+                                @if($cleanPhone)
+                                    <a href="https://wa.me/{{ $cleanPhone }}?text={{ $waReminderText }}" target="_blank" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] flex items-center gap-1 shadow-xs shrink-0 transition" title="Send WhatsApp Payment Link / Reminder">
+                                        <i class="fa-brands fa-whatsapp"></i> Follow-up
+                                    </a>
+                                @endif
+                            </div>
+                        @empty
+                            @if($abandonedCarts->count() > 0)
+                                @foreach($abandonedCarts->take(3) as $ac)
+                                    <div class="p-3 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-between text-xs">
+                                        <div>
+                                            <span class="font-bold text-gray-900">{{ $ac->customer_name ?: 'Buyer' }}</span>
+                                            <div class="text-[10px] text-gray-500">{{ count($ac->cart_items ?? []) }} items in cart • ₹{{ number_format($ac->total_amount, 2) }}</div>
+                                        </div>
+                                        <span class="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded">Cart Left</span>
+                                    </div>
+                                @endforeach
+                            @else
+                                <div class="text-center py-6 text-gray-400 text-xs">
+                                    <i class="fa-solid fa-circle-check text-emerald-500 text-2xl block mb-1"></i>
+                                    <span>Awesome! No unpaid or abandoned orders right now.</span>
+                                </div>
+                            @endif
+                        @endforelse
+                    </div>
+                </div>
+
+                <p class="text-[11px] text-gray-400 mt-4 pt-3 border-t border-gray-100 flex items-center gap-1">
+                    <i class="fa-solid fa-shield-halved text-gray-400"></i>
+                    <span>Sending a friendly WhatsApp reminder recovers up to 40% of dropped checkouts.</span>
+                </p>
+            </div>
+
+            <!-- 2. Customer Wishlist Tracking (ग्राहकों ने विशलिस्ट में कौन से प्रोडक्ट्स रखे हैं) -->
+            <div class="bg-white border border-gray-200 rounded-3xl p-6 shadow-xs flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-gray-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm font-black">
+                                <i class="fa-solid fa-heart"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-black text-sm text-gray-900">Wishlist & High-Intent Bookmarks</h3>
+                                <p class="text-[11px] text-gray-500">Products buyers have saved for later buying</p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800">
+                            {{ $totalWishlistsCount }} Total Saves
+                        </span>
+                    </div>
+
+                    <div class="space-y-3">
+                        @forelse($topWishlistProducts as $wItem)
+                            <div class="p-3 rounded-2xl bg-amber-50/40 border border-amber-100 flex items-center justify-between text-xs">
+                                <div class="flex items-center gap-3 truncate">
+                                    <div class="w-9 h-9 rounded-lg bg-white border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center">
+                                        @if($wItem->image_url)
+                                            <img src="{{ $wItem->image_url }}" alt="" class="w-full h-full object-contain">
+                                        @else
+                                            <i class="fa-solid fa-box text-gray-300"></i>
+                                        @endif
+                                    </div>
+                                    <div class="truncate">
+                                        <span class="font-bold text-gray-900 block truncate">{{ $wItem->name }}</span>
+                                        <span class="text-[10px] text-gray-500">₹{{ number_format($wItem->price, 2) }} • {{ $wItem->category->name ?? 'General' }}</span>
+                                    </div>
+                                </div>
+                                <span class="font-black text-amber-700 bg-amber-100/80 px-2.5 py-1 rounded-xl text-xs shrink-0 flex items-center gap-1">
+                                    <i class="fa-solid fa-heart text-amber-500 text-[10px]"></i> {{ $wItem->wishlists_count }} Saves
+                                </span>
+                            </div>
+                        @empty
+                            <div class="text-center py-6 text-gray-400 text-xs">
+                                <i class="fa-regular fa-heart text-gray-300 text-2xl block mb-1"></i>
+                                <span>No items added to wishlist yet. Share your store link on WhatsApp to boost buyer interest!</span>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <p class="text-[11px] text-gray-400 mt-4 pt-3 border-t border-gray-100 flex items-center gap-1">
+                    <i class="fa-solid fa-lightbulb text-amber-500"></i>
+                    <span>High wishlist items have strong buying intent. Keeping buffer stock ensures zero loss of sales.</span>
+                </p>
             </div>
         </div>
 

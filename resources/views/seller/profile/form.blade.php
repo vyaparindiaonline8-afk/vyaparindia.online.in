@@ -38,11 +38,54 @@
             <p class="text-xs text-gray-500 mt-1">Setup your firm information, dispatch radius, and UPI/Bank details for instant customer payouts.</p>
         </div>
 
-        <form action="{{ isset($profile) ? route('seller.profile.update') : route('seller.profile.store') }}" method="POST" class="space-y-6">
+        <form action="{{ isset($profile) ? route('seller.profile.update') : route('seller.profile.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
             @csrf
             @if(isset($profile))
                 @method('PUT')
             @endif
+
+            <!-- 📇 Digital Business Visiting Card Preview -->
+            <div class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-indigo-500/20 relative overflow-hidden">
+                <!-- Background Image Layer if set -->
+                @if(isset($profile) && $profile->background_image)
+                    <div class="absolute inset-0 bg-cover bg-center opacity-20 pointer-events-none" style="background-image: url('{{ $profile->background_image }}');"></div>
+                @endif
+                <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <div class="space-y-2">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] font-black tracking-wider uppercase">
+                            <i class="fa-solid fa-address-card"></i> Digital Business Visiting Card
+                        </div>
+                        <h2 class="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                            <span>{{ $profile->company_name ?? 'Your Firm / Company Name' }}</span>
+                            @if(isset($profile) && $profile->gst_number)
+                                <span class="text-[10px] bg-emerald-500 text-white font-extrabold px-2 py-0.5 rounded-full">GST Verified</span>
+                            @endif
+                        </h2>
+                        <p class="text-xs text-slate-300 max-w-xl leading-relaxed">
+                            {{ $profile->address ?? 'Complete address will be shown here' }}, {{ $profile->city ?? 'City' }}, {{ $profile->state ?? 'State' }}
+                        </p>
+                        <div class="flex items-center gap-4 flex-wrap pt-2 text-xs text-slate-200">
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-phone text-blue-400"></i> {{ $profile->phone_number ?? '+91 XXXXX XXXXX' }}</span>
+                            @if(!empty($profile->whatsapp_number))
+                                <span class="flex items-center gap-1.5 text-emerald-400 font-bold"><i class="fa-brands fa-whatsapp text-sm"></i> +91 {{ $profile->whatsapp_number }} (Orders)</span>
+                            @endif
+                            @if(!empty($profile->support_email))
+                                <span class="flex items-center gap-1.5 text-slate-300"><i class="fa-solid fa-envelope text-indigo-400"></i> {{ $profile->support_email }}</span>
+                            @endif
+                        </div>
+                    </div>
+
+                    @if(Auth::user()->sellerPage)
+                        <div class="shrink-0 flex flex-col items-center gap-2 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+                            <span class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Storefront QR</span>
+                            <div class="h-20 w-20 bg-white rounded-xl p-1.5 flex items-center justify-center">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ urlencode(route('minisite.show', Auth::user()->sellerPage->slug)) }}" alt="QR" class="w-full h-full object-contain">
+                            </div>
+                            <span class="text-[9px] text-slate-400">Scan to Open Store</span>
+                        </div>
+                    @endif
+                </div>
+            </div>
 
             <!-- Section 1: Firm Details -->
             <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
@@ -62,8 +105,22 @@
                         <input type="text" name="company_name" value="{{ old('company_name', $profile->company_name ?? '') }}" required placeholder="e.g. Mahaveer Hardware & Sanitaries" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:border-blue-500 focus:outline-hidden">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Business Phone / WhatsApp <span class="text-rose-500">*</span></label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Contact Phone Number <span class="text-rose-500">*</span></label>
                         <input type="text" name="phone_number" value="{{ old('phone_number', $profile->phone_number ?? '') }}" required placeholder="e.g. 9876543210" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:border-blue-500 focus:outline-hidden">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-emerald-800 mb-1">
+                            <i class="fa-brands fa-whatsapp text-emerald-600 mr-1"></i> WhatsApp Order Number (जिस नंबर पर ऑर्डर्स आएं)
+                        </label>
+                        <div class="flex items-center">
+                            <span class="px-2.5 py-2 text-xs bg-emerald-50 text-emerald-800 font-bold border border-r-0 border-emerald-300 rounded-l-xl">+91</span>
+                            <input type="text" name="whatsapp_number" value="{{ old('whatsapp_number', $profile->whatsapp_number ?? ($profile->user->sellerPage->whatsapp_number ?? '')) }}" placeholder="e.g. 9876543210" class="w-full px-3 py-2 rounded-r-xl border border-emerald-300 text-xs font-bold text-emerald-950 focus:border-emerald-500 focus:outline-hidden">
+                        </div>
+                        <span class="text-[10px] text-gray-500 mt-1 block">Customer order confirmations & WhatsApp carts will route to this number</span>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Support Email Address (Optional)</label>
+                        <input type="email" name="support_email" value="{{ old('support_email', $profile->support_email ?? ($profile->user->sellerPage->support_email ?? '')) }}" placeholder="e.g. contact@mahaveer.in" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:border-blue-500 focus:outline-hidden">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">Office / Landline Phone (Optional)</label>
@@ -73,6 +130,21 @@
                         <label class="block text-xs font-bold text-gray-700 mb-1">GSTIN Number (Optional)</label>
                         <input type="text" name="gst_number" value="{{ old('gst_number', $profile->gst_number ?? '') }}" placeholder="e.g. 22AAAAA0000A1Z5" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-medium uppercase focus:border-blue-500 focus:outline-hidden">
                     </div>
+
+                    <!-- Custom Visiting Card / Background Banner -->
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">
+                            <i class="fa-solid fa-image text-indigo-600 mr-1"></i> Custom Visiting Card / Profile Background Banner (Optional)
+                        </label>
+                        <input type="file" name="background_image" accept="image/*" class="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                        @if(isset($profile) && $profile->background_image)
+                            <div class="mt-2 flex items-center gap-2">
+                                <img src="{{ $profile->background_image }}" alt="Current Background" class="h-10 w-24 object-cover rounded-lg border border-gray-200">
+                                <span class="text-[11px] text-gray-500">Current Background Image</span>
+                            </div>
+                        @endif
+                    </div>
+
                     <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-gray-700 mb-1">Local Delivery / Dispatch Radius (KM)</label>
                         <input type="number" name="dispatch_radius" value="{{ old('dispatch_radius', $profile->dispatch_radius ?? 25) }}" placeholder="25" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:border-blue-500 focus:outline-hidden">

@@ -35,24 +35,40 @@
                 <i class="fa-brands fa-whatsapp"></i>
             </button>
 
-            <!-- Store Owner Photo Swapper -->
+            <!-- Store Owner Photo Swapper & ✏️ Edit Button -->
             @auth
-                @if(Auth::id() === $sellerPage->user_id || Auth::user()->is_seller())
-                    <button type="button" onclick="openPhotoSwapper({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->image_url }}')" class="absolute bottom-2.5 right-2.5 px-2 py-1 rounded-md bg-slate-900/85 hover:bg-slate-900 text-white font-black text-[10px] flex items-center gap-1 shadow-md">
-                        <i class="fa-solid fa-camera"></i> Photo
-                    </button>
+                @if(Auth::id() === $sellerPage->user_id)
+                    <div class="absolute bottom-2.5 right-2.5 flex items-center gap-1">
+                        <a href="{{ route('seller.products.edit', $product->id) }}" target="_blank" class="px-2 py-1 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-black text-[10px] flex items-center gap-1 shadow-md" title="Edit Item & Rates">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit
+                        </a>
+                        <button type="button" onclick="openPhotoSwapper({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->image_url }}')" class="px-2 py-1 rounded-md bg-slate-900/85 hover:bg-slate-900 text-white font-black text-[10px] flex items-center gap-1 shadow-md" title="Change Photo">
+                            <i class="fa-solid fa-camera"></i> Photo
+                        </button>
+                    </div>
                 @endif
             @endauth
         </div>
 
-        <!-- Category & Spice Level -->
-        <div class="flex items-center justify-between gap-1 mb-1">
+        <!-- Category & Spice Level + Last Updated -->
+        <div class="flex items-center justify-between gap-1 mb-1 flex-wrap">
             <span class="text-[10px] font-black text-amber-700 uppercase tracking-wider bg-amber-50 px-2 py-0.5 rounded-md">
                 {{ $product->category ? $product->category->name : 'Kitchen Special' }}
             </span>
             <span class="text-[10px] text-amber-600 font-bold" title="Spice Level">
                 🌶️🌶️ Medium
             </span>
+
+            <!-- 🕒 Last Updated Timestamp -->
+            @if(Auth::check() && Auth::id() === $sellerPage->user_id)
+                <span class="w-full mt-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[9px] border border-slate-200" title="Updated by you">
+                    <i class="fa-regular fa-clock text-[8px]"></i> Menu Updated {{ $product->updated_at ? $product->updated_at->diffForHumans() : 'Recently' }}
+                </span>
+            @elseif(!empty($sellerPage->show_last_updated_to_buyers))
+                <span class="w-full mt-1 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-800 font-semibold text-[9px] border border-amber-200" title="Fresh Rates">
+                    <i class="fa-solid fa-fire text-[8px]"></i> ताज़ा मेनू: {{ $product->updated_at ? $product->updated_at->diffForHumans() : 'आज का' }}
+                </span>
+            @endif
         </div>
 
         <!-- Dish Title -->

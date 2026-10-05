@@ -35,18 +35,24 @@
                 <i class="fa-brands fa-whatsapp text-sm"></i>
             </button>
 
-            <!-- 📷 Store Owner Photo Swapper -->
+            <!-- 📷 Store Owner Photo Swapper & ✏️ Edit Button -->
             @auth
-                @if(Auth::id() === $sellerPage->user_id || Auth::user()->is_seller())
-                    <button type="button" onclick="openPhotoSwapper({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->image_url }}')" class="absolute bottom-2 right-2 px-2 py-1 rounded-md bg-slate-900/80 hover:bg-slate-900 text-white font-bold text-[10px] flex items-center gap-1 shadow-sm backdrop-blur-xs transition" title="Change Photo directly on this card">
-                        <i class="fa-solid fa-camera"></i>
-                        <span>Photo</span>
-                    </button>
+                @if(Auth::id() === $sellerPage->user_id)
+                    <div class="absolute bottom-2 right-2 flex items-center gap-1">
+                        <a href="{{ route('seller.products.edit', $product->id) }}" target="_blank" class="px-2 py-1 rounded-md bg-blue-600/90 hover:bg-blue-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-xs backdrop-blur-xs transition" title="Edit Rate & Details">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            <span>Edit</span>
+                        </a>
+                        <button type="button" onclick="openPhotoSwapper({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->image_url }}')" class="px-2 py-1 rounded-md bg-slate-900/80 hover:bg-slate-900 text-white font-bold text-[10px] flex items-center gap-1 shadow-xs backdrop-blur-xs transition" title="Change Photo directly on this card">
+                            <i class="fa-solid fa-camera"></i>
+                            <span>Photo</span>
+                        </button>
+                    </div>
                 @endif
             @endauth
         </div>
 
-        <!-- Group & Category Meta Tags -->
+        <!-- Group & Category Meta Tags + Last Updated -->
         <div class="flex items-center gap-1.5 flex-wrap mb-1.5">
             @if($product->group_name)
                 <span class="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-bold text-[10px] border border-purple-200">
@@ -58,6 +64,18 @@
                     {{ $product->category->name }}
                 </span>
             @endif
+
+            <!-- 🕒 Last Updated Timestamp -->
+            @if(Auth::check() && Auth::id() === $sellerPage->user_id)
+                <span class="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[9px] border border-slate-200" title="Updated by you">
+                    <i class="fa-regular fa-clock text-[8px]"></i> Updated {{ $product->updated_at ? $product->updated_at->diffForHumans() : 'Recently' }}
+                </span>
+            @elseif(!empty($sellerPage->show_last_updated_to_buyers))
+                <span class="px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-semibold text-[9px] border border-emerald-200" title="Fresh Rates">
+                    <i class="fa-solid fa-bolt text-[8px]"></i> ताज़ा रेट: {{ $product->updated_at ? $product->updated_at->diffForHumans() : 'लेटेस्ट' }}
+                </span>
+            @endif
+        </div>
         </div>
 
         <!-- Product Title -->

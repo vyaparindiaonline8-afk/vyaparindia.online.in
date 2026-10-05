@@ -352,6 +352,14 @@
                                 <div class="text-[11px] text-gray-500">Show WhatsApp order triggers on product cards and cart drawer</div>
                             </div>
                         </label>
+
+                        <label class="flex items-center gap-3 p-3.5 rounded-2xl bg-gray-50 border border-gray-200 cursor-pointer">
+                            <input type="checkbox" name="show_last_updated_to_buyers" value="1" {{ old('show_last_updated_to_buyers', $minisite->show_last_updated_to_buyers ?? false) ? 'checked' : '' }} class="h-4 w-4 text-purple-600 rounded">
+                            <div>
+                                <div class="text-xs font-bold text-gray-900">Show "Last Updated / ताज़ा रेट" Timestamp to Customers</div>
+                                <div class="text-[11px] text-gray-500">Shows rate freshness (e.g. "Updated 2 hours ago") to buyers. <i>(Note: As the store owner, you will always see it when logged in)</i></div>
+                            </div>
+                        </label>
                     </div>
 
                     <div class="sm:col-span-3">

@@ -29,24 +29,40 @@
                 <i class="fa-brands fa-whatsapp"></i>
             </button>
 
-            <!-- Store Owner Photo Swapper -->
+            <!-- Store Owner Photo Swapper & ✏️ Edit Button -->
             @auth
-                @if(Auth::id() === $sellerPage->user_id || Auth::user()->is_seller())
-                    <button type="button" onclick="openPhotoSwapper({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->image_url }}')" class="absolute bottom-2.5 right-2.5 px-2 py-1 rounded-md bg-slate-900/85 hover:bg-slate-900 text-white font-black text-[10px] flex items-center gap-1 shadow-sm">
-                        <i class="fa-solid fa-camera"></i> Photo
-                    </button>
+                @if(Auth::id() === $sellerPage->user_id)
+                    <div class="absolute bottom-2.5 right-2.5 flex items-center gap-1">
+                        <a href="{{ route('seller.products.edit', $product->id) }}" target="_blank" class="px-2 py-1 rounded-md bg-yellow-600 hover:bg-yellow-700 text-white font-black text-[10px] flex items-center gap-1 shadow-sm" title="Edit Mandi Bhav">
+                            <i class="fa-solid fa-pen-to-square"></i> भाव बदलें
+                        </a>
+                        <button type="button" onclick="openPhotoSwapper({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->image_url }}')" class="px-2 py-1 rounded-md bg-slate-900/85 hover:bg-slate-900 text-white font-black text-[10px] flex items-center gap-1 shadow-sm" title="Change Photo">
+                            <i class="fa-solid fa-camera"></i> Photo
+                        </button>
+                    </div>
                 @endif
             @endauth
         </div>
 
-        <!-- Mandi Category & Quality Grade -->
-        <div class="flex items-center justify-between gap-1 mb-1">
+        <!-- Mandi Category & Quality Grade + Last Updated Bhav -->
+        <div class="flex items-center justify-between gap-1 mb-1 flex-wrap">
             <span class="text-[10px] font-black text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded-md uppercase">
                 🌾 {{ $product->category ? $product->category->name : 'कृषि उपज' }}
             </span>
             <span class="text-[10px] text-gray-500 font-bold">
                 Grade: Super Clean
             </span>
+
+            <!-- 🕒 Last Updated Timestamp -->
+            @if(Auth::check() && Auth::id() === $sellerPage->user_id)
+                <span class="w-full mt-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[9px] border border-slate-200" title="Updated by you">
+                    <i class="fa-regular fa-clock text-[8px]"></i> Bhav Updated {{ $product->updated_at ? $product->updated_at->diffForHumans() : 'Recently' }}
+                </span>
+            @elseif(!empty($sellerPage->show_last_updated_to_buyers))
+                <span class="w-full mt-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-bold text-[9px] border border-emerald-200" title="Live Mandi Bhav">
+                    <i class="fa-solid fa-clock-rotate-left text-[8px]"></i> ताज़ा मंडी भाव: {{ $product->updated_at ? $product->updated_at->diffForHumans() : 'आज का भाव' }}
+                </span>
+            @endif
         </div>
 
         <!-- Commodity Title -->

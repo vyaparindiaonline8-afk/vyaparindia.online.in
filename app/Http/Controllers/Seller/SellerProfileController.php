@@ -19,9 +19,12 @@ class SellerProfileController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'company_name' => 'required|string|max:255',
             'phone_number' => 'required|string|max:20',
+            'whatsapp_number' => 'nullable|string|max:20',
+            'support_email' => 'nullable|email|max:191',
+            'background_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
             'address' => 'required|string',
             'city' => 'required|string|max:255',
             'state' => 'required|string|max:255',
@@ -43,18 +46,29 @@ class SellerProfileController extends Controller
             'bank_account_holder' => 'nullable|string|max:150',
         ]);
 
-        $profile = Auth::user()->sellerProfile()->create($request->all());
+        if ($request->hasFile('background_image')) {
+            $validated['background_image'] = \App\Services\CloudinaryService::upload($request->file('background_image'), 'vyaparindia/seller/backgrounds');
+        }
+
+        $profile = Auth::user()->sellerProfile()->create($validated);
 
         // Sync with SellerPage if exists
         $sellerPage = Auth::user()->sellerPage;
         if ($sellerPage) {
-            $sellerPage->update([
+            $updates = [
                 'support_phone' => $request->office_phone ?? $sellerPage->support_phone,
                 'google_map_link' => $request->google_map_url ?? $sellerPage->google_map_link,
                 'facebook_link' => $request->facebook_url ?? $sellerPage->facebook_link,
                 'instagram_link' => $request->instagram_url ?? $sellerPage->instagram_link,
                 'youtube_link' => $request->youtube_url ?? $sellerPage->youtube_link,
-            ]);
+            ];
+            if (!empty($validated['whatsapp_number'])) {
+                $updates['whatsapp_number'] = $validated['whatsapp_number'];
+            }
+            if (!empty($validated['support_email'])) {
+                $updates['support_email'] = $validated['support_email'];
+            }
+            $sellerPage->update($updates);
         }
 
         return redirect()->route('seller.dashboard')->with('success', 'Seller profile created successfully.');
@@ -76,9 +90,12 @@ class SellerProfileController extends Controller
             return redirect()->route('seller.profile.create');
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'company_name' => 'required|string|max:255',
             'phone_number' => 'required|string|max:20',
+            'whatsapp_number' => 'nullable|string|max:20',
+            'support_email' => 'nullable|email|max:191',
+            'background_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
             'address' => 'required|string',
             'city' => 'required|string|max:255',
             'state' => 'required|string|max:255',
@@ -100,18 +117,29 @@ class SellerProfileController extends Controller
             'bank_account_holder' => 'nullable|string|max:150',
         ]);
 
-        $profile->update($request->all());
+        if ($request->hasFile('background_image')) {
+            $validated['background_image'] = \App\Services\CloudinaryService::upload($request->file('background_image'), 'vyaparindia/seller/backgrounds');
+        }
+
+        $profile->update($validated);
 
         // Sync with SellerPage if exists
         $sellerPage = Auth::user()->sellerPage;
         if ($sellerPage) {
-            $sellerPage->update([
+            $updates = [
                 'support_phone' => $request->office_phone ?? $sellerPage->support_phone,
                 'google_map_link' => $request->google_map_url ?? $sellerPage->google_map_link,
                 'facebook_link' => $request->facebook_url ?? $sellerPage->facebook_link,
                 'instagram_link' => $request->instagram_url ?? $sellerPage->instagram_link,
                 'youtube_link' => $request->youtube_url ?? $sellerPage->youtube_link,
-            ]);
+            ];
+            if (!empty($validated['whatsapp_number'])) {
+                $updates['whatsapp_number'] = $validated['whatsapp_number'];
+            }
+            if (!empty($validated['support_email'])) {
+                $updates['support_email'] = $validated['support_email'];
+            }
+            $sellerPage->update($updates);
         }
 
         return redirect()->route('seller.dashboard')->with('success', 'Seller profile updated successfully.');

@@ -32,22 +32,40 @@
                 <i class="fa-brands fa-whatsapp"></i>
             </button>
 
-            <!-- Store Owner Photo Swapper -->
+            <!-- Store Owner Photo Swapper & ✏️ Edit Button -->
             @auth
-                @if(Auth::id() === $sellerPage->user_id || Auth::user()->is_seller())
-                    <button type="button" onclick="openPhotoSwapper({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->image_url }}')" class="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-slate-900/80 hover:bg-slate-900 text-white font-bold text-[9px] flex items-center gap-1 shadow-sm">
-                        <i class="fa-solid fa-camera"></i> Photo
-                    </button>
+                @if(Auth::id() === $sellerPage->user_id)
+                    <div class="absolute bottom-2 right-2 flex items-center gap-1">
+                        <a href="{{ route('seller.products.edit', $product->id) }}" target="_blank" class="px-2 py-0.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white font-bold text-[9px] flex items-center gap-1 shadow-sm" title="Edit Item & Rates">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit
+                        </a>
+                        <button type="button" onclick="openPhotoSwapper({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->image_url }}')" class="px-2 py-0.5 rounded-md bg-slate-900/80 hover:bg-slate-900 text-white font-bold text-[9px] flex items-center gap-1 shadow-sm" title="Change Photo">
+                            <i class="fa-solid fa-camera"></i> Photo
+                        </button>
+                    </div>
                 @endif
             @endauth
         </div>
 
-        <!-- Category -->
-        @if($product->category)
-            <div class="text-[10px] font-bold text-gray-400 mb-0.5">
-                {{ $product->category->name }}
-            </div>
-        @endif
+        <!-- Category & Last Updated -->
+        <div class="flex items-center justify-between gap-1 mb-0.5 flex-wrap">
+            @if($product->category)
+                <div class="text-[10px] font-bold text-gray-400">
+                    {{ $product->category->name }}
+                </div>
+            @endif
+
+            <!-- 🕒 Last Updated Timestamp -->
+            @if(Auth::check() && Auth::id() === $sellerPage->user_id)
+                <span class="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[9px] border border-slate-200" title="Updated by you">
+                    <i class="fa-regular fa-clock text-[8px]"></i> Updated {{ $product->updated_at ? $product->updated_at->diffForHumans() : 'Recently' }}
+                </span>
+            @elseif(!empty($sellerPage->show_last_updated_to_buyers))
+                <span class="px-1.5 py-0.5 rounded-md bg-teal-50 text-teal-700 font-semibold text-[9px] border border-teal-200" title="Fresh Rates">
+                    <i class="fa-solid fa-bolt text-[8px]"></i> ताज़ा: {{ $product->updated_at ? $product->updated_at->diffForHumans() : 'आज का' }}
+                </span>
+            @endif
+        </div>
 
         <!-- Grocery Item Title -->
         <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]) }}" class="font-extrabold text-xs sm:text-sm text-gray-900 hover:text-emerald-700 line-clamp-2 transition-colors leading-tight" title="{{ $product->name }}">
