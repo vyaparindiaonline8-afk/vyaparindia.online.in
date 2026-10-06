@@ -12,9 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('seller_media', function (Blueprint $table) {
-            $table->boolean('is_universal')->default(false)->after('is_assigned');
-            $table->boolean('permission_granted')->default(false)->after('is_universal');
-            $table->string('category_type')->nullable()->after('permission_granted');
+            if (!Schema::hasColumn('seller_media', 'is_universal')) {
+                $table->boolean('is_universal')->default(false);
+            }
+            if (!Schema::hasColumn('seller_media', 'permission_granted')) {
+                $table->boolean('permission_granted')->default(false);
+            }
+            if (!Schema::hasColumn('seller_media', 'category_type')) {
+                $table->string('category_type')->nullable();
+            }
         });
     }
 

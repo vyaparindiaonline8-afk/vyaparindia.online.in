@@ -118,6 +118,22 @@
         <!-- (Supports PDF Extracted Lines & 6-8 Link)  -->
         <!-- ========================================== -->
         <div id="dynamicSheetContainer" class="space-y-4">
+            <!-- ⚡ PDF Import Success Alert Banner -->
+            <div id="pdfImportSuccessAlert" class="hidden p-4 rounded-3xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg flex items-center justify-between gap-3 animate-fade-in border border-emerald-400">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-file-excel text-amber-300"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-black" id="pdfImportAlertTitle">PDF Lines Successfully Imported!</h4>
+                        <p class="text-[11px] text-emerald-100" id="pdfImportAlertDesc">Niche spreadsheet table me sabhi rows taiyar hain. Ab aap kisi bhi row ko select karke photo jod sakte hain ya direct publish kar sakte hain.</p>
+                    </div>
+                </div>
+                <button type="button" onclick="document.getElementById('pdfImportSuccessAlert').classList.add('hidden')" class="px-3.5 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition shrink-0">
+                    Samajh Gaya (Dismiss)
+                </button>
+            </div>
+
             <!-- Dynamic Controls Header -->
             <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
@@ -1753,15 +1769,149 @@
             }
         }
 
+        function loadPdfExtractedDataIntoDynamicRows(data) {
+            if (!data) return false;
+            const lines = Array.isArray(data) ? data : (data.lines || []);
+            const structuredRows = data.structured_rows || [];
+            const pageNum = data.page || 1;
+
+            if (lines.length === 0 && structuredRows.length === 0) return false;
+
+            dynamicRows = [];
+            dynamicRowNextId = 1;
+
+            if (structuredRows && structuredRows.length > 0) {
+                structuredRows.forEach((r, idx) => {
+                    const name = (r.name || r.product_name || `Item ${idx + 1}`).trim();
+                    const size = (r.size && r.size !== '-') ? r.size.trim() : 'Standard';
+                    const mrp = parseFloat(r.mrp) || (100 + (idx * 20));
+                    const cost = Math.round(mrp * 0.65);
+                    const retail = Math.round(mrp * 0.88);
+                    const category = (r.category && r.category !== '-') ? r.category.trim() : 'General Hardware';
+                    const sku = (r.sku && r.sku !== '-') ? r.sku.trim() : `ITM-${100 + idx}`;
+
+                    dynamicRows.push({
+                        id: dynamicRowNextId++,
+                        product_code: sku,
+                        hsn_code: '39174000',
+                        product_name: name,
+                        size: size,
+                        packing_1: '',
+                        packing_2: '',
+                        group_type: category,
+                        category: category,
+                        mrp: mrp,
+                        purchase_cost: cost,
+                        cost_price_2: 0,
+                        cost_price_3: 0,
+                        retail_price: retail,
+                        stock: 100,
+                        image_url: preselectedImg || '',
+                        asset_url: preselectedImg ? ('/' + preselectedImg.replace(/^\//, '')) : ''
+                    });
+                });
+            } else {
+                lines.forEach((lineText, idx) => {
+                    const text = (lineText || '').trim();
+                    if (!text) return;
+
+                    let category = 'UPVC';
+                    if (/CPVC/i.test(text)) category = 'CPVC';
+                    else if (/SWR|TRAP|DRAIN/i.test(text)) category = 'SWR';
+                    else if (/AGRI|SOLVENT/i.test(text)) category = 'AGRI_OTHER';
+
+                    const sizeMatch = text.match(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/i);
+                    const size = sizeMatch ? sizeMatch[0] : 'Standard';
+
+                    const priceMatch = text.match(/(?:rs\.?|₹|\/)\s*(\d+(?:\.\d+)?)/i);
+                    const price = priceMatch ? parseFloat(priceMatch[1]) : (50 + (idx * 15));
+                    const cost = Math.round(price * 0.65);
+                    const retail = Math.round(price * 0.88);
+
+                    dynamicRows.push({
+                        id: dynamicRowNextId++,
+                        product_code: `ITM-${100 + idx}`,
+                        hsn_code: '39174000',
+                        product_name: text,
+                        size: size,
+                        packing_1: '',
+                        packing_2: '',
+                        group_type: category,
+                        category: category,
+                        mrp: price,
+                        purchase_cost: cost,
+                        cost_price_2: 0,
+                        cost_price_3: 0,
+                        retail_price: retail,
+                        stock: 100,
+                        image_url: preselectedImg || '',
+                        asset_url: preselectedImg ? ('/' + preselectedImg.replace(/^\//, '')) : ''
+                    });
+                });
+            }
+
+            saveToLocalStorage();
+
+            const sheetNameInput = document.getElementById('dynamicSheetName');
+            if (sheetNameInput) {
+                sheetNameInput.value = `PDF Page ${pageNum} Extracted Sheet (${dynamicRows.length} Items)`;
+            }
+
+            renderDynamicRows();
+            renderGroupedProductCards();
+            refreshCategoryFilterTabs();
+
+            const alertEl = document.getElementById('pdfImportSuccessAlert');
+            const alertTitle = document.getElementById('pdfImportAlertTitle');
+            const alertDesc = document.getElementById('pdfImportAlertDesc');
+            if (alertEl) {
+                alertEl.classList.remove('hidden');
+                if (alertTitle) alertTitle.innerText = `🎉 PDF Page ${pageNum} se ${dynamicRows.length} Items Excel Sheet Me Aa Gaye!`;
+                if (alertDesc) alertDesc.innerText = `Niche table me sabhi rows list ho gayi hain. Ab aap kisi bhi row ko select karke photo link karein ya publish karein.`;
+            }
+
+            return true;
+        }
+
         function initDynamicSheet() {
-            if (loadFromLocalStorage()) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const isFromPdf = urlParams.get('source') === 'pdf_lines';
+            const rawStored = localStorage.getItem('vyapar_custom_excel_lines');
+
+            // 1. TOP PRIORITY: If coming from PDF Studio with source=pdf_lines, ALWAYS import fresh PDF lines!
+            if (isFromPdf && rawStored) {
+                try {
+                    const parsed = JSON.parse(rawStored);
+                    if (loadPdfExtractedDataIntoDynamicRows(parsed)) {
+                        toggleDynamicMode(true);
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Error loading PDF custom lines:', e);
+                }
+            }
+
+            // 2. PRIORITY 2: If we have existing saved dynamic spreadsheet rows in localStorage
+            if (loadFromLocalStorage() && (dynamicRows.length > 0 || groupedProductCards.length > 0)) {
                 renderDynamicRows();
                 renderGroupedProductCards();
                 refreshCategoryFilterTabs();
+                toggleDynamicMode(true);
                 return;
             }
 
-            // Hydrate from server database job if localStorage was cleared or fresh session
+            // 3. PRIORITY 3: If vyapar_custom_excel_lines is in storage even without query param
+            if (rawStored) {
+                try {
+                    const parsed = JSON.parse(rawStored);
+                    if (loadPdfExtractedDataIntoDynamicRows(parsed)) {
+                        toggleDynamicMode(true);
+                        return;
+                    }
+                } catch (e) {}
+            }
+
+            // 4. PRIORITY 4: Hydrate from server database job if available
             if (serverJobProducts && serverJobProducts.length > 0) {
                 if (hydrateFromJobProducts(serverJobProducts)) {
                     renderDynamicRows();
@@ -1771,34 +1921,8 @@
                 }
             }
 
-            const rawStored = localStorage.getItem('vyapar_custom_excel_lines');
-            if (rawStored) {
-                try {
-                    const parsed = JSON.parse(rawStored);
-                    const lines = Array.isArray(parsed) ? parsed : (parsed.lines || []);
-                    if (lines.length > 0) {
-                        const promptBanner = document.getElementById('dynamicPdfPromptBanner');
-                        const promptText = document.getElementById('dynamicPdfPromptText');
-                        if (promptBanner) {
-                            promptBanner.classList.remove('hidden');
-                            if (promptText) promptText.innerText = `PDF Studio se ${lines.length} lines nikali gayi hain! Inhe dynamic table me use karein.`;
-                        }
-
-                        if (!jobId || isDynamicMode) {
-                            loadLinesIntoDynamicRows(lines);
-                            renderGroupedProductCards();
-                            return;
-                        }
-                    }
-                } catch (e) {
-                    console.error('Failed to parse vyapar_custom_excel_lines:', e);
-                }
-            }
-
-            // Only load dummy sample rows if there is NO server database job and NO local rows
-            if (!jobId && (!serverJobProducts || serverJobProducts.length === 0) && dynamicRows.length === 0 && groupedProductCards.length === 0) {
-                loadSampleDynamicRows();
-            }
+            // 5. Default Fallback
+            loadSampleDynamicRows();
             renderGroupedProductCards();
         }
 
@@ -3245,7 +3369,9 @@
             loadGalleryImagesAjax();
 
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('mode') === 'saved_job') {
+            if (urlParams.get('source') === 'pdf_lines') {
+                toggleDynamicMode(true);
+            } else if (urlParams.get('mode') === 'saved_job') {
                 toggleDynamicMode(false);
             } else {
                 toggleDynamicMode(true);
