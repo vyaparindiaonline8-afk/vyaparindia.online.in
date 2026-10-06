@@ -18,17 +18,22 @@ class ProductController extends Controller
         $query = $user->products()->with(['category', 'variants']);
 
         $activeFolder = $request->query('folder');
-        if ($activeFolder && $activeFolder !== 'all') {
+        $hasGroupCol = \Illuminate\Support\Facades\Schema::hasColumn('products', 'group_name');
+
+        if ($hasGroupCol && $activeFolder && $activeFolder !== 'all') {
             $query->where('group_name', $activeFolder);
         }
 
         $products = $query->latest()->get();
 
-        $folders = $user->products()
-            ->whereNotNull('group_name')
-            ->where('group_name', '!=', '')
-            ->distinct()
-            ->pluck('group_name');
+        $folders = collect();
+        if ($hasGroupCol) {
+            $folders = $user->products()
+                ->whereNotNull('group_name')
+                ->where('group_name', '!=', '')
+                ->distinct()
+                ->pluck('group_name');
+        }
 
         return view('seller.products.index', compact('products', 'folders', 'activeFolder'));
     }

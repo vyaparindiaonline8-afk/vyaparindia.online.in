@@ -1235,6 +1235,9 @@ class CatalogIngestionController extends Controller
         $folderName = trim($request->input('folder_name'));
         $urls = $request->input('image_urls');
 
+        $movedCount = 0;
+        $alreadyCount = 0;
+
         foreach ($urls as $url) {
             $cleanUrl = ltrim($url, '/');
             $media = \App\Models\SellerMedia::where('user_id', $userId)
@@ -1245,9 +1248,20 @@ class CatalogIngestionController extends Controller
                 })->first();
 
             if ($media) {
+                if (strcasecmp(trim($media->category_type ?? ''), $folderName) === 0) {
+                    $alreadyCount++;
+                    continue;
+                }
                 $media->category_type = $folderName;
                 $media->save();
+                $movedCount++;
             } else {
+                $currentFolder = $this->detectFolderForImage(basename($url), null);
+                if (strcasecmp($currentFolder, $folderName) === 0) {
+                    $alreadyCount++;
+                    continue;
+                }
+
                 \App\Models\SellerMedia::create([
                     'user_id' => $userId,
                     'filename' => basename($url),
@@ -1257,14 +1271,33 @@ class CatalogIngestionController extends Controller
                     'is_universal' => false,
                     'permission_granted' => false,
                 ]);
+                $movedCount++;
             }
         }
 
         \Illuminate\Support\Facades\Cache::forget('cloudinary_resources_vyaparindia');
 
+        if ($movedCount === 0 && $alreadyCount > 0) {
+            return response()->json([
+                'success' => false,
+                'is_duplicate' => true,
+                'message' => "Yeh photo(s) pehle se hi '{$folderName}' folder me maujood hain!",
+                'already_count' => $alreadyCount,
+                'moved_count' => 0,
+                'folder_name' => $folderName,
+            ]);
+        }
+
+        $msg = "{$movedCount} photo(s) successfully '{$folderName}' me move kar di gayi hain!";
+        if ($alreadyCount > 0) {
+            $msg .= " ({$alreadyCount} photo(s) pehle se hi is folder me thi).";
+        }
+
         return response()->json([
             'success' => true,
-            'message' => count($urls) . " photo(s) successfully moved to folder '{$folderName}'!",
+            'message' => $msg,
+            'moved_count' => $movedCount,
+            'already_count' => $alreadyCount,
             'folder_name' => $folderName,
         ]);
     }

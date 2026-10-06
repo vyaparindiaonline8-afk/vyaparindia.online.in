@@ -529,6 +529,18 @@
                 return;
             }
 
+            // Client side duplicate check
+            const checkedCards = Array.from(document.querySelectorAll('.img-checkbox:checked')).map(cb => cb.closest('.image-card'));
+            const allAlreadyInFolder = checkedCards.every(card => {
+                const rf = card ? (card.getAttribute('data-raw-folder') || 'General') : '';
+                return rf.toLowerCase() === targetFolder.toLowerCase();
+            });
+
+            if (allAlreadyInFolder) {
+                alert(`Yeh photo(s) pehle se hi '${targetFolder}' folder me maujood hain! Dobara move karne ki zaroorat nahi hai.`);
+                return;
+            }
+
             const btn = document.getElementById('btnSubmitMoveFolder');
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Moving...';
@@ -548,7 +560,12 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
+                    alert(data.message);
                     location.reload();
+                } else if (data.is_duplicate) {
+                    alert(data.message);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Move Photos';
                 } else {
                     alert(data.message || 'Error moving photos.');
                     btn.disabled = false;
