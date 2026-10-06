@@ -225,9 +225,20 @@
                             </p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <div class="relative w-48 sm:w-64">
-                            <input type="text" id="onPagePhotoSearch" placeholder="Search photos (Elbow, Tee, Plumber)..." oninput="filterOnPagePhotoBank(this.value)" class="w-full pl-8 pr-3 py-1.5 rounded-xl border border-gray-300 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-gray-50 focus:bg-white">
+                    <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                        <!-- Folder Filter Select -->
+                        <div class="flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-xl px-2.5 py-1 text-xs">
+                            <i class="fa-solid fa-folder-tree text-indigo-600"></i>
+                            <select id="onPageFolderSelect" onchange="filterOnPagePhotoByFolder(this.value)" class="bg-transparent font-black text-indigo-950 text-xs focus:outline-none cursor-pointer">
+                                <option value="ALL">📁 All Folders ({{ count($galleryImages) }})</option>
+                                @foreach($imageFolders ?? [] as $fName => $fCount)
+                                    <option value="{{ $fName }}">📁 {{ $fName }} ({{ $fCount }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="relative w-44 sm:w-56">
+                            <input type="text" id="onPagePhotoSearch" placeholder="Search in folder..." oninput="filterOnPagePhotoBank(this.value)" class="w-full pl-8 pr-3 py-1.5 rounded-xl border border-gray-300 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-gray-50 focus:bg-white">
                             <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-gray-400 text-xs"></i>
                         </div>
                         <button type="button" onclick="openGalleryDrawer('browse', null)" class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 flex items-center gap-1.5 transition">
@@ -241,13 +252,14 @@
                 <div class="overflow-x-auto pb-2 border-t border-gray-100 pt-2" id="onPagePhotoStripContainer">
                     <div class="flex items-center gap-3 min-w-max py-1" id="onPagePhotoGrid">
                         @forelse($galleryImages as $g)
-                            <div class="on-page-photo-card flex items-center gap-2.5 p-2 bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-400 rounded-2xl cursor-pointer transition shrink-0 group" onclick="handleOnPagePhotoClick('{{ $g['url'] }}', '{{ $g['asset_url'] }}')" data-name="{{ strtolower($g['name']) }}">
+                            <div class="on-page-photo-card flex items-center gap-2.5 p-2 bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-400 rounded-2xl cursor-pointer transition shrink-0 group" onclick="handleOnPagePhotoClick('{{ $g['url'] }}', '{{ $g['asset_url'] }}')" data-name="{{ strtolower($g['name']) }}" data-folder="{{ strtolower($g['folder'] ?? 'general') }}" data-raw-folder="{{ $g['folder'] ?? 'General' }}">
                                 <div class="h-14 w-14 bg-white rounded-xl p-1 flex items-center justify-center overflow-hidden border border-gray-200 group-hover:scale-105 transition">
                                     <img src="{{ $g['asset_url'] }}" alt="{{ $g['name'] }}" class="max-h-full max-w-full object-contain">
                                 </div>
                                 <div class="max-w-[120px]">
                                     <h5 class="text-[11px] font-bold text-gray-800 truncate" title="{{ $g['name'] }}">{{ $g['name'] }}</h5>
-                                    <span class="text-[9px] text-indigo-600 font-semibold block">{{ $g['source'] === 'plasto_master' ? 'Master' : 'Crop' }}</span>
+                                    <span class="text-[9px] text-indigo-600 font-semibold block">{{ ($g['source'] ?? '') === 'plasto_master' ? 'Master' : 'Crop' }}</span>
+                                    <span class="text-[8px] text-gray-500 font-bold truncate block">📁 {{ $g['folder'] ?? 'General' }}</span>
                                     <span class="text-[9px] text-emerald-600 font-bold group-hover:underline">Attach &rarr;</span>
                                 </div>
                             </div>
@@ -1013,10 +1025,22 @@
                 </button>
             </div>
 
+            <!-- Drawer Folder Filter Tabs -->
+            <div class="px-4 py-2 border-b border-gray-200 bg-white flex items-center gap-1.5 overflow-x-auto" id="drawerFolderChips">
+                <button type="button" onclick="filterDrawerByFolder('ALL')" id="drawerFolderTab_ALL" class="drawer-folder-btn px-2.5 py-1 rounded-lg text-[11px] font-black bg-indigo-600 text-white shadow-2xs whitespace-nowrap">
+                    📁 All ({{ count($galleryImages) }})
+                </button>
+                @foreach($imageFolders ?? [] as $fName => $fCount)
+                    <button type="button" onclick="filterDrawerByFolder('{{ addslashes($fName) }}')" class="drawer-folder-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 whitespace-nowrap" data-folder="{{ $fName }}">
+                        📁 {{ $fName }} ({{ $fCount }})
+                    </button>
+                @endforeach
+            </div>
+
             <!-- Drawer Search -->
             <div class="p-3 border-b border-gray-100 bg-gray-50">
                 <div class="relative">
-                    <input type="text" placeholder="Search gallery photo (e.g. Elbow, Tee)..." oninput="filterDrawerGallery(this.value)" class="w-full pl-8 pr-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white">
+                    <input type="text" id="drawerSearchInput" placeholder="Search gallery photo (e.g. Elbow, Tee)..." oninput="filterDrawerGallery(this.value)" class="w-full pl-8 pr-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white">
                     <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-gray-400 text-xs"></i>
                 </div>
             </div>
@@ -1025,12 +1049,13 @@
             <div class="flex-1 overflow-y-auto p-4">
                 <div class="grid grid-cols-3 gap-3" id="drawerImagesGrid">
                     @forelse($galleryImages as $g)
-                        <div class="drawer-img-card border border-gray-200 rounded-2xl p-2 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-400 cursor-pointer text-center group transition" onclick="selectDrawerImage('{{ $g['url'] }}', '{{ $g['asset_url'] }}')" data-name="{{ strtolower($g['name']) }}">
+                        <div class="drawer-img-card border border-gray-200 rounded-2xl p-2 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-400 cursor-pointer text-center group transition" onclick="selectDrawerImage('{{ $g['url'] }}', '{{ $g['asset_url'] }}')" data-name="{{ strtolower($g['name']) }}" data-folder="{{ strtolower($g['folder'] ?? 'general') }}" data-raw-folder="{{ $g['folder'] ?? 'General' }}">
                             <div class="h-20 w-full bg-white rounded-xl p-1 mb-1.5 flex items-center justify-center overflow-hidden border border-gray-100 group-hover:scale-105 transition">
                                 <img src="{{ $g['asset_url'] }}" alt="{{ $g['name'] }}" class="max-h-full max-w-full object-contain">
                             </div>
                             <h5 class="text-[11px] font-bold text-gray-800 truncate" title="{{ $g['name'] }}">{{ $g['name'] }}</h5>
-                            <span class="text-[9px] text-indigo-600 font-semibold">{{ $g['source'] === 'plasto_master' ? 'Master' : 'Crop' }}</span>
+                            <span class="text-[9px] text-indigo-600 font-semibold block">{{ ($g['source'] ?? '') === 'plasto_master' ? 'Master' : 'Crop' }}</span>
+                            <span class="text-[8px] text-gray-500 font-bold truncate block">📁 {{ $g['folder'] ?? 'General' }}</span>
                         </div>
                     @empty
                         <div class="col-span-3 py-16 text-center space-y-2" id="drawerEmptyPrompt">
@@ -1322,27 +1347,71 @@
             document.getElementById('galleryDrawerOverlay').classList.add('hidden');
         }
 
+        let activeDrawerFolder = 'ALL';
+        let activeOnPageFolder = 'ALL';
+
+        function filterDrawerByFolder(folder) {
+            activeDrawerFolder = folder;
+            document.querySelectorAll('.drawer-folder-btn').forEach(btn => {
+                btn.className = "drawer-folder-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 whitespace-nowrap";
+            });
+            const activeTab = (folder === 'ALL') ? document.getElementById('drawerFolderTab_ALL') : document.querySelector(`.drawer-folder-btn[data-folder="${folder}"]`);
+            if (activeTab) {
+                activeTab.className = "drawer-folder-btn px-2.5 py-1 rounded-lg text-[11px] font-black bg-indigo-600 text-white shadow-2xs whitespace-nowrap";
+            }
+            applyDrawerFilters();
+        }
+
         function filterDrawerGallery(q) {
-            const query = q.toLowerCase().trim();
+            applyDrawerFilters();
+        }
+
+        function applyDrawerFilters() {
+            const query = (document.getElementById('drawerSearchInput')?.value || '').toLowerCase().trim();
             let visible = 0;
             document.querySelectorAll('.drawer-img-card').forEach(card => {
-                const name = card.getAttribute('data-name') || '';
-                const match = (!query || name.includes(query));
-                card.style.display = match ? '' : 'none';
-                if (match) visible++;
+                const name = (card.getAttribute('data-name') || '').toLowerCase();
+                const folder = (card.getAttribute('data-raw-folder') || 'General');
+
+                const matchFolder = (activeDrawerFolder === 'ALL' || folder.toLowerCase() === activeDrawerFolder.toLowerCase());
+                const matchQuery = (!query || name.includes(query));
+
+                if (matchFolder && matchQuery) {
+                    card.style.display = '';
+                    visible++;
+                } else {
+                    card.style.display = 'none';
+                }
             });
             const countEl = document.getElementById('drawerImagesCount');
             if (countEl) countEl.innerText = `${visible} Photos`;
         }
 
+        function filterOnPagePhotoByFolder(folder) {
+            activeOnPageFolder = folder;
+            applyOnPagePhotoFilters();
+        }
+
         function filterOnPagePhotoBank(q) {
-            const query = q.toLowerCase().trim();
+            applyOnPagePhotoFilters();
+        }
+
+        function applyOnPagePhotoFilters() {
+            const query = (document.getElementById('onPagePhotoSearch')?.value || '').toLowerCase().trim();
             let visible = 0;
             document.querySelectorAll('.on-page-photo-card').forEach(card => {
-                const name = card.getAttribute('data-name') || '';
-                const match = (!query || name.includes(query));
-                card.style.display = match ? '' : 'none';
-                if (match) visible++;
+                const name = (card.getAttribute('data-name') || '').toLowerCase();
+                const folder = (card.getAttribute('data-raw-folder') || 'General');
+
+                const matchFolder = (activeOnPageFolder === 'ALL' || folder.toLowerCase() === activeOnPageFolder.toLowerCase());
+                const matchQuery = (!query || name.includes(query));
+
+                if (matchFolder && matchQuery) {
+                    card.style.display = '';
+                    visible++;
+                } else {
+                    card.style.display = 'none';
+                }
             });
             const countEl = document.getElementById('onPagePhotoCount');
             if (countEl) countEl.innerText = `${visible} Photos`;

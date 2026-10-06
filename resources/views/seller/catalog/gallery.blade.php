@@ -78,6 +78,49 @@
             </div>
         @endif
 
+        <!-- 📁 FOLDERS & GROUPS TRAY -->
+        <div class="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="h-9 w-9 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-base shadow-xs">
+                        <i class="fa-solid fa-folder-tree"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                            <span>Image Folders & Groups</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-100 text-indigo-800 font-extrabold">{{ count($folders) }} Groups</span>
+                        </h3>
+                        <p class="text-[11px] text-gray-500">
+                            Hazaar (1000s) images ko category wise alag folders me dekhein taaki Excel mapping me asani se mil jayein
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="openNewFolderModal()" class="px-3.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200 flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-folder-plus"></i>
+                        <span>Create Folder</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Folder Chips -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-1" id="galleryFolderChips">
+                <button type="button" onclick="filterGalleryByFolder('ALL')" id="tabFolder_ALL" class="folder-chip-btn px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 whitespace-nowrap bg-indigo-600 text-white shadow-xs">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span>All Photos</span>
+                    <span class="px-1.5 py-0.2 bg-white/25 rounded-md text-[10px]">{{ $totalImages }}</span>
+                </button>
+                @foreach($folders as $fName => $fCount)
+                    <button type="button" onclick="filterGalleryByFolder('{{ addslashes($fName) }}')" id="tabFolder_{{ md5($fName) }}" class="folder-chip-btn px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap bg-gray-100 hover:bg-gray-200 text-gray-700">
+                        <i class="fa-solid fa-folder text-indigo-500"></i>
+                        <span>{{ $fName }}</span>
+                        <span class="px-1.5 py-0.2 bg-gray-200 rounded-md text-[10px] text-gray-800 font-bold">{{ $fCount }}</span>
+                    </button>
+                @endforeach
+            </div>
+        </div>
+
         <!-- Filter & Bulk Bar -->
         <div class="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-3 flex-1 min-w-[280px]">
@@ -89,13 +132,13 @@
                 </div>
                 <div class="flex items-center gap-1.5 p-1 bg-gray-100 rounded-xl">
                     <button type="button" onclick="filterBySource('all')" id="btnSourceAll" class="source-tab-btn px-3 py-1 rounded-lg text-xs font-bold bg-white text-gray-900 shadow-xs">
-                        All Photos
+                        All
                     </button>
                     <button type="button" onclick="filterBySource('personal_vault')" id="btnSourcePersonal" class="source-tab-btn px-3 py-1 rounded-lg text-xs font-bold text-gray-600 hover:text-gray-900">
                         🔒 My Vault
                     </button>
                     <button type="button" onclick="filterBySource('universal_central')" id="btnSourceCentral" class="source-tab-btn px-3 py-1 rounded-lg text-xs font-bold text-gray-600 hover:text-gray-900">
-                        🌐 Central Hub
+                        🌐 Central
                     </button>
                 </div>
                 <div class="flex items-center gap-1.5 text-xs text-gray-500">
@@ -103,16 +146,20 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-2" id="bulkActionGroup">
+            <div class="flex items-center gap-2 flex-wrap" id="bulkActionGroup">
                 <button type="button" onclick="selectAllImages(true)" class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition">
                     Select All
                 </button>
                 <button type="button" onclick="selectAllImages(false)" class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition">
                     Clear
                 </button>
-                <button type="button" id="bulkDeleteBtn" onclick="executeBulkDelete()" disabled class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-extrabold flex items-center gap-1.5 transition">
+                <button type="button" id="bulkMoveFolderBtn" onclick="openMoveFolderModal()" disabled class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-extrabold flex items-center gap-1.5 transition shadow-xs">
+                    <i class="fa-solid fa-folder-arrow-up"></i>
+                    <span>Move to Folder (<span id="moveCount">0</span>)</span>
+                </button>
+                <button type="button" id="bulkDeleteBtn" onclick="executeBulkDelete()" disabled class="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-extrabold flex items-center gap-1.5 transition">
                     <i class="fa-solid fa-trash-can"></i>
-                    <span>Delete Selected (<span id="selectedCount">0</span>)</span>
+                    <span>Delete (<span id="selectedCount">0</span>)</span>
                 </button>
             </div>
         </div>
@@ -120,7 +167,7 @@
         <!-- Images Grid -->
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="galleryGridContainer">
             @forelse($images as $img)
-                <div class="image-card group relative bg-white rounded-2xl border border-gray-200 p-2 shadow-xs hover:shadow-lg transition-all duration-200 flex flex-col justify-between" id="card_{{ $img['id'] }}" data-name="{{ strtolower($img['name']) }}" data-url="{{ $img['url'] }}">
+                <div class="image-card group relative bg-white rounded-2xl border border-gray-200 p-2 shadow-xs hover:shadow-lg transition-all duration-200 flex flex-col justify-between" id="card_{{ $img['id'] }}" data-name="{{ strtolower($img['name']) }}" data-folder="{{ strtolower($img['folder'] ?? 'general') }}" data-raw-folder="{{ $img['folder'] ?? 'General' }}" data-source="{{ $img['source'] ?? '' }}" data-url="{{ $img['url'] }}">
                     
                     <!-- Selection Checkbox -->
                     <div class="absolute top-3 left-3 z-10">
@@ -152,8 +199,13 @@
                         </h4>
                         <div class="flex items-center justify-between text-[10px] text-gray-400">
                             <span>{{ $img['size_kb'] }} KB</span>
-                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold {{ $img['source'] === 'plasto_master' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700' }}">
-                                {{ $img['source'] === 'plasto_master' ? 'Master' : 'Crop' }}
+                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold {{ ($img['source'] ?? '') === 'plasto_master' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700' }}">
+                                {{ ($img['source'] ?? '') === 'plasto_master' ? 'Master' : 'Crop' }}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-1 pt-0.5">
+                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 truncate max-w-full block" title="Folder: {{ $img['folder'] ?? 'General' }}">
+                                <i class="fa-solid fa-folder text-[8px] mr-0.5 text-indigo-500"></i>{{ $img['folder'] ?? 'General' }}
                             </span>
                         </div>
                     </div>
@@ -217,6 +269,23 @@
                     <span id="uploadFileName" class="text-xs font-bold text-blue-900 truncate"></span>
                 </div>
 
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Target Folder / Group</label>
+                    <select id="uploadFolderSelect" name="folder" onchange="toggleUploadCustomFolder(this.value)" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-bold focus:ring-2 focus:ring-blue-600 bg-white">
+                        <option value="General">📁 General / Uncategorized</option>
+                        @foreach($folders as $fName => $fCount)
+                            @if($fName !== 'General')
+                                <option value="{{ $fName }}">📁 {{ $fName }} ({{ $fCount }})</option>
+                            @endif
+                        @endforeach
+                        <option value="__NEW__">➕ Create New Folder...</option>
+                    </select>
+                </div>
+                <div id="uploadCustomFolderWrap" class="hidden">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">New Folder Name</label>
+                    <input type="text" id="uploadCustomFolderInput" name="custom_folder" placeholder="e.g. CPVC Pipes, Water Tanks, Brass Valves..." class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-bold focus:ring-2 focus:ring-blue-600">
+                </div>
+
                 <div class="flex items-center justify-end gap-2 pt-2">
                     <button type="button" onclick="closeUploadModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition">
                         Cancel
@@ -226,6 +295,83 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Move Photos to Folder Modal -->
+    <div id="moveFolderModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                <h3 class="text-sm font-black text-gray-900 flex items-center gap-2">
+                    <i class="fa-solid fa-folder-arrow-up text-indigo-600"></i>
+                    <span>Move to Folder</span>
+                </h3>
+                <button type="button" onclick="closeMoveFolderModal()" class="text-gray-400 hover:text-gray-600 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <p class="text-xs text-gray-600">
+                    <span id="moveFolderItemCount" class="font-bold text-indigo-700">0</span> photos ko kis folder / group me move karna chahte hain?
+                </p>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Select Existing Folder:</label>
+                    <select id="moveTargetFolderSelect" onchange="toggleMoveCustomFolder(this.value)" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-bold focus:ring-2 focus:ring-indigo-600 bg-white">
+                        <option value="General">📁 General</option>
+                        @foreach($folders as $fName => $fCount)
+                            @if($fName !== 'General')
+                                <option value="{{ $fName }}">📁 {{ $fName }} ({{ $fCount }})</option>
+                            @endif
+                        @endforeach
+                        <option value="__NEW__">➕ Create New Folder...</option>
+                    </select>
+                </div>
+
+                <div id="moveCustomFolderWrap" class="hidden">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">New Folder Name:</label>
+                    <input type="text" id="moveCustomFolderInput" placeholder="e.g. CPVC Pipes, Water Tanks..." class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-bold focus:ring-2 focus:ring-indigo-600">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                <button type="button" onclick="closeMoveFolderModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition">
+                    Cancel
+                </button>
+                <button type="button" onclick="submitMoveFolder()" id="btnSubmitMoveFolder" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-md transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Move Photos</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Folder Modal -->
+    <div id="newFolderModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                <h3 class="text-sm font-black text-gray-900 flex items-center gap-2">
+                    <i class="fa-solid fa-folder-plus text-indigo-600"></i>
+                    <span>Create New Image Folder</span>
+                </h3>
+                <button type="button" onclick="closeNewFolderModal()" class="text-gray-400 hover:text-gray-600 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="space-y-3">
+                <label class="block text-xs font-bold text-gray-700 mb-1">Folder Name:</label>
+                <input type="text" id="newFolderNameInput" placeholder="e.g. Sanitary Ware, UPVC Valves, Paints..." class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-bold focus:ring-2 focus:ring-indigo-600">
+                <p class="text-[11px] text-gray-500">Folder banne ke baad aap photos ko isme move kar sakte hain ya directly upload kar sakte hain.</p>
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                <button type="button" onclick="closeNewFolderModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition">
+                    Cancel
+                </button>
+                <button type="button" onclick="submitCreateFolder()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-md transition">
+                    Create & Select
+                </button>
+            </div>
         </div>
     </div>
 
@@ -246,28 +392,66 @@
 
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        let activeFolder = 'ALL';
+        let activeSource = 'all';
+
+        function filterGalleryByFolder(folder) {
+            activeFolder = folder;
+            document.querySelectorAll('.folder-chip-btn').forEach(btn => {
+                btn.className = "folder-chip-btn px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap bg-gray-100 hover:bg-gray-200 text-gray-700";
+            });
+            const activeTab = (folder === 'ALL') ? document.getElementById('tabFolder_ALL') : document.querySelector(`.folder-chip-btn[onclick*="${folder}"]`);
+            if (activeTab) {
+                activeTab.className = "folder-chip-btn px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 whitespace-nowrap bg-indigo-600 text-white shadow-xs";
+            }
+            applyAllGalleryFilters();
+        }
+
+        function filterBySource(source) {
+            activeSource = source;
+            document.querySelectorAll('.source-tab-btn').forEach(btn => {
+                btn.className = "source-tab-btn px-3 py-1 rounded-lg text-xs font-bold text-gray-600 hover:text-gray-900";
+            });
+            if (source === 'all') document.getElementById('btnSourceAll').className = "source-tab-btn px-3 py-1 rounded-lg text-xs font-bold bg-white text-gray-900 shadow-xs";
+            if (source === 'personal_vault') document.getElementById('btnSourcePersonal').className = "source-tab-btn px-3 py-1 rounded-lg text-xs font-bold bg-white text-gray-900 shadow-xs";
+            if (source === 'universal_central') document.getElementById('btnSourceCentral').className = "source-tab-btn px-3 py-1 rounded-lg text-xs font-bold bg-white text-gray-900 shadow-xs";
+            applyAllGalleryFilters();
+        }
 
         function filterGalleryLive(q) {
-            const query = q.toLowerCase().trim();
-            const cards = document.querySelectorAll('.image-card');
+            applyAllGalleryFilters();
+        }
+
+        function applyAllGalleryFilters() {
+            const query = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
             let visible = 0;
-            cards.forEach(card => {
-                const name = card.getAttribute('data-name');
-                if (!query || name.includes(query)) {
+            document.querySelectorAll('.image-card').forEach(card => {
+                const name = (card.getAttribute('data-name') || '').toLowerCase();
+                const folder = card.getAttribute('data-raw-folder') || 'General';
+                const source = card.getAttribute('data-source') || '';
+
+                const matchFolder = (activeFolder === 'ALL' || folder.toLowerCase() === activeFolder.toLowerCase());
+                const matchSource = (activeSource === 'all' || source === activeSource);
+                const matchQuery = (!query || name.includes(query));
+
+                if (matchFolder && matchSource && matchQuery) {
                     card.style.display = '';
                     visible++;
                 } else {
                     card.style.display = 'none';
                 }
             });
-            document.getElementById('visibleCount').innerText = visible;
+            const countEl = document.getElementById('visibleCount');
+            if (countEl) countEl.innerText = visible;
         }
 
         function updateSelectedCount() {
             const checked = document.querySelectorAll('.img-checkbox:checked');
             const count = checked.length;
             document.getElementById('selectedCount').innerText = count;
+            document.getElementById('moveCount').innerText = count;
             document.getElementById('bulkDeleteBtn').disabled = (count === 0);
+            document.getElementById('bulkMoveFolderBtn').disabled = (count === 0);
         }
 
         function selectAllImages(select) {
@@ -278,6 +462,101 @@
                 }
             });
             updateSelectedCount();
+        }
+
+        function openMoveFolderModal() {
+            const count = document.querySelectorAll('.img-checkbox:checked').length;
+            if (count === 0) return;
+            document.getElementById('moveFolderItemCount').innerText = count;
+            document.getElementById('moveFolderModal').classList.remove('hidden');
+        }
+
+        function closeMoveFolderModal() {
+            document.getElementById('moveFolderModal').classList.add('hidden');
+        }
+
+        function toggleMoveCustomFolder(val) {
+            const wrap = document.getElementById('moveCustomFolderWrap');
+            if (val === '__NEW__') {
+                wrap.classList.remove('hidden');
+            } else {
+                wrap.classList.add('hidden');
+            }
+        }
+
+        function toggleUploadCustomFolder(val) {
+            const wrap = document.getElementById('uploadCustomFolderWrap');
+            if (val === '__NEW__') {
+                wrap.classList.remove('hidden');
+            } else {
+                wrap.classList.add('hidden');
+            }
+        }
+
+        function submitMoveFolder() {
+            const checked = Array.from(document.querySelectorAll('.img-checkbox:checked')).map(cb => cb.value);
+            if (checked.length === 0) return;
+
+            const choice = document.getElementById('moveTargetFolderSelect').value;
+            const custom = document.getElementById('moveCustomFolderInput').value.trim();
+            const targetFolder = (choice === '__NEW__') ? custom : choice;
+
+            if (!targetFolder) {
+                alert('Kripya folder ka naam chunein ya type karein.');
+                return;
+            }
+
+            const btn = document.getElementById('btnSubmitMoveFolder');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Moving...';
+
+            fetch("{{ route('seller.catalog.gallery.assign_folder') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": csrfToken,
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify({
+                    image_urls: checked,
+                    folder_name: targetFolder
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message || 'Error moving photos.');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Move Photos';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Network error while moving photos.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Move Photos';
+            });
+        }
+
+        function openNewFolderModal() {
+            document.getElementById('newFolderModal').classList.remove('hidden');
+        }
+
+        function closeNewFolderModal() {
+            document.getElementById('newFolderModal').classList.add('hidden');
+        }
+
+        function submitCreateFolder() {
+            const name = document.getElementById('newFolderNameInput').value.trim();
+            if (!name) {
+                alert('Kripya folder ka naam likhein.');
+                return;
+            }
+            // Switch filter to newly created folder name or open upload modal
+            closeNewFolderModal();
+            filterGalleryByFolder(name);
         }
 
         function deleteSingleImage(url, id, name) {

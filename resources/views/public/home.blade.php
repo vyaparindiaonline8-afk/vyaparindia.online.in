@@ -36,13 +36,17 @@
                         </a>
                     @else
                         @if(Auth::user()->is_seller())
-                            <a href="{{ route('seller.dashboard') }}" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md transition flex items-center gap-1.5">
-                                <i class="fa-solid fa-store"></i>
-                                <span>Seller Hub</span>
+                            <a href="{{ route('seller.dashboard') }}" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black shadow-md shadow-blue-600/30 transition flex items-center gap-2">
+                                <i class="fa-solid fa-gauge-high text-amber-300"></i>
+                                <span>सेलर डैशबोर्ड (Dashboard)</span>
                             </a>
                         @elseif(Auth::user()->is_admin())
-                            <a href="{{ route('admin.dashboard') }}" class="px-4 py-2 rounded-xl bg-gray-900 text-white text-xs font-bold">
-                                Admin Hub
+                            <a href="{{ route('admin.dashboard') }}" class="px-4 py-2 rounded-xl bg-gray-900 text-white text-xs font-black">
+                                Admin Dashboard
+                            </a>
+                        @else
+                            <a href="{{ route('seller.dashboard') }}" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-black">
+                                <span>डैशबोर्ड (Dashboard)</span>
                             </a>
                         @endif
                         <form method="POST" action="{{ route('logout') }}" class="inline">

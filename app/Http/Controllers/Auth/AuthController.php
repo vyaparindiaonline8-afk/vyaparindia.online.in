@@ -93,6 +93,16 @@ class AuthController extends Controller
 
     public function showLoginForm()
     {
+        if (Auth::check()) {
+            $user = Auth::user();
+            if ($user->is_admin()) {
+                return redirect()->route('admin.dashboard');
+            } elseif ($user->is_seller()) {
+                return redirect()->route('seller.dashboard');
+            } else {
+                return redirect()->route('buyer.dashboard');
+            }
+        }
         return view('auth.login');
     }
 

@@ -732,6 +732,32 @@ class CatalogIngestionController extends Controller
     }
 
     /**
+     * Smart folder detector / resolver for catalog media
+     */
+    protected function detectFolderForImage(string $name, ?string $explicitCategory = null): string
+    {
+        if (!empty($explicitCategory) && !in_array(strtolower($explicitCategory), ['general', 'uncategorized', 'other', 'default', 'null', ''])) {
+            return trim($explicitCategory);
+        }
+
+        $n = strtolower($name);
+        if (str_contains($n, 'cpvc')) return 'CPVC Fittings';
+        if (str_contains($n, 'upvc')) return 'UPVC Fittings';
+        if (str_contains($n, 'swr') || str_contains($n, 'drain') || str_contains($n, 'trap') || str_contains($n, 'nahani') || str_contains($n, 'cowl')) return 'SWR Drainage';
+        if (str_contains($n, 'tank') || str_contains($n, 'water tank') || str_contains($n, 'loft')) return 'Water Tanks';
+        if (str_contains($n, 'valve') || str_contains($n, 'cock') || str_contains($n, 'brass') || str_contains($n, 'bib') || str_contains($n, 'pillar')) return 'Valves & Brass';
+        if (str_contains($n, 'bath') || str_contains($n, 'shower') || str_contains($n, 'faucet') || str_contains($n, 'basin') || str_contains($n, 'toilet') || str_contains($n, 'commode') || str_contains($n, 'sanitary')) return 'Bathroom & Sanitary';
+        if (str_contains($n, 'pump') || str_contains($n, 'motor') || str_contains($n, 'submersible') || str_contains($n, 'monobloc')) return 'Pumps & Motors';
+        if (str_contains($n, 'paint') || str_contains($n, 'distemper') || str_contains($n, 'primer') || str_contains($n, 'enamel') || str_contains($n, 'emulsion')) return 'Paints & Coatings';
+        if (str_contains($n, 'wire') || str_contains($n, 'switch') || str_contains($n, 'cable') || str_contains($n, 'mcb') || str_contains($n, 'socket') || str_contains($n, 'electrical')) return 'Electrical & Wiring';
+        if (str_contains($n, 'ply') || str_contains($n, 'door') || str_contains($n, 'hinge') || str_contains($n, 'lock') || str_contains($n, 'hardware')) return 'Hardware & Tools';
+        if (str_contains($n, 'pipe') || str_contains($n, 'conduit')) return 'Pipes';
+        if (str_contains($n, 'agri') || str_contains($n, 'solvent') || str_contains($n, 'cement') || str_contains($n, 'teflon')) return 'Agri & Solvents';
+
+        return !empty($explicitCategory) ? trim($explicitCategory) : 'General';
+    }
+
+    /**
      * Helper to collect all available gallery images for seller.
      */
     protected function getAllGalleryImages($userId): array
@@ -788,6 +814,8 @@ class CatalogIngestionController extends Controller
                     'permission_granted' => (bool)$m->permission_granted,
                     'is_mine' => $isMine,
                     'deletable' => $isMine,
+                    'category' => $m->category_type,
+                    'folder' => $m->category_type,
                 ];
             }
         } catch (\Throwable $e) {
@@ -1005,6 +1033,26 @@ class CatalogIngestionController extends Controller
             }
         }
 
+        // Attach resolved folder & category to all images (preserving custom user folders)
+        $customFolders = [];
+        try {
+            $customFolders = \App\Models\SellerMedia::where('user_id', $userId)
+                ->whereNotNull('category_type')
+                ->where('category_type', '!=', '')
+                ->pluck('category_type', 'file_path')
+                ->toArray();
+        } catch (\Throwable $e) {}
+
+        foreach ($images as &$img) {
+            $u = $img['url'] ?? '';
+            $uClean = ltrim($u, '/');
+            $explicit = $customFolders[$u] ?? ($customFolders[$uClean] ?? ($img['category'] ?? null));
+            $folder = $this->detectFolderForImage($img['name'] ?? '', $explicit);
+            $img['folder'] = $folder;
+            $img['category'] = $folder;
+        }
+        unset($img);
+
         // Sort latest first
         usort($images, function ($a, $b) {
             return ($b['created_at'] ?? 0) <=> ($a['created_at'] ?? 0);
@@ -1014,13 +1062,28 @@ class CatalogIngestionController extends Controller
     }
 
     /**
-     * 📸 Page 1: Media Vault & Bulk Image Gallery (Store, Preview, Upload, Delete)
+     * 📸 Page 1: Media Vault & Bulk Image Gallery (Store, Preview, Upload, Delete, Folders)
      */
     public function gallery(Request $request)
     {
         $userId = Auth::id();
         $allImages = $this->getAllGalleryImages($userId);
         
+        // Calculate folders with counts
+        $folders = [];
+        foreach ($allImages as $img) {
+            $f = $img['folder'] ?? 'General';
+            $folders[$f] = ($folders[$f] ?? 0) + 1;
+        }
+        ksort($folders);
+
+        $selectedFolder = trim($request->input('folder', 'ALL'));
+        if ($selectedFolder !== 'ALL' && $selectedFolder !== '') {
+            $allImages = array_filter($allImages, function ($img) use ($selectedFolder) {
+                return strcasecmp($img['folder'] ?? 'General', $selectedFolder) === 0;
+            });
+        }
+
         $query = trim($request->input('q', ''));
         if ($query !== '') {
             $allImages = array_filter($allImages, function ($img) use ($query) {
@@ -1029,8 +1092,8 @@ class CatalogIngestionController extends Controller
         }
 
         $totalImages = count($allImages);
-        $plastoCount = count(array_filter($allImages, fn($i) => $i['source'] === 'plasto_master'));
-        $customCount = count(array_filter($allImages, fn($i) => $i['source'] === 'custom_crop'));
+        $plastoCount = count(array_filter($allImages, fn($i) => ($i['source'] ?? '') === 'plasto_master'));
+        $customCount = count(array_filter($allImages, fn($i) => ($i['source'] ?? '') === 'custom_crop'));
 
         return view('seller.catalog.gallery', [
             'images' => array_values($allImages),
@@ -1038,6 +1101,8 @@ class CatalogIngestionController extends Controller
             'plastoCount' => $plastoCount,
             'customCount' => $customCount,
             'searchQuery' => $query,
+            'folders' => $folders,
+            'selectedFolder' => $selectedFolder,
         ]);
     }
 
@@ -1048,15 +1113,31 @@ class CatalogIngestionController extends Controller
     {
         $userId = Auth::id() ?: 1;
         $images = $this->getAllGalleryImages($userId);
+
+        $folders = [];
+        foreach ($images as $i) {
+            $f = $i['folder'] ?? 'General';
+            $folders[$f] = ($folders[$f] ?? 0) + 1;
+        }
+        ksort($folders);
+
+        $selectedFolder = trim($request->input('folder', 'ALL'));
+        if ($selectedFolder !== 'ALL' && $selectedFolder !== '') {
+            $images = array_filter($images, function ($img) use ($selectedFolder) {
+                return strcasecmp($img['folder'] ?? 'General', $selectedFolder) === 0;
+            });
+        }
+
         return response()->json([
             'success' => true,
             'count' => count($images),
             'images' => array_values($images),
+            'folders' => $folders,
         ]);
     }
 
     /**
-     * Upload an image directly into the Media Vault.
+     * Upload an image directly into the Media Vault with Folder Assignment.
      */
     public function uploadToGallery(Request $request)
     {
@@ -1070,7 +1151,12 @@ class CatalogIngestionController extends Controller
         $fileName = 'upload_' . time() . '_' . Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
 
         $shareToCentral = $request->boolean('share_to_central', false);
-        $categoryType = $request->input('category_type', 'general');
+
+        // Read folder or category
+        $customFolder = trim($request->input('custom_folder') ?? '');
+        $folderChoice = trim($request->input('folder', $request->input('category_type', 'General')));
+        $folder = (!empty($customFolder) && $folderChoice === '__NEW__') ? $customFolder : (($folderChoice !== '__NEW__') ? $folderChoice : 'General');
+        $categoryType = $folder;
 
         // Protect Central Universal Hub: clothes/fashion/unbranded must never enter central hub
         $fashionKeywords = ['cloth', 'dress', 'shirt', 'pant', 'sari', 'saree', 'suit', 'fashion', 'kurti', 'tshirt', 'jeans', 'fabric', 'apparel', 'garment', 'dupatta', 'top', 'tunic'];
@@ -1119,17 +1205,68 @@ class CatalogIngestionController extends Controller
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => $isUniversal ? 'Image saved to your vault & contributed to Universal Central Bank!' : 'Image saved 100% PRIVATE to your personal vault.',
+                'message' => $isUniversal ? "Image saved to folder '{$folder}' & contributed to Universal Central Bank!" : "Image saved 100% PRIVATE to folder '{$folder}'.",
                 'image' => [
                     'filename' => $fileName,
                     'url' => $storedUrl,
                     'asset_url' => $assetUrl,
+                    'folder' => $folder,
+                    'category' => $folder,
                     'is_universal' => $isUniversal,
                 ],
             ]);
         }
 
-        return back()->with('success', 'Image uploaded successfully to your Photo Vault!');
+        return back()->with('success', "Image uploaded successfully to folder '{$folder}'!");
+    }
+
+    /**
+     * Move / Assign multiple images to a specific folder / category.
+     */
+    public function assignFolder(Request $request)
+    {
+        $request->validate([
+            'image_urls' => 'required|array|min:1',
+            'image_urls.*' => 'required|string',
+            'folder_name' => 'required|string|max:100',
+        ]);
+
+        $userId = Auth::id() ?: 1;
+        $folderName = trim($request->input('folder_name'));
+        $urls = $request->input('image_urls');
+
+        foreach ($urls as $url) {
+            $cleanUrl = ltrim($url, '/');
+            $media = \App\Models\SellerMedia::where('user_id', $userId)
+                ->where(function($q) use ($url, $cleanUrl) {
+                    $q->where('file_path', $url)
+                      ->orWhere('file_path', $cleanUrl)
+                      ->orWhere('file_path', '/' . $cleanUrl);
+                })->first();
+
+            if ($media) {
+                $media->category_type = $folderName;
+                $media->save();
+            } else {
+                \App\Models\SellerMedia::create([
+                    'user_id' => $userId,
+                    'filename' => basename($url),
+                    'file_path' => $url,
+                    'category_type' => $folderName,
+                    'is_assigned' => false,
+                    'is_universal' => false,
+                    'permission_granted' => false,
+                ]);
+            }
+        }
+
+        \Illuminate\Support\Facades\Cache::forget('cloudinary_resources_vyaparindia');
+
+        return response()->json([
+            'success' => true,
+            'message' => count($urls) . " photo(s) successfully moved to folder '{$folderName}'!",
+            'folder_name' => $folderName,
+        ]);
     }
 
     /**
@@ -1492,12 +1629,20 @@ Please respond clearly in simple professional Hinglish/English with bullet point
 
         if (!$job) {
             $galleryImages = $this->getAllGalleryImages($userId);
+            $imageFolders = [];
+            foreach ($galleryImages as $img) {
+                $f = $img['folder'] ?? 'General';
+                $imageFolders[$f] = ($imageFolders[$f] ?? 0) + 1;
+            }
+            ksort($imageFolders);
+
             return view('seller.catalog.excel_mapper', [
                 'job' => null,
                 'products' => [],
                 'flatRows' => [],
                 'categories' => Category::all(),
                 'galleryImages' => $galleryImages,
+                'imageFolders' => $imageFolders,
                 'recentJobs' => $recentJobs,
                 'upvcCount' => 0,
                 'cpvcCount' => 0,
@@ -1590,12 +1735,19 @@ Please respond clearly in simple professional Hinglish/English with bullet point
         $otherCount = $categoryCounts['Agri & Solvents'] ?? ($categoryCounts['AGRI_OTHER'] ?? 0);
 
         $galleryImages = $this->getAllGalleryImages($userId);
+        $imageFolders = [];
+        foreach ($galleryImages as $img) {
+            $f = $img['folder'] ?? 'General';
+            $imageFolders[$f] = ($imageFolders[$f] ?? 0) + 1;
+        }
+        ksort($imageFolders);
 
         return view('seller.catalog.excel_mapper', compact(
             'job',
             'products',
             'flatRows',
             'galleryImages',
+            'imageFolders',
             'categories',
             'categoryCounts',
             'recentJobs',

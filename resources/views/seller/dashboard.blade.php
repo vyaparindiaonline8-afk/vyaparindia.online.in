@@ -13,27 +13,32 @@
     <header class="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-xs">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
-                <div class="flex items-center gap-3">
-                    <div class="h-9 w-9 rounded-xl bg-blue-600 text-white font-black flex items-center justify-center text-base shadow-sm">
+                <a href="{{ route('home') }}" class="flex items-center gap-3 group" title="होम पेज पर जाएं (Home Marketplace)">
+                    <div class="h-9 w-9 rounded-xl bg-blue-600 group-hover:bg-blue-700 text-white font-black flex items-center justify-center text-base shadow-sm transition">
                         V
                     </div>
                     <div>
-                        <span class="font-black text-gray-900 text-base tracking-tight">VyaparIndia</span>
+                        <span class="font-black text-gray-900 text-base tracking-tight group-hover:text-blue-600 transition">VyaparIndia</span>
                         <span class="ml-2 text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Seller Hub</span>
                     </div>
-                </div>
+                </a>
 
-                <div class="flex items-center gap-4">
-                    <span class="text-xs font-semibold text-gray-600 hidden sm:inline">
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <!-- Prominent Home Button -->
+                    <a href="{{ route('home') }}" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-800 font-extrabold text-xs transition flex items-center gap-1.5 shadow-xs border border-slate-200 hover:border-blue-200" title="मार्केटप्लेस होम पेज पर जाएं">
+                        <i class="fa-solid fa-house text-blue-600"></i>
+                        <span>होम पेज (Home)</span>
+                    </a>
+
+                    <span class="text-xs font-semibold text-gray-600 hidden md:inline">
                         <i class="fa-solid fa-user-circle text-gray-400 mr-1"></i> {{ Auth::user()->name }}
                     </span>
-                    <a href="{{ route('home') }}" class="text-xs font-semibold text-gray-500 hover:text-gray-900">
-                        Marketplace
-                    </a>
+
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf
-                        <button type="submit" class="text-xs font-semibold text-red-600 hover:text-red-700">
-                            Logout
+                        <button type="submit" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs transition flex items-center gap-1">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                            <span>Logout</span>
                         </button>
                     </form>
                 </div>
