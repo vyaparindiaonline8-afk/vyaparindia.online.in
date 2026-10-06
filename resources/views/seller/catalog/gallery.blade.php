@@ -167,11 +167,11 @@
         <!-- Images Grid -->
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="galleryGridContainer">
             @forelse($images as $img)
-                <div class="image-card group relative bg-white rounded-2xl border border-gray-200 p-2 shadow-xs hover:shadow-lg transition-all duration-200 flex flex-col justify-between" id="card_{{ $img['id'] }}" data-name="{{ strtolower($img['name']) }}" data-folder="{{ strtolower($img['folder'] ?? 'general') }}" data-raw-folder="{{ $img['folder'] ?? 'General' }}" data-source="{{ $img['source'] ?? '' }}" data-url="{{ $img['url'] }}">
+                <div class="image-card group relative bg-white rounded-2xl border border-gray-200 p-2 shadow-xs hover:shadow-lg transition-all duration-200 flex flex-col justify-between cursor-pointer select-none" id="card_{{ $img['id'] }}" onclick="toggleCardSelection('{{ $img['id'] }}', event)" data-name="{{ strtolower($img['name']) }}" data-folder="{{ strtolower($img['folder'] ?? 'general') }}" data-raw-folder="{{ $img['folder'] ?? 'General' }}" data-source="{{ $img['source'] ?? '' }}" data-url="{{ $img['url'] }}">
                     
                     <!-- Selection Checkbox -->
                     <div class="absolute top-3 left-3 z-10">
-                        <input type="checkbox" value="{{ $img['url'] }}" onchange="updateSelectedCount()" class="img-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-xs">
+                        <input type="checkbox" value="{{ $img['url'] }}" onchange="updateSelectedCount()" onclick="event.stopPropagation()" class="img-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-xs">
                     </div>
 
                     <!-- Image Thumbnail with Zoom Button -->
@@ -179,14 +179,14 @@
                         <img src="{{ $img['asset_url'] }}" alt="{{ $img['name'] }}" class="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-200" loading="lazy">
                         
                         <!-- Overlay Action Bar -->
-                        <div class="overlay-actions opacity-0 group-hover:opacity-100 absolute inset-0 bg-black/40 backdrop-blur-[2px] rounded-xl flex items-center justify-center gap-2 transition-opacity duration-200">
-                            <button type="button" onclick="openPreviewModal('{{ $img['asset_url'] }}', '{{ addslashes($img['name']) }}')" class="h-8 w-8 rounded-lg bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center text-xs shadow-md transition" title="Preview Full Image">
+                        <div class="overlay-actions opacity-0 group-hover:opacity-100 absolute inset-0 bg-black/40 backdrop-blur-[2px] rounded-xl flex items-center justify-center gap-2 transition-opacity duration-200" onclick="event.stopPropagation()">
+                            <button type="button" onclick="event.stopPropagation(); openPreviewModal('{{ $img['asset_url'] }}', '{{ addslashes($img['name']) }}')" class="h-8 w-8 rounded-lg bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center text-xs shadow-md transition" title="Preview Full Image">
                                 <i class="fa-solid fa-expand"></i>
                             </button>
-                            <a href="{{ $img['asset_url'] }}" download="{{ $img['filename'] }}" class="h-8 w-8 rounded-lg bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center text-xs shadow-md transition" title="Download">
+                            <a href="{{ $img['asset_url'] }}" download="{{ $img['filename'] }}" onclick="event.stopPropagation()" class="h-8 w-8 rounded-lg bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center text-xs shadow-md transition" title="Download">
                                 <i class="fa-solid fa-download"></i>
                             </a>
-                            <button type="button" onclick="deleteSingleImage('{{ $img['url'] }}', '{{ $img['id'] }}', '{{ addslashes($img['name']) }}')" class="h-8 w-8 rounded-lg bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center text-xs shadow-md transition" title="Delete Image">
+                            <button type="button" onclick="event.stopPropagation(); deleteSingleImage('{{ $img['url'] }}', '{{ $img['id'] }}', '{{ addslashes($img['name']) }}')" class="h-8 w-8 rounded-lg bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center text-xs shadow-md transition" title="Delete Image">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </div>
@@ -211,12 +211,12 @@
                     </div>
 
                     <!-- Bottom Quick Action -->
-                    <div class="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
-                        <button type="button" onclick="copyImageUrl('{{ $img['url'] }}')" class="text-[10px] text-gray-500 hover:text-blue-600 font-bold flex items-center gap-1 transition">
+                    <div class="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between" onclick="event.stopPropagation()">
+                        <button type="button" onclick="event.stopPropagation(); copyImageUrl('{{ $img['url'] }}')" class="text-[10px] text-gray-500 hover:text-blue-600 font-bold flex items-center gap-1 transition">
                             <i class="fa-regular fa-copy"></i>
                             <span>Copy Path</span>
                         </button>
-                        <a href="{{ route('seller.catalog.excel_mapper') }}?assign_img={{ urlencode($img['url']) }}" class="text-[10px] text-emerald-600 hover:text-emerald-700 font-extrabold flex items-center gap-0.5 transition">
+                        <a href="{{ route('seller.catalog.excel_mapper') }}?assign_img={{ urlencode($img['url'] ?? '') }}" onclick="event.stopPropagation()" class="text-[10px] text-emerald-600 hover:text-emerald-700 font-extrabold flex items-center gap-0.5 transition">
                             <span>Assign</span>
                             <i class="fa-solid fa-arrow-right text-[8px]"></i>
                         </a>
@@ -445,9 +445,32 @@
             if (countEl) countEl.innerText = visible;
         }
 
+        function toggleCardSelection(id, e) {
+            if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.img-checkbox') || e.target.closest('.overlay-actions')) {
+                return;
+            }
+            const card = document.getElementById('card_' + id);
+            if (!card) return;
+            const cb = card.querySelector('.img-checkbox');
+            if (cb) {
+                cb.checked = !cb.checked;
+                updateSelectedCount();
+            }
+        }
+
         function updateSelectedCount() {
             const checked = document.querySelectorAll('.img-checkbox:checked');
             const count = checked.length;
+            
+            document.querySelectorAll('.image-card').forEach(card => {
+                const cb = card.querySelector('.img-checkbox');
+                if (cb && cb.checked) {
+                    card.classList.add('ring-2', 'ring-indigo-600', 'border-indigo-400', 'bg-indigo-50/20');
+                } else {
+                    card.classList.remove('ring-2', 'ring-indigo-600', 'border-indigo-400', 'bg-indigo-50/20');
+                }
+            });
+
             document.getElementById('selectedCount').innerText = count;
             document.getElementById('moveCount').innerText = count;
             document.getElementById('bulkDeleteBtn').disabled = (count === 0);
