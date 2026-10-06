@@ -1727,19 +1727,25 @@ Please respond clearly in simple professional Hinglish/English with bullet point
             : (env('GEMINI_API_KEY') ?: env('GEMINI_KEY') ?: ($userKey ?: null));
 
         $page = $request->input('page');
-        $pageText = substr($request->input('page_text'), 0, 4000);
+        $pageText = substr($request->input('page_text'), 0, 15000);
 
-        $prompt = "You are an expert product catalog digitizer. Convert the following text from ONLY Page {$page} of a hardware/plumbing/product catalog into a structured JSON array of table rows.
-Each item in the array must be a JSON object with these keys:
-- \"name\": Product name (e.g. \"CPVC Brass Elbow\")
-- \"size\": Size or dimension (e.g. \"25mm (3/4 inch)\" or \"1/2 Inch\" or \"-\")
-- \"mrp\": Numeric MRP or Price (e.g. 185 or 0)
-- \"sku\": Code or SKU if visible (or \"-\")
-- \"category\": Suggested Category (e.g. \"CPVC Fittings\" or \"Pipes\" or \"Hardware\")
+        $prompt = "You are an expert product catalog digitizer for wholesale B2B hardware, plumbing, sanitary, and electrical price lists.
+Convert the following text from ONLY Page {$page} into a structured JSON array of table rows.
 
-CRITICAL RULES:
-1. Return ONLY the raw valid JSON array starting with [ and ending with ]. No explanation, no conversational text, no markdown codeblocks.
-2. Read ONLY the text below for Page {$page}. Do not assume or hallucinate external items.
+Each item in the JSON array must be an object with these exact keys:
+- \"name\": Clean Product Item Name WITHOUT size or price attached (e.g. \"UPVC 90° Elbow\", \"UPVC Brass MTA\", \"SWR Door Bend\").
+- \"size\": Dimension or variant size (e.g. \"20mm\", \"25mm (1 inch)\", \"32mm x 1/2\\\"\", \"-\").
+- \"packing_1\": Box or inner pack quantity if present (e.g. \"100\" or \"-\").
+- \"packing_2\": Bag or master carton pack quantity if present (e.g. \"800\" or \"-\").
+- \"mrp\": Numeric MRP or Price (e.g. 45.00 or 120.50). Numbers only, no currency symbols.
+- \"sku\": Item Code, Cat No, or Art No if visible (e.g. \"UP-101\" or \"-\").
+- \"category\": Category classification (e.g. \"UPVC Fittings\", \"CPVC Fittings\", \"Pipes\", \"Hardware\").
+
+CRITICAL RULES FOR CATALOG LAYOUTS:
+1. In product catalogs, an item heading (e.g. \"UPVC ELBOW 90° HEAVY\") usually appears once above a table of 5 to 15 size rows. You MUST assign this full product name into the \"name\" field for EVERY corresponding size row.
+2. DO NOT mix sizes, packaging numbers, or prices into the \"name\" field. The \"name\" must be clean.
+3. Ignore noise words, headers, and footnotes like \"Available in:\", \"Price List\", \"Terms & Conditions\", \"Page X of Y\".
+4. Return ONLY the raw valid JSON array starting with [ and ending with ]. No explanation, no conversational text, no markdown codeblocks.
 
 PAGE {$page} TEXT CONTENT:
 \"\"\"

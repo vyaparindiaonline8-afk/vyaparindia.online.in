@@ -363,6 +363,10 @@
                         <button type="button" onclick="selectNDynamicRows(8)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700" title="Top ke 8 rows select karein">Next 8</button>
                         <button type="button" onclick="selectSameDynamicFamily()" class="px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 font-bold text-blue-700" title="Ek hi item ke sabhi sizes ek sath select karein">Same Family</button>
                         <button type="button" onclick="clearDynamicRowSelection()" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-600" title="Selected checkboxes uncheck karein">Clear</button>
+                        <button type="button" onclick="openBulkItemNameModal()" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-extrabold text-xs border border-indigo-300 flex items-center gap-1 transition" title="Selected rows ka Product Name ek sath set karein">
+                            <i class="fa-solid fa-pen-to-square text-indigo-600"></i>
+                            <span>Set Item Name</span>
+                        </button>
                         <button type="button" onclick="openBulkCategoryModal()" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 font-extrabold text-xs border border-amber-300 flex items-center gap-1 transition" title="Sabhi rows ka Category 1 click me badlein">
                             <i class="fa-solid fa-tags text-amber-600"></i>
                             <span>Bulk Category</span>
@@ -1033,6 +1037,52 @@
     </div>
 
     <!-- ========================================== -->
+    <!-- ✏️ SET ITEM NAME FOR SELECTED ROWS MODAL    -->
+    <!-- ========================================== -->
+    <div id="bulkItemNameModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] hidden flex items-center justify-center p-4" onclick="closeBulkItemNameModal()">
+        <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-md overflow-hidden animate-scale-up" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="p-5 border-b border-gray-100 bg-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black">Set Product Item Name</h3>
+                        <p class="text-[11px] text-gray-400">Selected rows ko ek sath clean name dein</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeBulkItemNameModal()" class="h-8 w-8 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5 flex items-center justify-between">
+                        <span>Product / Item Name:</span>
+                        <span class="text-[11px] text-indigo-600 font-bold" id="bulkNameSelectedCountText">0 Rows Selected</span>
+                    </label>
+                    <input type="text" id="bulkItemNameInput" placeholder="e.g. UPVC 90° Elbow, Ball Valve, Brass Tee..." class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-gray-900 bg-white" onkeydown="if(event.key === 'Enter') applyBulkItemName()">
+                    <p class="text-[10px] text-gray-400 mt-1">Sabhi selected rows ka Product Name ye ban jayega, unke Sizes aur Rates wese hi rahenge!</p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+                <button type="button" onclick="closeBulkItemNameModal()" class="px-4 py-2 rounded-xl bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-200">
+                    Cancel
+                </button>
+                <button type="button" onclick="applyBulkItemName()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 flex items-center gap-2 transition active:scale-95">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Apply Name to Selected Rows</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
     <!-- ⚡ BULK CATEGORY CHANGER MODAL              -->
     <!-- ========================================== -->
     <div id="bulkCategoryModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] hidden flex items-center justify-center p-4" onclick="closeBulkCategoryModal()">
@@ -1137,7 +1187,11 @@
                 </div>
 
                 <!-- Settings Controls -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3.5 bg-violet-50/60 rounded-2xl border border-violet-100">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 p-3.5 bg-violet-50/60 rounded-2xl border border-violet-100">
+                    <div>
+                        <label class="block text-[11px] font-bold text-violet-950 mb-1">Base Item Name (Optional):</label>
+                        <input type="text" id="smartPasteBaseName" oninput="previewSmartPaste()" placeholder="e.g. UPVC 90° Elbow" class="w-full px-3 py-1.5 rounded-xl border border-violet-200 bg-white font-bold text-xs text-gray-800 focus:ring-1 focus:ring-violet-500" title="Agar likhenge to sabhi rows ko ye naam milega aur unke sizes alag rahenge">
+                    </div>
                     <div>
                         <label class="block text-[11px] font-bold text-violet-950 mb-1">Target Category:</label>
                         <input type="text" id="smartPasteCategory" list="allCategoriesList" value="General Hardware" oninput="previewSmartPaste()" placeholder="e.g. CPVC, Hardware, Brass" class="w-full px-3 py-1.5 rounded-xl border border-violet-200 bg-white font-bold text-xs text-violet-900 focus:ring-1 focus:ring-violet-500">
@@ -1145,7 +1199,7 @@
                     <div class="flex items-center gap-2 pt-4">
                         <label class="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer select-none">
                             <input type="checkbox" id="smartPasteFilterNoise" checked onchange="previewSmartPaste()" class="rounded text-violet-600 focus:ring-violet-500 cursor-pointer">
-                            <span>Filter Noise & Headers ("Available", "MRP" etc.)</span>
+                            <span>Filter Noise ("Available" etc.)</span>
                         </label>
                     </div>
                 </div>
@@ -1973,6 +2027,116 @@
             return false;
         }
 
+        function parseCatalogRowText(lineText, lastSectionHeader = '', forcedBaseName = '') {
+            let raw = (lineText || '').trim();
+            if (!raw) return null;
+
+            if (forcedBaseName && forcedBaseName.trim().length > 0) {
+                lastSectionHeader = forcedBaseName.trim();
+            }
+
+            // 1. Detect and strip Price / MRP
+            let mrp = 0;
+            const priceMatch = raw.match(/(?:rs\.?|₹|mrp[\:\s]*|\/)\s*(\d+(?:\.\d+)?)/i);
+            if (priceMatch) {
+                mrp = parseFloat(priceMatch[1]);
+                raw = raw.replace(priceMatch[0], ' ').trim();
+            } else {
+                const tokens = raw.split(/\s+/);
+                if (tokens.length >= 2) {
+                    const lastToken = tokens[tokens.length - 1];
+                    if (/^\d+(\.\d{1,2})?$/.test(lastToken) && parseFloat(lastToken) > 0) {
+                        mrp = parseFloat(lastToken);
+                        tokens.pop();
+                        raw = tokens.join(' ').trim();
+                    }
+                }
+            }
+
+            // 2. Detect and strip SKU
+            let sku = '';
+            const skuMatch = raw.match(/\b([A-Z]{2,}[0-9]+[A-Z0-9\-]*|[A-Z0-9]+\-[0-9]+)\b/);
+            if (skuMatch && !/^(MM|INCH|CM|MRP|HSN|BOX|BAG)$/i.test(skuMatch[0])) {
+                sku = skuMatch[0];
+                raw = raw.replace(skuMatch[0], ' ').trim();
+            }
+
+            // 3. Detect and strip Size (mm, inch, dimension)
+            let size = '';
+            const sizePatterns = [
+                /\b\d+(\.\d+)?\s*(mm|cm|mtr|meter)\b/i,
+                /\b\d+(\.\d+)?\s*(inch|\"|'')\b/i,
+                /\b\d+\s*x\s*\d+(\.\d+)?\s*(mm|inch|\")?\b/i,
+                /\b\d+\/\d+\s*(\"|inch)?\b/i,
+                /\b\d+\s*[-–]\s*\d+\/\d+\s*(\"|inch)?\b/i
+            ];
+            for (const pat of sizePatterns) {
+                const sm = raw.match(pat);
+                if (sm) {
+                    size = size ? (size + ' (' + sm[0] + ')') : sm[0];
+                    raw = raw.replace(sm[0], ' ').trim();
+                }
+            }
+
+            // 4. Detect packing numbers
+            let pack1 = '';
+            let pack2 = '';
+            const boxM = raw.match(/box[\:\s]*(\d+)/i);
+            if (boxM) {
+                pack1 = boxM[1];
+                raw = raw.replace(boxM[0], ' ').trim();
+            }
+            const bagM = raw.match(/(?:bag|carton|outer)[\:\s]*(\d+)/i);
+            if (bagM) {
+                pack2 = bagM[1];
+                raw = raw.replace(bagM[0], ' ').trim();
+            }
+
+            // Check standalone integers at end
+            const remTokens = raw.split(/\s+/);
+            const numTokens = [];
+            for (let i = remTokens.length - 1; i >= 0; i--) {
+                if (/^\d+$/.test(remTokens[i])) {
+                    numTokens.unshift(remTokens[i]);
+                    remTokens.splice(i, 1);
+                    if (numTokens.length >= 2) break;
+                } else {
+                    break;
+                }
+            }
+            if (!pack1 && !pack2) {
+                if (numTokens.length === 2) {
+                    pack1 = numTokens[0];
+                    pack2 = numTokens[1];
+                    raw = remTokens.join(' ').trim();
+                } else if (numTokens.length === 1) {
+                    pack1 = numTokens[0];
+                    raw = remTokens.join(' ').trim();
+                }
+            } else if (!pack1 && numTokens.length >= 1) {
+                pack1 = numTokens[0];
+                raw = remTokens.join(' ').trim();
+            }
+
+            // Clean up remaining text to form Clean Product Name
+            let cleanName = raw.replace(/[\|\,\;\:\-\–\—\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+
+            if (forcedBaseName && forcedBaseName.trim().length > 0) {
+                cleanName = forcedBaseName.trim();
+            } else if (!cleanName || cleanName.length <= 1 || /^[\d\s\.\-]+$/.test(cleanName)) {
+                cleanName = lastSectionHeader || 'Standard Item';
+            }
+
+            return {
+                name: cleanName,
+                size: size || 'Standard',
+                pack1: pack1,
+                pack2: pack2,
+                mrp: mrp > 0 ? mrp : 100,
+                sku: sku
+            };
+        }
+
         function loadPdfExtractedDataIntoDynamicRows(data) {
             if (!data) return false;
             let lines = Array.isArray(data) ? data : (data.lines || []);
@@ -1997,6 +2161,8 @@
                     const retail = Math.round(mrp * 0.88);
                     const category = (r.category && r.category !== '-') ? r.category.trim() : targetCategory;
                     const sku = (r.sku && r.sku !== '-') ? r.sku.trim() : `ITM-${100 + idx}`;
+                    const pack1 = (r.packing_1 && r.packing_1 !== '-') ? r.packing_1.trim() : (r.pack1 || '');
+                    const pack2 = (r.packing_2 && r.packing_2 !== '-') ? r.packing_2.trim() : (r.pack2 || '');
 
                     dynamicRows.push({
                         id: dynamicRowNextId++,
@@ -2004,8 +2170,8 @@
                         hsn_code: '39174000',
                         product_name: name,
                         size: size,
-                        packing_1: '',
-                        packing_2: '',
+                        packing_1: pack1,
+                        packing_2: pack2,
                         group_type: category,
                         category: category,
                         mrp: mrp,
@@ -2019,35 +2185,38 @@
                     });
                 });
             } else {
+                let currentSectionHeader = '';
+
                 lines.forEach((lineText, idx) => {
-                    const text = (lineText || '').trim();
-                    if (!text) return;
+                    const parsed = parseCatalogRowText(lineText, currentSectionHeader);
+                    if (!parsed) return;
+
+                    // Update section header if this line has a meaningful name
+                    if (parsed.name && parsed.name !== 'Standard Item' && !/^\d+/.test(parsed.name)) {
+                        currentSectionHeader = parsed.name;
+                    }
 
                     let category = targetCategory;
-                    if (/CPVC/i.test(text)) category = 'CPVC';
-                    else if (/SWR|TRAP|DRAIN/i.test(text)) category = 'SWR';
-                    else if (/AGRI|SOLVENT/i.test(text)) category = 'Agri & Solvents';
-                    else if (/UPVC/i.test(text)) category = 'UPVC';
+                    const combined = (parsed.name + ' ' + parsed.size).toUpperCase();
+                    if (/CPVC/i.test(combined)) category = 'CPVC';
+                    else if (/SWR|TRAP|DRAIN/i.test(combined)) category = 'SWR';
+                    else if (/AGRI|SOLVENT/i.test(combined)) category = 'Agri & Solvents';
+                    else if (/UPVC/i.test(combined)) category = 'UPVC';
 
-                    const sizeMatch = text.match(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/i);
-                    const size = sizeMatch ? sizeMatch[0] : 'Standard';
-
-                    const priceMatch = text.match(/(?:rs\.?|₹|\/)\s*(\d+(?:\.\d+)?)/i);
-                    const price = priceMatch ? parseFloat(priceMatch[1]) : (50 + (idx * 15));
-                    const cost = Math.round(price * 0.65);
-                    const retail = Math.round(price * 0.88);
+                    const cost = Math.round(parsed.mrp * 0.65);
+                    const retail = Math.round(parsed.mrp * 0.88);
 
                     dynamicRows.push({
                         id: dynamicRowNextId++,
-                        product_code: `ITM-${100 + idx}`,
+                        product_code: parsed.sku || `ITM-${100 + idx}`,
                         hsn_code: '39174000',
-                        product_name: text,
-                        size: size,
-                        packing_1: '',
-                        packing_2: '',
+                        product_name: parsed.name,
+                        size: parsed.size,
+                        packing_1: parsed.pack1,
+                        packing_2: parsed.pack2,
                         group_type: category,
                         category: category,
-                        mrp: price,
+                        mrp: parsed.mrp,
                         purchase_cost: cost,
                         cost_price_2: 0,
                         cost_price_3: 0,
@@ -3266,54 +3435,97 @@
             if (modal) modal.classList.add('hidden');
         }
 
-        function parseRawPasteText(text, targetCategory, filterNoise) {
+        // ==========================================
+        // ✏️ BULK ITEM NAME CHANGER FUNCTIONS
+        // ==========================================
+        function openBulkItemNameModal() {
+            const modal = document.getElementById('bulkItemNameModal');
+            if (!modal) return;
+            const checkedBoxes = document.querySelectorAll('.dynamic-row-checkbox:checked');
+            if (checkedBoxes.length === 0) {
+                alert('Pehle table me se kam se kam 1 ya zyada rows select karein (jaise "Next 6" dabakar).');
+                return;
+            }
+            const countText = document.getElementById('bulkNameSelectedCountText');
+            if (countText) countText.innerText = `${checkedBoxes.length} Rows Selected`;
+
+            // Pre-fill with first selected row's name if available
+            const firstRowId = parseInt(checkedBoxes[0].value);
+            const firstRow = dynamicRows.find(r => r.id === firstRowId);
+            const input = document.getElementById('bulkItemNameInput');
+            if (input && firstRow) {
+                input.value = firstRow.product_name || '';
+            }
+
+            modal.classList.remove('hidden');
+            if (input) input.focus();
+        }
+
+        function closeBulkItemNameModal() {
+            const modal = document.getElementById('bulkItemNameModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function applyBulkItemName() {
+            const input = document.getElementById('bulkItemNameInput');
+            const newName = (input?.value || '').trim();
+            if (!newName) {
+                alert('Kripya koi Product Name likhein.');
+                return;
+            }
+
+            const checkedBoxes = document.querySelectorAll('.dynamic-row-checkbox:checked');
+            if (checkedBoxes.length === 0) {
+                alert('Table me se rows select nahi hain.');
+                return;
+            }
+
+            const checkedIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+            let count = 0;
+            dynamicRows.forEach(r => {
+                if (checkedIds.includes(r.id)) {
+                    r.product_name = newName;
+                    count++;
+                }
+            });
+
+            saveToLocalStorage();
+            if (typeof autoSaveDraftToBackend === 'function') autoSaveDraftToBackend();
+            renderDynamicRows();
+            closeBulkItemNameModal();
+            showToastNotification(`🎉 Success! ${count} rows ka Product Name badalkar "${newName}" set ho gaya hai!`);
+        }
+
+        function parseRawPasteText(text, targetCategory, filterNoise, forcedBaseName = '') {
             if (!text) return [];
             const rawLines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
             const items = [];
+            let currentSectionHeader = forcedBaseName || '';
 
             rawLines.forEach((line, idx) => {
                 if (filterNoise && isNoiseCatalogLine(line)) return;
 
-                // Check if line has tab separation (copied from Excel/table)
-                const tabs = line.split('\t').map(c => c.trim()).filter(Boolean);
-                let name = line;
-                let size = 'Standard';
-                let price = 0;
+                const parsed = parseCatalogRowText(line, currentSectionHeader, forcedBaseName);
+                if (!parsed) return;
 
-                if (tabs.length >= 2) {
-                    name = tabs[0];
-                    for (let c = 1; c < tabs.length; c++) {
-                        const colVal = tabs[c];
-                        const priceM = colVal.match(/(?:rs\.?|₹|\/)?\s*(\d+(?:\.\d+)?)/i);
-                        const sizeM = colVal.match(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/i);
-                        if (sizeM && size === 'Standard') {
-                            size = sizeM[0];
-                        } else if (priceM && !isNaN(parseFloat(priceM[1])) && price === 0) {
-                            price = parseFloat(priceM[1]);
-                        }
-                    }
-                } else {
-                    const sizeMatch = line.match(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/i);
-                    if (sizeMatch) size = sizeMatch[0];
-
-                    const priceMatch = line.match(/(?:rs\.?|₹|\/)\s*(\d+(?:\.\d+)?)/i);
-                    if (priceMatch) price = parseFloat(priceMatch[1]);
-                }
-
-                if (!price || price === 0) {
-                    price = 100 + (idx * 20);
+                if (parsed.name && parsed.name !== 'Standard Item' && !/^\d+/.test(parsed.name)) {
+                    currentSectionHeader = parsed.name;
                 }
 
                 let cat = targetCategory || 'General Hardware';
-                if (/CPVC/i.test(name)) cat = 'CPVC';
-                else if (/SWR|TRAP|DRAIN/i.test(name)) cat = 'SWR';
-                else if (/AGRI|SOLVENT/i.test(name)) cat = 'Agri & Solvents';
-                else if (/UPVC/i.test(name)) cat = 'UPVC';
+                const combined = (parsed.name + ' ' + parsed.size).toUpperCase();
+                if (/CPVC/i.test(combined)) cat = 'CPVC';
+                else if (/SWR|TRAP|DRAIN/i.test(combined)) cat = 'SWR';
+                else if (/AGRI|SOLVENT/i.test(combined)) cat = 'Agri & Solvents';
+                else if (/UPVC/i.test(combined)) cat = 'UPVC';
 
                 items.push({
-                    name: name,
-                    size: size,
-                    mrp: price,
+                    name: parsed.name,
+                    size: parsed.size,
+                    pack1: parsed.pack1,
+                    pack2: parsed.pack2,
+                    mrp: parsed.mrp,
+                    sku: parsed.sku,
                     category: cat
                 });
             });
@@ -3324,9 +3536,10 @@
         function previewSmartPaste() {
             const rawText = document.getElementById('smartPasteInput')?.value || '';
             const cat = (document.getElementById('smartPasteCategory')?.value || '').trim() || 'General Hardware';
+            const baseName = (document.getElementById('smartPasteBaseName')?.value || '').trim();
             const filterNoise = document.getElementById('smartPasteFilterNoise')?.checked ?? true;
 
-            smartPasteParsedItems = parseRawPasteText(rawText, cat, filterNoise);
+            smartPasteParsedItems = parseRawPasteText(rawText, cat, filterNoise, baseName);
 
             const countEl = document.getElementById('smartPastePreviewCount');
             const statsEl = document.getElementById('smartPasteStatsText');
@@ -3345,18 +3558,20 @@
 
             let previewHtml = '';
             smartPasteParsedItems.slice(0, 15).forEach((item, idx) => {
+                const packStr = [item.pack1 ? `Box: ${item.pack1}` : '', item.pack2 ? `Bag: ${item.pack2}` : ''].filter(Boolean).join(' | ');
                 previewHtml += `
                     <tr class="hover:bg-slate-50 transition">
                         <td class="p-2 text-center text-gray-400 font-mono text-[10px]">${idx + 1}</td>
                         <td class="p-2"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700">${escapeHtml(item.category)}</span></td>
-                        <td class="p-2 font-bold text-gray-900 truncate max-w-[200px]">${escapeHtml(item.name)}</td>
-                        <td class="p-2 font-mono text-gray-700">${escapeHtml(item.size)}</td>
+                        <td class="p-2 font-bold text-gray-900 truncate max-w-[200px]" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</td>
+                        <td class="p-2 font-mono text-gray-700 font-bold">${escapeHtml(item.size)}</td>
+                        <td class="p-2 font-mono text-[10px] text-indigo-700">${escapeHtml(packStr || '-')}</td>
                         <td class="p-2 font-mono font-bold text-emerald-700">₹${item.mrp.toFixed(2)}</td>
                     </tr>
                 `;
             });
             if (smartPasteParsedItems.length > 15) {
-                previewHtml += `<tr><td colspan="5" class="p-2 text-center text-gray-400 text-[11px] font-medium bg-gray-50">+ ${smartPasteParsedItems.length - 15} aur items hain...</td></tr>`;
+                previewHtml += `<tr><td colspan="6" class="p-2 text-center text-gray-400 text-[11px] font-medium bg-gray-50">+ ${smartPasteParsedItems.length - 15} aur items hain...</td></tr>`;
             }
             tbody.innerHTML = previewHtml;
         }
@@ -3378,12 +3593,12 @@
 
                 dynamicRows.push({
                     id: dynamicRowNextId++,
-                    product_code: `ITM-${100 + idx}`,
+                    product_code: item.sku || `ITM-${100 + idx}`,
                     hsn_code: '39174000',
                     product_name: item.name,
                     size: item.size,
-                    packing_1: '',
-                    packing_2: '',
+                    packing_1: item.pack1 || '',
+                    packing_2: item.pack2 || '',
                     group_type: item.category,
                     category: item.category,
                     mrp: item.mrp,
@@ -3406,7 +3621,7 @@
             const textarea = document.getElementById('smartPasteInput');
             if (textarea) textarea.value = '';
 
-            showToastNotification(`🎉 Shabaash! ${smartPasteParsedItems.length} products Smart Paste se table me jodh diye gaye hain!`);
+            showToastNotification(`🎉 Shabaash! ${smartPasteParsedItems.length} products clean name aur sizes ke sath table me jodh diye gaye hain!`);
         }
 
         function renderDynamicRows() {

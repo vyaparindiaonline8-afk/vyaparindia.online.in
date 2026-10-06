@@ -1997,6 +1997,10 @@
 
             const apiKey = localStorage.getItem('vyapar_ai_api_key') || localStorage.getItem('vyapar_gemini_api_key') || '';
 
+            const textPayload = (currentExtractedLines && currentExtractedLines.length > 0)
+                ? currentExtractedLines.join("\n")
+                : (currentPageTextContent || '');
+
             fetch("{{ route('seller.catalog.pdf_studio.ai_extract_table') }}", {
                 method: "POST",
                 headers: {
@@ -2006,7 +2010,7 @@
                 },
                 body: JSON.stringify({
                     page: currentPdfPage,
-                    page_text: currentPageTextContent,
+                    page_text: textPayload,
                     api_key: apiKey
                 })
             })
@@ -2074,8 +2078,11 @@
                 return parts.join(' - ');
             });
 
+            const defaultCat = (document.getElementById('textDrawerCategoryInput')?.value || '').trim() || (currentAiExtractedRows[0]?.category || 'General Hardware');
+
             const payload = {
                 lines: lines,
+                category: defaultCat,
                 structured_rows: currentAiExtractedRows,
                 page: currentPdfPage,
                 timestamp: Date.now()
