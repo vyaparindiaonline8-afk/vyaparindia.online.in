@@ -146,6 +146,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::get('/gallery-json', [CatalogIngestionController::class, 'galleryJson'])->name('gallery_json');
         Route::post('/gallery/upload', [CatalogIngestionController::class, 'uploadToGallery'])->name('gallery.upload');
         Route::post('/gallery/assign-folder', [CatalogIngestionController::class, 'assignFolder'])->name('gallery.assign_folder');
+        Route::post('/gallery/update-details', [CatalogIngestionController::class, 'updateMediaDetails'])->name('gallery.update_details');
         Route::post('/gallery/delete', [CatalogIngestionController::class, 'deleteFromGallery'])->name('gallery.delete');
         Route::post('/gallery/bulk-delete', [CatalogIngestionController::class, 'bulkDeleteFromGallery'])->name('gallery.bulk_delete');
 
@@ -153,6 +154,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::get('/pdf-studio', [CatalogIngestionController::class, 'pdfStudio'])->name('pdf_studio');
         Route::post('/pdf-studio/crop-to-gallery', [CatalogIngestionController::class, 'savePdfCropToGallery'])->name('pdf_studio.crop');
         Route::post('/ai-copilot', [CatalogIngestionController::class, 'aiCopilotChat'])->name('ai_copilot');
+        Route::post('/pdf-studio/ai-extract-table', [CatalogIngestionController::class, 'aiExtractTableFromPage'])->name('pdf_studio.ai_extract_table');
 
         // 📊 Page 3: Excel Multi-Row Mapper (6-8 Line Batch Image Assigner & Publisher)
         Route::get('/excel-mapper/{job?}', [CatalogIngestionController::class, 'excelMapper'])->name('excel_mapper');

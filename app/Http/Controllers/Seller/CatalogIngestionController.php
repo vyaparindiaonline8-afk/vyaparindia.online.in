@@ -1303,6 +1303,57 @@ class CatalogIngestionController extends Controller
     }
 
     /**
+     * Update details (Title/Name and Folder/Category) of an individual Media Vault photo.
+     */
+    public function updateMediaDetails(Request $request)
+    {
+        $request->validate([
+            'image_url' => 'required|string',
+            'name' => 'required|string|max:150',
+            'folder' => 'nullable|string|max:100',
+        ]);
+
+        $userId = Auth::id() ?: 1;
+        $url = $request->input('image_url');
+        $name = trim($request->input('name'));
+        $folder = trim($request->input('folder') ?? 'General') ?: 'General';
+        $cleanUrl = ltrim($url, '/');
+
+        $media = \App\Models\SellerMedia::where('user_id', $userId)
+            ->where(function($q) use ($url, $cleanUrl) {
+                $q->where('file_path', $url)
+                  ->orWhere('file_path', $cleanUrl)
+                  ->orWhere('file_path', '/' . $cleanUrl);
+            })->first();
+
+        if ($media) {
+            $media->category_type = $folder;
+            $media->filename = $name;
+            $media->save();
+        } else {
+            \App\Models\SellerMedia::create([
+                'user_id' => $userId,
+                'filename' => $name,
+                'file_path' => $url,
+                'category_type' => $folder,
+                'is_assigned' => false,
+                'is_universal' => false,
+                'permission_granted' => false,
+            ]);
+        }
+
+        \Illuminate\Support\Facades\Cache::forget('cloudinary_resources_vyaparindia');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Photo details saved successfully!',
+            'name' => $name,
+            'folder' => $folder,
+            'url' => $url,
+        ]);
+    }
+
+    /**
      * Delete an image from Gallery Vault.
      */
     public function deleteFromGallery(Request $request)
@@ -1391,7 +1442,16 @@ class CatalogIngestionController extends Controller
         $userId = Auth::id() ?: 1;
         $galleryImages = $this->getAllGalleryImages($userId);
 
-        return view('seller.catalog.pdf_studio', compact('galleryImages'));
+        $folders = ['General'];
+        foreach ($galleryImages as $img) {
+            $f = $img['folder'] ?? $img['category'] ?? 'General';
+            if ($f && !in_array($f, $folders)) {
+                $folders[] = $f;
+            }
+        }
+        sort($folders);
+
+        return view('seller.catalog.pdf_studio', compact('galleryImages', 'folders'));
     }
 
     /**
@@ -1404,6 +1464,7 @@ class CatalogIngestionController extends Controller
                 'image_data' => 'required|string',
                 'title' => 'nullable|string|max:100',
                 'page' => 'nullable|integer',
+                'folder' => 'nullable|string|max:100',
             ]);
 
             $rawData = $request->input('image_data');
@@ -1417,7 +1478,7 @@ class CatalogIngestionController extends Controller
             if ($cloudinaryUrl) {
                 $fileName = basename(parse_url($cloudinaryUrl, PHP_URL_PATH));
                 $shareToCentral = $request->boolean('share_to_central', false);
-                $categoryType = $request->input('category_type', 'hardware');
+                $categoryType = $request->input('folder') ?: $request->input('category_type', 'General');
 
                 // Protect Central Hub from clothes/fashion
                 $fashionKeywords = ['cloth', 'dress', 'shirt', 'pant', 'sari', 'saree', 'suit', 'fashion', 'kurti', 'tshirt', 'jeans', 'fabric', 'apparel', 'garment', 'dupatta', 'top', 'tunic'];
@@ -1444,6 +1505,8 @@ class CatalogIngestionController extends Controller
                     'permission_granted' => $shareToCentral,
                     'is_mine' => true,
                     'deletable' => true,
+                    'folder' => $categoryType,
+                    'category' => $categoryType,
                 ];
                 $this->addCropToRegistry($userId, $newImage);
                 try {
@@ -1512,6 +1575,8 @@ class CatalogIngestionController extends Controller
                 'created_at' => date('d M Y, H:i'),
                 'source' => 'custom_crop',
                 'deletable' => true,
+                'folder' => $categoryType,
+                'category' => $categoryType,
             ];
             $this->addCropToRegistry($userId, $newImage);
             try {
@@ -1519,6 +1584,7 @@ class CatalogIngestionController extends Controller
                     'user_id' => $userId,
                     'filename' => $fileName,
                     'file_path' => $relUrl,
+                    'category_type' => $categoryType,
                     'is_assigned' => false,
                 ]);
             } catch (\Throwable $e) {
@@ -1637,6 +1703,130 @@ Please respond clearly in simple professional Hinglish/English with bullet point
             'success' => false,
             'message' => 'Koi AI API Key nahi mili. Kripya apne .env ya Render me OPENAI_KEY ya OPENAI_API_KEY dalein, ya Copilot settings me key paste karein.',
         ], 400);
+    }
+
+    /**
+     * 🤖 Extract Tabular Product Rows from ONLY the Single Active PDF Page via AI.
+     * Guaranteed single-page context — strictly conserves tokens as requested by user.
+     */
+    public function aiExtractTableFromPage(Request $request)
+    {
+        $request->validate([
+            'page' => 'required|integer',
+            'page_text' => 'required|string',
+            'api_key' => 'nullable|string',
+        ]);
+
+        $userKey = trim($request->input('api_key') ?? '');
+        $openAiKey = (str_starts_with($userKey, 'sk-')) 
+            ? $userKey 
+            : (env('OPENAI_KEY') ?: env('OPENAI_API_KEY') ?: ($userKey ?: null));
+
+        $geminiKey = (str_starts_with($userKey, 'AIza'))
+            ? $userKey
+            : (env('GEMINI_API_KEY') ?: env('GEMINI_KEY') ?: ($userKey ?: null));
+
+        $page = $request->input('page');
+        $pageText = substr($request->input('page_text'), 0, 4000);
+
+        $prompt = "You are an expert product catalog digitizer. Convert the following text from ONLY Page {$page} of a hardware/plumbing/product catalog into a structured JSON array of table rows.
+Each item in the array must be a JSON object with these keys:
+- \"name\": Product name (e.g. \"CPVC Brass Elbow\")
+- \"size\": Size or dimension (e.g. \"25mm (3/4 inch)\" or \"1/2 Inch\" or \"-\")
+- \"mrp\": Numeric MRP or Price (e.g. 185 or 0)
+- \"sku\": Code or SKU if visible (or \"-\")
+- \"category\": Suggested Category (e.g. \"CPVC Fittings\" or \"Pipes\" or \"Hardware\")
+
+CRITICAL RULES:
+1. Return ONLY the raw valid JSON array starting with [ and ending with ]. No explanation, no conversational text, no markdown codeblocks.
+2. Read ONLY the text below for Page {$page}. Do not assume or hallucinate external items.
+
+PAGE {$page} TEXT CONTENT:
+\"\"\"
+{$pageText}
+\"\"\"";
+
+        $reply = null;
+        $provider = null;
+
+        // Try OpenAI
+        if ($openAiKey && (str_starts_with($openAiKey, 'sk-') || !$geminiKey)) {
+            try {
+                $response = Http::withToken($openAiKey)
+                    ->timeout(35)
+                    ->post('https://api.openai.com/v1/chat/completions', [
+                        'model' => 'gpt-4o-mini',
+                        'messages' => [
+                            ['role' => 'system', 'content' => 'You are an accurate catalog extraction engine that outputs only valid JSON arrays.'],
+                            ['role' => 'user', 'content' => $prompt],
+                        ],
+                        'temperature' => 0.1,
+                    ]);
+
+                if ($response->successful()) {
+                    $reply = $response->json('choices.0.message.content');
+                    $provider = 'OpenAI (GPT-4o mini)';
+                }
+            } catch (\Throwable $e) {
+                Log::warning('AI Table extract OpenAI error: ' . $e->getMessage());
+            }
+        }
+
+        // Try Gemini if no reply yet
+        if (!$reply && $geminiKey) {
+            try {
+                $response = Http::timeout(35)
+                    ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$geminiKey}", [
+                        'contents' => [
+                            ['parts' => [['text' => $prompt]]]
+                        ]
+                    ]);
+
+                if ($response->successful()) {
+                    $reply = $response->json('candidates.0.content.parts.0.text');
+                    $provider = 'Google Gemini 1.5 Flash';
+                }
+            } catch (\Throwable $e) {
+                Log::warning('AI Table extract Gemini error: ' . $e->getMessage());
+            }
+        }
+
+        if (!$reply) {
+            return response()->json([
+                'success' => false,
+                'message' => 'AI API Key nahi mili ya connection fail hua. Kripya .env ya Render me OPENAI_KEY / GEMINI_API_KEY dalein, ya AI Copilot panel me key paste karein.',
+            ], 400);
+        }
+
+        // Clean JSON response (strip markdown fences if present)
+        $cleanJson = trim($reply);
+        $cleanJson = preg_replace('/^```(?:json)?\s*/i', '', $cleanJson);
+        $cleanJson = preg_replace('/\s*```$/i', '', $cleanJson);
+        $cleanJson = trim($cleanJson);
+
+        $parsedRows = json_decode($cleanJson, true);
+        if (!is_array($parsedRows)) {
+            // Fallback: regex match json array
+            if (preg_match('/\[.*\]/s', $cleanJson, $matches)) {
+                $parsedRows = json_decode($matches[0], true);
+            }
+        }
+
+        if (!is_array($parsedRows) || empty($parsedRows)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'AI is page se structured table extract nahi kar paya. Aap "Extract Text Lines" (Free Native) ka use karke lines select kar sakte hain.',
+                'raw_reply' => $reply,
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'page' => $page,
+            'rows' => $parsedRows,
+            'total_rows' => count($parsedRows),
+            'provider' => $provider,
+        ]);
     }
 
     /**

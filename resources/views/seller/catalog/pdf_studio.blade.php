@@ -179,10 +179,11 @@
                             <span>Fit Page</span>
                         </button>
 
-                        <!-- Extract Text Lines Button -->
-                        <button type="button" onclick="toggleTextDrawer(true)" class="px-2.5 py-1.5 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-extrabold transition flex items-center gap-1 border border-violet-200" title="Extract Text & Lines into Excel Table">
-                            <i class="fa-solid fa-list-check"></i>
-                            <span>Extract Text Lines</span>
+                        <!-- 📊 Convert Current Page to Excel (Free & AI Modes) -->
+                        <button type="button" onclick="toggleTextDrawer(true)" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95" title="Is current page ka text aur table Excel Sheet me convert karein">
+                            <i class="fa-solid fa-file-excel text-amber-300"></i>
+                            <span>Convert Page to Excel</span>
+                            <span class="px-1.5 py-0.5 rounded-md text-[9px] bg-white/20 text-white font-mono font-bold">0 Tokens / AI</span>
                         </button>
 
                         <!-- Layout Toggle: Split vs Full Page -->
@@ -274,7 +275,7 @@
                                 <h3 class="text-sm font-black text-gray-900">Media Vault Gallery</h3>
                                 <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-bold font-mono" id="rightGalleryCount">{{ count($galleryImages) }}</span>
                             </div>
-                            <p class="text-[11px] text-gray-400">PDF se crop kiye gaye sabhi photos yahan turant dikhenge</p>
+                            <p class="text-[11px] text-gray-500">Naye photos sabse upar dikhenge, purane photos scroll karke dekhein (Kram-anusar)</p>
                         </div>
                         <a href="{{ route('seller.catalog.gallery') }}" target="_blank" class="h-8 w-8 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center text-xs transition" title="Open Full Media Vault">
                             <i class="fa-solid fa-up-right-from-square"></i>
@@ -282,23 +283,30 @@
                     </div>
 
                     <!-- Side Gallery Scrollable List -->
-                    <div class="space-y-3 max-h-[75vh] overflow-y-auto pr-1" id="sideGalleryList">
+                    <div class="space-y-3 max-h-[75vh] overflow-y-auto pr-1 divide-y divide-gray-100/50" id="sideGalleryList">
                         @forelse($galleryImages as $gImg)
-                            <div class="gallery-item-card flex items-center gap-3 p-2.5 rounded-2xl bg-gray-50 hover:bg-indigo-50/50 border border-gray-200 transition group" id="card_img_{{ $gImg['id'] }}">
+                            @php
+                                $cardFolder = $gImg['folder'] ?? $gImg['category'] ?? 'General';
+                            @endphp
+                            <div class="gallery-item-card flex items-center gap-3 p-2.5 rounded-2xl bg-gray-50 hover:bg-indigo-50/50 border border-gray-200 transition group" id="card_img_{{ $gImg['id'] }}" data-img-url="{{ $gImg['url'] }}">
                                 <div class="h-14 w-14 rounded-xl bg-white border border-gray-200 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
                                     <img src="{{ $gImg['asset_url'] }}" alt="{{ $gImg['name'] }}" class="max-h-full max-w-full object-contain">
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <h4 class="text-xs font-bold text-gray-900 truncate" title="{{ $gImg['name'] }}">
+                                    <h4 class="text-xs font-bold text-gray-900 truncate" id="card_name_{{ $gImg['id'] }}" title="{{ $gImg['name'] }}">
                                         {{ $gImg['name'] }}
                                     </h4>
-                                    <div class="flex items-center gap-2 text-[10px] text-gray-400 mt-0.5">
+                                    <div class="flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5 flex-wrap">
+                                        <span class="px-1.5 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold" id="card_folder_{{ $gImg['id'] }}">
+                                            {{ $cardFolder }}
+                                        </span>
                                         <span>{{ $gImg['size_kb'] }} KB</span>
-                                        <span>•</span>
-                                        <span class="text-indigo-600 font-semibold">{{ $gImg['source'] === 'plasto_master' ? 'Master' : 'Crop' }}</span>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-1 shrink-0">
+                                    <button type="button" onclick="openEditCropModal('{{ $gImg['id'] }}', '{{ addslashes($gImg['name']) }}', '{{ addslashes($cardFolder) }}', '{{ $gImg['url'] }}', '{{ $gImg['asset_url'] }}')" title="Edit Details & Folder" class="h-8 w-8 rounded-xl bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 flex items-center justify-center text-xs transition">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
                                     <a href="{{ route('seller.catalog.excel_mapper') }}?assign_img={{ urlencode($gImg['url']) }}" title="Assign to Excel Rows" class="h-8 w-8 rounded-xl bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 flex items-center justify-center text-xs transition">
                                         <i class="fa-solid fa-arrow-right"></i>
                                     </a>
@@ -462,7 +470,7 @@
     </div>
 
     <!-- ======================================================= -->
-    <!-- 📄 TEXT & TABLE LINE EXTRACTOR SLIDE-OVER DRAWER        -->
+    <!-- 📄 CONVERT CURRENT PAGE TO EXCEL SLIDE-OVER DRAWER       -->
     <!-- ======================================================= -->
     <div id="textDrawerOverlay" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 hidden flex justify-end transition-opacity duration-300" onclick="toggleTextDrawer(false)">
         <div class="w-full max-w-lg bg-white h-full shadow-2xl flex flex-col transform transition-transform duration-300" onclick="event.stopPropagation()">
@@ -470,12 +478,12 @@
             <!-- Drawer Header -->
             <div class="p-4 border-b border-gray-200 bg-slate-900 text-white flex items-center justify-between">
                 <div class="flex items-center gap-2.5">
-                    <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-700 flex items-center justify-center text-sm shadow-md">
-                        <i class="fa-solid fa-list-check text-amber-300"></i>
+                    <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-sm shadow-md">
+                        <i class="fa-solid fa-file-excel text-amber-300"></i>
                     </div>
                     <div>
                         <div class="flex items-center gap-2">
-                            <h3 class="text-sm font-black tracking-tight">PDF Text & Lines Extractor</h3>
+                            <h3 class="text-sm font-black tracking-tight">Convert Page to Excel</h3>
                             <span class="px-2 py-0.5 rounded-full text-[10px] bg-white/10 text-emerald-300 font-mono font-bold" id="extractedLineCountBadge">0 Lines</span>
                         </div>
                         <p class="text-[11px] text-gray-400" id="textDrawerPageContext">Page 1</p>
@@ -487,41 +495,184 @@
                 </button>
             </div>
 
-            <!-- Toolbar Actions: Select All, Copy, Send -->
-            <div class="p-3 bg-violet-50 border-b border-violet-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div class="flex items-center gap-1.5">
-                    <button type="button" onclick="toggleSelectAllTextLines(true)" class="px-2.5 py-1 rounded-lg bg-white border border-violet-200 hover:bg-violet-100 text-violet-800 font-bold text-[11px]">
-                        Select All
-                    </button>
-                    <button type="button" onclick="toggleSelectAllTextLines(false)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 text-gray-600 font-medium text-[11px]">
-                        Clear
-                    </button>
-                    <span class="text-[11px] font-bold text-violet-900 ml-1" id="selectedLineCountText">0 Selected</span>
+            <!-- Tab Switcher: Free Native vs AI Smart Table -->
+            <div class="flex border-b border-gray-200 bg-gray-50 p-1.5 gap-1.5">
+                <button type="button" onclick="switchTextDrawerTab('native')" id="tabBtnNative" class="flex-1 py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 bg-white text-indigo-700 shadow-2xs border border-gray-200">
+                    <i class="fa-solid fa-bolt text-amber-500"></i>
+                    <span>Free Text Lines</span>
+                    <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-100 text-emerald-800 font-mono">0 Tokens</span>
+                </button>
+                <button type="button" onclick="switchTextDrawerTab('ai')" id="tabBtnAi" class="flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-gray-600 hover:text-gray-900">
+                    <i class="fa-solid fa-wand-magic-sparkles text-violet-600"></i>
+                    <span>AI Smart Table</span>
+                    <span class="px-1.5 py-0.5 rounded text-[9px] bg-violet-100 text-violet-800 font-mono">Single Page</span>
+                </button>
+            </div>
+
+            <!-- TAB 1: Free Native PDF.js Lines Extractor (0 AI Tokens) -->
+            <div id="nativeDrawerTabContent" class="flex-1 flex flex-col min-h-0">
+                <!-- Toolbar Actions: Select All, Copy, Send -->
+                <div class="p-3 bg-violet-50 border-b border-violet-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" onclick="toggleSelectAllTextLines(true)" class="px-2.5 py-1 rounded-lg bg-white border border-violet-200 hover:bg-violet-100 text-violet-800 font-bold text-[11px]">
+                            Select All
+                        </button>
+                        <button type="button" onclick="toggleSelectAllTextLines(false)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 text-gray-600 font-medium text-[11px]">
+                            Clear
+                        </button>
+                        <span class="text-[11px] font-bold text-violet-900 ml-1" id="selectedLineCountText">0 Selected</span>
+                    </div>
+
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" onclick="copySelectedLinesToClipboard()" class="px-3 py-1.5 rounded-xl bg-white border border-violet-300 hover:bg-violet-100 text-violet-800 font-extrabold text-[11px] flex items-center gap-1">
+                            <i class="fa-solid fa-copy"></i>
+                            <span>Copy</span>
+                        </button>
+                        <button type="button" onclick="sendSelectedLinesToExcelMapper()" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] flex items-center gap-1.5 shadow-sm active:scale-95">
+                            <i class="fa-solid fa-table-cells"></i>
+                            <span>Send to Excel Mapper &rarr;</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="flex items-center gap-1.5">
-                    <button type="button" onclick="copySelectedLinesToClipboard()" class="px-3 py-1.5 rounded-xl bg-white border border-violet-300 hover:bg-violet-100 text-violet-800 font-extrabold text-[11px] flex items-center gap-1">
-                        <i class="fa-solid fa-copy"></i>
-                        <span>Copy</span>
+                <!-- Hint text -->
+                <div class="px-4 py-2 bg-gray-50 border-b border-gray-100 text-[11px] text-gray-600 flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-info text-indigo-600"></i>
+                    <span>Lines select karein aur <b>"Send to Excel Mapper"</b> dabayein — bina kisi AI token ke turant table ban jayega!</span>
+                </div>
+
+                <!-- Extracted Lines List -->
+                <div class="flex-1 p-4 overflow-y-auto space-y-1.5" id="extractedLinesList">
+                    <p class="text-xs text-gray-400 text-center py-8">PDF load hone par is page ke sabhi text lines yahan dikhenge...</p>
+                </div>
+            </div>
+
+            <!-- TAB 2: AI Smart Table Extractor (Single Page Token-Conserving) -->
+            <div id="aiDrawerTabContent" class="flex-1 flex flex-col min-h-0 hidden p-4 space-y-4 overflow-y-auto">
+                <!-- Token Safe Guarantee Banner -->
+                <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-900 space-y-1">
+                    <div class="flex items-center gap-2 font-black text-emerald-800">
+                        <i class="fa-solid fa-shield-halved text-emerald-600"></i>
+                        <span>100% Token Protection Active</span>
+                    </div>
+                    <p class="text-[11px] text-emerald-700 leading-relaxed">
+                        AI sirf samne khule hue <b class="underline">Page <span id="aiActivePageNum">1</span></b> ka text padhega. Baki pages ko bilkul scan nahi karega taaki aapke tokens bilkul waste na hon.
+                    </p>
+                </div>
+
+                <!-- AI Extract Button -->
+                <div class="text-center space-y-2 pt-2">
+                    <button type="button" onclick="runAiPageTableExtraction()" id="btnRunAiExtract" class="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-black text-xs shadow-lg shadow-violet-600/30 transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                        <span id="btnRunAiExtractText">✨ AI se Is Page ka Table Excel me Nikalein</span>
                     </button>
-                    <button type="button" onclick="sendSelectedLinesToExcelMapper()" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] flex items-center gap-1.5 shadow-sm active:scale-95">
+                    <p class="text-[10px] text-gray-400">Current page se Product Name, Size, MRP aur Category automatic table me convert honge</p>
+                </div>
+
+                <!-- Loading State -->
+                <div id="aiExtractLoading" class="hidden text-center py-8 space-y-2">
+                    <i class="fa-solid fa-circle-notch fa-spin text-2xl text-indigo-600"></i>
+                    <p class="text-xs font-bold text-gray-700">AI current page ko analyze kar raha hai...</p>
+                    <p class="text-[11px] text-gray-400">Tokens bachane ke liye sirf Page <span id="aiLoadingPageNum">1</span> scan ho raha hai</p>
+                </div>
+
+                <!-- Extracted AI Table Result Preview -->
+                <div id="aiExtractResultArea" class="hidden space-y-3">
+                    <div class="flex items-center justify-between pb-1 border-b border-gray-100">
+                        <span class="text-xs font-black text-gray-900" id="aiResultRowCount">0 Items Extracted</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] bg-violet-100 text-violet-800 font-mono font-bold" id="aiResultProviderBadge">AI</span>
+                    </div>
+
+                    <div class="border border-gray-200 rounded-2xl overflow-hidden max-h-64 overflow-y-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-gray-100 text-[10px] font-black text-gray-600 uppercase border-b border-gray-200">
+                                <tr>
+                                    <th class="p-2">Product Name</th>
+                                    <th class="p-2">Size</th>
+                                    <th class="p-2">MRP</th>
+                                    <th class="p-2">Category</th>
+                                </tr>
+                            </thead>
+                            <tbody id="aiTablePreviewBody" class="divide-y divide-gray-100 text-[11px]">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Push to Excel Mapper Button -->
+                    <button type="button" onclick="sendAiTableToExcelMapper()" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition flex items-center justify-center gap-2 active:scale-95">
                         <i class="fa-solid fa-table-cells"></i>
-                        <span>Send to Excel Mapper &rarr;</span>
+                        <span>📥 Send Table to Excel Multi-Row Mapper &rarr;</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Hint text -->
-            <div class="px-4 py-2 bg-gray-50 border-b border-gray-100 text-[11px] text-gray-600 flex items-center gap-1.5">
-                <i class="fa-solid fa-circle-info text-indigo-600"></i>
-                <span>Lines select karein aur <b>"Send to Excel Mapper"</b> dabayein — wahan in sabhi me 1-click me photo jud jayegi!</span>
-            </div>
+        </div>
+    </div>
 
-            <!-- Extracted Lines List -->
-            <div class="flex-1 p-4 overflow-y-auto space-y-1.5" id="extractedLinesList">
-                <p class="text-xs text-gray-400 text-center py-8">PDF load hone par is page ke sabhi text lines yahan dikhenge...</p>
+    <!-- ======================================================= -->
+    <!-- ✏️ EDIT CROP DETAILS MODAL (Product Name & Folder)      -->
+    <!-- ======================================================= -->
+    <div id="editCropModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4" onclick="closeEditCropModal()">
+        <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-gray-100 overflow-hidden transform transition-all" onclick="event.stopPropagation()">
+            <div class="p-4 bg-gradient-to-r from-slate-900 to-indigo-950 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="h-8 w-8 rounded-xl bg-indigo-600 flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold">Edit Photo Details</h4>
+                        <p class="text-[10px] text-gray-300">Naam aur Category/Folder update karein</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeEditCropModal()" class="h-8 w-8 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 flex items-center justify-center text-xs transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
+            <div class="p-5 space-y-4">
+                <!-- Thumbnail preview -->
+                <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-200">
+                    <div class="h-16 w-16 rounded-xl bg-white border border-gray-200 p-1 flex items-center justify-center overflow-hidden shrink-0 shadow-2xs">
+                        <img id="editCropPreviewImg" src="" alt="Crop" class="max-h-full max-w-full object-contain">
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Media Vault Photo</span>
+                        <p class="text-xs font-bold text-gray-800 truncate" id="editCropOriginalName"></p>
+                    </div>
+                </div>
 
+                <input type="hidden" id="editCropImgId" value="">
+                <input type="hidden" id="editCropImgUrl" value="">
+
+                <!-- Title / Name -->
+                <div>
+                    <label class="block text-xs font-extrabold text-gray-700 mb-1">Product / Photo Title</label>
+                    <input type="text" id="editCropTitleInput" class="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-600 font-bold text-gray-800" placeholder="e.g. CPVC Brass Elbow 90 Degree">
+                </div>
+
+                <!-- Folder / Category -->
+                <div>
+                    <label class="block text-xs font-extrabold text-gray-700 mb-1">Group / Folder / Category</label>
+                    <select id="editCropFolderSelect" onchange="handleEditCropFolderChange(this.value)" class="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-600 font-bold text-gray-800 bg-white">
+                        @foreach($folders ?? ['General'] as $f)
+                            <option value="{{ $f }}">{{ $f }}</option>
+                        @endforeach
+                        <option value="__NEW__">➕ Naya Folder Banayein...</option>
+                    </select>
+                    <input type="text" id="editCropNewFolderInput" class="w-full px-3.5 py-2 text-xs rounded-xl border border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-600 font-bold text-indigo-900 mt-2 hidden" placeholder="Naye folder ka naam likhein...">
+                </div>
+
+                <!-- Action buttons -->
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                    <button type="button" onclick="closeEditCropModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="saveEditCropDetails()" id="btnSaveCropDetails" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-md shadow-indigo-600/20 transition flex items-center gap-1.5 active:scale-95">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Save Details</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1068,28 +1219,37 @@
                 countEl.innerText = parseInt(countEl.innerText || 0) + 1;
             }
 
+            const imgFolder = img.folder || img.category || 'General';
+
             const card = document.createElement('div');
             card.className = "gallery-item-card flex items-center gap-3 p-2.5 rounded-2xl bg-white border border-emerald-400 shadow-md new-crop-glow transition group";
             card.id = `card_img_${img.id}`;
+            card.setAttribute('data-img-url', img.url);
             card.innerHTML = `
                 <div class="h-14 w-14 rounded-xl bg-white border border-gray-200 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
-                    <img src="${img.asset_url}" alt="${img.name}" class="max-h-full max-w-full object-contain">
+                    <img src="${img.asset_url}" alt="${escapeHtml(img.name)}" class="max-h-full max-w-full object-contain">
                 </div>
                 <div class="flex-1 min-w-0">
-                    <h4 class="text-xs font-bold text-gray-900 truncate" title="${img.name}">
-                        ${img.name}
+                    <h4 class="text-xs font-bold text-gray-900 truncate" id="card_name_${img.id}" title="${escapeHtml(img.name)}">
+                        ${escapeHtml(img.name)}
                     </h4>
-                    <div class="flex items-center gap-2 text-[10px] text-gray-400 mt-0.5">
+                    <div class="flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5 flex-wrap">
+                        <span class="px-1.5 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold" id="card_folder_${img.id}">
+                            ${escapeHtml(imgFolder)}
+                        </span>
                         <span>${img.size_kb} KB</span>
                         <span>•</span>
                         <span class="text-emerald-600 font-bold">New Crop</span>
                     </div>
                 </div>
                 <div class="flex items-center gap-1 shrink-0">
+                    <button type="button" onclick="openEditCropModal('${img.id}', '${(img.name || '').replace(/'/g, "\\'")}', '${imgFolder.replace(/'/g, "\\'")}', '${img.url}', '${img.asset_url}')" title="Edit Details & Folder" class="h-8 w-8 rounded-xl bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 flex items-center justify-center text-xs transition">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
                     <a href="{{ route('seller.catalog.excel_mapper') }}?assign_img=${encodeURIComponent(img.url)}" title="Assign to Excel Rows" class="h-8 w-8 rounded-xl bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 flex items-center justify-center text-xs transition">
                         <i class="fa-solid fa-arrow-right"></i>
                     </a>
-                    <button type="button" onclick="deleteSideGalleryImage('${img.url}', '${img.id}', '${img.name.replace(/'/g, "\\'")}')" title="Delete" class="h-8 w-8 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 flex items-center justify-center text-xs transition">
+                    <button type="button" onclick="deleteSideGalleryImage('${img.url}', '${img.id}', '${(img.name || '').replace(/'/g, "\\'")}')" title="Delete" class="h-8 w-8 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 flex items-center justify-center text-xs transition">
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
                 </div>
@@ -1137,6 +1297,146 @@
             .catch(err => {
                 console.error(err);
                 alert('Network error while deleting image.');
+            });
+        }
+
+        // ==========================================
+        // ✏️ EDIT CROP DETAILS MODAL HANDLERS
+        // ==========================================
+        function openEditCropModal(id, name, folder, url, assetUrl) {
+            document.getElementById('editCropImgId').value = id;
+            document.getElementById('editCropImgUrl').value = url;
+            document.getElementById('editCropTitleInput').value = name;
+            document.getElementById('editCropOriginalName').innerText = name;
+            
+            const preview = document.getElementById('editCropPreviewImg');
+            if (preview) {
+                preview.src = assetUrl || url;
+            }
+
+            const sel = document.getElementById('editCropFolderSelect');
+            if (sel) {
+                let found = false;
+                for (let i = 0; i < sel.options.length; i++) {
+                    if (sel.options[i].value.toLowerCase() === (folder || 'General').toLowerCase()) {
+                        sel.selectedIndex = i;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found && folder) {
+                    const opt = document.createElement('option');
+                    opt.value = folder;
+                    opt.text = folder;
+                    sel.insertBefore(opt, sel.options[sel.options.length - 1]);
+                    sel.value = folder;
+                }
+            }
+
+            const newFolderInput = document.getElementById('editCropNewFolderInput');
+            if (newFolderInput) {
+                newFolderInput.classList.add('hidden');
+                newFolderInput.value = '';
+            }
+
+            document.getElementById('editCropModal').classList.remove('hidden');
+        }
+
+        function closeEditCropModal() {
+            const modal = document.getElementById('editCropModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function handleEditCropFolderChange(val) {
+            const newFolderInput = document.getElementById('editCropNewFolderInput');
+            if (!newFolderInput) return;
+            if (val === '__NEW__') {
+                newFolderInput.classList.remove('hidden');
+                newFolderInput.focus();
+            } else {
+                newFolderInput.classList.add('hidden');
+            }
+        }
+
+        function saveEditCropDetails() {
+            const id = document.getElementById('editCropImgId').value;
+            const url = document.getElementById('editCropImgUrl').value;
+            const name = document.getElementById('editCropTitleInput').value.trim();
+            const sel = document.getElementById('editCropFolderSelect');
+            let folder = sel ? sel.value : 'General';
+
+            if (folder === '__NEW__') {
+                folder = (document.getElementById('editCropNewFolderInput')?.value || '').trim() || 'General';
+            }
+
+            if (!name) {
+                alert('Kripya product / photo ka naam dalein.');
+                return;
+            }
+
+            const btnSave = document.getElementById('btnSaveCropDetails');
+            if (btnSave) {
+                btnSave.disabled = true;
+                btnSave.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
+            }
+
+            fetch("{{ route('seller.catalog.gallery.update_details') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": csrfToken,
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify({
+                    image_url: url,
+                    name: name,
+                    folder: folder
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (btnSave) {
+                    btnSave.disabled = false;
+                    btnSave.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save Details`;
+                }
+
+                if (data.success) {
+                    // Update DOM card
+                    const nameEl = document.getElementById(`card_name_${id}`);
+                    if (nameEl) {
+                        nameEl.innerText = data.name;
+                        nameEl.title = data.name;
+                    }
+                    const folderEl = document.getElementById(`card_folder_${id}`);
+                    if (folderEl) {
+                        folderEl.innerText = data.folder;
+                    }
+
+                    // Update localStorage cache
+                    try {
+                        let cached = JSON.parse(localStorage.getItem('vyapar_cached_crops') || '[]');
+                        let found = cached.find(c => c.id === id || c.url === url);
+                        if (found) {
+                            found.name = data.name;
+                            found.folder = data.folder;
+                            found.category = data.folder;
+                            localStorage.setItem('vyapar_cached_crops', JSON.stringify(cached));
+                        }
+                    } catch(e) {}
+
+                    closeEditCropModal();
+                    showToast('Photo details saved successfully!', 'success');
+                } else {
+                    alert(data.message || 'Error updating photo details.');
+                }
+            })
+            .catch(err => {
+                if (btnSave) {
+                    btnSave.disabled = false;
+                    btnSave.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save Details`;
+                }
+                console.error(err);
+                alert('Network error while updating details.');
             });
         }
 
@@ -1302,6 +1602,12 @@
             if (!drawer) return;
             if (show) {
                 drawer.classList.remove('hidden');
+                const pageContext = document.getElementById('textDrawerPageContext');
+                if (pageContext) pageContext.innerText = `Page ${currentPdfPage}`;
+                const activePageNum = document.getElementById('aiActivePageNum');
+                if (activePageNum) activePageNum.innerText = currentPdfPage;
+                const loadingPageNum = document.getElementById('aiLoadingPageNum');
+                if (loadingPageNum) loadingPageNum.innerText = currentPdfPage;
                 updateTextDrawerUI();
             } else {
                 drawer.classList.add('hidden');
@@ -1449,6 +1755,148 @@
             localStorage.setItem('vyapar_custom_excel_lines', JSON.stringify(payload));
             
             showToast(`${linesToSend.length} lines saved! Opening Excel Multi-Row Mapper...`, 'success');
+
+            setTimeout(() => {
+                window.location.href = "{{ route('seller.catalog.excel_mapper') }}?source=pdf_lines";
+            }, 400);
+        }
+
+        // ==========================================
+        // 📊 CONVERT PAGE TO EXCEL TABS & AI EXTRACTOR
+        // ==========================================
+        let currentAiExtractedRows = [];
+
+        function switchTextDrawerTab(tab) {
+            const nativeTab = document.getElementById('nativeDrawerTabContent');
+            const aiTab = document.getElementById('aiDrawerTabContent');
+            const tabBtnNative = document.getElementById('tabBtnNative');
+            const tabBtnAi = document.getElementById('tabBtnAi');
+
+            if (tab === 'ai') {
+                nativeTab.classList.add('hidden');
+                aiTab.classList.remove('hidden');
+
+                tabBtnAi.className = "flex-1 py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 bg-white text-violet-700 shadow-2xs border border-gray-200";
+                tabBtnNative.className = "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-gray-600 hover:text-gray-900";
+
+                // Update page badges
+                const pageBadge = document.getElementById('aiActivePageNum');
+                if (pageBadge) pageBadge.innerText = currentPdfPage;
+                const loadingBadge = document.getElementById('aiLoadingPageNum');
+                if (loadingBadge) loadingBadge.innerText = currentPdfPage;
+            } else {
+                aiTab.classList.add('hidden');
+                nativeTab.classList.remove('hidden');
+
+                tabBtnNative.className = "flex-1 py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 bg-white text-indigo-700 shadow-2xs border border-gray-200";
+                tabBtnAi.className = "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-gray-600 hover:text-gray-900";
+            }
+        }
+
+        function runAiPageTableExtraction() {
+            if (!currentPageTextContent || currentPageTextContent.trim().length === 0) {
+                alert(`Page ${currentPdfPage} par koi readable text nahi mila ya yeh page scanned image hai.`);
+                return;
+            }
+
+            const btn = document.getElementById('btnRunAiExtract');
+            const btnText = document.getElementById('btnRunAiExtractText');
+            const loading = document.getElementById('aiExtractLoading');
+            const resultArea = document.getElementById('aiExtractResultArea');
+
+            btn.disabled = true;
+            btnText.innerText = `AI Reading Page ${currentPdfPage}...`;
+            loading.classList.remove('hidden');
+            resultArea.classList.add('hidden');
+
+            const apiKey = localStorage.getItem('vyapar_ai_api_key') || localStorage.getItem('vyapar_gemini_api_key') || '';
+
+            fetch("{{ route('seller.catalog.pdf_studio.ai_extract_table') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": csrfToken,
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify({
+                    page: currentPdfPage,
+                    page_text: currentPageTextContent,
+                    api_key: apiKey
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                btnText.innerText = `✨ AI se Is Page ka Table Excel me Nikalein`;
+                loading.classList.add('hidden');
+
+                if (data.success && Array.isArray(data.rows) && data.rows.length > 0) {
+                    currentAiExtractedRows = data.rows;
+                    renderAiTablePreview(data.rows, data.provider);
+                    resultArea.classList.remove('hidden');
+                    showToast(`Page ${currentPdfPage} se ${data.rows.length} items extract ho gaye!`, 'success');
+                } else {
+                    const msg = data.message || 'AI table extract nahi kar paya.';
+                    alert(msg);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btnText.innerText = `✨ AI se Is Page ka Table Excel me Nikalein`;
+                loading.classList.add('hidden');
+                console.error(err);
+                alert('Network error while extracting table with AI.');
+            });
+        }
+
+        function renderAiTablePreview(rows, provider) {
+            const countEl = document.getElementById('aiResultRowCount');
+            if (countEl) countEl.innerText = `${rows.length} Items Detected`;
+
+            const badge = document.getElementById('aiResultProviderBadge');
+            if (badge && provider) badge.innerText = provider;
+
+            const tbody = document.getElementById('aiTablePreviewBody');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+            rows.forEach((r, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-violet-50/50";
+                tr.innerHTML = `
+                    <td class="p-2 font-bold text-gray-900 break-words">${escapeHtml(r.name || '-')}</td>
+                    <td class="p-2 text-indigo-700 font-semibold">${escapeHtml(r.size || '-')}</td>
+                    <td class="p-2 text-emerald-700 font-black font-mono">${r.mrp ? '₹' + escapeHtml(String(r.mrp)) : '-'}</td>
+                    <td class="p-2 text-gray-500">${escapeHtml(r.category || '-')}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function sendAiTableToExcelMapper() {
+            if (!currentAiExtractedRows || currentAiExtractedRows.length === 0) {
+                alert('Excel Mapper me bhejne ke liye koi data available nahi hai.');
+                return;
+            }
+
+            // Convert structured rows into clean formatted lines for Excel Mapper dynamic hydration
+            const lines = currentAiExtractedRows.map(r => {
+                const parts = [r.name];
+                if (r.size && r.size !== '-') parts.push(r.size);
+                if (r.mrp && r.mrp !== '-') parts.push(`MRP ₹${r.mrp}`);
+                if (r.sku && r.sku !== '-') parts.push(`Code: ${r.sku}`);
+                return parts.join(' - ');
+            });
+
+            const payload = {
+                lines: lines,
+                structured_rows: currentAiExtractedRows,
+                page: currentPdfPage,
+                timestamp: Date.now()
+            };
+
+            localStorage.setItem('vyapar_custom_excel_lines', JSON.stringify(payload));
+            showToast(`${lines.length} items saved! Opening Excel Multi-Row Mapper...`, 'success');
 
             setTimeout(() => {
                 window.location.href = "{{ route('seller.catalog.excel_mapper') }}?source=pdf_lines";
