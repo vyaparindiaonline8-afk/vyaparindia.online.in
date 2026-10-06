@@ -626,11 +626,28 @@
                         </table>
                     </div>
 
-                    <!-- Push to Excel Mapper Button -->
-                    <button type="button" onclick="sendAiTableToExcelMapper()" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition flex items-center justify-center gap-2 active:scale-95">
-                        <i class="fa-solid fa-table-cells"></i>
-                        <span>📥 Send Table to Excel Multi-Row Mapper &rarr;</span>
-                    </button>
+                    <!-- Action Buttons -->
+                    <div class="space-y-2 pt-1">
+                        <!-- Direct Save & List in Store -->
+                        <button type="button" onclick="directSaveAiTableToCatalog()" id="btnDirectSaveCatalog" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
+                            <i class="fa-solid fa-cloud-arrow-up text-amber-300"></i>
+                            <span>🚀 1-Click Save & List Products in Store</span>
+                        </button>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <!-- Download CSV / Excel -->
+                            <button type="button" onclick="downloadAiTableAsExcel()" class="py-2 px-3 rounded-xl bg-white hover:bg-gray-50 text-emerald-700 font-bold text-xs border border-emerald-300 transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
+                                <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                                <span>📥 Download Excel</span>
+                            </button>
+
+                            <!-- Push to Excel Mapper -->
+                            <button type="button" onclick="sendAiTableToExcelMapper()" class="py-2 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold text-xs border border-indigo-200 transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer" title="Spreadsheet me open karein taaki photos link kar sakein">
+                                <i class="fa-solid fa-table-cells text-indigo-600"></i>
+                                <span>✏️ Edit & Link Photos</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -2094,6 +2111,126 @@
             setTimeout(() => {
                 window.location.href = "{{ route('seller.catalog.excel_mapper') }}?source=pdf_lines";
             }, 400);
+        }
+
+        function directSaveAiTableToCatalog() {
+            if (!currentAiExtractedRows || currentAiExtractedRows.length === 0) {
+                alert('Catalog me save karne ke liye koi data available nahi hai.');
+                return;
+            }
+
+            const btn = document.getElementById('btnDirectSaveCatalog');
+            const originalHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Products Save Ho Rahe Hain...`;
+            }
+
+            const defaultCat = (document.getElementById('textDrawerCategoryInput')?.value || '').trim() || (currentAiExtractedRows[0]?.category || 'General Hardware');
+
+            const formattedRows = currentAiExtractedRows.map((r, idx) => {
+                const mrp = parseFloat(r.mrp) || 100;
+                return {
+                    product_name: r.name || `Item ${idx + 1}`,
+                    category: (r.category && r.category !== '-') ? r.category : defaultCat,
+                    group_type: (r.category && r.category !== '-') ? r.category : defaultCat,
+                    size: (r.size && r.size !== '-') ? r.size : 'Standard',
+                    packing_1: r.packing_1 || r.pack1 || '',
+                    packing_2: r.packing_2 || r.pack2 || '',
+                    mrp: mrp,
+                    purchase_cost: Math.round(mrp * 0.65),
+                    retail_price: Math.round(mrp * 0.88),
+                    cost_price_2: 0,
+                    cost_price_3: 0,
+                    product_code: (r.sku && r.sku !== '-') ? r.sku : `ITM-${100 + idx}`,
+                    hsn_code: '39174000',
+                    stock: 100
+                };
+            });
+
+            fetch("{{ route('seller.catalog.excel_mapper.create_sheet') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": csrfToken,
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify({
+                    sheet_name: `PDF Page ${currentPdfPage} Catalog (${formattedRows.length} Items)`,
+                    rows: formattedRows,
+                    grouped_cards: []
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+                if (data.success) {
+                    showToast(`🎉 Shabaash! ${formattedRows.length} products catalog list me save ho gaye!`, 'success');
+                    if (data.redirect_url) {
+                        setTimeout(() => {
+                            window.location.href = data.redirect_url + (data.redirect_url.includes('?') ? '&' : '?') + 'mode=saved_job';
+                        }, 500);
+                    }
+                } else {
+                    alert(data.message || 'Error saving to catalog.');
+                }
+            })
+            .catch(err => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+                console.error(err);
+                alert('Network error while saving to catalog.');
+            });
+        }
+
+        function downloadAiTableAsExcel() {
+            if (!currentAiExtractedRows || currentAiExtractedRows.length === 0) {
+                alert('Download karne ke liye koi data nahi hai.');
+                return;
+            }
+
+            const defaultCat = (document.getElementById('textDrawerCategoryInput')?.value || '').trim() || (currentAiExtractedRows[0]?.category || 'General Hardware');
+
+            const headers = ['Product Name', 'Category', 'Size / Dimension', 'Box Packing', 'Bag Packing', 'MRP (INR)', 'Item Code / SKU', 'HSN Code'];
+            const csvRows = [];
+            csvRows.push(headers.join(','));
+
+            currentAiExtractedRows.forEach(r => {
+                const escapeCsv = (val) => {
+                    const s = (val === null || val === undefined) ? '' : String(val).trim();
+                    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+                        return `"${s.replace(/"/g, '""')}"`;
+                    }
+                    return s;
+                };
+
+                const row = [
+                    escapeCsv(r.name || ''),
+                    escapeCsv((r.category && r.category !== '-') ? r.category : defaultCat),
+                    escapeCsv((r.size && r.size !== '-') ? r.size : 'Standard'),
+                    escapeCsv(r.packing_1 || r.pack1 || ''),
+                    escapeCsv(r.packing_2 || r.pack2 || ''),
+                    escapeCsv(r.mrp || '0'),
+                    escapeCsv((r.sku && r.sku !== '-') ? r.sku : ''),
+                    escapeCsv('39174000')
+                ];
+                csvRows.push(row.join(','));
+            });
+
+            const blob = new Blob(["\uFEFF" + csvRows.join("\r\n")], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `Catalog_Page_${currentPdfPage}_Extracted.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast(`Excel Sheet (.csv) download ho gayi!`, 'success');
         }
 
         // Restore cached crops on page load
