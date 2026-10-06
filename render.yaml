@@ -17,3 +17,11 @@ services:
         value: stderr
       - key: DB_CONNECTION
         value: pgsql
+      - key: APP_URL
+        value: https://www.vyaparindia.online
+      - key: SESSION_DOMAIN
+        value: .vyaparindia.online
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
+      - key: SESSION_DRIVER
+        value: cookie
