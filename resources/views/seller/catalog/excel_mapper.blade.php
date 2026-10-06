@@ -163,6 +163,16 @@
                         <span>Browse Photo Bank</span>
                     </button>
 
+                    <button type="button" onclick="openSmartPasteModal()" class="px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-extrabold text-xs shadow-md shadow-violet-600/30 flex items-center gap-1.5 transition active:scale-95" title="Copy kiya hua text ya table direct paste karein (Images & junk auto-ignored)">
+                        <i class="fa-solid fa-paste"></i>
+                        <span>📋 Smart Paste</span>
+                    </button>
+
+                    <button type="button" onclick="openBulkCategoryModal()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-gray-950 font-black text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 transition active:scale-95" title="Sabhi rows ka Category 1-click me badlein">
+                        <i class="fa-solid fa-tags"></i>
+                        <span>⚡ Bulk Category</span>
+                    </button>
+
                     <button type="button" onclick="loadSampleDynamicRows()" class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition flex items-center gap-1.5" title="Load sample UPVC / CPVC fittings">
                         <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
                         <span>Load Sample Lines</span>
@@ -353,6 +363,10 @@
                         <button type="button" onclick="selectNDynamicRows(8)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700" title="Top ke 8 rows select karein">Next 8</button>
                         <button type="button" onclick="selectSameDynamicFamily()" class="px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 font-bold text-blue-700" title="Ek hi item ke sabhi sizes ek sath select karein">Same Family</button>
                         <button type="button" onclick="clearDynamicRowSelection()" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-600" title="Selected checkboxes uncheck karein">Clear</button>
+                        <button type="button" onclick="openBulkCategoryModal()" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 font-extrabold text-xs border border-amber-300 flex items-center gap-1 transition" title="Sabhi rows ka Category 1 click me badlein">
+                            <i class="fa-solid fa-tags text-amber-600"></i>
+                            <span>Bulk Category</span>
+                        </button>
                         <button type="button" onclick="resetDynamicTable()" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 flex items-center gap-1 transition" title="Purane sabhi rows ko delete karein">
                             <i class="fa-solid fa-trash-can"></i>
                             <span>Clear All Rows</span>
@@ -1015,6 +1029,171 @@
                 </button>
             </div>
 
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ⚡ BULK CATEGORY CHANGER MODAL              -->
+    <!-- ========================================== -->
+    <div id="bulkCategoryModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] hidden flex items-center justify-center p-4" onclick="closeBulkCategoryModal()">
+        <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-md overflow-hidden animate-scale-up" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="p-5 border-b border-gray-100 bg-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-tags"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black">Change / Set Category</h3>
+                        <p class="text-[11px] text-gray-400">1-click me sabhi rows ka category update karein</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeBulkCategoryModal()" class="h-8 w-8 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">New Category Name:</label>
+                    <input type="text" id="bulkCategoryInput" list="allCategoriesList" placeholder="e.g. CPVC, UPVC, Sanitaryware, General Hardware..." class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs font-bold text-gray-900 bg-white">
+                    <p class="text-[10px] text-gray-400 mt-1">Preset chunein ya apna category naam likhein.</p>
+                </div>
+
+                <!-- Quick Preset Pills -->
+                <div class="space-y-1.5">
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider">Quick Presets:</label>
+                    <div class="flex flex-wrap gap-1.5">
+                        <button type="button" onclick="setBulkCategoryInput('CPVC')" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold border border-amber-200">CPVC</button>
+                        <button type="button" onclick="setBulkCategoryInput('UPVC')" class="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-bold border border-blue-200">UPVC</button>
+                        <button type="button" onclick="setBulkCategoryInput('Pipes & Fittings')" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs font-bold border border-emerald-200">Pipes & Fittings</button>
+                        <button type="button" onclick="setBulkCategoryInput('SWR & Drainage')" class="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-900 text-xs font-bold border border-purple-200">SWR & Drainage</button>
+                        <button type="button" onclick="setBulkCategoryInput('Sanitaryware')" class="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-900 text-xs font-bold border border-teal-200">Sanitaryware</button>
+                        <button type="button" onclick="setBulkCategoryInput('General Hardware')" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold">General Hardware</button>
+                        <button type="button" onclick="setBulkCategoryInput('Electrical & Wiring')" class="px-2.5 py-1 rounded-lg bg-yellow-50 hover:bg-yellow-100 text-yellow-900 text-xs font-bold border border-yellow-200">Electrical</button>
+                    </div>
+                </div>
+
+                <!-- Scope: All vs Selected -->
+                <div class="p-3.5 bg-slate-50 rounded-2xl border border-gray-200 space-y-2">
+                    <label class="block text-xs font-black text-gray-800">Apply Scope:</label>
+                    <div class="space-y-1.5">
+                        <label class="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                            <input type="radio" name="bulkCategoryScope" value="all" checked class="text-amber-600 focus:ring-amber-500">
+                            <span>Apply to ALL rows in sheet (<span id="bulkAllRowCountText">0</span> Rows)</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                            <input type="radio" name="bulkCategoryScope" value="selected" class="text-amber-600 focus:ring-amber-500">
+                            <span>Apply to SELECTED rows only (<span id="bulkSelectedRowCountText">0</span> Selected)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+                <button type="button" onclick="closeBulkCategoryModal()" class="px-4 py-2 rounded-xl bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-200">
+                    Cancel
+                </button>
+                <button type="button" onclick="applyBulkCategory()" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-gray-950 font-black text-xs shadow-md shadow-amber-500/20 flex items-center gap-2 transition active:scale-95">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Apply Category Now</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 📋 SMART PASTE TEXT / TABLE MODAL           -->
+    <!-- ========================================== -->
+    <div id="smartPasteModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] hidden flex items-center justify-center p-4" onclick="closeSmartPasteModal()">
+        <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-2xl overflow-hidden animate-scale-up max-h-[92vh] flex flex-col" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="p-5 border-b border-gray-100 bg-slate-900 text-white flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-2xl bg-violet-500/20 text-violet-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-paste"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black">Smart Paste Text / Table</h3>
+                        <p class="text-[11px] text-gray-400">PDF, Excel ya WhatsApp se copy kiya text paste karein — middle image aur noise auto-ignore honge!</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeSmartPasteModal()" class="h-8 w-8 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Body (Scrollable) -->
+            <div class="p-6 space-y-4 overflow-y-auto flex-1">
+                <!-- Textarea -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5 flex items-center justify-between">
+                        <span>Copied Text Paste Karein:</span>
+                        <span class="text-[11px] text-gray-400 font-mono" id="smartPasteStatsText">0 lines detected</span>
+                    </label>
+                    <textarea id="smartPasteInput" rows="7" oninput="previewSmartPaste()" placeholder="Yahan mouse se copy kiya hua data paste karein (Ctrl + V)...&#10;&#10;Jaise:&#10;UPVC Elbow 90° 25mm ₹45.00&#10;UPVC Elbow 90° 32mm ₹68.00&#10;UPVC Tee Equal 25mm ₹55.00" class="w-full p-3.5 rounded-2xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500 font-mono text-xs bg-slate-50 focus:bg-white text-gray-800 leading-relaxed"></textarea>
+                </div>
+
+                <!-- Settings Controls -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3.5 bg-violet-50/60 rounded-2xl border border-violet-100">
+                    <div>
+                        <label class="block text-[11px] font-bold text-violet-950 mb-1">Target Category:</label>
+                        <input type="text" id="smartPasteCategory" list="allCategoriesList" value="General Hardware" oninput="previewSmartPaste()" placeholder="e.g. CPVC, Hardware, Brass" class="w-full px-3 py-1.5 rounded-xl border border-violet-200 bg-white font-bold text-xs text-violet-900 focus:ring-1 focus:ring-violet-500">
+                    </div>
+                    <div class="flex items-center gap-2 pt-4">
+                        <label class="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer select-none">
+                            <input type="checkbox" id="smartPasteFilterNoise" checked onchange="previewSmartPaste()" class="rounded text-violet-600 focus:ring-violet-500 cursor-pointer">
+                            <span>Filter Noise & Headers ("Available", "MRP" etc.)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Live Preview Table -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-black text-gray-800">
+                            Parsed Rows Preview (<span id="smartPastePreviewCount">0</span> items):
+                        </label>
+                    </div>
+                    <div class="border border-gray-200 rounded-2xl overflow-hidden max-h-48 overflow-y-auto">
+                        <table class="w-full text-left text-xs font-medium">
+                            <thead class="bg-gray-50 text-[10px] font-black text-gray-500 uppercase border-b border-gray-200">
+                                <tr>
+                                    <th class="p-2 w-8 text-center">#</th>
+                                    <th class="p-2 w-24">Category</th>
+                                    <th class="p-2">Product Name</th>
+                                    <th class="p-2 w-20">Size</th>
+                                    <th class="p-2 w-20">MRP (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="smartPastePreviewBody" class="divide-y divide-gray-100">
+                                <tr>
+                                    <td colspan="5" class="p-4 text-center text-gray-400 text-xs">Upar text paste karein to yahan preview dikhega...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-100 bg-gray-50 flex flex-wrap items-center justify-between gap-2 shrink-0">
+                <button type="button" onclick="closeSmartPasteModal()" class="px-4 py-2 rounded-xl bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-200">
+                    Cancel
+                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="insertSmartPasteRows(false)" class="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-black text-xs shadow-md shadow-violet-600/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>+ Add to Existing Rows</span>
+                    </button>
+                    <button type="button" onclick="insertSmartPasteRows(true)" class="px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold text-xs border border-indigo-200 transition active:scale-95 cursor-pointer" title="Purani rows hata kar sirf naye pasted items rakhein">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span>Replace Table</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1769,11 +1948,40 @@
             }
         }
 
+        function isNoiseCatalogLine(line) {
+            if (!line) return true;
+            const clean = line.trim();
+            if (clean.length <= 1) return true;
+
+            // Pure numbers or bullet symbols (e.g. "1", "2.", "•")
+            if (/^[\d\.\-\*\•\(\)]+$/.test(clean)) return true;
+
+            // Common non-product noise phrases
+            const noisePatterns = [
+                /^(available\s*(in)?|availability)[\s\:\-]*$/i,
+                /^(sizes?|dimensions?|specifications?|description|particulars?|details?)[\s\:\-]*$/i,
+                /^(mrp|rate|price|pkg|packing|std\s*pack|box\s*qty|carton\s*qty)[\s\:\-]*$/i,
+                /^(sr\.?\s*no\.?|s\.?\s*no\.?|item\s*code|cat\.?\s*no\.?|code|product\s*name)[\s\:\-]*$/i,
+                /^(page\s+\d+|price\s*list|w\.?e\.?f\.?|effective\s*from|all\s*rates\s*are|gst\s*extra|terms?\s*&?\s*conditions?)[\s\:\-0-9\/]*$/i,
+                /^(hsn\s*code|hsn\s*:\s*\d+|sac\s*code)[\s\:\-0-9]*$/i
+            ];
+
+            for (const pat of noisePatterns) {
+                if (pat.test(clean)) return true;
+            }
+
+            return false;
+        }
+
         function loadPdfExtractedDataIntoDynamicRows(data) {
             if (!data) return false;
-            const lines = Array.isArray(data) ? data : (data.lines || []);
+            let lines = Array.isArray(data) ? data : (data.lines || []);
             const structuredRows = data.structured_rows || [];
             const pageNum = data.page || 1;
+            const targetCategory = (data && data.category && data.category !== '-') ? data.category.trim() : 'General Hardware';
+
+            // Filter noise words ("Available", headers etc.)
+            lines = lines.filter(l => !isNoiseCatalogLine(l));
 
             if (lines.length === 0 && structuredRows.length === 0) return false;
 
@@ -1787,7 +1995,7 @@
                     const mrp = parseFloat(r.mrp) || (100 + (idx * 20));
                     const cost = Math.round(mrp * 0.65);
                     const retail = Math.round(mrp * 0.88);
-                    const category = (r.category && r.category !== '-') ? r.category.trim() : 'General Hardware';
+                    const category = (r.category && r.category !== '-') ? r.category.trim() : targetCategory;
                     const sku = (r.sku && r.sku !== '-') ? r.sku.trim() : `ITM-${100 + idx}`;
 
                     dynamicRows.push({
@@ -1815,10 +2023,11 @@
                     const text = (lineText || '').trim();
                     if (!text) return;
 
-                    let category = 'UPVC';
+                    let category = targetCategory;
                     if (/CPVC/i.test(text)) category = 'CPVC';
                     else if (/SWR|TRAP|DRAIN/i.test(text)) category = 'SWR';
-                    else if (/AGRI|SOLVENT/i.test(text)) category = 'AGRI_OTHER';
+                    else if (/AGRI|SOLVENT/i.test(text)) category = 'Agri & Solvents';
+                    else if (/UPVC/i.test(text)) category = 'UPVC';
 
                     const sizeMatch = text.match(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/i);
                     const size = sizeMatch ? sizeMatch[0] : 'Standard';
@@ -2881,10 +3090,11 @@
                 const text = (lineText || '').trim();
                 if (!text) return;
 
-                let category = 'UPVC';
+                let category = 'General Hardware';
                 if (/CPVC/i.test(text)) category = 'CPVC';
                 else if (/SWR|TRAP|DRAIN/i.test(text)) category = 'SWR';
-                else if (/AGRI|SOLVENT/i.test(text)) category = 'AGRI_OTHER';
+                else if (/AGRI|SOLVENT/i.test(text)) category = 'Agri & Solvents';
+                else if (/UPVC/i.test(text)) category = 'UPVC';
 
                 const sizeMatch = text.match(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/i);
                 const size = sizeMatch ? sizeMatch[0] : 'Standard';
@@ -2940,7 +3150,7 @@
                 size: 'Standard',
                 packing_1: '',
                 packing_2: '',
-                group_type: 'UPVC',
+                group_type: 'General Hardware',
                 mrp: 100,
                 purchase_cost: 65,
                 cost_price_2: 0,
@@ -2957,6 +3167,246 @@
             dynamicRows = dynamicRows.filter(r => r.id !== id);
             renderDynamicRows();
             updateFloatingBatchBar();
+        }
+
+        // ==========================================
+        // ⚡ BULK CATEGORY CHANGER FUNCTIONS
+        // ==========================================
+        function openBulkCategoryModal() {
+            const modal = document.getElementById('bulkCategoryModal');
+            if (!modal) return;
+            const allCount = document.getElementById('bulkAllRowCountText');
+            const selCount = document.getElementById('bulkSelectedRowCountText');
+            
+            const checkedBoxes = document.querySelectorAll('.dynamic-row-checkbox:checked');
+            if (allCount) allCount.innerText = dynamicRows.length;
+            if (selCount) selCount.innerText = checkedBoxes.length;
+
+            const radios = document.getElementsByName('bulkCategoryScope');
+            if (checkedBoxes.length > 0) {
+                radios.forEach(r => { if (r.value === 'selected') r.checked = true; });
+            } else {
+                radios.forEach(r => { if (r.value === 'all') r.checked = true; });
+            }
+
+            modal.classList.remove('hidden');
+            const input = document.getElementById('bulkCategoryInput');
+            if (input) input.focus();
+        }
+
+        function closeBulkCategoryModal() {
+            const modal = document.getElementById('bulkCategoryModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function setBulkCategoryInput(cat) {
+            const input = document.getElementById('bulkCategoryInput');
+            if (input) input.value = cat;
+        }
+
+        function applyBulkCategory() {
+            const input = document.getElementById('bulkCategoryInput');
+            const newCat = (input?.value || '').trim();
+            if (!newCat) {
+                alert('Kripya koi Category name likhein ya preset chunein.');
+                return;
+            }
+
+            let scope = 'all';
+            document.getElementsByName('bulkCategoryScope').forEach(r => {
+                if (r.checked) scope = r.value;
+            });
+
+            let count = 0;
+            if (scope === 'selected') {
+                const checkedIds = Array.from(document.querySelectorAll('.dynamic-row-checkbox:checked')).map(cb => parseInt(cb.value));
+                if (checkedIds.length === 0) {
+                    alert('Table me se kam se kam 1 row checkbox se select karein ya "Apply to ALL rows" chunein.');
+                    return;
+                }
+                dynamicRows.forEach(r => {
+                    if (checkedIds.includes(r.id)) {
+                        r.group_type = newCat;
+                        r.category = newCat;
+                        count++;
+                    }
+                });
+            } else {
+                dynamicRows.forEach(r => {
+                    r.group_type = newCat;
+                    r.category = newCat;
+                    count++;
+                });
+            }
+
+            saveToLocalStorage();
+            if (typeof autoSaveDraftToBackend === 'function') autoSaveDraftToBackend();
+            renderDynamicRows();
+            refreshCategoryFilterTabs();
+            closeBulkCategoryModal();
+            showToastNotification(`🎉 Success! ${count} rows ka Category badalkar "${newCat}" set kar diya gaya hai.`);
+        }
+
+        // ==========================================
+        // 📋 SMART PASTE TEXT / TABLE FUNCTIONS
+        // ==========================================
+        let smartPasteParsedItems = [];
+
+        function openSmartPasteModal() {
+            const modal = document.getElementById('smartPasteModal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            const textarea = document.getElementById('smartPasteInput');
+            if (textarea) textarea.focus();
+            previewSmartPaste();
+        }
+
+        function closeSmartPasteModal() {
+            const modal = document.getElementById('smartPasteModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function parseRawPasteText(text, targetCategory, filterNoise) {
+            if (!text) return [];
+            const rawLines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            const items = [];
+
+            rawLines.forEach((line, idx) => {
+                if (filterNoise && isNoiseCatalogLine(line)) return;
+
+                // Check if line has tab separation (copied from Excel/table)
+                const tabs = line.split('\t').map(c => c.trim()).filter(Boolean);
+                let name = line;
+                let size = 'Standard';
+                let price = 0;
+
+                if (tabs.length >= 2) {
+                    name = tabs[0];
+                    for (let c = 1; c < tabs.length; c++) {
+                        const colVal = tabs[c];
+                        const priceM = colVal.match(/(?:rs\.?|₹|\/)?\s*(\d+(?:\.\d+)?)/i);
+                        const sizeM = colVal.match(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/i);
+                        if (sizeM && size === 'Standard') {
+                            size = sizeM[0];
+                        } else if (priceM && !isNaN(parseFloat(priceM[1])) && price === 0) {
+                            price = parseFloat(priceM[1]);
+                        }
+                    }
+                } else {
+                    const sizeMatch = line.match(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/i);
+                    if (sizeMatch) size = sizeMatch[0];
+
+                    const priceMatch = line.match(/(?:rs\.?|₹|\/)\s*(\d+(?:\.\d+)?)/i);
+                    if (priceMatch) price = parseFloat(priceMatch[1]);
+                }
+
+                if (!price || price === 0) {
+                    price = 100 + (idx * 20);
+                }
+
+                let cat = targetCategory || 'General Hardware';
+                if (/CPVC/i.test(name)) cat = 'CPVC';
+                else if (/SWR|TRAP|DRAIN/i.test(name)) cat = 'SWR';
+                else if (/AGRI|SOLVENT/i.test(name)) cat = 'Agri & Solvents';
+                else if (/UPVC/i.test(name)) cat = 'UPVC';
+
+                items.push({
+                    name: name,
+                    size: size,
+                    mrp: price,
+                    category: cat
+                });
+            });
+
+            return items;
+        }
+
+        function previewSmartPaste() {
+            const rawText = document.getElementById('smartPasteInput')?.value || '';
+            const cat = (document.getElementById('smartPasteCategory')?.value || '').trim() || 'General Hardware';
+            const filterNoise = document.getElementById('smartPasteFilterNoise')?.checked ?? true;
+
+            smartPasteParsedItems = parseRawPasteText(rawText, cat, filterNoise);
+
+            const countEl = document.getElementById('smartPastePreviewCount');
+            const statsEl = document.getElementById('smartPasteStatsText');
+            const tbody = document.getElementById('smartPastePreviewBody');
+
+            const totalRawLines = rawText.split(/\r?\n/).filter(l => l.trim().length > 0).length;
+            if (statsEl) statsEl.innerText = `${totalRawLines} raw lines (${smartPasteParsedItems.length} valid products)`;
+            if (countEl) countEl.innerText = smartPasteParsedItems.length;
+
+            if (!tbody) return;
+
+            if (smartPasteParsedItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-400 text-xs">Upar text paste karein to yahan preview dikhega...</td></tr>`;
+                return;
+            }
+
+            let previewHtml = '';
+            smartPasteParsedItems.slice(0, 15).forEach((item, idx) => {
+                previewHtml += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-2 text-center text-gray-400 font-mono text-[10px]">${idx + 1}</td>
+                        <td class="p-2"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700">${escapeHtml(item.category)}</span></td>
+                        <td class="p-2 font-bold text-gray-900 truncate max-w-[200px]">${escapeHtml(item.name)}</td>
+                        <td class="p-2 font-mono text-gray-700">${escapeHtml(item.size)}</td>
+                        <td class="p-2 font-mono font-bold text-emerald-700">₹${item.mrp.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+            if (smartPasteParsedItems.length > 15) {
+                previewHtml += `<tr><td colspan="5" class="p-2 text-center text-gray-400 text-[11px] font-medium bg-gray-50">+ ${smartPasteParsedItems.length - 15} aur items hain...</td></tr>`;
+            }
+            tbody.innerHTML = previewHtml;
+        }
+
+        function insertSmartPasteRows(replaceMode) {
+            if (smartPasteParsedItems.length === 0) {
+                alert('Pehle upar text paste karein jisme kam se kam 1 valid product line ho.');
+                return;
+            }
+
+            if (replaceMode) {
+                dynamicRows = [];
+                dynamicRowNextId = 1;
+            }
+
+            smartPasteParsedItems.forEach((item, idx) => {
+                const cost = Math.round(item.mrp * 0.65);
+                const retail = Math.round(item.mrp * 0.88);
+
+                dynamicRows.push({
+                    id: dynamicRowNextId++,
+                    product_code: `ITM-${100 + idx}`,
+                    hsn_code: '39174000',
+                    product_name: item.name,
+                    size: item.size,
+                    packing_1: '',
+                    packing_2: '',
+                    group_type: item.category,
+                    category: item.category,
+                    mrp: item.mrp,
+                    purchase_cost: cost,
+                    cost_price_2: 0,
+                    cost_price_3: 0,
+                    retail_price: retail,
+                    stock: 100,
+                    image_url: preselectedImg || '',
+                    asset_url: preselectedImg ? ('/' + preselectedImg.replace(/^\//, '')) : ''
+                });
+            });
+
+            saveToLocalStorage();
+            if (typeof autoSaveDraftToBackend === 'function') autoSaveDraftToBackend();
+            renderDynamicRows();
+            refreshCategoryFilterTabs();
+            closeSmartPasteModal();
+
+            const textarea = document.getElementById('smartPasteInput');
+            if (textarea) textarea.value = '';
+
+            showToastNotification(`🎉 Shabaash! ${smartPasteParsedItems.length} products Smart Paste se table me jodh diye gaye hain!`);
         }
 
         function renderDynamicRows() {

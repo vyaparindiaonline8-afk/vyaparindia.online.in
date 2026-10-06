@@ -228,11 +228,15 @@
 
                             <!-- ⚡ Floating Instant Action Bubble (Appears right on square when mouse released) -->
                             <div id="cropActionBubble" onmousedown="event.stopPropagation()" onmouseup="event.stopPropagation()" onclick="event.stopPropagation()" class="absolute z-30 bg-gray-900/95 text-white p-2.5 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-2 backdrop-blur-md hidden transition-all">
-                                <button type="button" onclick="extractAndPushToGallery()" id="btnBubbleSave" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-black text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-500/30 whitespace-nowrap active:scale-95 cursor-pointer">
+                                <button type="button" onclick="extractAndPushToGallery()" id="btnBubbleSave" class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-black text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-500/30 whitespace-nowrap active:scale-95 cursor-pointer" title="Sirf Photo ko Crop karke Gallery me save karein">
                                     <i class="fa-solid fa-bolt text-sm"></i>
                                     <span>⚡ Save Photo</span>
                                 </button>
-                                <input type="text" id="bubbleTitleInput" placeholder="(Optional Naam)" class="px-3 py-1.5 rounded-xl bg-white/10 text-white placeholder-gray-400 text-xs border border-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400 w-36 font-medium" onkeydown="if(event.key === 'Enter') extractAndPushToGallery()">
+                                <button type="button" onclick="extractBoxToExcel()" id="btnBubbleExtractText" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs flex items-center gap-1.5 transition shadow-lg shadow-indigo-600/30 whitespace-nowrap active:scale-95 cursor-pointer" title="Box ke andar ka text / table nikalkar Excel Mapper me bhejein (Left/Right Column safe)">
+                                    <i class="fa-solid fa-table-cells"></i>
+                                    <span>📋 Box &rarr; Excel</span>
+                                </button>
+                                <input type="text" id="bubbleTitleInput" placeholder="(Optional Naam/Category)" class="px-3 py-1.5 rounded-xl bg-white/10 text-white placeholder-gray-400 text-xs border border-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400 w-36 font-medium" onkeydown="if(event.key === 'Enter') extractAndPushToGallery()">
                                 <button type="button" onclick="resetCropBox()" class="h-8 w-8 rounded-xl hover:bg-white/20 text-gray-400 hover:text-white flex items-center justify-center text-xs cursor-pointer" title="Cancel Selection">
                                     <i class="fa-solid fa-xmark"></i>
                                 </button>
@@ -511,6 +515,29 @@
 
             <!-- TAB 1: Free Native PDF.js Lines Extractor (0 AI Tokens) -->
             <div id="nativeDrawerTabContent" class="flex-1 flex flex-col min-h-0">
+                <!-- ⚡ Box Mode Active Banner (Visible when user used 'Box -> Excel') -->
+                <div id="drawerBoxModeBanner" class="hidden px-3.5 py-2 bg-indigo-50 border-b border-indigo-200 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2 text-indigo-900 font-extrabold text-[11px]">
+                        <i class="fa-solid fa-crop-simple text-indigo-600"></i>
+                        <span id="drawerBoxModeText">Selected Box Text (Middle image/Side column safe)</span>
+                    </div>
+                    <button type="button" onclick="resetToFullPageExtraction()" class="px-2 py-0.5 rounded-lg bg-white border border-indigo-200 hover:bg-indigo-100 text-indigo-700 font-bold text-[10px]">
+                        Switch to Full Page
+                    </button>
+                </div>
+
+                <!-- Category Input & Noise Filter Bar -->
+                <div class="px-3.5 py-2 bg-slate-50 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+                        <label class="font-bold text-gray-700 whitespace-nowrap text-[11px]">Set Category:</label>
+                        <input type="text" id="textDrawerCategoryInput" placeholder="e.g. CPVC, Hardware, Brass..." value="General Hardware" class="px-2.5 py-1 text-xs rounded-xl border border-gray-300 bg-white font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full max-w-[210px]" title="Ye Category sabhi extracted rows ko assign hogi">
+                    </div>
+                    <label class="flex items-center gap-1.5 text-[11px] font-semibold text-gray-600 cursor-pointer select-none">
+                        <input type="checkbox" id="textDrawerFilterNoise" checked onchange="toggleNoiseFiltering()" class="rounded text-indigo-600 cursor-pointer">
+                        <span>Filter Noise ("Available" etc.)</span>
+                    </label>
+                </div>
+
                 <!-- Toolbar Actions: Select All, Copy, Send -->
                 <div class="p-3 bg-violet-50 border-b border-violet-100 flex flex-wrap items-center justify-between gap-2 text-xs">
                     <div class="flex items-center gap-1.5">
@@ -697,6 +724,10 @@
         let renderTaskPending = null;
         let isFullViewMode = false;
         let currentPageTextContent = '';
+        let currentPageViewport = null;
+        let currentPageRawItems = [];
+        let rawFullPageLines = [];
+        let isBoxExtractionActive = false;
 
         // Crop Selection state
         let isDragging = false;
@@ -871,6 +902,7 @@
 
             currentPdfDoc.getPage(pageNum).then(page => {
                 const viewport = page.getViewport({ scale: currentScale });
+                currentPageViewport = viewport;
                 const outputScale = Math.max(2.0, window.devicePixelRatio || 2.0);
 
                 canvas.width = Math.floor(viewport.width * outputScale);
@@ -896,9 +928,10 @@
 
                 // Extract Text content for AI context and Text Lines Drawer
                 page.getTextContent().then(textContent => {
-                    currentPageTextContent = textContent.items.map(item => item.str).join(' ');
-                    document.getElementById('aiPageContextStatus').innerText = `Page ${pageNum} Active (${textContent.items.length} text items)`;
-                    renderPageTextLines(textContent.items, pageNum);
+                    currentPageRawItems = textContent.items || [];
+                    currentPageTextContent = currentPageRawItems.map(item => item.str).join(' ');
+                    document.getElementById('aiPageContextStatus').innerText = `Page ${pageNum} Active (${currentPageRawItems.length} text items)`;
+                    renderPageTextLines(currentPageRawItems, pageNum);
                 });
 
                 // Update controls
@@ -1614,7 +1647,153 @@
             }
         }
 
+        function isNoiseCatalogLine(line) {
+            if (!line) return true;
+            const clean = line.trim();
+            if (clean.length <= 1) return true;
+
+            // Pure numbers or bullet symbols (e.g. "1", "2.", "•")
+            if (/^[\d\.\-\*\•\(\)]+$/.test(clean)) return true;
+
+            // Common non-product noise phrases
+            const noisePatterns = [
+                /^(available\s*(in)?|availability)[\s\:\-]*$/i,
+                /^(sizes?|dimensions?|specifications?|description|particulars?|details?)[\s\:\-]*$/i,
+                /^(mrp|rate|price|pkg|packing|std\s*pack|box\s*qty|carton\s*qty)[\s\:\-]*$/i,
+                /^(sr\.?\s*no\.?|s\.?\s*no\.?|item\s*code|cat\.?\s*no\.?|code|product\s*name)[\s\:\-]*$/i,
+                /^(page\s+\d+|price\s*list|w\.?e\.?f\.?|effective\s*from|all\s*rates\s*are|gst\s*extra|terms?\s*&?\s*conditions?)[\s\:\-0-9\/]*$/i,
+                /^(hsn\s*code|hsn\s*:\s*\d+|sac\s*code)[\s\:\-0-9]*$/i
+            ];
+
+            for (const pat of noisePatterns) {
+                if (pat.test(clean)) return true;
+            }
+
+            return false;
+        }
+
+        function extractBoxToExcel() {
+            if (!cropCoords || cropCoords.w < 10 || cropCoords.h < 10) {
+                alert('Pehle mouse se PDF canvas par us table ya text area par rectangle box banayein.');
+                return;
+            }
+
+            if (!currentPageViewport || !currentPageRawItems || currentPageRawItems.length === 0) {
+                alert('PDF text items abhi load nahi hue hain ya is page par text uplabdh nahi hai.');
+                return;
+            }
+
+            const boxLeft = cropCoords.x;
+            const boxRight = cropCoords.x + cropCoords.w;
+            const boxTop = cropCoords.y;
+            const boxBottom = cropCoords.y + cropCoords.h;
+
+            // Filter items inside selection box
+            const itemsInBox = [];
+            currentPageRawItems.forEach(item => {
+                if (!item || !item.str || !item.transform) return;
+                const text = item.str.trim();
+                if (!text) return;
+
+                const [vx, vy] = currentPageViewport.convertToViewportPoint(item.transform[4], item.transform[5]);
+                const textWidth = (item.width || 0) * (currentPageViewport.scale || 1.0);
+                const textHeight = Math.abs(item.transform[0] || 12) * (currentPageViewport.scale || 1.0);
+
+                const itemLeft = vx - 4;
+                const itemRight = vx + Math.max(8, textWidth) + 4;
+                const itemTop = vy - textHeight - 4;
+                const itemBottom = vy + 4;
+
+                if (itemLeft < boxRight && itemRight > boxLeft && itemTop < boxBottom && itemBottom > boxTop) {
+                    itemsInBox.push({
+                        text: text,
+                        vx: vx,
+                        vy: vy
+                    });
+                }
+            });
+
+            if (itemsInBox.length === 0) {
+                alert('Chune gaye box ke andar koi text nahi mila! Kripya table ya text ke theek upar box banayein.');
+                return;
+            }
+
+            // Cluster items in box by visual Y coordinate (screen CSS pixels, tolerance 6px)
+            const lineBuckets = {};
+            itemsInBox.forEach(item => {
+                const yBucket = Math.round(item.vy / 6) * 6;
+                if (!lineBuckets[yBucket]) {
+                    lineBuckets[yBucket] = [];
+                }
+                lineBuckets[yBucket].push(item);
+            });
+
+            // Sort lines top to bottom (vy ascending on canvas)
+            const sortedY = Object.keys(lineBuckets).map(Number).sort((a, b) => a - b);
+            let boxLines = [];
+            sortedY.forEach(y => {
+                // Sort items in line left to right (vx ascending)
+                const rowItems = lineBuckets[y].sort((a, b) => a.vx - b.vx);
+                const lineText = rowItems.map(i => i.text).join(' ').trim();
+                if (lineText.length > 0) {
+                    boxLines.push(lineText);
+                }
+            });
+
+            const filterNoise = document.getElementById('textDrawerFilterNoise')?.checked ?? true;
+            if (filterNoise) {
+                boxLines = boxLines.filter(l => !isNoiseCatalogLine(l));
+            }
+
+            if (boxLines.length === 0) {
+                alert('Box ke text filter hone ke baad koi product line nahi bachi (sirf headers/noise the).');
+                return;
+            }
+
+            isBoxExtractionActive = true;
+            currentExtractedLines = boxLines;
+            selectedLineIndices.clear();
+            boxLines.forEach((_, idx) => selectedLineIndices.add(idx));
+
+            // Sync title/category from bubble input if typed
+            const bubbleTitle = (document.getElementById('bubbleTitleInput')?.value || '').trim();
+            const catInput = document.getElementById('textDrawerCategoryInput');
+            if (bubbleTitle && catInput) {
+                catInput.value = bubbleTitle;
+            }
+
+            // Show Box Mode banner in drawer
+            const boxBanner = document.getElementById('drawerBoxModeBanner');
+            const boxBannerText = document.getElementById('drawerBoxModeText');
+            if (boxBanner) boxBanner.classList.remove('hidden');
+            if (boxBannerText) boxBannerText.innerText = `Box Selected: ${boxLines.length} Lines (Image & Side Column Ignored)`;
+
+            toggleTextDrawer(true);
+            updateTextDrawerUI();
+            showToast(`Box ke andar se ${boxLines.length} lines extract ho gayi hain!`, 'success');
+        }
+
+        function resetToFullPageExtraction() {
+            isBoxExtractionActive = false;
+            const boxBanner = document.getElementById('drawerBoxModeBanner');
+            if (boxBanner) boxBanner.classList.add('hidden');
+            if (currentPageRawItems && currentPageRawItems.length > 0) {
+                renderPageTextLines(currentPageRawItems, currentPdfPage);
+            }
+            showToast('Switched to Full Page Lines mode', 'info');
+        }
+
+        function toggleNoiseFiltering() {
+            if (isBoxExtractionActive) {
+                extractBoxToExcel();
+            } else {
+                renderPageTextLines(currentPageRawItems, currentPdfPage);
+            }
+        }
+
         function renderPageTextLines(items, pageNum) {
+            if (isBoxExtractionActive) return; // Preserve active box extraction
+
             currentExtractedLines = [];
             selectedLineIndices.clear();
 
@@ -1641,16 +1820,20 @@
 
             // Sort lines top to bottom (Y descending in PDF coordinate space)
             const sortedY = Object.keys(lineBuckets).map(Number).sort((a, b) => b - a);
+            const filterNoise = document.getElementById('textDrawerFilterNoise')?.checked ?? true;
             
             sortedY.forEach(y => {
                 // Sort items in this line left-to-right (X ascending)
                 const rowItems = lineBuckets[y].sort((a, b) => a.x - b.x);
                 const lineText = rowItems.map(i => i.text).join(' ').trim();
                 if (lineText.length > 0) {
-                    currentExtractedLines.push(lineText);
+                    if (!filterNoise || !isNoiseCatalogLine(lineText)) {
+                        currentExtractedLines.push(lineText);
+                    }
                 }
             });
 
+            rawFullPageLines = currentExtractedLines;
             updateTextDrawerUI();
         }
 
@@ -1665,7 +1848,7 @@
             if (!list) return;
 
             if (currentExtractedLines.length === 0) {
-                list.innerHTML = `<div class="p-8 text-center text-gray-400 text-xs">Is page par koi text nahi mila ya PDF scan image hai.</div>`;
+                list.innerHTML = `<div class="p-8 text-center text-gray-400 text-xs">Is page par koi valid product text line nahi mili.</div>`;
                 return;
             }
 
@@ -1746,15 +1929,18 @@
                 return;
             }
 
-            // Save to localStorage
+            const targetCategory = (document.getElementById('textDrawerCategoryInput')?.value || '').trim() || 'General Hardware';
+
+            // Save to localStorage with category
             const payload = {
                 lines: linesToSend,
+                category: targetCategory,
                 page: currentPdfPage,
                 timestamp: Date.now()
             };
             localStorage.setItem('vyapar_custom_excel_lines', JSON.stringify(payload));
             
-            showToast(`${linesToSend.length} lines saved! Opening Excel Multi-Row Mapper...`, 'success');
+            showToast(`${linesToSend.length} lines saved in "${targetCategory}"! Opening Excel Multi-Row Mapper...`, 'success');
 
             setTimeout(() => {
                 window.location.href = "{{ route('seller.catalog.excel_mapper') }}?source=pdf_lines";
