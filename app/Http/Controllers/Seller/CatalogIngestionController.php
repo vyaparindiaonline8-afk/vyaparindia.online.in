@@ -669,6 +669,122 @@ class CatalogIngestionController extends Controller
     }
 
     /**
+     * ✏️ Fast In-Place Update for Rates, Sizes, MRP & Stocks from Inventory Page.
+     */
+    public function quickUpdateRates(Request $request)
+    {
+        $sellerId = Auth::id();
+        $productId = $request->input('product_id');
+
+        $product = Product::where('id', $productId)->where('user_id', $sellerId)->with('variants')->first();
+        if (!$product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product nahi mila ya aapke account se authorized nahi hai.',
+            ], 404);
+        }
+
+        $prodName = trim($request->input('product_name') ?: $product->name);
+        $prodHsn = trim($request->input('hsn_code') ?: ($product->hsn_code ?: '39174000'));
+        $variantsInput = $request->input('variants', []);
+
+        DB::transaction(function () use ($product, $prodName, $prodHsn, $variantsInput) {
+            // Update parent base info
+            $product->name = $prodName;
+            $product->hsn_code = $prodHsn;
+
+            if (!empty($variantsInput) && is_array($variantsInput)) {
+                $product->has_variants = true;
+                $lowestRetail = null;
+                $lowestWholesale = null;
+                $lowestMrp = null;
+
+                foreach ($variantsInput as $vData) {
+                    $vId = intval($vData['id'] ?? 0);
+                    $vSize = trim($vData['size'] ?? ($vData['variant_name'] ?? 'Standard'));
+                    $vMrp = floatval($vData['mrp'] ?? 0);
+                    $vWholesale = floatval($vData['wholesale_price'] ?? 0);
+                    $vRetail = floatval($vData['retail_price'] ?? 0);
+                    $vPack1 = trim($vData['packing_1'] ?? '');
+                    $vPack2 = trim($vData['packing_2'] ?? '');
+                    $vStock = isset($vData['stock_quantity']) && $vData['stock_quantity'] !== '' ? intval($vData['stock_quantity']) : null;
+                    $vSku = trim($vData['sku'] ?? '');
+
+                    $attributes = [
+                        'size' => $vSize,
+                        'packing_1' => $vPack1,
+                        'packing_2' => $vPack2,
+                    ];
+
+                    $variant = null;
+                    if ($vId > 0) {
+                        $variant = ProductVariant::where('id', $vId)->where('product_id', $product->id)->first();
+                    }
+
+                    if ($variant) {
+                        $variant->variant_name = $vSize;
+                        $variant->mrp = $vMrp;
+                        $variant->wholesale_price = $vWholesale;
+                        $variant->retail_price = $vRetail;
+                        if (!empty($vSku)) $variant->sku = $vSku;
+                        if (!is_null($vStock)) {
+                            $variant->stock_quantity = $vStock;
+                            $variant->track_inventory = true;
+                        }
+                        $variant->attributes = $attributes;
+                        $variant->save();
+                    } else {
+                        // Create new variant if added
+                        $variant = ProductVariant::create([
+                            'product_id' => $product->id,
+                            'variant_name' => $vSize,
+                            'sku' => $vSku ?: ('VAR-' . strtoupper(Str::random(7))),
+                            'mrp' => $vMrp,
+                            'wholesale_price' => $vWholesale,
+                            'retail_price' => $vRetail,
+                            'stock_quantity' => $vStock ?? 100,
+                            'track_inventory' => !is_null($vStock),
+                            'attributes' => $attributes,
+                        ]);
+                    }
+
+                    // Track baselines
+                    if ($vRetail > 0 && ($lowestRetail === null || $vRetail < $lowestRetail)) $lowestRetail = $vRetail;
+                    if ($vWholesale > 0 && ($lowestWholesale === null || $vWholesale < $lowestWholesale)) $lowestWholesale = $vWholesale;
+                    if ($vMrp > 0 && ($lowestMrp === null || $vMrp < $lowestMrp)) $lowestMrp = $vMrp;
+                }
+
+                if ($lowestRetail !== null) $product->price = $lowestRetail;
+                if ($lowestWholesale !== null) $product->wholesale_price = $lowestWholesale;
+                if ($lowestMrp !== null) $product->mrp = $lowestMrp;
+            } else {
+                // Single product rate update
+                if ($request->filled('mrp')) $product->mrp = floatval($request->input('mrp'));
+                if ($request->filled('wholesale_price')) $product->wholesale_price = floatval($request->input('wholesale_price'));
+                if ($request->filled('price')) $product->price = floatval($request->input('price'));
+                if ($request->filled('stock_quantity')) {
+                    $product->stock_quantity = intval($request->input('stock_quantity'));
+                    $product->track_inventory = true;
+                }
+                if ($request->filled('size')) {
+                    $custom = $product->attributes ?? [];
+                    if (!is_array($custom)) $custom = [];
+                    $custom['size'] = trim($request->input('size'));
+                    $product->attributes = $custom;
+                }
+            }
+
+            $product->save();
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Rates aur sizes safalta se update ho gaye!',
+            'product' => $product->fresh(['variants']),
+        ]);
+    }
+
+    /**
      * 1-Click Quick Restock Endpoint.
      */
     public function restock(Request $request)

@@ -50,4 +50,30 @@ class ProductVariant extends Model
     {
         return $this->hasMany(StockMovement::class, 'variant_id');
     }
+
+    public function getCustomAttributesAttribute()
+    {
+        $raw = $this->getAttributes()['attributes'] ?? null;
+        if (is_array($raw)) return $raw;
+        if (is_string($raw)) return json_decode($raw, true) ?: [];
+        return [];
+    }
+
+    public function getCleanSizeAttribute(): string
+    {
+        $custom = $this->custom_attributes;
+        if (!empty($custom['size'])) return $custom['size'];
+        return $this->variant_name ?: 'Standard';
+    }
+
+    public function getPackingInfoAttribute(): string
+    {
+        $custom = $this->custom_attributes;
+        $p1 = $custom['packing_1'] ?? '';
+        $p2 = $custom['packing_2'] ?? '';
+        $parts = [];
+        if (!empty($p1) && $p1 !== '-') $parts[] = "Box: {$p1}";
+        if (!empty($p2) && $p2 !== '-') $parts[] = "Bag: {$p2}";
+        return implode(' | ', $parts);
+    }
 }
