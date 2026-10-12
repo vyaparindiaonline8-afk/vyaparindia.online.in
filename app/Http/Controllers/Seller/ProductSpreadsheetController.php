@@ -242,8 +242,9 @@ class ProductSpreadsheetController extends Controller
         $updatedVariantsCount = 0;
         $createdProductsCount = 0;
         $skippedCount = 0;
+        $affectedProductIds = [];
 
-        DB::transaction(function () use ($rawRows, $seller, &$updatedProductsCount, &$updatedVariantsCount, &$createdProductsCount, &$skippedCount) {
+        DB::transaction(function () use ($rawRows, $seller, &$updatedProductsCount, &$updatedVariantsCount, &$createdProductsCount, &$skippedCount, &$affectedProductIds) {
             foreach ($rawRows as $row) {
                 // Normalized row keys lookup helper
                 $getVal = function(array $aliases) use ($row) {
@@ -332,7 +333,7 @@ class ProductSpreadsheetController extends Controller
 
                 // Case A: Existing Product identified by ID
                 if ($rawId && $rawId > 0) {
-                    $product = Product::where('id', $rawId)->where('user_id', $seller->id)->first();
+                    $product = Product::where('id', $rawId)->where('user_id', $seller->id)->with('variants')->first();
                     if ($product) {
                         $prodUpdates = [];
 
@@ -342,22 +343,6 @@ class ProductSpreadsheetController extends Controller
                             $prodUpdates['slug'] = Str::slug($name) ?: ('prod-' . $product->id . '-' . time());
                         }
 
-                        if (!is_null($sellingPrice) && $sellingPrice > 0) {
-                            $prodUpdates['price'] = $sellingPrice;
-                        }
-                        if (!is_null($wholesalePrice) && $wholesalePrice > 0) {
-                            $prodUpdates['wholesale_price'] = $wholesalePrice;
-                        }
-                        if (!is_null($purchasePrice) && $purchasePrice > 0) {
-                            $prodUpdates['purchase_price'] = $purchasePrice;
-                        }
-                        if (!is_null($mrp) && $mrp > 0) {
-                            $prodUpdates['mrp'] = $mrp;
-                        }
-                        if (!is_null($stock)) {
-                            $prodUpdates['stock_quantity'] = $stock;
-                            $prodUpdates['track_inventory'] = true;
-                        }
                         if (!empty($brand)) {
                             $prodUpdates['brand'] = $brand;
                         }
@@ -376,34 +361,71 @@ class ProductSpreadsheetController extends Controller
                             $prodUpdates['category_id'] = $cat->id;
                         }
 
+                        // 2. Check if product has variants or matches a variant row
+                        $hasVariants = $product->variants && $product->variants->isNotEmpty();
+                        $matchedVariant = null;
+
+                        if ($hasVariants) {
+                            if ($variantId && $variantId > 0) {
+                                $matchedVariant = $product->variants->firstWhere('id', $variantId);
+                            } elseif (!empty($sizeVariant)) {
+                                $reqClean = strtolower(trim($sizeVariant));
+                                foreach ($product->variants as $pv) {
+                                    $pvClean = strtolower(trim($pv->variant_name ?: ($pv->size ?: '')));
+                                    if ($pvClean === $reqClean || str_contains($pvClean, $reqClean) || str_contains($reqClean, $pvClean)) {
+                                        $matchedVariant = $pv;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        if ($matchedVariant) {
+                            // Update variant-specific fields cleanly
+                            $varUpdates = [];
+                            if (!is_null($sellingPrice) && $sellingPrice > 0) $varUpdates['retail_price'] = $sellingPrice;
+                            if (!is_null($wholesalePrice) && $wholesalePrice > 0) $varUpdates['wholesale_price'] = $wholesalePrice;
+                            if (!is_null($purchasePrice) && $purchasePrice > 0) {
+                                $varUpdates['purchase_price'] = $purchasePrice;
+                                $varUpdates['raw_rate'] = $purchasePrice;
+                            }
+                            if (!is_null($mrp) && $mrp > 0) $varUpdates['mrp'] = $mrp;
+                            if (!is_null($stock)) {
+                                $varUpdates['stock_quantity'] = $stock;
+                                $varUpdates['track_inventory'] = true;
+                            }
+                            if (!empty($sizeVariant)) $varUpdates['variant_name'] = $sizeVariant;
+
+                            if (!empty($varUpdates)) {
+                                $matchedVariant->update($varUpdates);
+                                $updatedVariantsCount++;
+                                $affectedProductIds[$product->id] = true;
+                            }
+                        } else {
+                            // Single Product rate update (when product has no variants)
+                            if (!$hasVariants) {
+                                if (!is_null($sellingPrice) && $sellingPrice > 0) {
+                                    $prodUpdates['price'] = $sellingPrice;
+                                }
+                                if (!is_null($wholesalePrice) && $wholesalePrice > 0) {
+                                    $prodUpdates['wholesale_price'] = $wholesalePrice;
+                                }
+                                if (!is_null($purchasePrice) && $purchasePrice > 0) {
+                                    $prodUpdates['purchase_price'] = $purchasePrice;
+                                }
+                                if (!is_null($mrp) && $mrp > 0) {
+                                    $prodUpdates['mrp'] = $mrp;
+                                }
+                                if (!is_null($stock)) {
+                                    $prodUpdates['stock_quantity'] = $stock;
+                                    $prodUpdates['track_inventory'] = true;
+                                }
+                            }
+                        }
+
                         if (!empty($prodUpdates)) {
                             $product->update($prodUpdates);
                             $updatedProductsCount++;
-                        }
-
-                        // 2. If row specifies variant_id, update variant specific fields
-                        if ($variantId && $variantId > 0) {
-                            $variant = $product->variants()->where('id', $variantId)->first();
-                            if ($variant) {
-                                $varUpdates = [];
-                                if (!is_null($sellingPrice) && $sellingPrice > 0) $varUpdates['retail_price'] = $sellingPrice;
-                                if (!is_null($wholesalePrice) && $wholesalePrice > 0) $varUpdates['wholesale_price'] = $wholesalePrice;
-                                if (!is_null($purchasePrice) && $purchasePrice > 0) {
-                                    $varUpdates['purchase_price'] = $purchasePrice;
-                                    $varUpdates['raw_rate'] = $purchasePrice;
-                                }
-                                if (!is_null($mrp) && $mrp > 0) $varUpdates['mrp'] = $mrp;
-                                if (!is_null($stock)) {
-                                    $varUpdates['stock_quantity'] = $stock;
-                                    $varUpdates['track_inventory'] = true;
-                                }
-                                if (!empty($sizeVariant)) $varUpdates['variant_name'] = $sizeVariant;
-
-                                if (!empty($varUpdates)) {
-                                    $variant->update($varUpdates);
-                                    $updatedVariantsCount++;
-                                }
-                            }
                         }
                     } else {
                         $skippedCount++;
@@ -446,6 +468,26 @@ class ProductSpreadsheetController extends Controller
                     } else {
                         $skippedCount++;
                     }
+                }
+            }
+
+            // Re-sync base prices and stock for all affected products that have variants
+            foreach (array_keys($affectedProductIds) as $pId) {
+                $p = Product::with('variants')->find($pId);
+                if ($p && $p->variants->isNotEmpty()) {
+                    $minRetail = $p->variants->where('retail_price', '>', 0)->min('retail_price');
+                    $minWholesale = $p->variants->where('wholesale_price', '>', 0)->min('wholesale_price');
+                    $minMrp = $p->variants->where('mrp', '>', 0)->min('mrp');
+                    $minPurchase = $p->variants->where('purchase_price', '>', 0)->min('purchase_price');
+                    $totalStock = $p->variants->sum('stock_quantity');
+
+                    $p->update([
+                        'price' => $minRetail ?: $p->price,
+                        'wholesale_price' => $minWholesale ?: $p->wholesale_price,
+                        'mrp' => $minMrp ?: $p->mrp,
+                        'purchase_price' => $minPurchase ?: $p->purchase_price,
+                        'stock_quantity' => $totalStock > 0 ? $totalStock : $p->stock_quantity,
+                    ]);
                 }
             }
         });
