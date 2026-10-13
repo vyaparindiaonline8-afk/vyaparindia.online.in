@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Seller;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\Category;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -244,7 +245,9 @@ class ProductSpreadsheetController extends Controller
         $skippedCount = 0;
         $affectedProductIds = [];
 
-        DB::transaction(function () use ($rawRows, $seller, &$updatedProductsCount, &$updatedVariantsCount, &$createdProductsCount, &$skippedCount, &$affectedProductIds) {
+        $sellerProducts = Product::where('user_id', $seller->id)->with('variants')->get();
+
+        DB::transaction(function () use ($rawRows, $seller, $sellerProducts, &$updatedProductsCount, &$updatedVariantsCount, &$createdProductsCount, &$skippedCount, &$affectedProductIds) {
             foreach ($rawRows as $row) {
                 // Pre-build normalized key-value map for robust header lookup (handles raw Excel, Hindi, snake_case)
                 $normMap = [];
@@ -354,31 +357,27 @@ class ProductSpreadsheetController extends Controller
                     'description', 'description_vivrn', 'desc', 'description__vivrn_'
                 ]);
 
-                // Resolve Product: Case 1 by ID, Case 2 by Name / Base Family
+                // Resolve Product: Case 1 by ID, Case 2 by Name / Base Family (In-Memory for maximum speed)
                 $product = null;
                 if ($rawId && $rawId > 0) {
-                    $product = Product::where('id', $rawId)->where('user_id', $seller->id)->with('variants')->first();
+                    $product = $sellerProducts->firstWhere('id', $rawId);
                 }
 
                 if (!$product && !empty($name)) {
-                    // Try to match by exact product name
-                    $product = Product::where('user_id', $seller->id)
-                        ->where(function($q) use ($name) {
-                            $q->where('name', $name)
-                              ->orWhereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($name))]);
-                        })
-                        ->with('variants')
-                        ->first();
+                    $cleanName = strtolower(trim($name));
+                    $product = $sellerProducts->first(function($p) use ($cleanName) {
+                        return strtolower(trim($p->name)) === $cleanName;
+                    });
 
                     // If not found, check if $name contains compound sizes (e.g. MULTI FLOOR TRAP 110*75*50) and matches parent base family
                     if (!$product) {
                         $cleanBaseName = trim(preg_replace('~\b\d+(\.\d+)?(\s*[\*xX/]\s*\d+(\.\d+)?)*\s*(mm|inch|feet|ft)?\b~i', '', $name));
                         $cleanBaseName = trim($cleanBaseName, " -*");
                         if (!empty($cleanBaseName) && $cleanBaseName !== $name) {
-                            $product = Product::where('user_id', $seller->id)
-                                ->whereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($cleanBaseName))])
-                                ->with('variants')
-                                ->first();
+                            $lowerBase = strtolower(trim($cleanBaseName));
+                            $product = $sellerProducts->first(function($p) use ($lowerBase) {
+                                return strtolower(trim($p->name)) === $lowerBase;
+                            });
                             if ($product && empty($sizeVariant)) {
                                 if (preg_match('~(\d+(?:\.\d+)?(?:\s*[\*xX/]\s*\d+(?:\.\d+)?)+\s*(?:mm|inch|ft)?)~i', $name, $dm)) {
                                     $sizeVariant = trim($dm[1]);
@@ -474,6 +473,7 @@ class ProductSpreadsheetController extends Controller
                             'track_inventory' => !is_null($stock),
                             'attributes' => ['size' => $sizeVariant],
                         ]);
+                        $product->variants->push($newVar);
                         $updatedVariantsCount++;
                         $affectedProductIds[$product->id] = true;
                     } else {
@@ -534,6 +534,7 @@ class ProductSpreadsheetController extends Controller
                             ]);
 
                             $createdProductsCount++;
+                            $sellerProducts->push($newProduct);
                         } else {
                             $skippedCount++;
                         }
