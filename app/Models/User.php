@@ -101,7 +101,8 @@ class User extends Authenticatable
         return (int)$this->role_id === 2 
             || ($this->role && $this->role->name === 'seller')
             || $this->sellerProfile()->exists()
-            || $this->sellerPage()->exists();
+            || $this->sellerPage()->exists()
+            || $this->isOwnerOrAdmin();
     }
 
     public function is_buyer()

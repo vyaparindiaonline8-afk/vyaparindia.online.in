@@ -127,6 +127,34 @@ class AuthController extends Controller
             }
         }
 
+        // Direct Render Environment Owner Authentication
+        $rawAdminEnv = env('ADMIN_EMAIL') . ',' . env('OWNER_EMAIL') . ',' . env('SUPERADMIN_EMAIL');
+        $adminEmails = array_map('strtolower', array_filter(array_map('trim', explode(',', $rawAdminEnv))));
+        $adminPass = env('ADMIN_PASSWORD');
+        $inputEmail = strtolower(trim($request->email));
+
+        if (!empty($adminPass) && in_array($inputEmail, $adminEmails, true) && hash_equals((string)$adminPass, (string)$request->password)) {
+            $user = User::firstOrCreate(
+                ['email' => $inputEmail],
+                [
+                    'name' => 'Platform Owner',
+                    'role_id' => 1,
+                    'password' => Hash::make($adminPass),
+                ]
+            );
+
+            if (!Hash::check($adminPass, $user->password) || (int)$user->role_id !== 1) {
+                $user->password = Hash::make($adminPass);
+                $user->role_id = 1;
+                $user->save();
+            }
+
+            Auth::login($user);
+            $request->session()->regenerate();
+
+            return redirect()->route('admin.dashboard');
+        }
+
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
         ]);
