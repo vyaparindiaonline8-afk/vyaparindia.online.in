@@ -95,10 +95,10 @@ class AuthController extends Controller
     {
         if (Auth::check()) {
             $user = Auth::user();
-            if ($user->is_admin()) {
-                return redirect()->route('admin.dashboard');
-            } elseif ($user->is_seller()) {
+            if ($user->is_seller()) {
                 return redirect()->route('seller.dashboard');
+            } elseif ($user->is_admin()) {
+                return redirect()->route('admin.dashboard');
             } else {
                 return redirect()->route('buyer.dashboard');
             }
@@ -118,10 +118,10 @@ class AuthController extends Controller
 
             $user = Auth::user();
 
-            if ($user->is_admin()) {
-                return redirect()->route('admin.dashboard');
-            } elseif ($user->is_seller()) {
+            if ($user->is_seller()) {
                 return redirect()->route('seller.dashboard');
+            } elseif ($user->is_admin()) {
+                return redirect()->route('admin.dashboard');
             } else {
                 return redirect()->route('buyer.dashboard');
             }
@@ -152,6 +152,9 @@ class AuthController extends Controller
             Auth::login($user);
             $request->session()->regenerate();
 
+            if ($user->is_seller()) {
+                return redirect()->route('seller.dashboard');
+            }
             return redirect()->route('admin.dashboard');
         }
 

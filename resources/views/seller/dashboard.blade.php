@@ -23,7 +23,12 @@
                     </div>
                 </a>
 
-                <div class="flex items-center gap-3 sm:gap-4">
+                    @if(Auth::user()->isOwnerOrAdmin())
+                        <a href="{{ route('admin.dashboard') }}" class="px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-extrabold text-xs transition flex items-center gap-1.5 border border-purple-200 shadow-2xs" title="Super Admin Control Hub">
+                            <span>👑 Admin Hub</span>
+                        </a>
+                    @endif
+
                     <!-- Prominent Home Button -->
                     <a href="{{ route('home') }}" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-800 font-extrabold text-xs transition flex items-center gap-1.5 shadow-xs border border-slate-200 hover:border-blue-200" title="मार्केटप्लेस होम पेज पर जाएं">
                         <i class="fa-solid fa-house text-blue-600"></i>

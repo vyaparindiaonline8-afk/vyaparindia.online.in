@@ -26,6 +26,12 @@
                 </div>
 
                 <div class="flex items-center gap-3">
+                    @if(Auth::user()->isOwnerOrAdmin())
+                        <a href="{{ route('admin.dashboard') }}" class="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-extrabold transition flex items-center gap-1.5 border border-purple-200" title="Super Admin Hub">
+                            <span>👑 Admin Hub</span>
+                        </a>
+                    @endif
+
                     <a href="{{ route('home') }}" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-extrabold transition flex items-center gap-1.5 shadow-xs" title="Home Marketplace">
                         <i class="fa-solid fa-house text-blue-600"></i>
                         <span>Home</span>
