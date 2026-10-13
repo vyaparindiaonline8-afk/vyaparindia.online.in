@@ -365,8 +365,10 @@ class ProductSpreadsheetController extends Controller
 
                 if (!$product && !empty($name)) {
                     $cleanName = strtolower(trim($name));
-                    $product = $sellerProducts->first(function($p) use ($cleanName) {
-                        return strtolower(trim($p->name)) === $cleanName;
+                    $nameSlug = Str::slug($name);
+                    $product = $sellerProducts->first(function($p) use ($cleanName, $nameSlug) {
+                        return strtolower(trim($p->name)) === $cleanName
+                            || (!empty($nameSlug) && $p->slug === $nameSlug);
                     });
 
                     // If not found, check if $name contains compound sizes (e.g. MULTI FLOOR TRAP 110*75*50) and matches parent base family
@@ -375,8 +377,10 @@ class ProductSpreadsheetController extends Controller
                         $cleanBaseName = trim($cleanBaseName, " -*");
                         if (!empty($cleanBaseName) && $cleanBaseName !== $name) {
                             $lowerBase = strtolower(trim($cleanBaseName));
-                            $product = $sellerProducts->first(function($p) use ($lowerBase) {
-                                return strtolower(trim($p->name)) === $lowerBase;
+                            $baseSlug = Str::slug($cleanBaseName);
+                            $product = $sellerProducts->first(function($p) use ($lowerBase, $baseSlug) {
+                                return strtolower(trim($p->name)) === $lowerBase
+                                    || (!empty($baseSlug) && $p->slug === $baseSlug);
                             });
                             if ($product && empty($sizeVariant)) {
                                 if (preg_match('~(\d+(?:\.\d+)?(?:\s*[\*xX/]\s*\d+(?:\.\d+)?)+\s*(?:mm|inch|ft)?)~i', $name, $dm)) {
@@ -393,7 +397,20 @@ class ProductSpreadsheetController extends Controller
                     // 1. Allow updating Product Name if explicitly provided and matched by ID
                     if ($rawId && !empty($name) && $name !== $product->name) {
                         $prodUpdates['name'] = $name;
-                        $prodUpdates['slug'] = Str::slug($name) ?: ('prod-' . $product->id . '-' . time());
+                        $newSlug = Str::slug($name) ?: ('prod-' . $product->id . '-' . time());
+                        if ($newSlug !== $product->slug) {
+                            $slugCandidate = $newSlug;
+                            $suffix = 1;
+                            while (Product::where('slug', $slugCandidate)->where('id', '!=', $product->id)->exists()) {
+                                $slugCandidate = $newSlug . '-' . $seller->id . ($suffix > 1 ? '-' . $suffix : '');
+                                if (Product::where('slug', $slugCandidate)->where('id', '!=', $product->id)->exists()) {
+                                    $slugCandidate = $newSlug . '-' . Str::random(5);
+                                    break;
+                                }
+                                $suffix++;
+                            }
+                            $prodUpdates['slug'] = $slugCandidate;
+                        }
                     }
 
                     if (!empty($brand)) {
@@ -516,10 +533,27 @@ class ProductSpreadsheetController extends Controller
                             }
 
                             $finalPrice = $sellingPrice ?? ($mrp ?? 0);
+
+                            // Generate guaranteed globally unique slug to prevent Postgres 23505 Unique Violation
+                            $baseSlug = Str::slug($name);
+                            if (empty($baseSlug)) {
+                                $baseSlug = 'prod-' . $seller->id . '-' . time();
+                            }
+                            $uniqueSlug = $baseSlug;
+                            $suffix = 1;
+                            while (Product::where('slug', $uniqueSlug)->exists()) {
+                                $uniqueSlug = $baseSlug . '-' . $seller->id . ($suffix > 1 ? '-' . $suffix : '');
+                                if (Product::where('slug', $uniqueSlug)->exists()) {
+                                    $uniqueSlug = $baseSlug . '-' . Str::random(5);
+                                    break;
+                                }
+                                $suffix++;
+                            }
+
                             $newProduct = Product::create([
                                 'user_id' => $seller->id,
                                 'name' => $name,
-                                'slug' => Str::slug($name) ?: ('prod-' . time() . '-' . rand(100, 999)),
+                                'slug' => $uniqueSlug,
                                 'description' => !empty($desc) ? $desc : $name,
                                 'category_id' => $catId,
                                 'brand' => !empty($brand) ? $brand : null,
@@ -530,11 +564,24 @@ class ProductSpreadsheetController extends Controller
                                 'mrp' => $mrp ?? $finalPrice,
                                 'stock_quantity' => $stock ?? 100,
                                 'track_inventory' => !is_null($stock),
-                                'has_variants' => false,
+                                'has_variants' => !empty($sizeVariant),
                             ]);
 
                             $createdProductsCount++;
                             $sellerProducts->push($newProduct);
+
+                            if (!empty($sizeVariant)) {
+                                ProductVariant::create([
+                                    'product_id' => $newProduct->id,
+                                    'size' => $sizeVariant,
+                                    'color' => null,
+                                    'price' => $finalPrice,
+                                    'wholesale_price' => $wholesalePrice ?? $finalPrice,
+                                    'purchase_price' => $purchasePrice ?? 0,
+                                    'mrp' => $mrp ?? $finalPrice,
+                                    'stock_quantity' => $stock ?? 100,
+                                ]);
+                            }
                         } else {
                             $skippedCount++;
                         }

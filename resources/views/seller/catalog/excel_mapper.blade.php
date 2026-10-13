@@ -756,32 +756,38 @@
     <!-- ========================================== -->
     <!-- 📊 EXCEL COLUMN MAPPING MODAL              -->
     <!-- ========================================== -->
-    <div id="excelColumnMapModal" class="fixed inset-0 bg-black/70 backdrop-blur-xs z-[9999] hidden flex items-center justify-center p-4 overflow-y-auto" onclick="closeColumnMapperModal()">
-        <div class="bg-white rounded-3xl max-w-3xl w-full shadow-2xl border border-gray-200 overflow-hidden flex flex-col my-8 max-h-[90vh]" onclick="event.stopPropagation()">
+    <div id="excelColumnMapModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] hidden flex items-center justify-center p-2 sm:p-4 md:p-6" onclick="closeColumnMapperModal()">
+        <div class="bg-white rounded-2xl sm:rounded-3xl max-w-3xl w-full shadow-2xl border border-gray-200 flex flex-col h-[94vh] sm:h-[88vh] overflow-hidden" onclick="event.stopPropagation()">
             
-            <!-- Modal Header -->
-            <div class="p-5 border-b border-gray-100 bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="h-10 w-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg shadow-md shadow-emerald-600/30">
+            <!-- Modal Header (Always Sticky Top) -->
+            <div class="p-3.5 sm:p-4 border-b border-gray-200 bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 flex items-center justify-between shrink-0 sticky top-0 z-30">
+                <div class="flex items-center gap-2.5">
+                    <div class="h-9 w-9 sm:h-10 sm:w-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-base sm:text-lg shadow-md shadow-emerald-600/30 shrink-0">
                         <i class="fa-solid fa-table-columns"></i>
                     </div>
                     <div>
-                        <h3 class="text-base font-black text-gray-900 flex items-center gap-2">
+                        <h3 class="text-xs sm:text-base font-black text-gray-900 flex items-center gap-1.5 sm:gap-2">
                             <span>Excel Column Mapper</span>
                             <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-bold" id="mapTotalRowsCount">0 Rows Found</span>
                         </h3>
-                        <p class="text-xs text-gray-600 font-medium">
-                            Apni Excel sheet ke columns ko sahi fields ke sath match karein taaki <b>MRP (₹)</b> aur <b>Sizes</b> accurate load hon!
+                        <p class="text-[10px] sm:text-xs text-gray-600 font-medium">
+                            कॉलम मैच करें ताकि <b>MRP</b> व <b>Sizes</b> सही लोड हों!
                         </p>
                     </div>
                 </div>
-                <button type="button" onclick="closeColumnMapperModal()" class="h-8 w-8 rounded-xl bg-white hover:bg-gray-100 text-gray-500 hover:text-gray-800 flex items-center justify-center text-sm shadow-2xs transition">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="applyExcelColumnMapping()" class="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition active:scale-95" title="Click to apply column mapping immediately">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>Apply Mapping</span>
+                    </button>
+                    <button type="button" onclick="closeColumnMapperModal()" class="h-8 w-8 rounded-xl bg-white hover:bg-gray-100 text-gray-500 hover:text-gray-800 flex items-center justify-center text-sm shadow-xs transition" title="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
             </div>
 
-            <!-- Modal Body (Scrollable) -->
-            <div class="p-6 space-y-6 overflow-y-auto flex-1">
+            <!-- Modal Body (Scrollable with smooth scrolling) -->
+            <div class="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1 overscroll-contain bg-slate-50/40">
                 
                 <!-- Quick Settings: Header Row -->
                 <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
@@ -1022,12 +1028,12 @@
 
             </div>
 
-            <!-- Modal Footer -->
-            <div class="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
-                <button type="button" onclick="closeColumnMapperModal()" class="px-4 py-2.5 rounded-xl bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-200 transition">
+            <!-- Modal Footer (Always Sticky Bottom) -->
+            <div class="p-3.5 sm:p-4 border-t border-gray-200 bg-white flex items-center justify-between shrink-0 sticky bottom-0 z-30 shadow-xs">
+                <button type="button" onclick="closeColumnMapperModal()" class="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs border border-gray-200 transition">
                     Cancel
                 </button>
-                <button type="button" onclick="applyExcelColumnMapping()" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95">
+                <button type="button" onclick="applyExcelColumnMapping()" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm shadow-md shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95">
                     <i class="fa-solid fa-circle-check"></i>
                     <span>Apply Mapping & Load All Products</span>
                 </button>
