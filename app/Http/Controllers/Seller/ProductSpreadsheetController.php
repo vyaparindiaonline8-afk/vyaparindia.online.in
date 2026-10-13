@@ -243,6 +243,8 @@ class ProductSpreadsheetController extends Controller
         $updatedVariantsCount = 0;
         $unchangedCount = 0;
         $createdProductsCount = 0;
+        $quotaExceededCount = 0;
+        $unmatchedCount = 0;
         $skippedCount = 0;
         $affectedProductIds = [];
         $allowCreateNew = $request->boolean('allow_create_new', false);
@@ -642,10 +644,13 @@ class ProductSpreadsheetController extends Controller
                                 ]);
                             }
                         } else {
+                            $quotaExceededCount++;
                             $skippedCount++;
                         }
                     } else {
-                        // Skipped because row is empty or allow_create_new is off
+                        if (!$allowCreateNew && !empty($name) && (!is_null($sellingPrice) || !is_null($mrp))) {
+                            $unmatchedCount++;
+                        }
                         $skippedCount++;
                     }
                 }
@@ -686,11 +691,24 @@ class ProductSpreadsheetController extends Controller
         if ($createdProductsCount > 0) {
             $parts[] = "✨ {$createdProductsCount} नए प्रोडक्ट्स जोड़े गए";
         }
-        if ($skippedCount > 0) {
-            $parts[] = "⚪ {$skippedCount} पंक्तियाँ छोड़ी गईं (खाली/हेडिंग लाइनें या बिना ID)";
+        if ($unmatchedCount > 0) {
+            $parts[] = "ℹ️ {$unmatchedCount} नए आइटम्स नहीं जुड़े (क्योंकि 'नया प्रोडक्ट बनाएं' विकल्प अनचेक था)";
+        }
+        if ($quotaExceededCount > 0) {
+            $limitStr = $seller->productLimit() ? "{$seller->productLimit()} प्रोडक्ट्स" : "100 प्रोडक्ट्स";
+            $parts[] = "⚠️ {$quotaExceededCount} प्रोडक्ट्स लिमिट ({$limitStr}) पूरी होने के कारण नहीं जुड़े (अनलिमिटेड के लिए प्लान अपग्रेड करें)";
+        }
+        $otherSkipped = $skippedCount - $quotaExceededCount - $unmatchedCount;
+        if ($otherSkipped > 0) {
+            $parts[] = "⚪ {$otherSkipped} पंक्तियाँ छोड़ी गईं (खाली/हेडिंग लाइनें)";
         }
 
         $msg = "Excel Sync रिपोर्ट (कुल {$totalRows} पंक्तियाँ): " . implode(' | ', $parts) . '।';
+
+        if ($quotaExceededCount > 0) {
+            $limitStr = $seller->productLimit() ? "{$seller->productLimit()} प्रोडक्ट्स" : "100 प्रोडक्ट्स";
+            session()->flash('warning', "सावधानी: आपकी प्रोडक्ट लिमिट ({$limitStr}) पूरी हो चुकी है। और अधिक प्रोडक्ट्स जोड़ने के लिए कृपया प्रीमियम प्लान में अपग्रेड करें।");
+        }
 
         return back()->with('success', $msg);
     }

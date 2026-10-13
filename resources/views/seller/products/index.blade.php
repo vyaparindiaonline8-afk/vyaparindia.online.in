@@ -57,13 +57,40 @@
             </div>
         @endif
 
+        @if(session('warning'))
+            <div class="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-bold flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base shrink-0"></i>
+                <span>{{ session('warning') }}</span>
+            </div>
+        @endif
+
         <!-- Tier Status & Quota Banner -->
         @php
-            $isProfileOnly = method_exists(Auth::user(), 'isProfileOnly') ? Auth::user()->isProfileOnly() : (!Auth::user()->sellerPage()->exists());
+            $isOwner = Auth::user()->isOwnerOrAdmin();
+            $limit = Auth::user()->productLimit();
             $productCount = $products->count();
+            $isProfileOnly = method_exists(Auth::user(), 'isProfileOnly') ? Auth::user()->isProfileOnly() : (!Auth::user()->sellerPage()->exists());
         @endphp
 
-        @if($isProfileOnly)
+        @if($isOwner)
+            <div class="bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 border border-purple-200 rounded-3xl p-4 sm:p-5 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-crown"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black text-purple-900">👑 प्लेटफॉर्म ओनर (Super Admin)</span>
+                            <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-bold">✨ Unlimited Products (कोई लिमिट नहीं)</span>
+                        </div>
+                        <p class="text-[11px] text-purple-700">आपके पास पूरे प्लेटफॉर्म का अनलिमिटेड एक्सेस है। आप जितने चाहें उतने प्रोडक्ट्स व कैटलॉग अपलोड कर सकते हैं।</p>
+                    </div>
+                </div>
+                <span class="text-xs font-bold text-purple-800 bg-white px-3 py-1.5 rounded-xl border border-purple-200 shadow-2xs">
+                    कुल लाइव प्रोडक्ट्स: <strong>{{ $productCount }}</strong>
+                </span>
+            </div>
+        @elseif($isProfileOnly)
             <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-3xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="space-y-1">
                     <div class="flex items-center gap-2">
@@ -71,7 +98,7 @@
                             Basic Profile Tier
                         </span>
                         <span class="text-xs font-bold text-amber-800">
-                            Quota: <strong>{{ $productCount }} / 50</strong> products listed
+                            Quota: <strong>{{ $productCount }} / {{ $limit ?? 50 }}</strong> products listed
                         </span>
                     </div>
                     <p class="text-xs text-amber-700">
@@ -87,22 +114,36 @@
                 </div>
             </div>
         @else
-            <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-3xl p-4 sm:p-5 flex items-center justify-between">
+            <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
-                    <div class="h-10 w-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg">
+                    <div class="h-10 w-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg shrink-0">
                         <i class="fa-solid fa-store"></i>
                     </div>
                     <div>
                         <div class="flex items-center gap-2">
                             <span class="text-xs font-black text-emerald-900">Mini-Website Tier Active</span>
-                            <span class="px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-800 text-[10px] font-bold">Unlimited Products</span>
+                            @if(is_null($limit))
+                                <span class="px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-800 text-[10px] font-bold">✨ Unlimited Products</span>
+                            @else
+                                <span class="px-2 py-0.5 rounded-full {{ $productCount >= $limit ? 'bg-amber-200 text-amber-900' : 'bg-emerald-200 text-emerald-800' }} text-[10px] font-bold">
+                                    Quota: {{ $productCount }} / {{ $limit }} Products
+                                </span>
+                            @endif
                         </div>
-                        <p class="text-[11px] text-emerald-700">Aapka branded online storefront live hai with direct WhatsApp order & cart checkout.</p>
+                        <p class="text-[11px] text-emerald-700">
+                            @if(!is_null($limit) && $productCount >= $limit)
+                                <strong class="text-amber-800">⚠️ 100 प्रोडक्ट्स की मुफ्त सीमा पूरी हो चुकी है।</strong> नए प्रोडक्ट्स जोड़ने के लिए प्रीमियम प्लान में अपग्रेड करें।
+                            @else
+                                Aapka branded online storefront live hai with direct WhatsApp order & cart checkout.
+                            @endif
+                        </p>
                     </div>
                 </div>
-                <a href="{{ route('seller.minisite.edit') }}" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 underline">
-                    Customize Storefront
-                </a>
+                <div class="flex items-center gap-3">
+                    <a href="{{ route('seller.minisite.edit') }}" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 underline shrink-0">
+                        Customize Storefront
+                    </a>
+                </div>
             </div>
         @endif
 
@@ -125,9 +166,9 @@
                         <span>Add Single Product</span>
                     </a>
                 @else
-                    <button disabled class="px-5 py-2.5 rounded-xl bg-gray-200 text-gray-400 font-bold text-xs cursor-not-allowed flex items-center gap-2" title="Limit reached (50/50)">
+                    <button type="button" onclick="alert('आपकी {{ $limit ?? 100 }} प्रोडक्ट्स की मुफ्त सीमा पूरी हो चुकी है! नए प्रोडक्ट्स जोड़ने के लिए कृपया प्रीमियम प्लान में अपग्रेड करें।')" class="px-5 py-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-bold text-xs transition flex items-center gap-2" title="Limit Reached">
                         <i class="fa-solid fa-lock"></i>
-                        <span>50 Products Limit Reached</span>
+                        <span>{{ $limit ?? 100 }} Products Limit Reached (Upgrade)</span>
                     </button>
                 @endif
             </div>

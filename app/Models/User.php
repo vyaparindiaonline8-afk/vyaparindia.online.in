@@ -49,9 +49,52 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
 
+    /**
+     * Check if the user is the Platform Owner or Super Admin.
+     * Platform owners are never subject to product quotas or limits.
+     */
+    public function isOwnerOrAdmin(): bool
+    {
+        // 1. Role-based check
+        if ((int)$this->role_id === 1 || ($this->role && strtolower($this->role->name) === 'admin')) {
+            return true;
+        }
+
+        // 2. Primary database user #1
+        if ((int)$this->id === 1) {
+            return true;
+        }
+
+        // 3. Render environment & server configuration match
+        $email = strtolower(trim($this->email ?? ''));
+        if (empty($email)) {
+            return false;
+        }
+
+        $adminEmails = array_filter(array_map('trim', [
+            env('ADMIN_EMAIL'),
+            env('OWNER_EMAIL'),
+            env('SUPERADMIN_EMAIL'),
+            env('MAIL_FROM_ADDRESS'),
+            config('mail.from.address'),
+            env('MAIL_USERNAME'),
+            'vyaparindiaonline8@gmail.com',
+        ]));
+
+        foreach ($adminEmails as $candidate) {
+            if (strtolower($candidate) === $email) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function is_admin()
     {
-        return (int)$this->role_id === 1 || ($this->role && $this->role->name === 'admin');
+        return (int)$this->role_id === 1 
+            || ($this->role && $this->role->name === 'admin')
+            || $this->isOwnerOrAdmin();
     }
 
     public function is_seller()
@@ -132,11 +175,17 @@ class User extends Authenticatable
 
     /**
      * Check if user is eligible to add another product
-     * Promotional Rule: First 1,000 sellers get free mini-website with up to 100 products free!
-     * Premium subscription required only for > 100 products.
+     * Owner / Admin: Unlimited products!
+     * Mini-Website owners: Up to 100 products free
+     * Profile-Only tier: Up to 50 products free
      */
     public function canAddProduct(): bool
     {
+        // 0. Platform Owner / Super Admin has UNLIMITED products
+        if ($this->isOwnerOrAdmin()) {
+            return true;
+        }
+
         // 1. If active paid subscription exists, unlimited products
         if ($this->subscriptions()->where('status', 'active')->where('end_date', '>=', now())->exists()) {
             return true;
@@ -149,6 +198,23 @@ class User extends Authenticatable
 
         // 3. Profile-only tier: 50 products free
         return $this->products()->count() < 50;
+    }
+
+    /**
+     * Get maximum allowed products for the user (or null if unlimited)
+     */
+    public function productLimit(): ?int
+    {
+        if ($this->isOwnerOrAdmin()) {
+            return null; // Unlimited
+        }
+        if ($this->subscriptions()->where('status', 'active')->where('end_date', '>=', now())->exists()) {
+            return null; // Unlimited
+        }
+        if ($this->sellerPage()->exists()) {
+            return 100;
+        }
+        return 50;
     }
 }
 
