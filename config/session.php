@@ -8,11 +8,16 @@ return [
     |--------------------------------------------------------------------------
     | Default Session Driver
     |--------------------------------------------------------------------------
+    |
+    | Supported: "file", "cookie", "database", "apc",
+    |            "memcached", "redis", "dynamodb", "array"
+    |
     */
 
-    'driver' => env('SESSION_DRIVER', 'cookie'),
+    'driver' => env('SESSION_DRIVER', 'file'),
 
-    'lifetime' => (int) env('SESSION_LIFETIME', 120),
+    // Extended session lifetime (7 days) so users don't randomly get 419 expired sessions
+    'lifetime' => (int) env('SESSION_LIFETIME', 10080),
 
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
 
@@ -41,8 +46,8 @@ return [
     // Fix string "null" from .env so it evaluates to actual null
     'domain' => (env('SESSION_DOMAIN') === 'null' || !env('SESSION_DOMAIN')) ? null : env('SESSION_DOMAIN'),
 
-    // Force secure cookies over HTTPS
-    'secure' => env('SESSION_SECURE_COOKIE', true),
+    // Auto-detect secure cookies based on incoming request scheme (HTTPS)
+    'secure' => env('SESSION_SECURE_COOKIE', null),
 
     'http_only' => env('SESSION_HTTP_ONLY', true),
 

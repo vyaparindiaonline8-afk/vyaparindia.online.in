@@ -207,6 +207,11 @@
                 icon.classList.add('fa-eye');
             }
         }
+
+        // Keep CSRF session active while login page is open
+        setInterval(function() {
+            fetch('/up').catch(function() {});
+        }, 300000);
     </script>
 </body>
 </html>

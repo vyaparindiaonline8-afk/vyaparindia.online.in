@@ -24,8 +24,19 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'CSRF token mismatch. Please refresh.'], 419);
             }
-            return redirect()->back()
+            return redirect()->route('login')
                 ->withInput($request->except('password', 'password_confirmation', '_token'))
-                ->with('error', 'Aapka session expire ho gaya tha ya page purana tha. Kripya dobara submit karein.');
+                ->with('error', 'Aapka session expire ho gaya tha (Page Expired). Kripya dobara login karein.');
+        });
+
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, \Illuminate\Http\Request $request) {
+            if ($e->getStatusCode() === 419) {
+                if ($request->expectsJson()) {
+                    return response()->json(['message' => 'CSRF token mismatch. Please refresh.'], 419);
+                }
+                return redirect()->route('login')
+                    ->withInput($request->except('password', 'password_confirmation', '_token'))
+                    ->with('error', 'Aapka session expire ho gaya tha (Page Expired). Kripya dobara login karein.');
+            }
         });
     })->create();
