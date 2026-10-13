@@ -324,100 +324,104 @@
     </div>
 
     <!-- 📊 Excel Sync & Round-Trip Bulk Update Modal -->
-    <div id="excelSyncModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-gray-100 space-y-5 animate-in fade-in zoom-in duration-200">
-            <!-- Modal Header -->
-            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+    <div id="excelSyncModal" class="fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-xs hidden items-center justify-center p-2 sm:p-4 overflow-y-auto" onclick="closeExcelSyncModal()">
+        <div class="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-gray-100 flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden my-auto animate-in fade-in zoom-in duration-200" onclick="event.stopPropagation()">
+            
+            <!-- Modal Header (Always Visible at Top) -->
+            <div class="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 shrink-0 sticky top-0 z-20">
                 <div class="flex items-center gap-2.5">
-                    <div class="h-10 w-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shadow-xs">
+                    <div class="h-10 w-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg shadow-xs shrink-0">
                         <i class="fa-solid fa-file-excel"></i>
                     </div>
                     <div>
-                        <h3 class="font-extrabold text-base text-gray-900">एक्सेल शीट अपलोड व ऑटो-सिंक</h3>
+                        <h3 class="font-extrabold text-sm sm:text-base text-gray-900">एक्सेल शीट अपलोड व ऑटो-सिंक</h3>
                         <p class="text-[11px] text-gray-500">ID के आधार पर नाम, रेट्स व स्टॉक का 1-क्लिक राउंड-ट्रिप अपडेट</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeExcelSyncModal()" class="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center text-xs transition">
+                <button type="button" onclick="closeExcelSyncModal()" class="h-8 w-8 rounded-full bg-white hover:bg-gray-100 text-gray-500 hover:text-gray-800 flex items-center justify-center text-xs shadow-2xs transition">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <!-- Features Highlights -->
-            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-[11px] text-slate-700">
-                <div class="font-bold text-slate-900 flex items-center gap-1.5">
-                    <i class="fa-solid fa-circle-check text-emerald-600"></i>
-                    <span>सिस्टम कैसे काम करता है?</span>
-                </div>
-                <ul class="space-y-1 text-slate-600 list-disc list-inside">
-                    <li><strong>Product ID से ट्रैकिंग:</strong> शीट में मौजूद <code>Product ID</code> के जरिए प्रोडक्ट सटीक रूप से पहचाना जाता है।</li>
-                    <li><strong>नाम बदलना सुरक्षित:</strong> यदि आप एक्सेल में प्रोडक्ट का नाम भी बदल देंगे, तब भी ID से सही आइटम का नाम व रेट अपडेट होगा (डुप्लीकेट नहीं बनेगा)।</li>
-                    <li><strong>नई लाइन = नया आइटम:</strong> यदि आप शीट के नीचे बिना ID के नई लाइन जोड़ते हैं, तो वह नया प्रोडक्ट लिस्ट हो जाएगा।</li>
-                </ul>
-            </div>
-
-            <!-- 💡 Interactive Column Mapper Notice -->
-            <div class="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div class="space-y-0.5">
-                    <div class="flex items-center gap-2 text-indigo-950 font-black text-xs">
-                        <i class="fa-solid fa-table-columns text-indigo-600"></i>
-                        <span>कॉलम मैपिंग (Mapping Popup) चाहिए?</span>
-                    </div>
-                    <p class="text-[11px] text-indigo-700">
-                        अगर आपकी एक्सेल शीट का फॉर्मेट अलग है और आप खुद ड्रॉपडाउन से कॉलम (नाम, रेट, साइज आदि) मैच करना चाहते हैं, तो <b>Excel Mapper</b> का इस्तेमाल करें।
-                    </p>
-                </div>
-                <a href="{{ route('seller.catalog.excel_mapper') }}" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shrink-0 flex items-center gap-1.5 shadow-sm transition">
-                    <span>मैपिंग टूल खोलें</span>
-                    <i class="fa-solid fa-arrow-right"></i>
-                </a>
-            </div>
-
-            <!-- Download Shortcuts in Modal -->
-            <div class="flex items-center justify-between p-3 rounded-2xl bg-amber-50 border border-amber-200 gap-3">
-                <div class="text-[11px] text-amber-900 leading-snug">
-                    <strong>शीट डाउनलोड नहीं की?</strong><br>
-                    अपनी लाइव लिस्टिंग की शीट अभी डाउनलोड करें:
-                </div>
-                <div class="flex items-center gap-2 shrink-0">
-                    <a href="{{ route('seller.products.export_sheet', ['type' => 'rates']) }}" class="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-black text-[11px] flex items-center gap-1 transition">
-                        <i class="fa-solid fa-download"></i> दैनिक भाव
-                    </a>
-                    <a href="{{ route('seller.products.export_sheet', ['type' => 'full']) }}" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-black text-[11px] flex items-center gap-1 transition">
-                        <i class="fa-solid fa-download"></i> पूरा कैटलॉग
-                    </a>
-                </div>
-            </div>
-
-            <!-- Form -->
-            <form action="{{ route('seller.products.import_sheet') }}" method="POST" enctype="multipart/form-data" id="excelSyncForm" onsubmit="return submitExcelSyncForm(event)" class="space-y-4">
+            <!-- Form Wrapper containing scrollable body and sticky footer -->
+            <form action="{{ route('seller.products.import_sheet') }}" method="POST" enctype="multipart/form-data" id="excelSyncForm" onsubmit="return submitExcelSyncForm(event)" class="flex flex-col flex-1 overflow-hidden min-h-0">
                 @csrf
                 <input type="hidden" name="spreadsheet_rows" id="spreadsheetRowsJson" value="">
 
-                <!-- Upload Drag-and-Drop Area -->
-                <div class="border-2 border-dashed border-gray-300 hover:border-emerald-500 rounded-2xl p-6 text-center bg-gray-50/70 hover:bg-emerald-50/20 cursor-pointer transition group" onclick="document.getElementById('excelFileInput').click()">
-                    <i class="fa-solid fa-cloud-arrow-up text-emerald-600 text-3xl mb-2 group-hover:scale-110 transition"></i>
-                    <h4 class="text-xs font-bold text-gray-800">एडिट की हुई एक्सेल या CSV फाइल चुनें</h4>
-                    <p class="text-[11px] text-gray-400 mt-0.5">Click karein ya file yahan drop karein (.xlsx, .xls, .csv)</p>
-                    <input type="file" id="excelFileInput" name="spreadsheet_file" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelFileSelect(event)">
-                </div>
-
-                <!-- Preview Box -->
-                <div id="excelFilePreviewBox" class="hidden p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-1.5">
-                    <div class="flex items-center justify-between text-xs font-bold text-emerald-900">
-                        <span id="excelFileName" class="truncate max-w-[280px]">filename.xlsx</span>
-                        <span id="excelRowCount" class="px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-800 text-[10px] font-black">0 Rows Found</span>
+                <!-- Scrollable Body (Smooth scrolling for all contents) -->
+                <div class="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1 overscroll-contain bg-slate-50/30">
+                    <!-- Features Highlights -->
+                    <div class="p-3.5 rounded-2xl bg-white border border-slate-200 space-y-1.5 text-[11px] text-slate-700 shadow-2xs">
+                        <div class="font-bold text-slate-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                            <span>सिस्टम कैसे काम करता है?</span>
+                        </div>
+                        <ul class="space-y-1 text-slate-600 list-disc list-inside">
+                            <li><strong>Product ID से ट्रैकिंग:</strong> शीट में मौजूद <code>Product ID</code> से सही आइटम के रेट्स तुरंत अपडेट होते हैं।</li>
+                            <li><strong>नाम बदलना सुरक्षित:</strong> एक्सेल में नाम बदलने पर भी ID से सही आइटम अपडेट होगा (डुप्लीकेट नहीं बनेगा)।</li>
+                            <li><strong>खाली लाइनें:</strong> शीट में खाली पंक्तियाँ (Empty lines) सुरक्षित रूप से छोड़ दी जाती हैं।</li>
+                        </ul>
                     </div>
-                    <p class="text-[11px] text-emerald-700">
-                        शीट लोड हो चुकी है! "सिंक व अपडेट करें" बटन दबाकर नए रेट्स व नाम लागू करें।
-                    </p>
+
+                    <!-- 💡 Interactive Column Mapper Notice -->
+                    <div class="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="space-y-0.5">
+                            <div class="flex items-center gap-2 text-indigo-950 font-black text-xs">
+                                <i class="fa-solid fa-table-columns text-indigo-600"></i>
+                                <span>कॉलम मैपिंग (Mapping Popup) चाहिए?</span>
+                            </div>
+                            <p class="text-[11px] text-indigo-700">
+                                अगर आपकी एक्सेल शीट का फॉर्मेट अलग है और आप खुद ड्रॉपडाउन से कॉलम (नाम, रेट, साइज आदि) मैच करना चाहते हैं, तो <b>Excel Mapper</b> का इस्तेमाल करें।
+                            </p>
+                        </div>
+                        <a href="{{ route('seller.catalog.excel_mapper') }}" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shrink-0 flex items-center gap-1.5 shadow-sm transition">
+                            <span>मैपिंग टूल खोलें</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+
+                    <!-- Download Shortcuts in Modal -->
+                    <div class="flex items-center justify-between p-3 rounded-2xl bg-amber-50 border border-amber-200 gap-3">
+                        <div class="text-[11px] text-amber-900 leading-snug">
+                            <strong>शीट डाउनलोड नहीं की?</strong><br>
+                            अपनी लाइव लिस्टिंग की शीट अभी डाउनलोड करें:
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <a href="{{ route('seller.products.export_sheet', ['type' => 'rates']) }}" class="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-black text-[11px] flex items-center gap-1 transition">
+                                <i class="fa-solid fa-download"></i> दैनिक भाव
+                            </a>
+                            <a href="{{ route('seller.products.export_sheet', ['type' => 'full']) }}" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-black text-[11px] flex items-center gap-1 transition">
+                                <i class="fa-solid fa-download"></i> पूरा कैटलॉग
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Upload Drag-and-Drop Area -->
+                    <div class="border-2 border-dashed border-gray-300 hover:border-emerald-500 rounded-2xl p-5 text-center bg-white hover:bg-emerald-50/20 cursor-pointer transition group" onclick="document.getElementById('excelFileInput').click()">
+                        <i class="fa-solid fa-cloud-arrow-up text-emerald-600 text-3xl mb-2 group-hover:scale-110 transition"></i>
+                        <h4 class="text-xs font-bold text-gray-800">एडिट की हुई एक्सेल या CSV फाइल चुनें</h4>
+                        <p class="text-[11px] text-gray-400 mt-0.5">Click karein ya file yahan drop karein (.xlsx, .xls, .csv)</p>
+                        <input type="file" id="excelFileInput" name="spreadsheet_file" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelFileSelect(event)">
+                    </div>
+
+                    <!-- Preview Box -->
+                    <div id="excelFilePreviewBox" class="hidden p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-1.5">
+                        <div class="flex items-center justify-between text-xs font-bold text-emerald-900">
+                            <span id="excelFileName" class="truncate max-w-[280px]">filename.xlsx</span>
+                            <span id="excelRowCount" class="px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-800 text-[10px] font-black">0 Rows Found</span>
+                        </div>
+                        <p class="text-[11px] text-emerald-700">
+                            शीट लोड हो चुकी है! नीचे "सिंक व अपडेट करें" बटन दबाकर नए रेट्स लागू करें।
+                        </p>
+                    </div>
                 </div>
 
-                <!-- Modal Actions -->
-                <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-                    <button type="button" onclick="closeExcelSyncModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition">
+                <!-- Sticky Footer (Always Visible at Bottom) -->
+                <div class="flex items-center justify-between p-4 border-t border-gray-200 bg-white shrink-0 sticky bottom-0 z-20">
+                    <button type="button" onclick="closeExcelSyncModal()" class="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition">
                         रद्द करें (Cancel)
                     </button>
-                    <button type="submit" id="btnApplyExcelSync" disabled class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-black shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition">
+                    <button type="submit" id="btnApplyExcelSync" disabled class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-black shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition">
                         <i class="fa-solid fa-cloud-arrow-up"></i>
                         <span>सिंक व अपडेट करें (Apply Changes)</span>
                     </button>
@@ -456,8 +460,8 @@
     </div>
 
     <!-- 📁 Folder Assignment Modal -->
-    <div id="assignFolderModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in duration-200">
+    <div id="assignFolderModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-4 overflow-y-auto" onclick="closeAssignFolderModal()">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in duration-200 my-auto" onclick="event.stopPropagation()">
             <div class="flex items-center justify-between pb-3 border-b border-gray-100">
                 <div class="flex items-center gap-2.5">
                     <div class="h-9 w-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-base">
