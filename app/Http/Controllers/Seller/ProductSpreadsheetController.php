@@ -382,10 +382,21 @@ class ProductSpreadsheetController extends Controller
                     'description', 'description_vivrn', 'desc', 'description__vivrn_'
                 ]);
 
-                // Resolve Product: Case 1 by ID, Case 2 by Name / Base Family (In-Memory for maximum speed)
+                $productCode = $getVal([
+                    'itam_code', 'item_code', 'product_code', 'code', 'sku', 'itam_kod', 'item_kod'
+                ]);
+
+                // Resolve Product: Case 1 by ID, Case 2 by SKU/Code, Case 3 by Name / Base Family
                 $product = null;
                 if ($rawId && $rawId > 0) {
                     $product = $sellerProducts->firstWhere('id', $rawId);
+                }
+
+                if (!$product && !empty($productCode)) {
+                    $cleanCode = strtoupper(trim($productCode));
+                    $product = $sellerProducts->first(function($p) use ($cleanCode) {
+                        return !empty($p->sku) && (strtoupper(trim($p->sku)) === $cleanCode || str_contains(strtoupper($p->sku), $cleanCode));
+                    });
                 }
 
                 if (!$product && !empty($name)) {
@@ -412,6 +423,23 @@ class ProductSpreadsheetController extends Controller
                         if (preg_match('~(\d+(?:\.\d+)?(?:\s*[\*xX/]\s*\d+(?:\.\d+)?)+\s*(?:mm|inch|feet|ft)?|\d+(?:\.\d+)?\s*(?:mm|inch|feet|ft|")|\d+\/\d+(?:")?)~i', $name, $dm)) {
                             $sizeVariant = trim($dm[0]);
                         }
+                    }
+                }
+
+                // Auto-resolve verified catalog image from BrandMasterProduct
+                $catalogImage = null;
+                if (!empty($productCode)) {
+                    $bmp = \App\Models\BrandMasterProduct::where('product_code', $productCode)
+                        ->orWhere('sku', $productCode)
+                        ->first();
+                    if ($bmp && !empty($bmp->image_url)) {
+                        $catalogImage = $bmp->image_url;
+                    }
+                }
+                if (!$catalogImage && !empty($name)) {
+                    $bmp = \App\Models\BrandMasterProduct::where('product_name', $name)->first();
+                    if ($bmp && !empty($bmp->image_url)) {
+                        $catalogImage = $bmp->image_url;
                     }
                 }
 
@@ -528,16 +556,17 @@ class ProductSpreadsheetController extends Controller
                         }
                     } elseif ($hasVariants && !empty($sizeVariant)) {
                         // Product has variants, but this particular size (e.g. 110*75*50) is new -> Add as new variant
+                        $vPrice = ($sellingPrice && $sellingPrice > 0) ? $sellingPrice : (($mrp && $mrp > 0) ? $mrp : $product->price);
                         $newVar = ProductVariant::create([
                             'product_id' => $product->id,
                             'variant_name' => $sizeVariant,
-                            'sku' => 'VAR-' . $product->id . '-' . strtoupper(Str::random(5)),
-                            'retail_price' => $sellingPrice ?? ($mrp ?? $product->price),
-                            'wholesale_price' => $wholesalePrice ?? ($sellingPrice ?? $product->wholesale_price),
+                            'sku' => !empty($productCode) ? $productCode : ('VAR-' . $product->id . '-' . strtoupper(Str::random(5))),
+                            'retail_price' => $vPrice,
+                            'wholesale_price' => ($wholesalePrice && $wholesalePrice > 0) ? $wholesalePrice : $vPrice,
                             'purchase_price' => $purchasePrice ?? 0,
-                            'mrp' => $mrp ?? ($sellingPrice ?? $product->mrp),
-                            'stock_quantity' => $stock ?? 100,
-                            'track_inventory' => !is_null($stock),
+                            'mrp' => ($mrp && $mrp > 0) ? $mrp : $vPrice,
+                            'stock_quantity' => !is_null($stock) ? $stock : 0,
+                            'track_inventory' => !is_null($stock) && $stock > 0,
                             'attributes' => ['size' => $sizeVariant],
                         ]);
                         $product->variants->push($newVar);
@@ -565,9 +594,15 @@ class ProductSpreadsheetController extends Controller
                             if (!is_null($stock)) {
                                 if (intval($product->stock_quantity) !== $stock) $isChanged = true;
                                 $prodUpdates['stock_quantity'] = $stock;
-                                $prodUpdates['track_inventory'] = true;
+                                $prodUpdates['track_inventory'] = ($stock > 0);
                             }
                         }
+                    }
+
+                    // Backfill product image from Brand Master catalog if currently empty
+                    if (empty($product->image) && $catalogImage) {
+                        $prodUpdates['image'] = $catalogImage;
+                        $isChanged = true;
                     }
 
                     if (!empty($prodUpdates)) {
@@ -582,7 +617,8 @@ class ProductSpreadsheetController extends Controller
                     }
                 } else {
                     // Case B: No product_id provided and not matched
-                    if ($allowCreateNew && !empty($name) && (!is_null($sellingPrice) || !is_null($mrp))) {
+                    $hasValidPrice = (!is_null($sellingPrice) && $sellingPrice > 0) || (!is_null($mrp) && $mrp > 0);
+                    if ($allowCreateNew && !empty($name) && $hasValidPrice) {
                         if ($seller->canAddProduct()) {
                             $catId = null;
                             if (!empty($categoryName)) {
@@ -593,7 +629,7 @@ class ProductSpreadsheetController extends Controller
                                 $catId = $cat->id;
                             }
 
-                            $finalPrice = $sellingPrice ?? ($mrp ?? 0);
+                            $finalPrice = ($sellingPrice && $sellingPrice > 0) ? $sellingPrice : $mrp;
 
                             // Generate guaranteed globally unique slug to prevent Postgres 23505 Unique Violation
                             $baseSlug = Str::slug($name);
@@ -614,18 +650,20 @@ class ProductSpreadsheetController extends Controller
                             $newProduct = Product::create([
                                 'user_id' => $seller->id,
                                 'name' => $name,
+                                'sku' => !empty($productCode) ? $productCode : ('PLASTO-' . time() . '-' . rand(10, 99)),
                                 'slug' => $uniqueSlug,
                                 'description' => !empty($desc) ? $desc : $name,
                                 'category_id' => $catId,
-                                'brand' => !empty($brand) ? $brand : null,
+                                'brand' => !empty($brand) ? $brand : 'Plasto',
                                 'group_name' => !empty($groupName) ? $groupName : null,
                                 'price' => $finalPrice,
-                                'wholesale_price' => $wholesalePrice ?? $finalPrice,
+                                'wholesale_price' => ($wholesalePrice && $wholesalePrice > 0) ? $wholesalePrice : $finalPrice,
                                 'purchase_price' => $purchasePrice ?? 0,
-                                'mrp' => $mrp ?? $finalPrice,
-                                'stock_quantity' => $stock ?? 100,
-                                'track_inventory' => !is_null($stock),
+                                'mrp' => ($mrp && $mrp > 0) ? $mrp : $finalPrice,
+                                'stock_quantity' => !is_null($stock) ? $stock : 0,
+                                'track_inventory' => !is_null($stock) && $stock > 0,
                                 'has_variants' => !empty($sizeVariant),
+                                'image' => $catalogImage,
                             ]);
 
                             $createdProductsCount++;
@@ -634,13 +672,14 @@ class ProductSpreadsheetController extends Controller
                             if (!empty($sizeVariant)) {
                                 ProductVariant::create([
                                     'product_id' => $newProduct->id,
-                                    'size' => $sizeVariant,
-                                    'color' => null,
-                                    'price' => $finalPrice,
-                                    'wholesale_price' => $wholesalePrice ?? $finalPrice,
+                                    'variant_name' => $sizeVariant,
+                                    'sku' => !empty($productCode) ? $productCode : ('VAR-' . $newProduct->id . '-' . strtoupper(Str::random(5))),
+                                    'retail_price' => $finalPrice,
+                                    'wholesale_price' => ($wholesalePrice && $wholesalePrice > 0) ? $wholesalePrice : $finalPrice,
                                     'purchase_price' => $purchasePrice ?? 0,
-                                    'mrp' => $mrp ?? $finalPrice,
-                                    'stock_quantity' => $stock ?? 100,
+                                    'mrp' => ($mrp && $mrp > 0) ? $mrp : $finalPrice,
+                                    'stock_quantity' => !is_null($stock) ? $stock : 0,
+                                    'track_inventory' => !is_null($stock) && $stock > 0,
                                 ]);
                             }
                         } else {
@@ -648,7 +687,7 @@ class ProductSpreadsheetController extends Controller
                             $skippedCount++;
                         }
                     } else {
-                        if (!$allowCreateNew && !empty($name) && (!is_null($sellingPrice) || !is_null($mrp))) {
+                        if (!$allowCreateNew && !empty($name) && $hasValidPrice) {
                             $unmatchedCount++;
                         }
                         $skippedCount++;
