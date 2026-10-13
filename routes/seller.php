@@ -31,6 +31,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
     Route::get('products/export-sheet', [ProductSpreadsheetController::class, 'export'])->name('products.export_sheet');
     Route::post('products/import-sheet', [ProductSpreadsheetController::class, 'import'])->name('products.import_sheet');
     Route::post('products/assign-folder', [ProductSpreadsheetController::class, 'assignFolder'])->name('products.assign_folder');
+    Route::post('products/clear-all', [ProductController::class, 'clearAll'])->name('products.clear_all');
 
     Route::resource('products', ProductController::class);
     Route::post('products/{product}/quick-image-update', [ProductController::class, 'quickImageUpdate'])->name('products.quick_image_update');

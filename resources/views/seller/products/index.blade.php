@@ -153,14 +153,52 @@
             </div>
         @endif
 
+        <!-- Dual Inventory Stats: Product Cards vs Total Size Variants -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="bg-white rounded-3xl p-5 border border-gray-200 shadow-xs flex items-center justify-between">
+                <div class="space-y-1">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-layer-group text-blue-600"></i>
+                        <span>मुख्य प्रोडक्ट कार्ड्स (Product Cards)</span>
+                    </span>
+                    <div class="text-2xl font-black text-gray-900">{{ $productCardsCount ?? $productCount }} <span class="text-xs font-medium text-gray-500">कार्ड्स</span></div>
+                    <p class="text-[11px] text-gray-500">मुख्य प्रोडक्ट वैरायटी (जैसे: UPVC Pipe, Elbow 90°, Coupler, Tee आदि)</p>
+                </div>
+                <div class="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl p-5 border border-gray-200 shadow-xs flex items-center justify-between">
+                <div class="space-y-1">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-tags text-emerald-600"></i>
+                        <span>कुल साइज़ वेरिएंट्स व रेट्स (Total Items / SKUs)</span>
+                    </span>
+                    <div class="text-2xl font-black text-emerald-600">{{ $totalVariantsCount ?? $productCount }} <span class="text-xs font-medium text-gray-500">आइटम्स</span></div>
+                    <p class="text-[11px] text-gray-500">सभी अलग-अलग साइज़ (15mm, 20mm, 25mm, 40mm) के एक्टिव भाव</p>
+                </div>
+                <div class="h-12 w-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+                    <i class="fa-solid fa-cubes"></i>
+                </div>
+            </div>
+        </div>
+
         <!-- Header Actions -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-                <h1 class="text-2xl font-black text-gray-900">Products ({{ $productCount }})</h1>
-                <p class="text-xs text-gray-500">Manage pricing, variants, and stock of your catalog items.</p>
+                <h1 class="text-2xl font-black text-gray-900">कैटलॉग प्रोडक्ट्स ({{ $productCardsCount ?? $productCount }})</h1>
+                <p class="text-xs text-gray-500">दैनिक भाव, साइज़ वेरिएंट्स और स्टॉक का प्रबंधन करें।</p>
             </div>
 
             <div class="flex flex-wrap items-center gap-3">
+                @if($productCount > 0)
+                    <button type="button" onclick="openClearAllModal()" class="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-extrabold text-xs transition flex items-center gap-2 shadow-2xs hover:scale-102 active:scale-98" title="पुराने सभी प्रोडक्ट्स साफ़ करें ताकि नई एक्सेल शीट फ्रेश अपलोड हो सके">
+                        <i class="fa-solid fa-trash-can text-rose-500"></i>
+                        <span>पुराना कैटलॉग साफ़ करें (Clear All)</span>
+                    </button>
+                @endif
+
                 <a href="{{ route('seller.brand-master.index') }}" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-xs shadow-md shadow-amber-500/20 transition flex items-center gap-2">
                     <i class="fa-solid fa-award"></i>
                     <span>ब्रांड मास्टर कैटलॉग (Plasto) ⚡</span>
@@ -770,6 +808,57 @@
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> सिंक हो रहा है...';
             return true;
         }
+
+        // ==========================================
+        // 🗑️ CLEAR ALL PRODUCTS MODAL SYSTEM
+        // ==========================================
+        function openClearAllModal() {
+            const modal = document.getElementById('clearAllModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function closeClearAllModal() {
+            const modal = document.getElementById('clearAllModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
     </script>
+
+    <!-- 🗑️ Clear All Products Confirmation Modal -->
+    <div id="clearAllModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-4" onclick="closeClearAllModal()">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in duration-200" onclick="event.stopPropagation()">
+            <div class="flex items-center gap-3">
+                <div class="h-12 w-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl shrink-0">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-black text-gray-900">पुराना कैटलॉग साफ़ करें?</h3>
+                    <p class="text-xs text-gray-500">Clean Slate & Fresh Excel Upload</p>
+                </div>
+            </div>
+
+            <p class="text-xs text-gray-600 leading-relaxed bg-rose-50/60 border border-rose-100 rounded-2xl p-3.5">
+                यह एक्शन आपके सेलर स्टोर के वर्तमान <strong>{{ $productCardsCount ?? $productCount }} पुराने प्रोडक्ट कार्ड्स</strong> और उनके सभी साइज़ वेरिएंट्स को सुरक्षित रूप से हटा देगा। इसके बाद आप अपनी नई फाइनल एक्सेल शीट <strong>(295 आइटम्स)</strong> को बिल्कुल नए सिरे से फ्रेश अपलोड कर सकेंगे।
+            </p>
+
+            <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100">
+                <button type="button" onclick="closeClearAllModal()" class="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition">
+                    रद्द करें (Cancel)
+                </button>
+                <form method="POST" action="{{ route('seller.products.clear_all') }}" onsubmit="this.querySelector('button[type=submit]').disabled=true; this.querySelector('button[type=submit]').innerHTML='साफ़ हो रहा है...';">
+                    @csrf
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black shadow-md shadow-rose-600/20 transition flex items-center gap-2">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span>हाँ, सब साफ़ करें (Clear All)</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

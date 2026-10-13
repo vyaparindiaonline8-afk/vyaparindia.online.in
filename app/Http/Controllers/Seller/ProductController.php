@@ -25,6 +25,10 @@ class ProductController extends Controller
         }
 
         $products = $query->latest()->get();
+        $productCardsCount = $products->count();
+        $totalVariantsCount = $products->sum(function($p) {
+            return ($p->variants && $p->variants->count() > 0) ? $p->variants->count() : 1;
+        });
 
         $folders = collect();
         if ($hasGroupCol) {
@@ -35,7 +39,7 @@ class ProductController extends Controller
                 ->pluck('group_name');
         }
 
-        return view('seller.products.index', compact('products', 'folders', 'activeFolder'));
+        return view('seller.products.index', compact('products', 'folders', 'activeFolder', 'productCardsCount', 'totalVariantsCount'));
     }
 
     public function create()
@@ -254,5 +258,25 @@ class ProductController extends Controller
         $product->delete();
 
         return redirect()->route('seller.products.index')->with('success', 'Product deleted successfully.');
+    }
+
+    /**
+     * Clear all catalog products and variants for current seller.
+     * Allows a completely fresh sync with zero duplicates.
+     */
+    public function clearAll(Request $request)
+    {
+        $user = Auth::user();
+        $products = $user->products()->with(['variants', 'images'])->get();
+        $count = $products->count();
+
+        foreach ($products as $p) {
+            $p->variants()->delete();
+            $p->images()->delete();
+            $p->delete();
+        }
+
+        return redirect()->route('seller.products.index')
+            ->with('success', "आपके सेलर स्टोर के सभी {$count} पुराने प्रोडक्ट कार्ड्स व वेरिएंट्स सफलतापूर्वक साफ़ (Clear) कर दिए गए हैं। अब आप अपनी नई फाइनल एक्सेल शीट पूरी तरह फ्रेश अपलोड कर सकते हैं!");
     }
 }
