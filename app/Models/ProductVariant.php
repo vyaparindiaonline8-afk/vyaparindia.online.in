@@ -61,9 +61,27 @@ class ProductVariant extends Model
 
     public function getCleanSizeAttribute(): string
     {
+        if (!empty($this->variant_name) && $this->variant_name !== 'Standard') {
+            return $this->variant_name;
+        }
         $custom = $this->custom_attributes;
-        if (!empty($custom['size'])) return $custom['size'];
-        return $this->variant_name ?: 'Standard';
+        if (!empty($custom['size']) && $custom['size'] !== 'Standard') {
+            return $custom['size'];
+        }
+        return $this->variant_name ?: ($custom['size'] ?? 'Standard');
+    }
+
+    public function getSizeAttribute(): string
+    {
+        return $this->clean_size;
+    }
+
+    public function setSizeAttribute($value): void
+    {
+        $this->attributes['variant_name'] = (string)$value;
+        $attrs = $this->custom_attributes ?? [];
+        $attrs['size'] = (string)$value;
+        $this->attributes['attributes'] = json_encode($attrs);
     }
 
     public function getPackingInfoAttribute(): string

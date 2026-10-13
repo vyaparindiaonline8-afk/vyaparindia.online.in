@@ -59,7 +59,7 @@
 
         <!-- Tier Status & Quota Banner -->
         @php
-            $isProfileOnly = Auth::user()->isProfileOnly();
+            $isProfileOnly = method_exists(Auth::user(), 'isProfileOnly') ? Auth::user()->isProfileOnly() : (!Auth::user()->sellerPage()->exists());
             $productCount = $products->count();
         @endphp
 

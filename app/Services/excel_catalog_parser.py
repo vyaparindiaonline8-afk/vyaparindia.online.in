@@ -5,7 +5,13 @@ import re
 import openpyxl
 
 def extract_size_from_name(name):
-    match = re.search(r'(\d+(?:\.\d+)?(?:\s*X\s*\d+(?:\.\d+)?)?\s*(?:MM|FEET|FT|MTR|KG|INCH|"|\'))', name, re.IGNORECASE)
+    # 1. Compound multi-dimensions: e.g. 110*75*50, 110X75X50, 110*75, 4X2X2
+    compound = re.search(r'(\d+(?:\.\d+)?(?:\s*[\*xX/]\s*\d+(?:\.\d+)?)+\s*(?:MM|FEET|FT|MTR|KG|INCH|"|\')?)', name, re.IGNORECASE)
+    if compound:
+        return compound.group(1).strip()
+    
+    # 2. Single dimensions: e.g. 25MM, 1/2", 10 FEET
+    match = re.search(r'(\d+(?:/\d+)?(?:\.\d+)?\s*(?:MM|FEET|FT|MTR|KG|INCH|"|\'))', name, re.IGNORECASE)
     if match:
         return match.group(1).strip()
     return "Standard"
@@ -14,7 +20,7 @@ def extract_base_name(name):
     # Remove sizes, lengths, standards from name to get the parent family
     clean = name
     patterns = [
-        r'\b\d+(?:\.\d+)?\s*X\s*\d+(?:\.\d+)?\s*MM\b',
+        r'\b\d+(?:\.\d+)?(?:\s*[\*xX/]\s*\d+(?:\.\d+)?)+\s*(?:MM)?\b',
         r'\b\d+(?:\.\d+)?\s*MM\b',
         r'\b\d+\s*FT\b',
         r'\b\d+\s*FEET\b',
@@ -139,6 +145,7 @@ def process_excel(excel_path, output_dir, job_id):
     category_idx = find_col(['CATEGORY', 'GROUP']) or 16
     stock_idx = find_col(['OPN.STOCK', 'STOCK', 'QTY', 'QUANTITY']) or 19
     hsn_idx = find_col(['HSN CODE', 'HSN']) or 7
+    size_idx = find_col(['SIZE', 'DIMENSION', 'SAAIZ', 'VARIANT'])
     image_idx = find_col(['PRODUCT_IMAGE', 'IMAGE_URL', 'IMAGE', 'PHOTO'])
 
     # Group products by Base Name
@@ -168,7 +175,10 @@ def process_excel(excel_path, output_dir, job_id):
             img_url, page_no = get_image_for_product(raw_name, category)
 
         base_name = extract_base_name(raw_name)
-        size_name = extract_size_from_name(raw_name)
+        if size_idx is not None and size_idx < len(r) and r[size_idx]:
+            size_name = str(r[size_idx]).strip()
+        else:
+            size_name = extract_size_from_name(raw_name)
 
         if base_name not in groups:
             groups[base_name] = {

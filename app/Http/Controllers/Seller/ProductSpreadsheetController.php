@@ -246,11 +246,34 @@ class ProductSpreadsheetController extends Controller
 
         DB::transaction(function () use ($rawRows, $seller, &$updatedProductsCount, &$updatedVariantsCount, &$createdProductsCount, &$skippedCount, &$affectedProductIds) {
             foreach ($rawRows as $row) {
+                // Pre-build normalized key-value map for robust header lookup (handles raw Excel, Hindi, snake_case)
+                $normMap = [];
+                foreach ($row as $k => $v) {
+                    $rawK = trim((string)$k);
+                    $normMap[$rawK] = $v;
+                    $lowerK = strtolower($rawK);
+                    $normMap[$lowerK] = $v;
+                    $cleanK = trim(preg_replace('/_+/', '_', preg_replace('/[^a-z0-9_]/', '', str_replace([' ', '/', '-', '(', ')', '[', ']', '.', ':', '*'], '_', $lowerK))), '_');
+                    if ($cleanK !== '') {
+                        $normMap[$cleanK] = $v;
+                    }
+                }
+
                 // Normalized row keys lookup helper
-                $getVal = function(array $aliases) use ($row) {
+                $getVal = function(array $aliases) use ($normMap) {
+                    // 1. Direct match on normalized map
                     foreach ($aliases as $alias) {
-                        if (isset($row[$alias]) && trim((string)$row[$alias]) !== '') {
-                            return trim((string)$row[$alias]);
+                        if (isset($normMap[$alias]) && trim((string)$normMap[$alias]) !== '') {
+                            return trim((string)$normMap[$alias]);
+                        }
+                    }
+                    // 2. Fallback: Check if any key contains the alias
+                    foreach ($normMap as $k => $val) {
+                        if (trim((string)$val) === '') continue;
+                        foreach ($aliases as $alias) {
+                            if (strlen($alias) >= 4 && str_contains($k, $alias)) {
+                                return trim((string)$val);
+                            }
                         }
                     }
                     return null;
@@ -302,7 +325,7 @@ class ProductSpreadsheetController extends Controller
 
                 $sizeVariant = $getVal([
                     'size__variant_name__saaiz___prkaar_', 'size_variant_name', 'size_variant',
-                    'size', 'variant_name', 'variant'
+                    'size', 'variant_name', 'variant', 'dimension', 'saaiz'
                 ]);
 
                 $sellingPrice = $getFloat([
@@ -369,9 +392,9 @@ class ProductSpreadsheetController extends Controller
                             if ($variantId && $variantId > 0) {
                                 $matchedVariant = $product->variants->firstWhere('id', $variantId);
                             } elseif (!empty($sizeVariant)) {
-                                $reqClean = strtolower(trim($sizeVariant));
+                                $reqClean = preg_replace('/[^a-z0-9]/', '', strtolower(trim($sizeVariant)));
                                 foreach ($product->variants as $pv) {
-                                    $pvClean = strtolower(trim($pv->variant_name ?: ($pv->size ?: '')));
+                                    $pvClean = preg_replace('/[^a-z0-9]/', '', strtolower(trim($pv->variant_name ?: ($pv->clean_size ?: ''))));
                                     if ($pvClean === $reqClean || str_contains($pvClean, $reqClean) || str_contains($reqClean, $pvClean)) {
                                         $matchedVariant = $pv;
                                         break;
@@ -394,7 +417,12 @@ class ProductSpreadsheetController extends Controller
                                 $varUpdates['stock_quantity'] = $stock;
                                 $varUpdates['track_inventory'] = true;
                             }
-                            if (!empty($sizeVariant)) $varUpdates['variant_name'] = $sizeVariant;
+                            if (!empty($sizeVariant)) {
+                                $varUpdates['variant_name'] = $sizeVariant;
+                                $attrs = $matchedVariant->custom_attributes ?? [];
+                                $attrs['size'] = $sizeVariant;
+                                $varUpdates['attributes'] = $attrs;
+                            }
 
                             if (!empty($varUpdates)) {
                                 $matchedVariant->update($varUpdates);

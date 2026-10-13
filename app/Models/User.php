@@ -120,6 +120,11 @@ class User extends Authenticatable
     /**
      * Check if user is on Profile-Only Tier (Capped at 50 products)
      */
+    public function isProfileOnly(): bool
+    {
+        return !$this->sellerPage()->exists();
+    }
+
     public function subscriptions()
     {
         return $this->hasMany(Subscription::class);

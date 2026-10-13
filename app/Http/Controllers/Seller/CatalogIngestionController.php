@@ -698,6 +698,8 @@ class CatalogIngestionController extends Controller
                 $lowestRetail = null;
                 $lowestWholesale = null;
                 $lowestMrp = null;
+                $totalVariantStock = 0;
+                $hasVariantStock = false;
 
                 foreach ($variantsInput as $vData) {
                     $vId = intval($vData['id'] ?? 0);
@@ -730,6 +732,8 @@ class CatalogIngestionController extends Controller
                         if (!is_null($vStock)) {
                             $variant->stock_quantity = $vStock;
                             $variant->track_inventory = true;
+                            $totalVariantStock += $vStock;
+                            $hasVariantStock = true;
                         }
                         $variant->attributes = $attributes;
                         $variant->save();
@@ -746,6 +750,10 @@ class CatalogIngestionController extends Controller
                             'track_inventory' => !is_null($vStock),
                             'attributes' => $attributes,
                         ]);
+                        if (!is_null($vStock)) {
+                            $totalVariantStock += $vStock;
+                            $hasVariantStock = true;
+                        }
                     }
 
                     // Track baselines
@@ -757,6 +765,10 @@ class CatalogIngestionController extends Controller
                 if ($lowestRetail !== null) $product->price = $lowestRetail;
                 if ($lowestWholesale !== null) $product->wholesale_price = $lowestWholesale;
                 if ($lowestMrp !== null) $product->mrp = $lowestMrp;
+                if ($hasVariantStock) {
+                    $product->stock_quantity = $totalVariantStock;
+                    $product->track_inventory = true;
+                }
             } else {
                 // Single product rate update
                 if ($request->filled('mrp')) $product->mrp = floatval($request->input('mrp'));
