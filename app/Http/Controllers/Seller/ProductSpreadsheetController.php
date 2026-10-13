@@ -260,14 +260,14 @@ class ProductSpreadsheetController extends Controller
             $s = preg_replace('/sch\s*(\d+)/i', '$1 sch', $s);
             $s = preg_replace('/(\d+)\s*sch/i', '$1 sch', $s);
             // Strip compound dimensions: 110*75*50, 25*20, 20x15, 1/2", 3/4"
-            $s = preg_replace('/\b\d+(\.\d+)?\s*[\*xX/]\s*\d+(\.\d+)?\s*[\*xX/]\s*\d+(\.\d+)?(\s*mm)?\b/i', '', $s);
-            $s = preg_replace('/\b\d+(\.\d+)?\s*[\*xX/]\s*\d+(\.\d+)?(\s*mm)?\b/i', '', $s);
+            $s = preg_replace('~\b\d+(\.\d+)?\s*[\*xX/]\s*\d+(\.\d+)?\s*[\*xX/]\s*\d+(\.\d+)?(\s*mm)?\b~i', '', $s);
+            $s = preg_replace('~\b\d+(\.\d+)?\s*[\*xX/]\s*\d+(\.\d+)?(\s*mm)?\b~i', '', $s);
             // Strip fractional inch & simple mm/inch/ft
-            $s = preg_replace('/\b\d+\s*[-–]?\s*\d+\/\d+(")?\b/i', '', $s);
-            $s = preg_replace('/\b\d+\/\d+(")?\b/i', '', $s);
-            $s = preg_replace('/\b\d+(\.\d+)?\s*(mm|inch|feet|ft|")\b/i', '', $s);
-            $s = preg_replace('/[^a-z0-9]/', ' ', $s);
-            return trim(preg_replace('/\s+/', ' ', $s));
+            $s = preg_replace('~\b\d+\s*[-–]?\s*\d+/\d+(")?\b~i', '', $s);
+            $s = preg_replace('~\b\d+/\d+(")?\b~i', '', $s);
+            $s = preg_replace('~\b\d+(\.\d+)?\s*(mm|inch|feet|ft|")\b~i', '', $s);
+            $s = preg_replace('~[^a-z0-9]~', ' ', $s);
+            return trim(preg_replace('~\s+~', ' ', $s));
         };
 
         $sellerProducts = Product::where('user_id', $seller->id)->with('variants')->get();
