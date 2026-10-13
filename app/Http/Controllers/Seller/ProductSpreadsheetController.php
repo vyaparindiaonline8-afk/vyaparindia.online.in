@@ -358,24 +358,25 @@ class ProductSpreadsheetController extends Controller
 
                 $sellingPrice = $getFloat([
                     'selling_price', 'selling_price_bikrii_bhaav', 'retail_price', 'price',
-                    'selling_price__bikrii_bhaav_', 'rate_a', 'sale_price'
+                    'selling_price__bikrii_bhaav_', 'rate_a', 'sale_price', 'sale_a'
                 ]);
 
                 $wholesalePrice = $getFloat([
                     'wholesale_price', 'wholesale_price_thok_bhaav_b2b', 'wholesale_price_thok_bhaav',
-                    'wholesale_price__thok_bhaav_b2b_', 'wholesale_price__thok_bhaav_', 'rate_b', 'b2b_price'
+                    'wholesale_price__thok_bhaav_b2b_', 'wholesale_price__thok_bhaav_', 'rate_b', 'b2b_price', 'sale_b'
                 ]);
 
                 $purchasePrice = $getFloat([
                     'purchase_price', 'purchase_price_khariid_bhaav_cost', 'purchase_price_cost',
-                    'purchase_price_khariid_bhaav', 'purchase_price__khariid_bhaav___cost_', 'cost', 'raw_rate'
+                    'purchase_price_khariid_bhaav', 'purchase_price__khariid_bhaav___cost_', 'cost', 'raw_rate', 'p_cost'
                 ]);
 
                 $mrp = $getFloat(['mrp', 'maximum_retail_price']);
 
                 $stock = $getInt([
                     'current_stock', 'current_stock_sttok_sankhyaa', 'stock_quantity',
-                    'stock_quantity_sttok', 'stock', 'stock_quantity__sttok_', 'current_stock__sttok_sankhyaa_'
+                    'stock_quantity_sttok', 'stock', 'stock_quantity__sttok_', 'current_stock__sttok_sankhyaa_',
+                    'opn_stock', 'opnstock', 'open_stock'
                 ]);
 
                 $desc = $getVal([
@@ -419,7 +420,7 @@ class ProductSpreadsheetController extends Controller
                     }
 
                     // Extract sizeVariant from $name if not already present
-                    if ($product && empty($sizeVariant)) {
+                    if (empty($sizeVariant) && !empty($name)) {
                         if (preg_match('~(\d+(?:\.\d+)?(?:\s*[\*xX/]\s*\d+(?:\.\d+)?)+\s*(?:mm|inch|feet|ft)?|\d+(?:\.\d+)?\s*(?:mm|inch|feet|ft|")|\d+\/\d+(?:")?)~i', $name, $dm)) {
                             $sizeVariant = trim($dm[0]);
                         }
@@ -428,19 +429,25 @@ class ProductSpreadsheetController extends Controller
 
                 // Auto-resolve verified catalog image from BrandMasterProduct
                 $catalogImage = null;
-                if (!empty($productCode)) {
-                    $bmp = \App\Models\BrandMasterProduct::where('product_code', $productCode)
-                        ->orWhere('sku', $productCode)
-                        ->first();
-                    if ($bmp && !empty($bmp->image_url)) {
-                        $catalogImage = $bmp->image_url;
+                try {
+                    if (!empty($productCode)) {
+                        $cleanCode = trim($productCode);
+                        $bmp = \App\Models\BrandMasterProduct::where('product_code', $cleanCode)
+                            ->orWhere('product_code', strtoupper($cleanCode))
+                            ->first();
+                        if ($bmp && !empty($bmp->image_url)) {
+                            $catalogImage = $bmp->image_url;
+                        }
                     }
-                }
-                if (!$catalogImage && !empty($name)) {
-                    $bmp = \App\Models\BrandMasterProduct::where('product_name', $name)->first();
-                    if ($bmp && !empty($bmp->image_url)) {
-                        $catalogImage = $bmp->image_url;
+                    if (!$catalogImage && !empty($name)) {
+                        $cleanName = trim($name);
+                        $bmp = \App\Models\BrandMasterProduct::where('product_name', $cleanName)->first();
+                        if ($bmp && !empty($bmp->image_url)) {
+                            $catalogImage = $bmp->image_url;
+                        }
                     }
+                } catch (\Throwable $e) {
+                    \Log::warning('BrandMasterProduct lookup error: ' . $e->getMessage());
                 }
 
                 if ($product) {
@@ -554,8 +561,8 @@ class ProductSpreadsheetController extends Controller
                             }
                             $affectedProductIds[$product->id] = true;
                         }
-                    } elseif ($hasVariants && !empty($sizeVariant)) {
-                        // Product has variants, but this particular size (e.g. 110*75*50) is new -> Add as new variant
+                    } elseif (!empty($sizeVariant)) {
+                        // Product exists, this particular size is added as a variant
                         $vPrice = ($sellingPrice && $sellingPrice > 0) ? $sellingPrice : (($mrp && $mrp > 0) ? $mrp : $product->price);
                         $newVar = ProductVariant::create([
                             'product_id' => $product->id,
@@ -569,7 +576,15 @@ class ProductSpreadsheetController extends Controller
                             'track_inventory' => !is_null($stock) && $stock > 0,
                             'attributes' => ['size' => $sizeVariant],
                         ]);
-                        $product->variants->push($newVar);
+                        if (!$product->has_variants) {
+                            $product->update(['has_variants' => true]);
+                            $product->has_variants = true;
+                        }
+                        if (!$product->relationLoaded('variants') || is_null($product->variants)) {
+                            $product->setRelation('variants', collect([$newVar]));
+                        } else {
+                            $product->variants->push($newVar);
+                        }
                         $updatedVariantsCount++;
                         $affectedProductIds[$product->id] = true;
                     } else {
@@ -670,7 +685,7 @@ class ProductSpreadsheetController extends Controller
                             $sellerProducts->push($newProduct);
 
                             if (!empty($sizeVariant)) {
-                                ProductVariant::create([
+                                $firstVar = ProductVariant::create([
                                     'product_id' => $newProduct->id,
                                     'variant_name' => $sizeVariant,
                                     'sku' => !empty($productCode) ? $productCode : ('VAR-' . $newProduct->id . '-' . strtoupper(Str::random(5))),
@@ -680,7 +695,11 @@ class ProductSpreadsheetController extends Controller
                                     'mrp' => ($mrp && $mrp > 0) ? $mrp : $finalPrice,
                                     'stock_quantity' => !is_null($stock) ? $stock : 0,
                                     'track_inventory' => !is_null($stock) && $stock > 0,
+                                    'attributes' => ['size' => $sizeVariant],
                                 ]);
+                                $newProduct->setRelation('variants', collect([$firstVar]));
+                            } else {
+                                $newProduct->setRelation('variants', collect());
                             }
                         } else {
                             $quotaExceededCount++;
