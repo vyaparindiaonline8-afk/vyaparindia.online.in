@@ -372,7 +372,7 @@ class ProductSpreadsheetController extends Controller
 
                     // If not found, check if $name contains compound sizes (e.g. MULTI FLOOR TRAP 110*75*50) and matches parent base family
                     if (!$product) {
-                        $cleanBaseName = trim(preg_replace('/\b\d+(\.\d+)?(\s*[\*xX/]\s*\d+(\.\d+)?)*\s*(mm|inch|feet|ft)?\b/i', '', $name));
+                        $cleanBaseName = trim(preg_replace('~\b\d+(\.\d+)?(\s*[\*xX/]\s*\d+(\.\d+)?)*\s*(mm|inch|feet|ft)?\b~i', '', $name));
                         $cleanBaseName = trim($cleanBaseName, " -*");
                         if (!empty($cleanBaseName) && $cleanBaseName !== $name) {
                             $product = Product::where('user_id', $seller->id)
@@ -380,7 +380,7 @@ class ProductSpreadsheetController extends Controller
                                 ->with('variants')
                                 ->first();
                             if ($product && empty($sizeVariant)) {
-                                if (preg_match('/(\d+(?:\.\d+)?(?:\s*[\*xX/]\s*\d+(?:\.\d+)?)+\s*(?:mm|inch|ft)?)/i', $name, $dm)) {
+                                if (preg_match('~(\d+(?:\.\d+)?(?:\s*[\*xX/]\s*\d+(?:\.\d+)?)+\s*(?:mm|inch|ft)?)~i', $name, $dm)) {
                                     $sizeVariant = trim($dm[1]);
                                 }
                             }
