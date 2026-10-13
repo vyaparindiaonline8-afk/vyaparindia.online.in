@@ -166,8 +166,14 @@
                     <!-- Upload & Sync Button -->
                     <button type="button" onclick="openExcelSyncModal()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs shadow-md shadow-emerald-500/20 transition flex items-center gap-2 hover:scale-102 active:scale-98">
                         <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
-                        <span>एक्सेल अपलोड / अपडेट</span>
+                        <span>1-क्लिक ऑटो सिंक</span>
                     </button>
+
+                    <!-- Interactive Column Mapper Tool Button -->
+                    <a href="{{ route('seller.catalog.excel_mapper') }}" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 transition flex items-center gap-2 hover:scale-102 active:scale-98" title="कॉलम मैपिंग पॉपअप के साथ एक्सेल अपलोड करें">
+                        <i class="fa-solid fa-table-columns text-sm text-amber-300"></i>
+                        <span>कॉलम मैपिंग टूल (Excel Mapper) ⚡</span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -347,6 +353,23 @@
                     <li><strong>नाम बदलना सुरक्षित:</strong> यदि आप एक्सेल में प्रोडक्ट का नाम भी बदल देंगे, तब भी ID से सही आइटम का नाम व रेट अपडेट होगा (डुप्लीकेट नहीं बनेगा)।</li>
                     <li><strong>नई लाइन = नया आइटम:</strong> यदि आप शीट के नीचे बिना ID के नई लाइन जोड़ते हैं, तो वह नया प्रोडक्ट लिस्ट हो जाएगा।</li>
                 </ul>
+            </div>
+
+            <!-- 💡 Interactive Column Mapper Notice -->
+            <div class="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="space-y-0.5">
+                    <div class="flex items-center gap-2 text-indigo-950 font-black text-xs">
+                        <i class="fa-solid fa-table-columns text-indigo-600"></i>
+                        <span>कॉलम मैपिंग (Mapping Popup) चाहिए?</span>
+                    </div>
+                    <p class="text-[11px] text-indigo-700">
+                        अगर आपकी एक्सेल शीट का फॉर्मेट अलग है और आप खुद ड्रॉपडाउन से कॉलम (नाम, रेट, साइज आदि) मैच करना चाहते हैं, तो <b>Excel Mapper</b> का इस्तेमाल करें।
+                    </p>
+                </div>
+                <a href="{{ route('seller.catalog.excel_mapper') }}" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shrink-0 flex items-center gap-1.5 shadow-sm transition">
+                    <span>मैपिंग टूल खोलें</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </a>
             </div>
 
             <!-- Download Shortcuts in Modal -->

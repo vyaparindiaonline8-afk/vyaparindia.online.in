@@ -2656,7 +2656,7 @@
 
                 let rawSize = (sizeIdx !== -1 && row[sizeIdx] !== undefined) ? String(row[sizeIdx]).trim() : '';
                 if (!rawSize) {
-                    const sizeMatch = rawName.match(/\b(\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?|\d+x\d+)\b/i);
+                    const sizeMatch = rawName.match(/\b(\d+[\*xX/]\d+[\*xX/]\d+|\d+[\*xX/]\d+|\d+(\.\d+)?\s*(mm|inch|")|\d+\/\d+(")?)\b/i);
                     rawSize = sizeMatch ? sizeMatch[0] : 'Standard';
                 }
 
@@ -2774,8 +2774,8 @@
             str = str.replace(/(\d+)\s*SCH\b/gi, '$1 SCH');
             str = str.replace(/SCH\s*(\d+)\b/gi, '$1 SCH');
 
-            // Strip dimension patterns:
-            // 1. Double dimensions: 25X20, 20*15, 25 x 20mm, 1 x 1/2"
+            // 1. Triple & Double dimensions: 110*75*50, 25X20, 20*15, 25 x 20mm, 1 x 1/2"
+            str = str.replace(/\b\d+(\.\d+)?\s*[*xX/]\s*\d+(\.\d+)?\s*[*xX/]\s*\d+(\.\d+)?(\s*mm)?\b/gi, ' ');
             str = str.replace(/\b\d+(\.\d+)?\s*[*xX]\s*\d+(\.\d+)?(\s*mm)?\b/gi, ' ');
             str = str.replace(/\b\d+(\.\d+)?\s*[*xX]\s*\d+\/\d+(")?\b/gi, ' ');
             // 2. Fractional inch: 1/2", 3/4", 1-1/4", 1 1/2"
