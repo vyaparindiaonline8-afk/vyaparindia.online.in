@@ -414,6 +414,17 @@
                             शीट लोड हो चुकी है! नीचे "सिंक व अपडेट करें" बटन दबाकर नए रेट्स लागू करें।
                         </p>
                     </div>
+
+                    <!-- Allow create new products option -->
+                    <div class="flex items-start gap-2.5 p-3 rounded-2xl bg-amber-50/80 border border-amber-200 text-xs">
+                        <input type="checkbox" id="allowCreateNewProductsChk" name="allow_create_new" value="1" class="mt-0.5 h-4 w-4 rounded border-amber-300 text-emerald-600 focus:ring-emerald-500">
+                        <label for="allowCreateNewProductsChk" class="font-bold text-amber-950 cursor-pointer leading-snug">
+                            यदि शीट में कोई नया आइटम मिले तो नया प्रोडक्ट बनाएं
+                            <span class="block text-[11px] font-normal text-amber-800 mt-0.5">
+                                (अनचेक रखने पर केवल मौजूदा प्रोडक्ट्स के रेट्स अपडेट होंगे — कोई नया कार्ड अपने आप नहीं बनेगा)
+                            </span>
+                        </label>
+                    </div>
                 </div>
 
                 <!-- Sticky Footer (Always Visible at Bottom) -->

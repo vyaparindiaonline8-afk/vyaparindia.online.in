@@ -241,13 +241,36 @@ class ProductSpreadsheetController extends Controller
 
         $updatedProductsCount = 0;
         $updatedVariantsCount = 0;
+        $unchangedCount = 0;
         $createdProductsCount = 0;
         $skippedCount = 0;
         $affectedProductIds = [];
+        $allowCreateNew = $request->boolean('allow_create_new', false);
+
+        $normalizeForMatching = function(?string $str): string {
+            if (!$str) return '';
+            $s = strtolower(trim($str));
+            // Remove common brand noise if present
+            $s = preg_replace('/\b(plasto|supreme|astral|ashirvad|finolex|prince)\b/i', '', $s);
+            // Standardize degree
+            $s = str_replace(['°', 'deg.', 'degree'], 'deg', $s);
+            // Standardize schedules
+            $s = preg_replace('/sch\s*(\d+)/i', '$1 sch', $s);
+            $s = preg_replace('/(\d+)\s*sch/i', '$1 sch', $s);
+            // Strip compound dimensions: 110*75*50, 25*20, 20x15, 1/2", 3/4"
+            $s = preg_replace('/\b\d+(\.\d+)?\s*[\*xX/]\s*\d+(\.\d+)?\s*[\*xX/]\s*\d+(\.\d+)?(\s*mm)?\b/i', '', $s);
+            $s = preg_replace('/\b\d+(\.\d+)?\s*[\*xX/]\s*\d+(\.\d+)?(\s*mm)?\b/i', '', $s);
+            // Strip fractional inch & simple mm/inch/ft
+            $s = preg_replace('/\b\d+\s*[-–]?\s*\d+\/\d+(")?\b/i', '', $s);
+            $s = preg_replace('/\b\d+\/\d+(")?\b/i', '', $s);
+            $s = preg_replace('/\b\d+(\.\d+)?\s*(mm|inch|feet|ft|")\b/i', '', $s);
+            $s = preg_replace('/[^a-z0-9]/', ' ', $s);
+            return trim(preg_replace('/\s+/', ' ', $s));
+        };
 
         $sellerProducts = Product::where('user_id', $seller->id)->with('variants')->get();
 
-        DB::transaction(function () use ($rawRows, $seller, $sellerProducts, &$updatedProductsCount, &$updatedVariantsCount, &$createdProductsCount, &$skippedCount, &$affectedProductIds) {
+        DB::transaction(function () use ($rawRows, $seller, $sellerProducts, $allowCreateNew, $normalizeForMatching, &$updatedProductsCount, &$updatedVariantsCount, &$unchangedCount, &$createdProductsCount, &$skippedCount, &$affectedProductIds) {
             foreach ($rawRows as $row) {
                 // Pre-build normalized key-value map for robust header lookup (handles raw Excel, Hindi, snake_case)
                 $normMap = [];
@@ -371,22 +394,21 @@ class ProductSpreadsheetController extends Controller
                             || (!empty($nameSlug) && $p->slug === $nameSlug);
                     });
 
-                    // If not found, check if $name contains compound sizes (e.g. MULTI FLOOR TRAP 110*75*50) and matches parent base family
+                    // Fuzzy base matching using normalizeForMatching (handles brand prefix, degree °, schedules, compound sizes)
                     if (!$product) {
-                        $cleanBaseName = trim(preg_replace('~\b\d+(\.\d+)?(\s*[\*xX/]\s*\d+(\.\d+)?)*\s*(mm|inch|feet|ft)?\b~i', '', $name));
-                        $cleanBaseName = trim($cleanBaseName, " -*");
-                        if (!empty($cleanBaseName) && $cleanBaseName !== $name) {
-                            $lowerBase = strtolower(trim($cleanBaseName));
-                            $baseSlug = Str::slug($cleanBaseName);
-                            $product = $sellerProducts->first(function($p) use ($lowerBase, $baseSlug) {
-                                return strtolower(trim($p->name)) === $lowerBase
-                                    || (!empty($baseSlug) && $p->slug === $baseSlug);
+                        $normName = $normalizeForMatching($name);
+                        if (!empty($normName)) {
+                            $product = $sellerProducts->first(function($p) use ($normName, $normalizeForMatching) {
+                                $pNorm = $normalizeForMatching($p->name);
+                                return !empty($pNorm) && ($pNorm === $normName || str_contains($pNorm, $normName) || str_contains($normName, $pNorm));
                             });
-                            if ($product && empty($sizeVariant)) {
-                                if (preg_match('~(\d+(?:\.\d+)?(?:\s*[\*xX/]\s*\d+(?:\.\d+)?)+\s*(?:mm|inch|ft)?)~i', $name, $dm)) {
-                                    $sizeVariant = trim($dm[1]);
-                                }
-                            }
+                        }
+                    }
+
+                    // Extract sizeVariant from $name if not already present
+                    if ($product && empty($sizeVariant)) {
+                        if (preg_match('~(\d+(?:\.\d+)?(?:\s*[\*xX/]\s*\d+(?:\.\d+)?)+\s*(?:mm|inch|feet|ft)?|\d+(?:\.\d+)?\s*(?:mm|inch|feet|ft|")|\d+\/\d+(?:")?)~i', $name, $dm)) {
+                            $sizeVariant = trim($dm[0]);
                         }
                     }
                 }
@@ -450,17 +472,39 @@ class ProductSpreadsheetController extends Controller
                         }
                     }
 
+                    $isChanged = false;
                     if ($matchedVariant) {
                         // Update variant-specific fields cleanly with exact Excel values
                         $varUpdates = [];
-                        if (!is_null($sellingPrice) && $sellingPrice > 0) $varUpdates['retail_price'] = $sellingPrice;
-                        if (!is_null($wholesalePrice) && $wholesalePrice > 0) $varUpdates['wholesale_price'] = $wholesalePrice;
+                        if (!is_null($sellingPrice) && $sellingPrice > 0) {
+                            if (abs(floatval($matchedVariant->retail_price ?? $matchedVariant->price) - $sellingPrice) > 0.01) {
+                                $isChanged = true;
+                            }
+                            $varUpdates['retail_price'] = $sellingPrice;
+                        }
+                        if (!is_null($wholesalePrice) && $wholesalePrice > 0) {
+                            if (abs(floatval($matchedVariant->wholesale_price) - $wholesalePrice) > 0.01) {
+                                $isChanged = true;
+                            }
+                            $varUpdates['wholesale_price'] = $wholesalePrice;
+                        }
                         if (!is_null($purchasePrice) && $purchasePrice > 0) {
+                            if (abs(floatval($matchedVariant->purchase_price) - $purchasePrice) > 0.01) {
+                                $isChanged = true;
+                            }
                             $varUpdates['purchase_price'] = $purchasePrice;
                             $varUpdates['raw_rate'] = $purchasePrice;
                         }
-                        if (!is_null($mrp) && $mrp > 0) $varUpdates['mrp'] = $mrp;
+                        if (!is_null($mrp) && $mrp > 0) {
+                            if (abs(floatval($matchedVariant->mrp) - $mrp) > 0.01) {
+                                $isChanged = true;
+                            }
+                            $varUpdates['mrp'] = $mrp;
+                        }
                         if (!is_null($stock)) {
+                            if (intval($matchedVariant->stock_quantity) !== $stock) {
+                                $isChanged = true;
+                            }
                             $varUpdates['stock_quantity'] = $stock;
                             $varUpdates['track_inventory'] = true;
                         }
@@ -473,7 +517,11 @@ class ProductSpreadsheetController extends Controller
 
                         if (!empty($varUpdates)) {
                             $matchedVariant->update($varUpdates);
-                            $updatedVariantsCount++;
+                            if ($isChanged) {
+                                $updatedVariantsCount++;
+                            } else {
+                                $unchangedCount++;
+                            }
                             $affectedProductIds[$product->id] = true;
                         }
                     } elseif ($hasVariants && !empty($sizeVariant)) {
@@ -497,18 +545,23 @@ class ProductSpreadsheetController extends Controller
                         // Single Product rate update (when product has no variants)
                         if (!$hasVariants) {
                             if (!is_null($sellingPrice) && $sellingPrice > 0) {
+                                if (abs(floatval($product->price) - $sellingPrice) > 0.01) $isChanged = true;
                                 $prodUpdates['price'] = $sellingPrice;
                             }
                             if (!is_null($wholesalePrice) && $wholesalePrice > 0) {
+                                if (abs(floatval($product->wholesale_price) - $wholesalePrice) > 0.01) $isChanged = true;
                                 $prodUpdates['wholesale_price'] = $wholesalePrice;
                             }
                             if (!is_null($purchasePrice) && $purchasePrice > 0) {
+                                if (abs(floatval($product->purchase_price) - $purchasePrice) > 0.01) $isChanged = true;
                                 $prodUpdates['purchase_price'] = $purchasePrice;
                             }
                             if (!is_null($mrp) && $mrp > 0) {
+                                if (abs(floatval($product->mrp) - $mrp) > 0.01) $isChanged = true;
                                 $prodUpdates['mrp'] = $mrp;
                             }
                             if (!is_null($stock)) {
+                                if (intval($product->stock_quantity) !== $stock) $isChanged = true;
                                 $prodUpdates['stock_quantity'] = $stock;
                                 $prodUpdates['track_inventory'] = true;
                             }
@@ -517,11 +570,17 @@ class ProductSpreadsheetController extends Controller
 
                     if (!empty($prodUpdates)) {
                         $product->update($prodUpdates);
-                        $updatedProductsCount++;
+                        if ($isChanged) {
+                            $updatedProductsCount++;
+                        } else {
+                            $unchangedCount++;
+                        }
+                    } elseif (!$matchedVariant && !$hasVariants) {
+                        $unchangedCount++;
                     }
                 } else {
-                    // Case B: No product_id provided (e.g. newly typed row at bottom of sheet) -> Create New Product
-                    if (!empty($name) && (!is_null($sellingPrice) || !is_null($mrp))) {
+                    // Case B: No product_id provided and not matched
+                    if ($allowCreateNew && !empty($name) && (!is_null($sellingPrice) || !is_null($mrp))) {
                         if ($seller->canAddProduct()) {
                             $catId = null;
                             if (!empty($categoryName)) {
@@ -586,6 +645,7 @@ class ProductSpreadsheetController extends Controller
                             $skippedCount++;
                         }
                     } else {
+                        // Skipped because row is empty or allow_create_new is off
                         $skippedCount++;
                     }
                 }
@@ -612,18 +672,25 @@ class ProductSpreadsheetController extends Controller
             }
         });
 
-        $msg = "Excel Sync Safalta Purvak Poora Hua: {$updatedProductsCount} products ke rates & details update hue";
+        $totalRows = count($rawRows);
+        $parts = [];
+        if ($updatedProductsCount > 0) {
+            $parts[] = "✅ {$updatedProductsCount} प्रोडक्ट्स के भाव बदले गए";
+        }
         if ($updatedVariantsCount > 0) {
-            $msg .= " ({$updatedVariantsCount} size variants updated)";
+            $parts[] = "📦 {$updatedVariantsCount} साइज़ वेरिएंट्स के भाव बदले गए";
+        }
+        if ($unchangedCount > 0) {
+            $parts[] = "🟢 {$unchangedCount} आइटम्स पहले से अप-टू-डेट थे (भाव में कोई बदलाव नहीं था)";
         }
         if ($createdProductsCount > 0) {
-            $msg .= ", {$createdProductsCount} naye items add hue";
+            $parts[] = "✨ {$createdProductsCount} नए प्रोडक्ट्स जोड़े गए";
         }
         if ($skippedCount > 0) {
-            $msg .= ". Note: {$skippedCount} rows skip hui (ID match na hone ya khali hone ke karan).";
-        } else {
-            $msg .= "!";
+            $parts[] = "⚪ {$skippedCount} पंक्तियाँ छोड़ी गईं (खाली/हेडिंग लाइनें या बिना ID)";
         }
+
+        $msg = "Excel Sync रिपोर्ट (कुल {$totalRows} पंक्तियाँ): " . implode(' | ', $parts) . '।';
 
         return back()->with('success', $msg);
     }
