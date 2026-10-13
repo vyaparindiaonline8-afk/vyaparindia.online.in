@@ -71,10 +71,9 @@ class User extends Authenticatable
             return false;
         }
 
-        $adminEmails = array_filter(array_map('trim', [
-            env('ADMIN_EMAIL'),
-            env('OWNER_EMAIL'),
-            env('SUPERADMIN_EMAIL'),
+        $rawEmails = env('ADMIN_EMAIL') . ',' . env('OWNER_EMAIL') . ',' . env('SUPERADMIN_EMAIL');
+        $splitList = array_map('trim', explode(',', $rawEmails));
+        $adminEmails = array_filter(array_merge($splitList, [
             env('MAIL_FROM_ADDRESS'),
             config('mail.from.address'),
             env('MAIL_USERNAME'),
@@ -82,7 +81,7 @@ class User extends Authenticatable
         ]));
 
         foreach ($adminEmails as $candidate) {
-            if (strtolower($candidate) === $email) {
+            if (!empty($candidate) && strtolower($candidate) === $email) {
                 return true;
             }
         }
