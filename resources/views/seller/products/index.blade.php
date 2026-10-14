@@ -1407,14 +1407,17 @@
             if (card) card.style.opacity = '0.4';
             if (row) row.style.opacity = '0.4';
 
+            const formData = new FormData();
+            formData.append('_token', csrfToken);
+            formData.append('_method', 'DELETE');
+
             fetch(`/seller/products/${productId}/delete`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': csrfToken
                 },
-                body: JSON.stringify({ _method: 'DELETE' })
+                body: formData
             })
             .then(res => res.json())
             .then(data => {
