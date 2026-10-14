@@ -270,9 +270,26 @@ class ProductSpreadsheetController extends Controller
             return trim(preg_replace('~\s+~', ' ', $s));
         };
 
+        $extractWordSet = function(?string $text): array {
+            if (!$text) return [];
+            $s = strtolower(trim($text));
+            $s = str_replace(['*', '°', '/', '-', '_', '(', ')', '[', ']', '.', ':'], ' ', $s);
+            $s = preg_replace('~\b(plasto|supreme|astral|ashirvad|finolex|prince)\b~i', ' ', $s);
+            $s = preg_replace('~\b\d+(\.\d+)?\s*[\*xX/]\s*\d+(\.\d+)?\s*[\*xX/]\s*\d+(\.\d+)?(\s*mm)?\b~i', ' ', $s);
+            $s = preg_replace('~\b\d+(\.\d+)?\s*[\*xX/]\s*\d+(\.\d+)?(\s*mm)?\b~i', ' ', $s);
+            $s = preg_replace('~\b\d+\s*[-–]?\s*\d+/\d+(")?\b~i', ' ', $s);
+            $s = preg_replace('~\b\d+/\d+(")?\b~i', ' ', $s);
+            $s = preg_replace('~\b\d+(\.\d+)?\s*(mm|inch|feet|ft|")\b~i', ' ', $s);
+            $s = preg_replace('~[^a-z0-9]~', ' ', $s);
+            $words = array_filter(explode(' ', $s), function($w) {
+                return strlen(trim($w)) > 0 && !in_array($w, ['sch', 'item', 'items', 'fitting', 'fittings']);
+            });
+            return array_unique(array_values($words));
+        };
+
         $sellerProducts = Product::where('user_id', $seller->id)->with('variants')->get();
 
-        DB::transaction(function () use ($rawRows, $seller, $sellerProducts, $allowCreateNew, $normalizeForMatching, &$updatedProductsCount, &$updatedVariantsCount, &$unchangedCount, &$createdProductsCount, &$skippedCount, &$affectedProductIds) {
+        DB::transaction(function () use ($rawRows, $seller, $sellerProducts, $allowCreateNew, $normalizeForMatching, $extractWordSet, &$updatedProductsCount, &$updatedVariantsCount, &$unchangedCount, &$createdProductsCount, &$skippedCount, &$affectedProductIds, &$quotaExceededCount, &$unmatchedCount) {
             foreach ($rawRows as $row) {
                 // Pre-build normalized key-value map for robust header lookup (handles raw Excel, Hindi, snake_case)
                 $normMap = [];
@@ -416,6 +433,32 @@ class ProductSpreadsheetController extends Controller
                                 $pNorm = $normalizeForMatching($p->name);
                                 return !empty($pNorm) && ($pNorm === $normName || str_contains($pNorm, $normName) || str_contains($normName, $pNorm));
                             });
+                        }
+                    }
+
+                    // Smart Word-set matching (matches "90* ELBOW" + "UPVC FITTINGS" to "UPVC ELBOW 90")
+                    if (!$product) {
+                        $rowWords = $extractWordSet($name . ' ' . $categoryName);
+                        if (!empty($rowWords)) {
+                            $bestP = null;
+                            $bestScore = 0;
+                            foreach ($sellerProducts as $p) {
+                                $pWords = $extractWordSet($p->name . ' ' . ($p->category->name ?? ''));
+                                if (empty($pWords)) continue;
+                                $intersect = array_intersect($rowWords, $pWords);
+                                if (!empty($intersect)) {
+                                    if (count($intersect) === count($rowWords) || count($intersect) === count($pWords)) {
+                                        $score = count($intersect);
+                                        if ($score > $bestScore) {
+                                            $bestScore = $score;
+                                            $bestP = $p;
+                                        }
+                                    }
+                                }
+                            }
+                            if ($bestP) {
+                                $product = $bestP;
+                            }
                         }
                     }
 
@@ -662,9 +705,24 @@ class ProductSpreadsheetController extends Controller
                                 $suffix++;
                             }
 
+                            // Derive clean base product family name for the card (strip size, add material prefix if missing)
+                            $baseCardName = $name;
+                            if (!empty($sizeVariant)) {
+                                $baseCardName = trim(str_ireplace($sizeVariant, '', $baseCardName));
+                                $baseCardName = trim(preg_replace('/\s+/', ' ', $baseCardName));
+                            }
+                            if (!empty($categoryName)) {
+                                foreach (['UPVC', 'CPVC', 'SWR'] as $mat) {
+                                    if (stripos($categoryName, $mat) !== false && stripos($baseCardName, $mat) === false) {
+                                        $baseCardName = $mat . ' ' . $baseCardName;
+                                        break;
+                                    }
+                                }
+                            }
+
                             $newProduct = Product::create([
                                 'user_id' => $seller->id,
-                                'name' => $name,
+                                'name' => !empty($baseCardName) ? $baseCardName : $name,
                                 'sku' => !empty($productCode) ? $productCode : ('PLASTO-' . time() . '-' . rand(10, 99)),
                                 'slug' => $uniqueSlug,
                                 'description' => !empty($desc) ? $desc : $name,
