@@ -18,28 +18,60 @@ class ProductController extends Controller
         $query = $user->products()->with(['category', 'variants']);
 
         $activeFolder = $request->query('folder');
+        $activeCategory = $request->query('category');
+        $search = trim((string)$request->query('search'));
         $hasGroupCol = \Illuminate\Support\Facades\Schema::hasColumn('products', 'group_name');
 
         if ($hasGroupCol && $activeFolder && $activeFolder !== 'all') {
             $query->where('group_name', $activeFolder);
         }
 
-        $products = $query->latest()->get();
-        $productCardsCount = $products->count();
-        $totalVariantsCount = $products->sum(function($p) {
+        if ($activeCategory && $activeCategory !== 'all') {
+            $query->whereHas('category', function($q) use ($activeCategory) {
+                $q->where('slug', $activeCategory)->orWhere('name', $activeCategory);
+            });
+        }
+
+        if (!empty($search)) {
+            $term = '%' . strtolower($search) . '%';
+            $query->where(function($q) use ($term) {
+                $q->whereRaw('LOWER(name) LIKE ?', [$term])
+                  ->orWhereRaw('LOWER(sku) LIKE ?', [$term])
+                  ->orWhereHas('variants', function($vq) use ($term) {
+                      $vq->whereRaw('LOWER(variant_name) LIKE ?', [$term])
+                         ->orWhereRaw('LOWER(sku) LIKE ?', [$term]);
+                  });
+            });
+        }
+
+        $allSellerProducts = $user->products()->with(['category', 'variants'])->get();
+        $productCardsCount = $allSellerProducts->count();
+        $totalVariantsCount = $allSellerProducts->sum(function($p) {
             return ($p->variants && $p->variants->count() > 0) ? $p->variants->count() : 1;
         });
 
+        $products = $query->latest()->get();
+
         $folders = collect();
         if ($hasGroupCol) {
-            $folders = $user->products()
+            $folders = $allSellerProducts
                 ->whereNotNull('group_name')
                 ->where('group_name', '!=', '')
-                ->distinct()
-                ->pluck('group_name');
+                ->pluck('group_name')
+                ->unique()
+                ->values();
         }
 
-        return view('seller.products.index', compact('products', 'folders', 'activeFolder', 'productCardsCount', 'totalVariantsCount'));
+        $categories = $allSellerProducts
+            ->pluck('category')
+            ->filter()
+            ->unique('id')
+            ->values();
+
+        return view('seller.products.index', compact(
+            'products', 'folders', 'categories', 'activeFolder', 'activeCategory', 'search',
+            'productCardsCount', 'totalVariantsCount'
+        ));
     }
 
     public function create()

@@ -303,8 +303,324 @@
             @endif
         </div>
 
-        <!-- Product Table -->
-        <div class="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
+        <!-- 🔍 Search, Categories & View Mode Switcher Bar -->
+        <div class="bg-white rounded-3xl border border-gray-200 p-4 sm:p-5 shadow-xs space-y-4">
+            <!-- Top Controls Row: Search Bar + View Mode Toggle -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <!-- Search Input Form -->
+                <form action="{{ route('seller.products.index') }}" method="GET" class="flex-1 max-w-lg flex items-center gap-2">
+                    @if(!empty($activeCategory))
+                        <input type="hidden" name="category" value="{{ $activeCategory }}">
+                    @endif
+                    @if(!empty($activeFolder))
+                        <input type="hidden" name="folder" value="{{ $activeFolder }}">
+                    @endif
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                        <input type="text" id="liveSearchInput" name="search" value="{{ $search ?? '' }}" oninput="filterItemsClientSide()" placeholder="प्रोडक्ट का नाम, साइज़ या SKU खोजें (उदा: 90 Elbow, UPVC, 20mm)..." class="w-full pl-9 pr-8 py-2.5 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 text-xs font-semibold outline-hidden transition">
+                        @if(!empty($search))
+                            <a href="{{ route('seller.products.index', array_filter(['category' => $activeCategory, 'folder' => $activeFolder])) }}" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs" title="Clear search">
+                                <i class="fa-solid fa-xmark"></i>
+                            </a>
+                        @endif
+                    </div>
+                    <button type="submit" class="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs transition shadow-xs">
+                        <span>सर्च</span>
+                    </button>
+                </form>
+
+                <!-- View Mode Switcher & Expand/Collapse All -->
+                <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                    <button type="button" onclick="toggleAllAccordions()" id="btnToggleAllVariants" class="px-3 py-2 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1.5" title="सभी साइज़ वेरिएंट्स एक साथ खोलें / बंद करें">
+                        <i class="fa-solid fa-arrows-up-down text-[10px]"></i>
+                        <span id="toggleAllVariantsText">सभी साइज़ खोलें</span>
+                    </button>
+
+                    <div class="bg-gray-100 p-1 rounded-2xl flex items-center border border-gray-200">
+                        <button type="button" onclick="switchProductView('cards')" id="btnViewCards" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 bg-white text-indigo-600 shadow-2xs">
+                            <i class="fa-solid fa-grip text-xs"></i>
+                            <span>कार्ड्स (Cards)</span>
+                        </button>
+                        <button type="button" onclick="switchProductView('table')" id="btnViewTable" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 text-gray-600 hover:text-gray-900">
+                            <i class="fa-solid fa-list text-xs"></i>
+                            <span>टेबल (Table)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Pills / Tabs -->
+            <div class="pt-2 border-t border-gray-100 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                <span class="text-xs font-black text-gray-500 shrink-0 flex items-center gap-1.5 mr-1">
+                    <i class="fa-solid fa-layer-group text-blue-600"></i>
+                    <span>कैटेगरी:</span>
+                </span>
+
+                <!-- All Categories Tab -->
+                <a href="{{ route('seller.products.index', array_filter(['folder' => $activeFolder, 'search' => $search])) }}" class="px-3 py-1.5 rounded-xl text-xs font-extrabold shrink-0 transition flex items-center gap-1.5 {{ empty($activeCategory) || $activeCategory === 'all' ? 'bg-blue-600 text-white shadow-xs' : 'bg-gray-100 hover:bg-gray-200 text-gray-700' }}">
+                    <span>सभी कैटेगरीज (All)</span>
+                    <span class="px-1.5 py-0.2 rounded-full {{ empty($activeCategory) || $activeCategory === 'all' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700' }} text-[10px]">{{ $productCardsCount ?? $productCount }}</span>
+                </a>
+
+                @if(!empty($categories) && $categories->count() > 0)
+                    @foreach($categories as $cat)
+                        @php
+                            $catName = is_object($cat) ? ($cat->name ?? '') : (string)$cat;
+                            $catSlug = is_object($cat) ? ($cat->slug ?? $catName) : $catName;
+                            $isActive = ($activeCategory === $catSlug || $activeCategory === $catName);
+                        @endphp
+                        <a href="{{ route('seller.products.index', array_filter(['category' => $catSlug, 'folder' => $activeFolder, 'search' => $search])) }}" class="px-3 py-1.5 rounded-xl text-xs font-extrabold shrink-0 transition flex items-center gap-1.5 {{ $isActive ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200' }}">
+                            <span>{{ $catName }}</span>
+                        </a>
+                    @endforeach
+                @endif
+            </div>
+
+            <!-- Quick Filter Chips: All / With Rates / No Rates / With Variants -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-1 text-xs">
+                <span class="text-xs font-bold text-gray-400 shrink-0 mr-1">त्वरित फ़िल्टर:</span>
+                <button type="button" onclick="setQuickRateFilter('all', this)" class="quick-filter-btn px-2.5 py-1 rounded-lg text-xs font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    सभी आइटम्स
+                </button>
+                <button type="button" onclick="setQuickRateFilter('with_rates', this)" class="quick-filter-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700">
+                    <i class="fa-solid fa-circle-check text-emerald-500 mr-1"></i> रेट्स उपलब्ध
+                </button>
+                <button type="button" onclick="setQuickRateFilter('zero_rates', this)" class="quick-filter-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1"></i> बिना भाव वाले (₹0)
+                </button>
+                <button type="button" onclick="setQuickRateFilter('has_variants', this)" class="quick-filter-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700">
+                    <i class="fa-solid fa-cubes text-blue-500 mr-1"></i> मल्टी-साइज़ वेरिएंट्स
+                </button>
+            </div>
+        </div>
+
+        <!-- 📁 Rate Folders / Collections Filter Bar -->
+        <div class="bg-white rounded-3xl border border-gray-200 p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+                <span class="text-xs font-black text-gray-500 shrink-0 flex items-center gap-1.5 mr-1">
+                    <i class="fa-solid fa-folder-tree text-indigo-600"></i>
+                    <span>रेट फोल्डर्स:</span>
+                </span>
+
+                <!-- All Tab -->
+                <a href="{{ route('seller.products.index', array_filter(['category' => $activeCategory, 'search' => $search])) }}" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold shrink-0 transition flex items-center gap-1.5 {{ empty($activeFolder) || $activeFolder === 'all' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 hover:bg-gray-200 text-gray-700' }}">
+                    <span>सभी फोल्डर्स (All)</span>
+                </a>
+
+                @if(!empty($folders) && $folders->count() > 0)
+                    @foreach($folders as $fName)
+                        <a href="{{ route('seller.products.index', array_filter(['folder' => $fName, 'category' => $activeCategory, 'search' => $search])) }}" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold shrink-0 transition flex items-center gap-1.5 {{ ($activeFolder ?? '') === $fName ? 'bg-indigo-600 text-white shadow-xs' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200' }}">
+                            <i class="fa-solid fa-folder text-[10px]"></i>
+                            <span>{{ $fName }}</span>
+                        </a>
+                    @endforeach
+                @else
+                    <span class="text-[11px] text-gray-400 italic shrink-0">
+                        (नीचे आइटम्स को टिक करके फोल्डर में जोड़ें)
+                    </span>
+                @endif
+            </div>
+
+            @if(!empty($activeFolder) && $activeFolder !== 'all')
+                <div class="flex items-center gap-2 shrink-0">
+                    <span class="text-xs font-bold text-indigo-900 bg-indigo-50 px-2.5 py-1 rounded-xl border border-indigo-200">
+                        Active Folder: <strong>{{ $activeFolder }}</strong> ({{ $products->count() }} items)
+                    </span>
+                    <a href="{{ route('seller.products.export_sheet', ['type' => 'rates', 'folder' => $activeFolder]) }}" class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-xs transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-download"></i>
+                        <span>इस फोल्डर की रेट शीट (.csv)</span>
+                    </a>
+                </div>
+            @endif
+        </div>
+
+        <!-- 🗂️ PRODUCT CARDS GRID VIEW (Visual & Category-Wise) -->
+        <div id="productsCardGrid" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5">
+                @forelse($products as $product)
+                    @php
+                        $variants = $product->variants ?? collect();
+                        $varCount = $variants->count();
+                        $minPrice = $varCount > 0 ? $variants->min('price') : $product->price;
+                        $maxPrice = $varCount > 0 ? $variants->max('price') : $product->price;
+                        $hasPrice = ($product->price > 0 || ($varCount > 0 && $maxPrice > 0));
+                        $catName = $product->category->name ?? 'General';
+                        
+                        // Category colors
+                        $catBadgeClass = 'bg-slate-100 text-slate-700 border-slate-200';
+                        if (stripos($catName, 'UPVC') !== false) {
+                            $catBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+                        } elseif (stripos($catName, 'CPVC') !== false) {
+                            $catBadgeClass = 'bg-amber-50 text-amber-800 border-amber-200';
+                        } elseif (stripos($catName, 'SWR') !== false) {
+                            $catBadgeClass = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+                        } elseif (stripos($catName, 'PIPE') !== false) {
+                            $catBadgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+                        }
+                    @endphp
+                    <div class="product-item-card bg-white rounded-3xl border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between"
+                         data-id="{{ $product->id }}"
+                         data-name="{{ strtolower($product->name) }}"
+                         data-sku="{{ strtolower($product->sku ?? '') }}"
+                         data-category="{{ strtolower($catName) }}"
+                         data-has-price="{{ $hasPrice ? '1' : '0' }}"
+                         data-has-variants="{{ $varCount > 0 ? '1' : '0' }}">
+                        
+                        <div>
+                            <!-- Card Header: Image + Badges + Checkbox -->
+                            <div class="p-4 bg-gradient-to-b from-gray-50/80 to-white border-b border-gray-100 flex items-start gap-3">
+                                <input type="checkbox" value="{{ $product->id }}" data-name="{{ addslashes($product->name) }}" data-folder="{{ $product->group_name }}" class="product-item-chk mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer" onchange="onProductSelectionChange()">
+                                
+                                <div class="h-16 w-16 rounded-2xl bg-white border border-gray-200 overflow-hidden flex items-center justify-center shrink-0 p-1 shadow-2xs">
+                                    @if($product->image_url)
+                                        <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="h-full w-full object-contain">
+                                    @else
+                                        <i class="fa-solid fa-cube text-gray-300 text-2xl"></i>
+                                    @endif
+                                </div>
+
+                                <div class="flex-1 min-w-0 space-y-1">
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        <span class="px-2 py-0.5 rounded-md border text-[10px] font-extrabold uppercase tracking-wide {{ $catBadgeClass }}">
+                                            {{ $catName }}
+                                        </span>
+                                        @if($product->group_name)
+                                            <span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold">
+                                                <i class="fa-solid fa-folder text-[9px]"></i> {{ $product->group_name }}
+                                            </span>
+                                        @endif
+                                    </div>
+
+                                    <h3 class="font-extrabold text-sm text-gray-900 leading-snug line-clamp-2" title="{{ $product->name }}">
+                                        {{ $product->name }}
+                                    </h3>
+                                    
+                                    <div class="text-[10px] text-gray-400 font-mono">
+                                        ID: #{{ $product->id }} &bull; SKU: {{ $product->sku ?? 'PRD-STD' }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card Middle: Price & Inventory Summary -->
+                            <div class="p-4 space-y-3">
+                                <div class="flex items-baseline justify-between gap-2">
+                                    <div>
+                                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">विक्रय मूल्य (Rate)</span>
+                                        @if($varCount > 0)
+                                            <div class="text-base font-black text-gray-900">
+                                                @if($minPrice == $maxPrice)
+                                                    ₹{{ number_format($minPrice, 2) }}
+                                                @else
+                                                    ₹{{ number_format($minPrice, 2) }} <span class="text-xs font-normal text-gray-400">-</span> ₹{{ number_format($maxPrice, 2) }}
+                                                @endif
+                                            </div>
+                                        @else
+                                            @if($product->price > 0)
+                                                <div class="text-base font-black text-gray-900">₹{{ number_format($product->price, 2) }}</div>
+                                            @else
+                                                <div class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 inline-block">⚠️ भाव नहीं है (₹0)</div>
+                                            @endif
+                                        @endif
+                                    </div>
+
+                                    <div class="text-right">
+                                        @if($varCount > 0)
+                                            <span class="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-extrabold text-xs inline-flex items-center gap-1">
+                                                <i class="fa-solid fa-cubes text-[10px]"></i>
+                                                <span>{{ $varCount }} साइज़</span>
+                                            </span>
+                                        @else
+                                            <span class="text-xs font-semibold text-gray-500">सिंगल आइटम</span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <!-- Stock Status -->
+                                <div class="flex items-center justify-between text-xs pt-1 border-t border-gray-100">
+                                    <span class="text-gray-500 font-medium">स्टॉक स्थिति:</span>
+                                    @if(!$product->track_inventory)
+                                        <span class="text-gray-500 font-bold text-[11px]">On-Demand</span>
+                                    @elseif($product->stock_quantity <= 0)
+                                        <span class="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-bold text-[10px]">Out of Stock</span>
+                                    @else
+                                        <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[10px]">{{ $product->stock_quantity }} उपलब्ध</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Footer & Expandable Variants Drawer -->
+                        <div class="p-3 bg-gray-50/60 border-t border-gray-100 space-y-2">
+                            <!-- Toggle Button for Variants -->
+                            @if($varCount > 0)
+                                <button type="button" onclick="toggleCardVariants({{ $product->id }})" class="w-full py-2 px-3 rounded-xl bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 hover:border-blue-300 font-extrabold text-xs transition flex items-center justify-between shadow-2xs">
+                                    <span class="flex items-center gap-1.5">
+                                        <i class="fa-solid fa-table-list text-blue-600"></i>
+                                        <span>सभी {{ $varCount }} साइज़ व रेट्स देखें</span>
+                                    </span>
+                                    <i id="card-chevron-{{ $product->id }}" class="fa-solid fa-chevron-down text-xs transition-transform duration-200"></i>
+                                </button>
+                            @endif
+
+                            <!-- Action Buttons Row -->
+                            <div class="flex items-center justify-between gap-2 pt-1">
+                                <button type="button" onclick="openAssignFolderModalSingle({{ $product->id }}, '{{ addslashes($product->name) }}')" class="text-[11px] text-gray-500 hover:text-indigo-600 font-bold inline-flex items-center gap-1 transition">
+                                    <i class="fa-solid fa-folder-plus text-indigo-500"></i> फोल्डर
+                                </button>
+
+                                <div class="flex items-center gap-1.5">
+                                    <a href="{{ route('seller.products.edit', $product) }}" class="px-3 py-1.5 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs transition inline-flex items-center gap-1" title="Edit Product">
+                                        <i class="fa-solid fa-pen-to-square text-[10px]"></i> एडिट
+                                    </a>
+                                    <form action="{{ route('seller.products.destroy', $product) }}" method="POST" onsubmit="return confirm('क्या आप इस प्रोडक्ट को हटाना चाहते हैं?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition" title="Delete Product">
+                                            <i class="fa-solid fa-trash text-xs"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Expandable Variants Drawer for Card -->
+                            @if($varCount > 0)
+                                <div id="card-variants-drawer-{{ $product->id }}" class="card-variants-drawer hidden pt-2 space-y-1.5 border-t border-blue-100">
+                                    <div class="text-[10px] font-black text-gray-400 uppercase tracking-wider px-1 flex items-center justify-between">
+                                        <span>साइज़ (Variant)</span>
+                                        <span>भाव (Rate / MRP)</span>
+                                    </div>
+                                    <div class="max-h-56 overflow-y-auto space-y-1 pr-1 overscroll-contain">
+                                        @foreach($variants as $v)
+                                            <div class="p-2 rounded-xl bg-white border border-gray-200 flex items-center justify-between text-xs hover:border-blue-200 transition">
+                                                <div class="space-y-0.5">
+                                                    <div class="font-extrabold text-gray-900">{{ $v->variant_name }}</div>
+                                                    <div class="text-[10px] text-gray-400 font-mono">SKU: {{ $v->sku ?? 'VAR' }}</div>
+                                                </div>
+                                                <div class="text-right">
+                                                    <div class="font-black text-emerald-700">₹{{ number_format($v->price, 2) }}</div>
+                                                    @if(!empty($v->wholesale_price) && $v->wholesale_price > 0)
+                                                        <div class="text-[10px] text-gray-500">WS: ₹{{ number_format($v->wholesale_price, 2) }}</div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <div class="col-span-full py-16 text-center text-gray-400 bg-white rounded-3xl border border-gray-200">
+                        <i class="fa-solid fa-box-open text-4xl mb-2 text-gray-300"></i>
+                        <p class="font-bold text-gray-600">कोई प्रोडक्ट नहीं मिला</p>
+                        <p class="text-xs mt-1">फ़िल्टर साफ़ करें या नया प्रोडक्ट जोड़ें।</p>
+                    </div>
+                @endforelse
+            </div>
+        </div>
+
+        <!-- 📋 PRODUCT TABLE VIEW (Expandable Rows) -->
+        <div id="productsTableView" class="hidden bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
@@ -314,15 +630,29 @@
                             </th>
                             <th class="py-3 px-4">Item & Rate Folder</th>
                             <th class="py-3 px-4">Category</th>
-                            <th class="py-3 px-4">Selling Price</th>
-                            <th class="py-3 px-4">Variants</th>
+                            <th class="py-3 px-4">Selling Price (Rate)</th>
+                            <th class="py-3 px-4">Variants / Sizes</th>
                             <th class="py-3 px-4">Stock Status</th>
                             <th class="py-3 px-4 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @forelse($products as $product)
-                            <tr class="hover:bg-gray-50/60 transition" id="row-prod-{{ $product->id }}">
+                            @php
+                                $variants = $product->variants ?? collect();
+                                $varCount = $variants->count();
+                                $minPrice = $varCount > 0 ? $variants->min('price') : $product->price;
+                                $maxPrice = $varCount > 0 ? $variants->max('price') : $product->price;
+                                $hasPrice = ($product->price > 0 || ($varCount > 0 && $maxPrice > 0));
+                                $catName = $product->category->name ?? 'General';
+                            @endphp
+                            <tr class="product-item-row hover:bg-gray-50/60 transition" id="row-prod-{{ $product->id }}"
+                                data-id="{{ $product->id }}"
+                                data-name="{{ strtolower($product->name) }}"
+                                data-sku="{{ strtolower($product->sku ?? '') }}"
+                                data-category="{{ strtolower($catName) }}"
+                                data-has-price="{{ $hasPrice ? '1' : '0' }}"
+                                data-has-variants="{{ $varCount > 0 ? '1' : '0' }}">
                                 <td class="py-3 px-3 text-center">
                                     <input type="checkbox" value="{{ $product->id }}" data-name="{{ addslashes($product->name) }}" data-folder="{{ $product->group_name }}" class="product-item-chk rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer" onchange="onProductSelectionChange()">
                                 </td>
@@ -354,16 +684,30 @@
                                     </div>
                                 </td>
                                 <td class="py-3 px-4 font-semibold text-gray-700">
-                                    {{ $product->category->name ?? 'General' }}
+                                    {{ $catName }}
                                 </td>
                                 <td class="py-3 px-4 font-black text-gray-900">
-                                    ₹{{ number_format($product->price, 2) }}
+                                    @if($varCount > 0)
+                                        @if($minPrice == $maxPrice)
+                                            ₹{{ number_format($minPrice, 2) }}
+                                        @else
+                                            ₹{{ number_format($minPrice, 2) }} - ₹{{ number_format($maxPrice, 2) }}
+                                        @endif
+                                    @else
+                                        @if($product->price > 0)
+                                            ₹{{ number_format($product->price, 2) }}
+                                        @else
+                                            <span class="text-amber-600 text-xs font-bold">₹0.00</span>
+                                        @endif
+                                    @endif
                                 </td>
                                 <td class="py-3 px-4">
-                                    @if($product->variants && $product->variants->count() > 0)
-                                        <span class="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px]">
-                                            {{ $product->variants->count() }} Variants
-                                        </span>
+                                    @if($varCount > 0)
+                                        <button type="button" onclick="toggleTableRowVariants({{ $product->id }})" class="px-2.5 py-1 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-extrabold text-[11px] border border-blue-200 inline-flex items-center gap-1.5 transition">
+                                            <i class="fa-solid fa-cubes text-blue-600"></i>
+                                            <span>{{ $varCount }} Variants</span>
+                                            <i id="table-chevron-{{ $product->id }}" class="fa-solid fa-chevron-down text-[9px] transition-transform"></i>
+                                        </button>
                                     @else
                                         <span class="text-gray-400 text-[11px]">Single Item</span>
                                     @endif
@@ -392,6 +736,50 @@
                                     </div>
                                 </td>
                             </tr>
+
+                            <!-- Expandable Sub-Row for Variants in Table View -->
+                            @if($varCount > 0)
+                                <tr id="table-variant-row-{{ $product->id }}" class="table-variant-row hidden bg-slate-50/80 border-b border-gray-200">
+                                    <td colspan="7" class="py-3 px-6">
+                                        <div class="bg-white rounded-2xl border border-blue-200 p-3 space-y-2 shadow-xs">
+                                            <div class="flex items-center justify-between text-[11px] font-black text-blue-900 border-b border-gray-100 pb-2">
+                                                <span>📦 "{{ $product->name }}" के सभी साइज़ वेरिएंट्स व रेट्स ({{ $varCount }} साइज़):</span>
+                                                <span class="text-[10px] text-gray-400 font-normal">Excel Sync से अपडेटेड</span>
+                                            </div>
+                                            <div class="overflow-x-auto">
+                                                <table class="w-full text-left text-xs">
+                                                    <thead>
+                                                        <tr class="text-[10px] font-black text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                                                            <th class="py-1.5 px-2">साइज़ (Variant)</th>
+                                                            <th class="py-1.5 px-2">SKU</th>
+                                                            <th class="py-1.5 px-2">विक्रय भाव (SALE A)</th>
+                                                            <th class="py-1.5 px-2">थोक भाव (SALE B)</th>
+                                                            <th class="py-1.5 px-2">MRP</th>
+                                                            <th class="py-1.5 px-2">स्टॉक</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody class="divide-y divide-gray-50">
+                                                        @foreach($variants as $v)
+                                                            <tr class="hover:bg-blue-50/30">
+                                                                <td class="py-1.5 px-2 font-extrabold text-gray-900">{{ $v->variant_name }}</td>
+                                                                <td class="py-1.5 px-2 text-[10px] text-gray-400 font-mono">{{ $v->sku ?? '-' }}</td>
+                                                                <td class="py-1.5 px-2 font-black text-emerald-700">₹{{ number_format($v->price, 2) }}</td>
+                                                                <td class="py-1.5 px-2 text-gray-600">{{ !empty($v->wholesale_price) && $v->wholesale_price > 0 ? '₹'.number_format($v->wholesale_price, 2) : '-' }}</td>
+                                                                <td class="py-1.5 px-2 text-gray-500">{{ !empty($v->mrp) && $v->mrp > 0 ? '₹'.number_format($v->mrp, 2) : '-' }}</td>
+                                                                <td class="py-1.5 px-2">
+                                                                    <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">
+                                                                        {{ $v->stock_quantity ?? 0 }} in stock
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endif
                         @empty
                             <tr>
                                 <td colspan="7" class="py-12 text-center text-gray-400">
@@ -502,7 +890,7 @@
 
                     <!-- Allow create new products option -->
                     <div class="flex items-start gap-2.5 p-3 rounded-2xl bg-amber-50/80 border border-amber-200 text-xs">
-                        <input type="checkbox" id="allowCreateNewProductsChk" name="allow_create_new" value="1" class="mt-0.5 h-4 w-4 rounded border-amber-300 text-emerald-600 focus:ring-emerald-500">
+                        <input type="checkbox" id="allowCreateNewProductsChk" name="allow_create_new" value="1" checked class="mt-0.5 h-4 w-4 rounded border-amber-300 text-emerald-600 focus:ring-emerald-500">
                         <label for="allowCreateNewProductsChk" class="font-bold text-amber-950 cursor-pointer leading-snug">
                             यदि शीट में कोई नया आइटम मिले तो नया प्रोडक्ट बनाएं
                             <span class="block text-[11px] font-normal text-amber-800 mt-0.5">
@@ -808,6 +1196,189 @@
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> सिंक हो रहा है...';
             return true;
         }
+
+        // ==========================================
+        // 🗂️ / 📋 VIEW MODE SWITCHER & ACCORDIONS
+        // ==========================================
+        let currentRateFilter = 'all';
+
+        function switchProductView(mode) {
+            const cardGrid = document.getElementById('productsCardGrid');
+            const tableView = document.getElementById('productsTableView');
+            const btnCards = document.getElementById('btnViewCards');
+            const btnTable = document.getElementById('btnViewTable');
+
+            if (!cardGrid || !tableView) return;
+
+            if (mode === 'table') {
+                cardGrid.classList.add('hidden');
+                tableView.classList.remove('hidden');
+
+                if (btnTable) {
+                    btnTable.classList.add('bg-white', 'text-indigo-600', 'shadow-2xs', 'font-extrabold');
+                    btnTable.classList.remove('text-gray-600', 'font-bold');
+                }
+                if (btnCards) {
+                    btnCards.classList.remove('bg-white', 'text-indigo-600', 'shadow-2xs', 'font-extrabold');
+                    btnCards.classList.add('text-gray-600', 'font-bold');
+                }
+            } else {
+                tableView.classList.add('hidden');
+                cardGrid.classList.remove('hidden');
+
+                if (btnCards) {
+                    btnCards.classList.add('bg-white', 'text-indigo-600', 'shadow-2xs', 'font-extrabold');
+                    btnCards.classList.remove('text-gray-600', 'font-bold');
+                }
+                if (btnTable) {
+                    btnTable.classList.remove('bg-white', 'text-indigo-600', 'shadow-2xs', 'font-extrabold');
+                    btnTable.classList.add('text-gray-600', 'font-bold');
+                }
+            }
+
+            try {
+                localStorage.setItem('vyapar_products_view_mode', mode);
+            } catch (e) {}
+        }
+
+        function toggleCardVariants(productId) {
+            const drawer = document.getElementById(`card-variants-drawer-${productId}`);
+            const chevron = document.getElementById(`card-chevron-${productId}`);
+            if (!drawer) return;
+
+            const isHidden = drawer.classList.contains('hidden');
+            if (isHidden) {
+                drawer.classList.remove('hidden');
+                if (chevron) chevron.classList.add('rotate-180');
+            } else {
+                drawer.classList.add('hidden');
+                if (chevron) chevron.classList.remove('rotate-180');
+            }
+        }
+
+        function toggleTableRowVariants(productId) {
+            const row = document.getElementById(`table-variant-row-${productId}`);
+            const chevron = document.getElementById(`table-chevron-${productId}`);
+            if (!row) return;
+
+            const isHidden = row.classList.contains('hidden');
+            if (isHidden) {
+                row.classList.remove('hidden');
+                row.style.display = '';
+                if (chevron) chevron.classList.add('rotate-180');
+            } else {
+                row.classList.add('hidden');
+                row.style.display = 'none';
+                if (chevron) chevron.classList.remove('rotate-180');
+            }
+        }
+
+        let allAccordionsOpen = false;
+        function toggleAllAccordions() {
+            allAccordionsOpen = !allAccordionsOpen;
+            const textEl = document.getElementById('toggleAllVariantsText');
+            if (textEl) {
+                textEl.textContent = allAccordionsOpen ? 'सभी साइज़ समेटें' : 'सभी साइज़ खोलें';
+            }
+
+            // Card drawers
+            document.querySelectorAll('.card-variants-drawer').forEach(drawer => {
+                if (allAccordionsOpen) drawer.classList.remove('hidden');
+                else drawer.classList.add('hidden');
+            });
+            document.querySelectorAll('[id^="card-chevron-"]').forEach(ch => {
+                if (allAccordionsOpen) ch.classList.add('rotate-180');
+                else ch.classList.remove('rotate-180');
+            });
+
+            // Table rows
+            document.querySelectorAll('.table-variant-row').forEach(row => {
+                if (allAccordionsOpen) {
+                    row.classList.remove('hidden');
+                    row.style.display = '';
+                } else {
+                    row.classList.add('hidden');
+                    row.style.display = 'none';
+                }
+            });
+            document.querySelectorAll('[id^="table-chevron-"]').forEach(ch => {
+                if (allAccordionsOpen) ch.classList.add('rotate-180');
+                else ch.classList.remove('rotate-180');
+            });
+        }
+
+        function setQuickRateFilter(type, btn) {
+            currentRateFilter = type;
+            document.querySelectorAll('.quick-filter-btn').forEach(b => {
+                b.classList.remove('bg-indigo-50', 'text-indigo-700', 'border', 'border-indigo-200', 'font-extrabold');
+                b.classList.add('bg-gray-100', 'text-gray-700', 'font-bold');
+            });
+            if (btn) {
+                btn.classList.add('bg-indigo-50', 'text-indigo-700', 'border', 'border-indigo-200', 'font-extrabold');
+                btn.classList.remove('bg-gray-100');
+            }
+            filterItemsClientSide();
+        }
+
+        function filterItemsClientSide() {
+            const query = (document.getElementById('liveSearchInput')?.value || '').toLowerCase().trim();
+
+            const matchItem = (name, sku, category, hasPrice, hasVariants) => {
+                // Rate filter
+                if (currentRateFilter === 'with_rates' && hasPrice !== '1') return false;
+                if (currentRateFilter === 'zero_rates' && hasPrice === '1') return false;
+                if (currentRateFilter === 'has_variants' && hasVariants !== '1') return false;
+
+                // Search query
+                if (query.length > 0) {
+                    const combined = `${name} ${sku} ${category}`;
+                    if (!combined.includes(query)) return false;
+                }
+                return true;
+            };
+
+            // Filter cards
+            document.querySelectorAll('.product-item-card').forEach(card => {
+                const name = card.getAttribute('data-name') || '';
+                const sku = card.getAttribute('data-sku') || '';
+                const category = card.getAttribute('data-category') || '';
+                const hasPrice = card.getAttribute('data-has-price') || '0';
+                const hasVariants = card.getAttribute('data-has-variants') || '0';
+
+                const matches = matchItem(name, sku, category, hasPrice, hasVariants);
+                card.style.display = matches ? '' : 'none';
+            });
+
+            // Filter table rows
+            document.querySelectorAll('.product-item-row').forEach(row => {
+                const id = row.getAttribute('data-id');
+                const name = row.getAttribute('data-name') || '';
+                const sku = row.getAttribute('data-sku') || '';
+                const category = row.getAttribute('data-category') || '';
+                const hasPrice = row.getAttribute('data-has-price') || '0';
+                const hasVariants = row.getAttribute('data-has-variants') || '0';
+
+                const matches = matchItem(name, sku, category, hasPrice, hasVariants);
+                row.style.display = matches ? '' : 'none';
+                
+                // Hide sub-variant row if parent is hidden
+                const subRow = document.getElementById(`table-variant-row-${id}`);
+                if (subRow && !matches) {
+                    subRow.style.display = 'none';
+                } else if (subRow && matches && !subRow.classList.contains('hidden')) {
+                    subRow.style.display = '';
+                }
+            });
+        }
+
+        // Initialize saved view mode on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            let savedMode = 'cards';
+            try {
+                savedMode = localStorage.getItem('vyapar_products_view_mode') || 'cards';
+            } catch (e) {}
+            switchProductView(savedMode);
+        });
 
         // ==========================================
         // 🗑️ CLEAR ALL PRODUCTS MODAL SYSTEM
