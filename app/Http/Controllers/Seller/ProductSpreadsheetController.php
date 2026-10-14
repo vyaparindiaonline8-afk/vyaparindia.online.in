@@ -193,6 +193,7 @@ class ProductSpreadsheetController extends Controller
     public function import(Request $request)
     {
         @set_time_limit(300);
+        @ini_set('memory_limit', '512M');
         $seller = Auth::user();
         $rawRows = [];
 
@@ -401,8 +402,19 @@ class ProductSpreadsheetController extends Controller
 
         $detectedCols = [];
 
+        // 🛡️ Auto-align Postgres sequences if out-of-sync to avoid ID duplicate/FK collision
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            try {
+                DB::statement("SELECT setval(pg_get_serial_sequence('products', 'id'), coalesce((SELECT max(id) FROM products), 0) + 1, false);");
+                DB::statement("SELECT setval(pg_get_serial_sequence('product_variants', 'id'), coalesce((SELECT max(id) FROM product_variants), 0) + 1, false);");
+            } catch (\Throwable $seqEx) {
+                \Log::warning('PostgreSQL sequence sync skipped: ' . $seqEx->getMessage());
+            }
+        }
+
         DB::transaction(function () use ($rawRows, $seller, $sellerProducts, $allowCreateNew, $normalizeForMatching, $extractWordSet, $masterByCode, $masterByName, $getOrCreateCat, $extractSizeAndBase, &$updatedProductsCount, &$updatedVariantsCount, &$unchangedCount, &$createdProductsCount, &$skippedCount, &$affectedProductIds, &$quotaExceededCount, &$unmatchedCount, &$detectedCols) {
             foreach ($rawRows as $row) {
+                try {
                 // Pre-build normalized key-value map for robust header lookup
                 $normMap = [];
                 $originalKeyMap = [];
@@ -654,6 +666,16 @@ class ProductSpreadsheetController extends Controller
                 }
 
                 if ($product) {
+                    // 🛡️ Verify product still exists in DB (prevents foreign key violation SQLSTATE[23503] if product was deleted)
+                    if (!$product->exists || !Product::where('id', $product->id)->where('user_id', $seller->id)->exists()) {
+                        $sellerProducts = $sellerProducts->reject(function($p) use ($product) {
+                            return $p->id === $product->id;
+                        });
+                        $product = null;
+                    }
+                }
+
+                if ($product) {
                     $prodUpdates = [];
 
                     if (!empty($brand)) {
@@ -761,6 +783,10 @@ class ProductSpreadsheetController extends Controller
                             $affectedProductIds[$product->id] = true;
                         }
                     } elseif (!empty($sizeVariant)) {
+                        // 🛡️ Double-check product still exists to prevent FK violation
+                        if (!$product || !Product::where('id', $product->id)->exists()) {
+                            continue;
+                        }
                         $vPrice = ($sellingPrice && $sellingPrice > 0) ? $sellingPrice : (($mrp && $mrp > 0) ? $mrp : $product->price);
                         $newVar = ProductVariant::create([
                             'product_id' => $product->id,
@@ -859,25 +885,27 @@ class ProductSpreadsheetController extends Controller
                                 'image' => $catalogImage,
                             ]);
 
-                            $createdProductsCount++;
-                            $sellerProducts->push($newProduct);
+                            if ($newProduct && $newProduct->id) {
+                                $createdProductsCount++;
+                                $sellerProducts->push($newProduct);
 
-                            if (!empty($sizeVariant)) {
-                                $firstVar = ProductVariant::create([
-                                    'product_id' => $newProduct->id,
-                                    'variant_name' => $sizeVariant,
-                                    'sku' => !empty($productCode) ? $productCode : ('VAR-' . $newProduct->id . '-' . strtoupper(Str::random(5))),
-                                    'retail_price' => $finalPrice,
-                                    'wholesale_price' => ($wholesalePrice && $wholesalePrice > 0) ? $wholesalePrice : $finalPrice,
-                                    'purchase_price' => $purchasePrice ?? 0,
-                                    'mrp' => ($mrp && $mrp > 0) ? $mrp : $finalPrice,
-                                    'stock_quantity' => !is_null($stock) ? $stock : 0,
-                                    'track_inventory' => !is_null($stock) && $stock > 0,
-                                    'attributes' => ['size' => $sizeVariant],
-                                ]);
-                                $newProduct->setRelation('variants', collect([$firstVar]));
-                            } else {
-                                $newProduct->setRelation('variants', collect());
+                                if (!empty($sizeVariant)) {
+                                    $firstVar = ProductVariant::create([
+                                        'product_id' => $newProduct->id,
+                                        'variant_name' => $sizeVariant,
+                                        'sku' => !empty($productCode) ? $productCode : ('VAR-' . $newProduct->id . '-' . strtoupper(Str::random(5))),
+                                        'retail_price' => $finalPrice,
+                                        'wholesale_price' => ($wholesalePrice && $wholesalePrice > 0) ? $wholesalePrice : $finalPrice,
+                                        'purchase_price' => $purchasePrice ?? 0,
+                                        'mrp' => ($mrp && $mrp > 0) ? $mrp : $finalPrice,
+                                        'stock_quantity' => !is_null($stock) ? $stock : 0,
+                                        'track_inventory' => !is_null($stock) && $stock > 0,
+                                        'attributes' => ['size' => $sizeVariant],
+                                    ]);
+                                    $newProduct->setRelation('variants', collect([$firstVar]));
+                                } else {
+                                    $newProduct->setRelation('variants', collect());
+                                }
                             }
                         } else {
                             $quotaExceededCount++;
@@ -889,6 +917,10 @@ class ProductSpreadsheetController extends Controller
                         }
                         $skippedCount++;
                     }
+                }
+                } catch (\Throwable $rowEx) {
+                    \Log::warning("Excel sync row error: " . $rowEx->getMessage());
+                    $skippedCount++;
                 }
             }
 
