@@ -323,48 +323,74 @@ class ProductSpreadsheetController extends Controller
             return $cat->id;
         };
 
-        // Comprehensive Size & Base extraction for pipes, fittings, solvents (ML, LTR, GM, KG, TUBE, CANE)
+        // 🌐 Universal Multi-Industry Unit & Dimension Parser (Hardware, FMCG, Kirana, Dairy, Electrical, Apparel, Footwear, Construction)
         $extractSizeAndBase = function(?string $full_name): array {
             if (empty($full_name)) return ['', 'Standard'];
             $s = trim($full_name);
 
-            // 1. Cross dimensions: 110*75*50, 25*20, etc.
-            if (preg_match('~\b\d+(?:\.\d+)?\s*[\*xX/]\s*\d+(?:\.\d+)?(?:\s*[\*xX/]\s*\d+(?:\.\d+)?)*\s*(?:mm|inch|")?\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+            // 1. Multi-dimensional cross (Tiles, Reducer, Compound): 110*75*50, 25*20, 2x4, 4x8, etc.
+            if (preg_match('~\b\d+(?:\.\d+)?\s*[\*xX/]\s*\d+(?:\.\d+)?(?:\s*[\*xX/]\s*\d+(?:\.\d+)?)*\s*(?:mm|cm|inch|ft|feet|mtr|")?\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
                 $size = trim($m[0][0]);
                 $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
                 return [preg_replace('/\s+/', ' ', $base), $size];
             }
 
-            // 2. Fractional inches: 1/2", 3/4", 1-1/4", etc.
+            // 2. Fractional sizes: 1/2", 3/4", 1-1/4", 2-1/2", etc.
             if (preg_match('~\b(?:\d+\s*[-–]?\s*)?\d+\/\d+\s*(?:"|inch)?\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
                 $size = trim($m[0][0]);
                 $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
                 return [preg_replace('/\s+/', ' ', $base), $size];
             }
 
-            // 3. Metric mm or simple inch: 15MM, 20MM, 110 MM, 2"
-            if (preg_match('~\b\d+(?:\.\d+)?\s*(?:mm|inch|")\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+            // 3. Electrical & Wire: 2.5 SQMM, 4 SQMM, 9 WATT, 12W, 220V, 16A, 100AH, 3 CORE
+            if (preg_match('~\b\d+(?:\.\d+)?\s*(?:sqmm|sq\.mm|watt|w|volt|v|amp|ah|mah|hp|core|pin)\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
                 $size = trim($m[0][0]);
                 $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
                 return [preg_replace('/\s+/', ' ', $base), $size];
             }
 
-            // 4. Volume / Liquid / Weight: 50ML, 118ML, 1LTR, 15ML TUBE, 50ML CANE, 500GM, 1KG
-            if (preg_match('~\b\d+(?:\.\d+)?\s*(?:ml|ltr|gm|kg)(?:\s*(?:tube|cane|tin|can))?\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+            // 4. Volume / Liquid (Oils, Solvents, Dairy, Paints, Beverages): 50ML, 118ML, 500 ML, 1 LTR, 5 LITER, 100 ML TUBE, 50ML CANE
+            if (preg_match('~\b\d+(?:\.\d+)?\s*(?:ml|ltr|liter|litre|l|gallon|gal)(?:\s*(?:tube|cane|can|tin|bottle|jar|drum|pouch|pack|pkt))?\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
                 $size = trim($m[0][0]);
                 $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
                 return [preg_replace('/\s+/', ' ', $base), $size];
             }
 
-            // 5. Packaging words: TUBE, CANE
-            if (preg_match('~\b(?:tube|cane|tin|can)\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+            // 5. Weight / Mass (Grocery, FMCG, Kirana, Spices, Food): 50GM, 100G, 500 GRAM, 1KG, 5 KILO, 1 QUINTAL, 1 TON
+            if (preg_match('~\b\d+(?:\.\d+)?\s*(?:kg|kilo|gm|g|gram|mg|quintal|qtl|ton|tonne)(?:\s*(?:packet|pkt|pouch|bag|bori|sack|box|tin))?\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
                 $size = trim($m[0][0]);
                 $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
                 return [preg_replace('/\s+/', ' ', $base), $size];
             }
 
-            // 6. Length: 10 FEET, 20 FEET
-            if (preg_match('~\b\d+(?:\.\d+)?\s*(?:feet|ft|mtr)\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+            // 6. Metric Dimensions (Pipes, Fittings, Rods, Hardware): 15MM, 20MM, 110 MM, 2", 10 FEET, 20 FT, 3 MTR, 90 MTR, 1 YARD
+            if (preg_match('~\b\d+(?:\.\d+)?\s*(?:mm|cm|mtr|meter|feet|ft|yard|gaj|inch|")(?:(?:\s*(?:sch|gauge|swg|g)\s*\d+))?\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+                $size = trim($m[0][0]);
+                $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
+                return [preg_replace('/\s+/', ' ', $base), $size];
+            }
+
+            // 7. Area & Construction: 50 SQFT, 100 CFT, 10 BRASS
+            if (preg_match('~\b\d+(?:\.\d+)?\s*(?:sqft|sq\.ft|cft|sqyd|sqm|sqmtr|brass)\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+                $size = trim($m[0][0]);
+                $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
+                return [preg_replace('/\s+/', ' ', $base), $size];
+            }
+
+            // 8. Apparel, Clothing & Footwear: Size 40, No. 8, S, M, L, XL, XXL, XXXL, Free Size
+            if (preg_match('~\b(?:size|no\.?|num(?:ber)?)\s*[:\-]?\s*(\d+|xxxs|xxs|xs|s|m|l|xl|xxl|xxxl|[2-6]xl|free\s*size)\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+                $size = trim($m[0][0]);
+                $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
+                return [preg_replace('/\s+/', ' ', $base), $size];
+            }
+            if (preg_match('~\b(xxxs|xxs|xs|s|m|l|xl|xxl|xxxl|[2-6]xl|free\s*size)\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+                $size = trim($m[0][0]);
+                $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
+                return [preg_replace('/\s+/', ' ', $base), $size];
+            }
+
+            // 9. Packaging words: TUBE, CANE, TIN, PACKET, STRIP, BOTTLE, ROLL, COIL, BOX
+            if (preg_match('~\b(?:tube|cane|can|tin|packet|pkt|pouch|strip|bottle|roll|coil|box|bag|bundle|jar|drum|set|pair)\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
                 $size = trim($m[0][0]);
                 $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
                 return [preg_replace('/\s+/', ' ', $base), $size];
@@ -526,19 +552,37 @@ class ProductSpreadsheetController extends Controller
                     $familyBaseName = $extractedBaseName;
                 }
 
-                // Resolve Product: Case 1 by ID, Case 2 by SKU/Code, Case 3 by Name / Base Family
+                // Resolve Product & Variant:
+                // Case 1 by explicit Product ID
                 $product = null;
+                $matchedVariant = null;
+
                 if ($rawId && $rawId > 0) {
                     $product = $sellerProducts->firstWhere('id', $rawId);
                 }
 
+                // Case 2 by SKU / Code: Look up Product SKU AND Variant SKUs (Guarantees 100% same-sheet match!)
                 if (!$product && !empty($productCode)) {
                     $cleanCode = strtoupper(trim($productCode));
-                    $product = $sellerProducts->first(function($p) use ($cleanCode) {
-                        return !empty($p->sku) && (strtoupper(trim($p->sku)) === $cleanCode || str_contains(strtoupper($p->sku), $cleanCode));
-                    });
+                    foreach ($sellerProducts as $p) {
+                        if (!empty($p->sku) && strtoupper(trim($p->sku)) === $cleanCode) {
+                            $product = $p;
+                            break;
+                        }
+                        if ($p->variants && $p->variants->isNotEmpty()) {
+                            $vMatch = $p->variants->first(function($v) use ($cleanCode) {
+                                return !empty($v->sku) && strtoupper(trim($v->sku)) === $cleanCode;
+                            });
+                            if ($vMatch) {
+                                $product = $p;
+                                $matchedVariant = $vMatch;
+                                break;
+                            }
+                        }
+                    }
                 }
 
+                // Case 3 by Name / Base Family
                 if (!$product && !empty($familyBaseName)) {
                     $cleanFam = strtolower(trim($familyBaseName));
                     $famSlug = Str::slug($familyBaseName);
@@ -546,6 +590,15 @@ class ProductSpreadsheetController extends Controller
                         return strtolower(trim($p->name)) === $cleanFam
                             || (!empty($famSlug) && $p->slug === $famSlug);
                     });
+
+                    // Substring check: Does product name exist inside full item name or vice-versa?
+                    if (!$product) {
+                        $product = $sellerProducts->first(function($p) use ($name, $familyBaseName) {
+                            $pName = strtolower(trim($p->name));
+                            if (strlen($pName) < 4) return false;
+                            return stripos(strtolower($name), $pName) !== false || stripos(strtolower($familyBaseName), $pName) !== false;
+                        });
+                    }
 
                     // Fuzzy base matching using normalizeForMatching
                     if (!$product) {
@@ -622,12 +675,19 @@ class ProductSpreadsheetController extends Controller
 
                     // Check if product has variants or matches a variant row
                     $hasVariants = $product->variants && $product->variants->isNotEmpty();
-                    $matchedVariant = null;
 
-                    if ($hasVariants) {
+                    // If not already matched by SKU, resolve variant within this product
+                    if (!$matchedVariant && $hasVariants) {
                         if ($variantId && $variantId > 0) {
                             $matchedVariant = $product->variants->firstWhere('id', $variantId);
-                        } elseif (!empty($sizeVariant)) {
+                        } elseif (!empty($productCode)) {
+                            $cleanCode = strtoupper(trim($productCode));
+                            $matchedVariant = $product->variants->first(function($pv) use ($cleanCode) {
+                                return !empty($pv->sku) && strtoupper(trim($pv->sku)) === $cleanCode;
+                            });
+                        }
+
+                        if (!$matchedVariant && !empty($sizeVariant)) {
                             $reqClean = preg_replace('/[^a-z0-9]/', '', strtolower(trim($sizeVariant)));
                             foreach ($product->variants as $pv) {
                                 $pvClean = preg_replace('/[^a-z0-9]/', '', strtolower(trim($pv->variant_name ?: ($pv->clean_size ?: ''))));
