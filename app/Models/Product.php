@@ -47,6 +47,21 @@ class Product extends Model
         'attributes' => 'array',
     ];
 
+    public function getPriceAttribute($val): float
+    {
+        $num = (float)($val ?? 0);
+        if ($num > 0) {
+            return $num;
+        }
+        if ($this->relationLoaded('variants') && $this->variants && $this->variants->isNotEmpty()) {
+            $min = $this->variants->where('retail_price', '>', 0)->min('retail_price');
+            if ($min && (float)$min > 0) return (float)$min;
+            $minPrice = $this->variants->where('price', '>', 0)->min('price');
+            if ($minPrice && (float)$minPrice > 0) return (float)$minPrice;
+        }
+        return $num;
+    }
+
     public function getVideoEmbedUrlAttribute(): ?string
     {
         if (empty($this->video_url)) {

@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'file'),
+    'driver' => env('SESSION_DRIVER', 'cookie'),
 
     // Extended session lifetime (7 days) so users don't randomly get 419 expired sessions
     'lifetime' => (int) env('SESSION_LIFETIME', 10080),
@@ -47,7 +47,7 @@ return [
     'domain' => (env('SESSION_DOMAIN') === 'null' || !env('SESSION_DOMAIN')) ? null : env('SESSION_DOMAIN'),
 
     // Auto-detect secure cookies based on incoming request scheme (HTTPS)
-    'secure' => env('SESSION_SECURE_COOKIE', null),
+    'secure' => env('SESSION_SECURE_COOKIE', (env('APP_ENV') === 'production' || (env('APP_URL') && str_contains(env('APP_URL'), 'https')) ? true : null)),
 
     'http_only' => env('SESSION_HTTP_ONLY', true),
 

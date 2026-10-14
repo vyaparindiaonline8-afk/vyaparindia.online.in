@@ -441,9 +441,15 @@
                     @php
                         $variants = $product->variants ?? collect();
                         $varCount = $variants->count();
-                        $minPrice = $varCount > 0 ? $variants->min('price') : $product->price;
-                        $maxPrice = $varCount > 0 ? $variants->max('price') : $product->price;
-                        $hasPrice = ($product->price > 0 || ($varCount > 0 && $maxPrice > 0));
+                        
+                        // Extract all non-zero prices from variants (retail_price or price or wholesale_price)
+                        $vPrices = $variants->map(function($v) {
+                            return (float)($v->retail_price ?: ($v->price ?: ($v->wholesale_price ?: 0)));
+                        })->filter(function($p) { return $p > 0; });
+
+                        $minPrice = $vPrices->isNotEmpty() ? $vPrices->min() : (float)$product->price;
+                        $maxPrice = $vPrices->isNotEmpty() ? $vPrices->max() : (float)$product->price;
+                        $hasPrice = ($minPrice > 0 || $maxPrice > 0 || (float)$product->price > 0);
                         $catName = $product->category->name ?? 'General';
                         
                         // Category colors
@@ -501,25 +507,23 @@
                                 </div>
                             </div>
 
-                            <!-- Card Middle: Price & Inventory Summary -->
-                            <div class="p-4 space-y-3">
+                            <!-- Card Middle: Price Summary & Badge -->
+                            <div class="p-4 space-y-2">
                                 <div class="flex items-baseline justify-between gap-2">
                                     <div>
-                                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">विक्रय मूल्य (Rate)</span>
-                                        @if($varCount > 0)
+                                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">विक्रय मूल्य (Rate Range)</span>
+                                        @if($hasPrice)
                                             <div class="text-base font-black text-gray-900">
-                                                @if($minPrice == $maxPrice)
-                                                    ₹{{ number_format($minPrice, 2) }}
+                                                @if($minPrice == $maxPrice || $minPrice <= 0)
+                                                    ₹{{ number_format($maxPrice ?: $minPrice, 2) }}
                                                 @else
                                                     ₹{{ number_format($minPrice, 2) }} <span class="text-xs font-normal text-gray-400">-</span> ₹{{ number_format($maxPrice, 2) }}
                                                 @endif
                                             </div>
                                         @else
-                                            @if($product->price > 0)
-                                                <div class="text-base font-black text-gray-900">₹{{ number_format($product->price, 2) }}</div>
-                                            @else
-                                                <div class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 inline-block">⚠️ भाव नहीं है (₹0)</div>
-                                            @endif
+                                            <div class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 inline-block">
+                                                ⚠️ कोई भाव नहीं (₹0.00)
+                                            </div>
                                         @endif
                                     </div>
 
@@ -527,7 +531,7 @@
                                         @if($varCount > 0)
                                             <span class="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-extrabold text-xs inline-flex items-center gap-1">
                                                 <i class="fa-solid fa-cubes text-[10px]"></i>
-                                                <span>{{ $varCount }} साइज़</span>
+                                                <span>{{ $varCount }} साइज़ उपलब्ध</span>
                                             </span>
                                         @else
                                             <span class="text-xs font-semibold text-gray-500">सिंगल आइटम</span>
@@ -547,59 +551,42 @@
                                     @endif
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Card Footer & Expandable Variants Drawer -->
-                        <div class="p-3 bg-gray-50/60 border-t border-gray-100 space-y-2">
-                            <!-- Toggle Button for Variants -->
+                            <!-- 📦 DIRECTLY VISIBLE SIZES & RATES TABLE (No extra clicking needed!) -->
                             @if($varCount > 0)
-                                <button type="button" onclick="toggleCardVariants({{ $product->id }})" class="w-full py-2 px-3 rounded-xl bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 hover:border-blue-300 font-extrabold text-xs transition flex items-center justify-between shadow-2xs">
-                                    <span class="flex items-center gap-1.5">
-                                        <i class="fa-solid fa-table-list text-blue-600"></i>
-                                        <span>सभी {{ $varCount }} साइज़ व रेट्स देखें</span>
-                                    </span>
-                                    <i id="card-chevron-{{ $product->id }}" class="fa-solid fa-chevron-down text-xs transition-transform duration-200"></i>
-                                </button>
-                            @endif
-
-                            <!-- Action Buttons Row -->
-                            <div class="flex items-center justify-between gap-2 pt-1">
-                                <button type="button" onclick="openAssignFolderModalSingle({{ $product->id }}, '{{ addslashes($product->name) }}')" class="text-[11px] text-gray-500 hover:text-indigo-600 font-bold inline-flex items-center gap-1 transition">
-                                    <i class="fa-solid fa-folder-plus text-indigo-500"></i> फोल्डर
-                                </button>
-
-                                <div class="flex items-center gap-1.5">
-                                    <a href="{{ route('seller.products.edit', $product) }}" class="px-3 py-1.5 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs transition inline-flex items-center gap-1" title="Edit Product">
-                                        <i class="fa-solid fa-pen-to-square text-[10px]"></i> एडिट
-                                    </a>
-                                    <form action="{{ route('seller.products.destroy', $product) }}" method="POST" onsubmit="return confirm('क्या आप इस प्रोडक्ट को हटाना चाहते हैं?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition" title="Delete Product">
-                                            <i class="fa-solid fa-trash text-xs"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-
-                            <!-- Expandable Variants Drawer for Card -->
-                            @if($varCount > 0)
-                                <div id="card-variants-drawer-{{ $product->id }}" class="card-variants-drawer hidden pt-2 space-y-1.5 border-t border-blue-100">
-                                    <div class="text-[10px] font-black text-gray-400 uppercase tracking-wider px-1 flex items-center justify-between">
-                                        <span>साइज़ (Variant)</span>
-                                        <span>भाव (Rate / MRP)</span>
+                                <div class="px-4 py-3 bg-slate-50/70 border-t border-gray-100 space-y-2">
+                                    <div class="flex items-center justify-between text-[11px] font-black text-gray-700">
+                                        <span class="flex items-center gap-1.5">
+                                            <i class="fa-solid fa-tags text-indigo-600"></i>
+                                            <span>सभी साइज़ व भाव ({{ $varCount }} Sizes):</span>
+                                        </span>
+                                        <span class="text-[10px] text-gray-400 font-semibold">SALE A / थोक भाव</span>
                                     </div>
-                                    <div class="max-h-56 overflow-y-auto space-y-1 pr-1 overscroll-contain">
+
+                                    <div class="max-h-56 overflow-y-auto space-y-1.5 pr-1 overscroll-contain">
                                         @foreach($variants as $v)
-                                            <div class="p-2 rounded-xl bg-white border border-gray-200 flex items-center justify-between text-xs hover:border-blue-200 transition">
+                                            @php
+                                                $vRetail = (float)($v->retail_price ?: ($v->price ?: 0));
+                                                $vWs = (float)($v->wholesale_price ?: 0);
+                                            @endphp
+                                            <div class="p-2 rounded-xl bg-white border border-gray-200 flex items-center justify-between text-xs hover:border-indigo-300 transition shadow-2xs">
                                                 <div class="space-y-0.5">
-                                                    <div class="font-extrabold text-gray-900">{{ $v->variant_name }}</div>
-                                                    <div class="text-[10px] text-gray-400 font-mono">SKU: {{ $v->sku ?? 'VAR' }}</div>
+                                                    <div class="font-extrabold text-gray-900 flex items-center gap-1.5">
+                                                        <span class="h-1.5 w-1.5 rounded-full {{ $vRetail > 0 ? 'bg-emerald-500' : 'bg-amber-500' }}"></span>
+                                                        <span>{{ $v->variant_name }}</span>
+                                                    </div>
+                                                    <div class="text-[10px] text-gray-400 font-mono">
+                                                        SKU: {{ $v->sku ?? 'STD' }} &bull; स्टॉक: <strong class="text-gray-700">{{ $v->stock_quantity ?? 0 }}</strong>
+                                                    </div>
                                                 </div>
                                                 <div class="text-right">
-                                                    <div class="font-black text-emerald-700">₹{{ number_format($v->price, 2) }}</div>
-                                                    @if(!empty($v->wholesale_price) && $v->wholesale_price > 0)
-                                                        <div class="text-[10px] text-gray-500">WS: ₹{{ number_format($v->wholesale_price, 2) }}</div>
+                                                    @if($vRetail > 0)
+                                                        <div class="font-black text-emerald-700 text-sm">₹{{ number_format($vRetail, 2) }}</div>
+                                                    @else
+                                                        <div class="font-bold text-amber-600 text-xs">⚠️ भाव नहीं (₹0)</div>
+                                                    @endif
+                                                    @if($vWs > 0)
+                                                        <div class="text-[10px] text-indigo-600 font-semibold">थोक: ₹{{ number_format($vWs, 2) }}</div>
                                                     @endif
                                                 </div>
                                             </div>
@@ -607,6 +594,26 @@
                                     </div>
                                 </div>
                             @endif
+                        </div>
+
+                        <!-- Card Footer: Actions Row -->
+                        <div class="p-3 bg-white border-t border-gray-100 flex items-center justify-between gap-2">
+                            <button type="button" onclick="openAssignFolderModalSingle({{ $product->id }}, '{{ addslashes($product->name) }}')" class="text-[11px] text-gray-500 hover:text-indigo-600 font-bold inline-flex items-center gap-1 transition">
+                                <i class="fa-solid fa-folder-plus text-indigo-500"></i> फोल्डर
+                            </button>
+
+                            <div class="flex items-center gap-1.5">
+                                <a href="{{ route('seller.products.edit', $product) }}" class="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition inline-flex items-center gap-1" title="Edit Product">
+                                    <i class="fa-solid fa-pen-to-square text-[10px]"></i> एडिट
+                                </a>
+                                <form id="delete-form-card-{{ $product->id }}" action="{{ route('seller.products.post_delete', $product->id) }}" method="POST" class="inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="button" onclick="deleteProductAjax({{ $product->id }})" class="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition" title="Delete Product">
+                                        <i class="fa-solid fa-trash text-xs"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 @empty
@@ -641,9 +648,13 @@
                             @php
                                 $variants = $product->variants ?? collect();
                                 $varCount = $variants->count();
-                                $minPrice = $varCount > 0 ? $variants->min('price') : $product->price;
-                                $maxPrice = $varCount > 0 ? $variants->max('price') : $product->price;
-                                $hasPrice = ($product->price > 0 || ($varCount > 0 && $maxPrice > 0));
+                                $vPrices = $variants->map(function($v) {
+                                    return (float)($v->retail_price ?: ($v->price ?: ($v->wholesale_price ?: 0)));
+                                })->filter(function($p) { return $p > 0; });
+
+                                $minPrice = $vPrices->isNotEmpty() ? $vPrices->min() : (float)$product->price;
+                                $maxPrice = $vPrices->isNotEmpty() ? $vPrices->max() : (float)$product->price;
+                                $hasPrice = ($minPrice > 0 || $maxPrice > 0 || (float)$product->price > 0);
                                 $catName = $product->category->name ?? 'General';
                             @endphp
                             <tr class="product-item-row hover:bg-gray-50/60 transition" id="row-prod-{{ $product->id }}"
@@ -687,18 +698,14 @@
                                     {{ $catName }}
                                 </td>
                                 <td class="py-3 px-4 font-black text-gray-900">
-                                    @if($varCount > 0)
-                                        @if($minPrice == $maxPrice)
-                                            ₹{{ number_format($minPrice, 2) }}
+                                    @if($hasPrice)
+                                        @if($minPrice == $maxPrice || $minPrice <= 0)
+                                            ₹{{ number_format($maxPrice ?: $minPrice, 2) }}
                                         @else
                                             ₹{{ number_format($minPrice, 2) }} - ₹{{ number_format($maxPrice, 2) }}
                                         @endif
                                     @else
-                                        @if($product->price > 0)
-                                            ₹{{ number_format($product->price, 2) }}
-                                        @else
-                                            <span class="text-amber-600 text-xs font-bold">₹0.00</span>
-                                        @endif
+                                        <span class="text-amber-600 text-xs font-bold">₹0.00</span>
                                     @endif
                                 </td>
                                 <td class="py-3 px-4">
@@ -726,10 +733,10 @@
                                         <a href="{{ route('seller.products.edit', $product) }}" class="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition" title="Edit Product">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                         </a>
-                                        <form action="{{ route('seller.products.destroy', $product) }}" method="POST" onsubmit="return confirm('Delete this product?')">
+                                        <form id="delete-form-table-{{ $product->id }}" action="{{ route('seller.products.post_delete', $product->id) }}" method="POST" class="inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition" title="Delete Product">
+                                            <button type="button" onclick="deleteProductAjax({{ $product->id }})" class="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition" title="Delete Product">
                                                 <i class="fa-solid fa-trash"></i>
                                             </button>
                                         </form>
@@ -760,11 +767,15 @@
                                                     </thead>
                                                     <tbody class="divide-y divide-gray-50">
                                                         @foreach($variants as $v)
+                                                            @php
+                                                                $vRetail = (float)($v->retail_price ?: ($v->price ?: 0));
+                                                                $vWs = (float)($v->wholesale_price ?: 0);
+                                                            @endphp
                                                             <tr class="hover:bg-blue-50/30">
                                                                 <td class="py-1.5 px-2 font-extrabold text-gray-900">{{ $v->variant_name }}</td>
                                                                 <td class="py-1.5 px-2 text-[10px] text-gray-400 font-mono">{{ $v->sku ?? '-' }}</td>
-                                                                <td class="py-1.5 px-2 font-black text-emerald-700">₹{{ number_format($v->price, 2) }}</td>
-                                                                <td class="py-1.5 px-2 text-gray-600">{{ !empty($v->wholesale_price) && $v->wholesale_price > 0 ? '₹'.number_format($v->wholesale_price, 2) : '-' }}</td>
+                                                                <td class="py-1.5 px-2 font-black text-emerald-700">{{ $vRetail > 0 ? '₹'.number_format($vRetail, 2) : '₹0.00' }}</td>
+                                                                <td class="py-1.5 px-2 text-gray-600">{{ $vWs > 0 ? '₹'.number_format($vWs, 2) : '-' }}</td>
                                                                 <td class="py-1.5 px-2 text-gray-500">{{ !empty($v->mrp) && $v->mrp > 0 ? '₹'.number_format($v->mrp, 2) : '-' }}</td>
                                                                 <td class="py-1.5 px-2">
                                                                     <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">
@@ -1379,6 +1390,59 @@
             } catch (e) {}
             switchProductView(savedMode);
         });
+
+        // ==========================================
+        // 🗑️ INSTANT PRODUCT DELETION (AJAX & Fallback)
+        // ==========================================
+        function deleteProductAjax(productId) {
+            if (!confirm('क्या आप इस प्रोडक्ट और इसके सभी साइज़ वेरिएंट्स को हटाना चाहते हैं?')) {
+                return;
+            }
+
+            const card = document.querySelector(`.product-item-card[data-id="${productId}"]`);
+            const row = document.getElementById(`row-prod-${productId}`);
+            const subRow = document.getElementById(`table-variant-row-${productId}`);
+
+            // Visually dim right away
+            if (card) card.style.opacity = '0.4';
+            if (row) row.style.opacity = '0.4';
+
+            fetch(`/seller/products/${productId}/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({ _method: 'DELETE' })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (card) {
+                        card.style.transition = 'all 0.3s ease';
+                        card.style.opacity = '0';
+                        card.style.transform = 'scale(0.9)';
+                        setTimeout(() => card.remove(), 300);
+                    }
+                    if (row) row.remove();
+                    if (subRow) subRow.remove();
+                } else {
+                    alert(data.message || 'Error deleting product');
+                    if (card) card.style.opacity = '1';
+                    if (row) row.style.opacity = '1';
+                }
+            })
+            .catch(err => {
+                // Fallback: submit standard form if fetch encounters network error
+                const form = document.getElementById(`delete-form-card-${productId}`) || document.getElementById(`delete-form-table-${productId}`);
+                if (form) {
+                    form.submit();
+                } else {
+                    window.location.reload();
+                }
+            });
+        }
 
         // ==========================================
         // 🗑️ CLEAR ALL PRODUCTS MODAL SYSTEM

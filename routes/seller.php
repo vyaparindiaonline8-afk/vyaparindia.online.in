@@ -33,6 +33,8 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
     Route::post('products/assign-folder', [ProductSpreadsheetController::class, 'assignFolder'])->name('products.assign_folder');
     Route::post('products/clear-all', [ProductController::class, 'clearAll'])->name('products.clear_all');
 
+    Route::post('products/{id}/delete', [ProductController::class, 'destroy'])->name('products.post_delete');
+    Route::post('products/{id}', [ProductController::class, 'destroy'])->name('products.post_destroy');
     Route::resource('products', ProductController::class);
     Route::post('products/{product}/quick-image-update', [ProductController::class, 'quickImageUpdate'])->name('products.quick_image_update');
     Route::delete('products/{product}/images/{image}', [ProductController::class, 'deleteImage'])->name('products.images.destroy');

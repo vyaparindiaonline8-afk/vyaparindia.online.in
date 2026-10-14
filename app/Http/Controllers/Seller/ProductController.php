@@ -281,13 +281,28 @@ class ProductController extends Controller
         return back()->with('success', 'Image removed from gallery.');
     }
 
-    public function destroy(Product $product)
+    public function destroy($id)
     {
-        if (Auth::id() !== $product->user_id) {
+        $product = Product::find($id);
+        if (!$product) {
+            if (request()->wantsJson()) {
+                return response()->json(['success' => true, 'message' => 'Product pehle hi delete ho chuka hai.']);
+            }
+            return redirect()->route('seller.products.index')->with('warning', 'Product pehle hi hat chuka hai.');
+        }
+
+        if (Auth::id() !== $product->user_id && !Auth::user()->isOwnerOrAdmin()) {
             abort(403);
         }
 
+        // Clean up variants and images first to avoid database FK constraints
+        $product->variants()->delete();
+        $product->images()->delete();
         $product->delete();
+
+        if (request()->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Product deleted successfully.']);
+        }
 
         return redirect()->route('seller.products.index')->with('success', 'Product deleted successfully.');
     }

@@ -41,6 +41,11 @@ class ProductVariant extends Model
         'attributes' => 'array',
     ];
 
+    public function getPriceAttribute(): float
+    {
+        return (float)($this->retail_price ?: ($this->attributes['price'] ?? 0));
+    }
+
     public function product()
     {
         return $this->belongsTo(Product::class);
