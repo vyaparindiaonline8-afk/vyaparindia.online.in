@@ -367,10 +367,14 @@
                         @php
                             $catName = is_object($cat) ? ($cat->name ?? '') : (string)$cat;
                             $catSlug = is_object($cat) ? ($cat->slug ?? $catName) : $catName;
-                            $isActive = ($activeCategory === $catSlug || $activeCategory === $catName);
+                            $isActive = (!empty($activeCategory) && (strtolower($activeCategory) === strtolower($catSlug) || strtolower($activeCategory) === strtolower($catName)));
+                            $catCount = is_object($cat) ? ($cat->products_count ?? null) : null;
                         @endphp
                         <a href="{{ route('seller.products.index', array_filter(['category' => $catSlug, 'folder' => $activeFolder, 'search' => $search])) }}" class="px-3 py-1.5 rounded-xl text-xs font-extrabold shrink-0 transition flex items-center gap-1.5 {{ $isActive ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200' }}">
                             <span>{{ $catName }}</span>
+                            @if(!is_null($catCount))
+                                <span class="px-1.5 py-0.2 rounded-full {{ $isActive ? 'bg-white/25 text-white' : 'bg-blue-200/70 text-blue-900' }} text-[10px]">{{ $catCount }}</span>
+                            @endif
                         </a>
                     @endforeach
                 @endif
@@ -394,50 +398,39 @@
             </div>
         </div>
 
-        <!-- 📁 Rate Folders / Collections Filter Bar -->
-        <div class="bg-white rounded-3xl border border-gray-200 p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
-                <span class="text-xs font-black text-gray-500 shrink-0 flex items-center gap-1.5 mr-1">
-                    <i class="fa-solid fa-folder-tree text-indigo-600"></i>
-                    <span>रेट फोल्डर्स:</span>
-                </span>
-
-                <!-- All Tab -->
-                <a href="{{ route('seller.products.index', array_filter(['category' => $activeCategory, 'search' => $search])) }}" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold shrink-0 transition flex items-center gap-1.5 {{ empty($activeFolder) || $activeFolder === 'all' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 hover:bg-gray-200 text-gray-700' }}">
-                    <span>सभी फोल्डर्स (All)</span>
-                </a>
-
-                @if(!empty($folders) && $folders->count() > 0)
-                    @foreach($folders as $fName)
-                        <a href="{{ route('seller.products.index', array_filter(['folder' => $fName, 'category' => $activeCategory, 'search' => $search])) }}" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold shrink-0 transition flex items-center gap-1.5 {{ ($activeFolder ?? '') === $fName ? 'bg-indigo-600 text-white shadow-xs' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200' }}">
-                            <i class="fa-solid fa-folder text-[10px]"></i>
-                            <span>{{ $fName }}</span>
-                        </a>
-                    @endforeach
-                @else
-                    <span class="text-[11px] text-gray-400 italic shrink-0">
-                        (नीचे आइटम्स को टिक करके फोल्डर में जोड़ें)
-                    </span>
-                @endif
-            </div>
-
-            @if(!empty($activeFolder) && $activeFolder !== 'all')
-                <div class="flex items-center gap-2 shrink-0">
-                    <span class="text-xs font-bold text-indigo-900 bg-indigo-50 px-2.5 py-1 rounded-xl border border-indigo-200">
-                        Active Folder: <strong>{{ $activeFolder }}</strong> ({{ $products->count() }} items)
-                    </span>
-                    <a href="{{ route('seller.products.export_sheet', ['type' => 'rates', 'folder' => $activeFolder]) }}" class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-xs transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-download"></i>
-                        <span>इस फोल्डर की रेट शीट (.csv)</span>
-                    </a>
-                </div>
-            @endif
-        </div>
-
         <!-- 🗂️ PRODUCT CARDS GRID VIEW (Visual & Category-Wise) -->
-        <div id="productsCardGrid" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5">
-                @forelse($products as $product)
+        <div id="productsCardGrid" class="space-y-6">
+            @php
+                $groupedProducts = $products->groupBy(function($p) {
+                    return $p->category->name ?? ($p->group_name ?: 'अन्य प्रोडक्ट्स (General)');
+                });
+            @endphp
+
+            @forelse($groupedProducts as $categoryTitle => $groupItems)
+                <div class="category-block space-y-3 pt-2">
+                    <!-- Category Header Banner -->
+                    <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl px-4 py-3 flex items-center justify-between shadow-xs border border-indigo-900/40">
+                        <div class="flex items-center gap-3">
+                            <div class="h-9 w-9 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center text-sm shrink-0">
+                                <i class="fa-solid fa-layer-group"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-black text-white flex items-center gap-2">
+                                    <span>{{ $categoryTitle }}</span>
+                                </h3>
+                                <p class="text-[11px] text-slate-300">
+                                    {{ $groupItems->count() }} मुख्य प्रोडक्ट्स &bull; कुल {{ $groupItems->sum(function($p) { return ($p->variants && $p->variants->count() > 0) ? $p->variants->count() : 1; }) }} साइज़ वेरिएंट्स
+                                </p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 rounded-xl bg-white/10 text-white font-black text-xs border border-white/10 shrink-0">
+                            {{ $groupItems->count() }} Cards
+                        </span>
+                    </div>
+
+                    <!-- Cards in this Category -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5">
+                        @foreach($groupItems as $product)
                     @php
                         $variants = $product->variants ?? collect();
                         
@@ -626,15 +619,17 @@
                             </div>
                         </div>
                     </div>
-                @empty
-                    <div class="col-span-full py-16 text-center text-gray-400 bg-white rounded-3xl border border-gray-200">
-                        <i class="fa-solid fa-box-open text-4xl mb-2 text-gray-300"></i>
-                        <p class="font-bold text-gray-600">कोई प्रोडक्ट नहीं मिला</p>
-                        <p class="text-xs mt-1">फ़िल्टर साफ़ करें या नया प्रोडक्ट जोड़ें।</p>
-                    </div>
-                @endforelse
+                @endforeach
             </div>
         </div>
+    @empty
+        <div class="col-span-full py-16 text-center text-gray-400 bg-white rounded-3xl border border-gray-200">
+            <i class="fa-solid fa-box-open text-4xl mb-2 text-gray-300"></i>
+            <p class="font-bold text-gray-600">कोई प्रोडक्ट नहीं मिला</p>
+            <p class="text-xs mt-1">फ़िल्टर साफ़ करें या नया प्रोडक्ट जोड़ें।</p>
+        </div>
+    @endforelse
+</div>
 
         <!-- 📋 PRODUCT TABLE VIEW (Expandable Rows) -->
         <div id="productsTableView" class="hidden bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
@@ -904,14 +899,29 @@
                         <input type="file" id="excelFileInput" name="spreadsheet_file" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelFileSelect(event)">
                     </div>
 
-                    <!-- Preview Box -->
-                    <div id="excelFilePreviewBox" class="hidden p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-1.5">
-                        <div class="flex items-center justify-between text-xs font-bold text-emerald-900">
+                    <!-- Preview Box with Live Column Mapping Display -->
+                    <div id="excelFilePreviewBox" class="hidden p-4 bg-emerald-50 rounded-2xl border border-emerald-300 space-y-3">
+                        <div class="flex items-center justify-between text-xs font-bold text-emerald-950">
                             <span id="excelFileName" class="truncate max-w-[280px]">filename.xlsx</span>
-                            <span id="excelRowCount" class="px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-800 text-[10px] font-black">0 Rows Found</span>
+                            <span id="excelRowCount" class="px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-900 text-[10px] font-black">0 Rows Found</span>
                         </div>
-                        <p class="text-[11px] text-emerald-700">
-                            शीट लोड हो चुकी है! नीचे "सिंक व अपडेट करें" बटन दबाकर नए रेट्स लागू करें।
+                        
+                        <!-- Column Mapping Inspection Area -->
+                        <div class="bg-white rounded-xl p-3 border border-emerald-200 space-y-2 text-xs">
+                            <div class="flex items-center justify-between font-black text-gray-900 text-[11px] border-b border-gray-100 pb-1.5">
+                                <span class="flex items-center gap-1.5">
+                                    <i class="fa-solid fa-wand-magic-sparkles text-emerald-600"></i>
+                                    <span>पहचानी गई कॉलम मैपिंग (Auto-Detected Columns):</span>
+                                </span>
+                                <span class="text-[10px] text-gray-400 font-normal">Excel Sheet</span>
+                            </div>
+                            <div id="excelColumnMappingGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                                <!-- Dynamically populated by JS -->
+                            </div>
+                        </div>
+
+                        <p class="text-[11px] text-emerald-800">
+                            ✅ शीट लोड हो चुकी है! नीचे <strong>"सिंक व अपडेट करें"</strong> बटन दबाकर नए रेट्स तुरंत लागू करें।
                         </p>
                     </div>
 
@@ -1180,6 +1190,60 @@
             modal.classList.remove('flex');
         }
 
+        function inspectExcelHeaders(firstRow) {
+            const grid = document.getElementById('excelColumnMappingGrid');
+            if (!grid || !firstRow) return;
+            grid.innerHTML = '';
+
+            const keys = Object.keys(firstRow);
+            const findKey = (patterns) => {
+                for (const p of patterns) {
+                    for (const k of keys) {
+                        const clean = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+                        if (clean === p || clean.includes(p)) return k;
+                    }
+                }
+                return null;
+            };
+
+            const mappings = [
+                { field: 'प्रोडक्ट नाम (Name)', key: findKey(['productname', 'itemname', 'name', 'title', 'aaitmnaam']), required: true },
+                { field: 'विक्रय भाव (Price A)', key: findKey(['salea', 'sellingprice', 'retailprice', 'price', 'ratea']), required: true },
+                { field: 'SKU / कोड (Code)', key: findKey(['itamcode', 'itemcode', 'productcode', 'sku', 'code']), required: false },
+                { field: 'कैटेगरी (Category)', key: findKey(['category', 'kaitaigarii']), required: false },
+                { field: 'ग्रुप (Group)', key: findKey(['group', 'grup']), required: false },
+                { field: 'साइज़ (Size / Variant)', key: findKey(['size', 'variant', 'dimension', 'saaiz']) || '(ऑटो-डिटेक्ट: mm, ml, inch, आदि)', required: false, auto: true },
+                { field: 'खरीद भाव (Cost)', key: findKey(['pcost', 'cost', 'purchaseprice']), required: false },
+                { field: 'ओपनिंग स्टॉक (Stock)', key: findKey(['opnstock', 'stock', 'currentstock']), required: false },
+            ];
+
+            mappings.forEach(m => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between p-1.5 rounded-lg bg-gray-50 border border-gray-100';
+                
+                const left = document.createElement('span');
+                left.className = 'font-bold text-gray-700';
+                left.textContent = m.field;
+
+                const right = document.createElement('span');
+                if (m.key) {
+                    right.className = m.auto 
+                        ? 'px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 font-mono text-[10px] font-bold'
+                        : 'px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-mono text-[10px] font-black';
+                    right.textContent = m.key;
+                } else {
+                    right.className = m.required
+                        ? 'px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 font-semibold text-[10px]'
+                        : 'px-2 py-0.5 rounded-md bg-gray-200 text-gray-500 font-semibold text-[10px]';
+                    right.textContent = m.required ? '❌ नहीं मिला' : '—';
+                }
+
+                item.appendChild(left);
+                item.appendChild(right);
+                grid.appendChild(item);
+            });
+        }
+
         function handleExcelFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1203,6 +1267,7 @@
                         return;
                     }
 
+                    inspectExcelHeaders(jsonRows[0]);
                     document.getElementById('spreadsheetRowsJson').value = JSON.stringify(jsonRows);
                     rowCountEl.textContent = `${jsonRows.length} Rows Detected`;
                     previewBox.classList.remove('hidden');

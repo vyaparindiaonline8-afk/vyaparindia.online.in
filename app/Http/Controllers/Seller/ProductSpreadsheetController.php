@@ -289,10 +289,97 @@ class ProductSpreadsheetController extends Controller
 
         $sellerProducts = Product::where('user_id', $seller->id)->with('variants')->get();
 
-        DB::transaction(function () use ($rawRows, $seller, $sellerProducts, $allowCreateNew, $normalizeForMatching, $extractWordSet, &$updatedProductsCount, &$updatedVariantsCount, &$unchangedCount, &$createdProductsCount, &$skippedCount, &$affectedProductIds, &$quotaExceededCount, &$unmatchedCount) {
+        // 🚀 High-Performance In-Memory Pre-loading to prevent 502 Bad Gateway timeouts on Render
+        $masterByCode = [];
+        $masterByName = [];
+        try {
+            $brandMasters = \App\Models\BrandMasterProduct::select('product_code', 'product_name', 'image_url')->get();
+            foreach ($brandMasters as $bm) {
+                if (!empty($bm->product_code)) {
+                    $masterByCode[strtoupper(trim($bm->product_code))] = $bm->image_url;
+                }
+                if (!empty($bm->product_name)) {
+                    $masterByName[strtolower(trim($bm->product_name))] = $bm->image_url;
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        $allCats = Category::all()->keyBy(function($c) {
+            return strtolower(trim($c->name));
+        });
+
+        $getOrCreateCat = function(?string $cName) use (&$allCats) {
+            if (empty($cName)) return null;
+            $clean = ucwords(trim($cName));
+            $k = strtolower($clean);
+            if (isset($allCats[$k])) {
+                return $allCats[$k]->id;
+            }
+            $cat = Category::firstOrCreate(
+                ['name' => $clean],
+                ['slug' => Str::slug($clean) ?: ('cat-' . time() . '-' . rand(10, 99))]
+            );
+            $allCats[$k] = $cat;
+            return $cat->id;
+        };
+
+        // Comprehensive Size & Base extraction for pipes, fittings, solvents (ML, LTR, GM, KG, TUBE, CANE)
+        $extractSizeAndBase = function(?string $full_name): array {
+            if (empty($full_name)) return ['', 'Standard'];
+            $s = trim($full_name);
+
+            // 1. Cross dimensions: 110*75*50, 25*20, etc.
+            if (preg_match('~\b\d+(?:\.\d+)?\s*[\*xX/]\s*\d+(?:\.\d+)?(?:\s*[\*xX/]\s*\d+(?:\.\d+)?)*\s*(?:mm|inch|")?\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+                $size = trim($m[0][0]);
+                $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
+                return [preg_replace('/\s+/', ' ', $base), $size];
+            }
+
+            // 2. Fractional inches: 1/2", 3/4", 1-1/4", etc.
+            if (preg_match('~\b(?:\d+\s*[-–]?\s*)?\d+\/\d+\s*(?:"|inch)?\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+                $size = trim($m[0][0]);
+                $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
+                return [preg_replace('/\s+/', ' ', $base), $size];
+            }
+
+            // 3. Metric mm or simple inch: 15MM, 20MM, 110 MM, 2"
+            if (preg_match('~\b\d+(?:\.\d+)?\s*(?:mm|inch|")\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+                $size = trim($m[0][0]);
+                $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
+                return [preg_replace('/\s+/', ' ', $base), $size];
+            }
+
+            // 4. Volume / Liquid / Weight: 50ML, 118ML, 1LTR, 15ML TUBE, 50ML CANE, 500GM, 1KG
+            if (preg_match('~\b\d+(?:\.\d+)?\s*(?:ml|ltr|gm|kg)(?:\s*(?:tube|cane|tin|can))?\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+                $size = trim($m[0][0]);
+                $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
+                return [preg_replace('/\s+/', ' ', $base), $size];
+            }
+
+            // 5. Packaging words: TUBE, CANE
+            if (preg_match('~\b(?:tube|cane|tin|can)\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+                $size = trim($m[0][0]);
+                $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
+                return [preg_replace('/\s+/', ' ', $base), $size];
+            }
+
+            // 6. Length: 10 FEET, 20 FEET
+            if (preg_match('~\b\d+(?:\.\d+)?\s*(?:feet|ft|mtr)\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+                $size = trim($m[0][0]);
+                $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
+                return [preg_replace('/\s+/', ' ', $base), $size];
+            }
+
+            return [$s, 'Standard'];
+        };
+
+        $detectedCols = [];
+
+        DB::transaction(function () use ($rawRows, $seller, $sellerProducts, $allowCreateNew, $normalizeForMatching, $extractWordSet, $masterByCode, $masterByName, $getOrCreateCat, $extractSizeAndBase, &$updatedProductsCount, &$updatedVariantsCount, &$unchangedCount, &$createdProductsCount, &$skippedCount, &$affectedProductIds, &$quotaExceededCount, &$unmatchedCount, &$detectedCols) {
             foreach ($rawRows as $row) {
-                // Pre-build normalized key-value map for robust header lookup (handles raw Excel, Hindi, snake_case)
+                // Pre-build normalized key-value map for robust header lookup
                 $normMap = [];
+                $originalKeyMap = [];
                 foreach ($row as $k => $v) {
                     $rawK = trim((string)$k);
                     $normMap[$rawK] = $v;
@@ -301,27 +388,29 @@ class ProductSpreadsheetController extends Controller
                     $cleanK = trim(preg_replace('/_+/', '_', preg_replace('/[^a-z0-9_]/', '', str_replace([' ', '/', '-', '(', ')', '[', ']', '.', ':', '*'], '_', $lowerK))), '_');
                     if ($cleanK !== '') {
                         $normMap[$cleanK] = $v;
+                        $originalKeyMap[$cleanK] = $rawK;
                     }
                 }
 
-                // Normalized row keys lookup helper
-                $getVal = function(array $aliases) use ($normMap) {
-                    // 1. Direct match on normalized map
+                $getValWithKey = function(array $aliases) use ($normMap, $originalKeyMap) {
                     foreach ($aliases as $alias) {
                         if (isset($normMap[$alias]) && trim((string)$normMap[$alias]) !== '') {
-                            return trim((string)$normMap[$alias]);
+                            return [trim((string)$normMap[$alias]), $originalKeyMap[$alias] ?? $alias];
                         }
                     }
-                    // 2. Fallback: Check if any key contains the alias
                     foreach ($normMap as $k => $val) {
                         if (trim((string)$val) === '') continue;
                         foreach ($aliases as $alias) {
                             if (strlen($alias) >= 4 && str_contains($k, $alias)) {
-                                return trim((string)$val);
+                                return [trim((string)$val), $originalKeyMap[$k] ?? $k];
                             }
                         }
                     }
-                    return null;
+                    return [null, null];
+                };
+
+                $getVal = function(array $aliases) use ($getValWithKey) {
+                    return $getValWithKey($aliases)[0];
                 };
 
                 $getFloat = function(array $aliases) use ($getVal) {
@@ -351,58 +440,91 @@ class ProductSpreadsheetController extends Controller
                     'variant_id', 'variant_id_optional', 'variantid', 'var_id', 'variant_id__optional_'
                 ]);
 
-                $name = $getVal([
+                [$name, $nameKey] = $getValWithKey([
                     'product_name', 'product_name_aaitm_naam', 'name', 'item_name', 'title',
                     'product_name__aaitm_naam_', 'aaitm_naam'
                 ]);
+                if ($nameKey && !isset($detectedCols['Name'])) $detectedCols['Name'] = $nameKey;
 
-                $categoryName = $getVal([
+                [$categoryName, $catKey] = $getValWithKey([
                     'category', 'category_kaitaigarii', 'category_name', 'category__kaitaigarii_'
                 ]);
+                if ($catKey && !isset($detectedCols['Category'])) $detectedCols['Category'] = $catKey;
 
-                $brand = $getVal([
+                [$brand, $brandKey] = $getValWithKey([
                     'brand', 'brand_kanpnii', 'brand_company', 'company', 'brand__kanpnii_'
                 ]);
 
-                $groupName = $getVal([
+                [$groupName, $groupKey] = $getValWithKey([
                     'group', 'group_grup', 'group_name', 'group__grup_'
                 ]);
+                if ($groupKey && !isset($detectedCols['Group'])) $detectedCols['Group'] = $groupKey;
 
-                $sizeVariant = $getVal([
+                [$sizeVariant, $sizeKey] = $getValWithKey([
                     'size__variant_name__saaiz___prkaar_', 'size_variant_name', 'size_variant',
                     'size', 'variant_name', 'variant', 'dimension', 'saaiz'
                 ]);
+                if ($sizeKey && !isset($detectedCols['Size'])) $detectedCols['Size'] = $sizeKey;
 
-                $sellingPrice = $getFloat([
-                    'selling_price', 'selling_price_bikrii_bhaav', 'retail_price', 'price',
-                    'selling_price__bikrii_bhaav_', 'rate_a', 'sale_price', 'sale_a'
-                ]);
+                [$sellingPrice, $spKey] = [
+                    $getFloat(['sale_a', 'selling_price', 'selling_price_bikrii_bhaav', 'retail_price', 'price', 'selling_price__bikrii_bhaav_', 'rate_a', 'sale_price']),
+                    $getValWithKey(['sale_a', 'selling_price', 'retail_price', 'price', 'rate_a'])[1]
+                ];
+                if ($spKey && !isset($detectedCols['Price A'])) $detectedCols['Price A'] = $spKey;
 
                 $wholesalePrice = $getFloat([
-                    'wholesale_price', 'wholesale_price_thok_bhaav_b2b', 'wholesale_price_thok_bhaav',
-                    'wholesale_price__thok_bhaav_b2b_', 'wholesale_price__thok_bhaav_', 'rate_b', 'b2b_price', 'sale_b'
+                    'sale_b', 'wholesale_price', 'wholesale_price_thok_bhaav_b2b', 'wholesale_price_thok_bhaav',
+                    'wholesale_price__thok_bhaav_b2b_', 'wholesale_price__thok_bhaav_', 'rate_b', 'b2b_price'
                 ]);
 
                 $purchasePrice = $getFloat([
-                    'purchase_price', 'purchase_price_khariid_bhaav_cost', 'purchase_price_cost',
-                    'purchase_price_khariid_bhaav', 'purchase_price__khariid_bhaav___cost_', 'cost', 'raw_rate', 'p_cost'
+                    'p_cost', 'purchase_price', 'purchase_price_khariid_bhaav_cost', 'purchase_price_cost',
+                    'purchase_price_khariid_bhaav', 'purchase_price__khariid_bhaav___cost_', 'cost', 'raw_rate'
                 ]);
 
                 $mrp = $getFloat(['mrp', 'maximum_retail_price']);
 
                 $stock = $getInt([
-                    'current_stock', 'current_stock_sttok_sankhyaa', 'stock_quantity',
+                    'opn_stock', 'current_stock', 'current_stock_sttok_sankhyaa', 'stock_quantity',
                     'stock_quantity_sttok', 'stock', 'stock_quantity__sttok_', 'current_stock__sttok_sankhyaa_',
-                    'opn_stock', 'opnstock', 'open_stock'
+                    'opnstock', 'open_stock'
                 ]);
 
                 $desc = $getVal([
                     'description', 'description_vivrn', 'desc', 'description__vivrn_'
                 ]);
 
-                $productCode = $getVal([
+                [$productCode, $codeKey] = $getValWithKey([
                     'itam_code', 'item_code', 'product_code', 'code', 'sku', 'itam_kod', 'item_kod'
                 ]);
+                if ($codeKey && !isset($detectedCols['Code'])) $detectedCols['Code'] = $codeKey;
+
+                // Smart extraction: If sizeVariant is missing, derive base name and size variant
+                $extractedBaseName = $name;
+                if (!empty($name)) {
+                    [$autoBase, $autoSize] = $extractSizeAndBase($name);
+                    if (empty($sizeVariant) && $autoSize !== 'Standard') {
+                        $sizeVariant = $autoSize;
+                    }
+                    if (!empty($autoBase)) {
+                        $extractedBaseName = $autoBase;
+                    }
+                }
+
+                // Disambiguate base card name by prefixing Material / Category if missing (e.g. UPVC UNION vs CPVC UNION)
+                $combinedMaterial = '';
+                $catContext = trim(($categoryName ?? '') . ' ' . ($groupName ?? ''));
+                foreach (['UPVC', 'CPVC', 'SWR', 'AGRI'] as $mat) {
+                    if (stripos($catContext, $mat) !== false) {
+                        $combinedMaterial = $mat;
+                        break;
+                    }
+                }
+                if ($combinedMaterial && stripos($extractedBaseName, $combinedMaterial) === false) {
+                    $familyBaseName = $combinedMaterial . ' ' . $extractedBaseName;
+                } else {
+                    $familyBaseName = $extractedBaseName;
+                }
 
                 // Resolve Product: Case 1 by ID, Case 2 by SKU/Code, Case 3 by Name / Base Family
                 $product = null;
@@ -417,17 +539,17 @@ class ProductSpreadsheetController extends Controller
                     });
                 }
 
-                if (!$product && !empty($name)) {
-                    $cleanName = strtolower(trim($name));
-                    $nameSlug = Str::slug($name);
-                    $product = $sellerProducts->first(function($p) use ($cleanName, $nameSlug) {
-                        return strtolower(trim($p->name)) === $cleanName
-                            || (!empty($nameSlug) && $p->slug === $nameSlug);
+                if (!$product && !empty($familyBaseName)) {
+                    $cleanFam = strtolower(trim($familyBaseName));
+                    $famSlug = Str::slug($familyBaseName);
+                    $product = $sellerProducts->first(function($p) use ($cleanFam, $famSlug) {
+                        return strtolower(trim($p->name)) === $cleanFam
+                            || (!empty($famSlug) && $p->slug === $famSlug);
                     });
 
-                    // Fuzzy base matching using normalizeForMatching (handles brand prefix, degree °, schedules, compound sizes)
+                    // Fuzzy base matching using normalizeForMatching
                     if (!$product) {
-                        $normName = $normalizeForMatching($name);
+                        $normName = $normalizeForMatching($familyBaseName);
                         if (!empty($normName)) {
                             $product = $sellerProducts->first(function($p) use ($normName, $normalizeForMatching) {
                                 $pNorm = $normalizeForMatching($p->name);
@@ -436,9 +558,9 @@ class ProductSpreadsheetController extends Controller
                         }
                     }
 
-                    // Smart Word-set matching (matches "90* ELBOW" + "UPVC FITTINGS" to "UPVC ELBOW 90")
+                    // Smart Word-set matching with category verification (prevents UPVC vs CPVC collision)
                     if (!$product) {
-                        $rowWords = $extractWordSet($name . ' ' . $categoryName);
+                        $rowWords = $extractWordSet($familyBaseName . ' ' . $categoryName);
                         if (!empty($rowWords)) {
                             $bestP = null;
                             $bestScore = 0;
@@ -447,8 +569,8 @@ class ProductSpreadsheetController extends Controller
                                 if (empty($pWords)) continue;
                                 $intersect = array_intersect($rowWords, $pWords);
                                 if (!empty($intersect)) {
-                                    if (count($intersect) === count($rowWords) || count($intersect) === count($pWords)) {
-                                        $score = count($intersect);
+                                    $score = count($intersect);
+                                    if ($score >= 2 && ($score === count($rowWords) || $score === count($pWords))) {
                                         if ($score > $bestScore) {
                                             $bestScore = $score;
                                             $bestP = $p;
@@ -461,59 +583,25 @@ class ProductSpreadsheetController extends Controller
                             }
                         }
                     }
-
-                    // Extract sizeVariant from $name if not already present
-                    if (empty($sizeVariant) && !empty($name)) {
-                        if (preg_match('~(\d+(?:\.\d+)?(?:\s*[\*xX/]\s*\d+(?:\.\d+)?)+\s*(?:mm|inch|feet|ft)?|\d+(?:\.\d+)?\s*(?:mm|inch|feet|ft|")|\d+\/\d+(?:")?)~i', $name, $dm)) {
-                            $sizeVariant = trim($dm[0]);
-                        }
-                    }
                 }
 
-                // Auto-resolve verified catalog image from BrandMasterProduct
+                // In-Memory lookup for BrandMaster image (Zero DB queries!)
                 $catalogImage = null;
-                try {
-                    if (!empty($productCode)) {
-                        $cleanCode = trim($productCode);
-                        $bmp = \App\Models\BrandMasterProduct::where('product_code', $cleanCode)
-                            ->orWhere('product_code', strtoupper($cleanCode))
-                            ->first();
-                        if ($bmp && !empty($bmp->image_url)) {
-                            $catalogImage = $bmp->image_url;
-                        }
+                if (!empty($productCode)) {
+                    $uCode = strtoupper(trim($productCode));
+                    if (isset($masterByCode[$uCode])) {
+                        $catalogImage = $masterByCode[$uCode];
                     }
-                    if (!$catalogImage && !empty($name)) {
-                        $cleanName = trim($name);
-                        $bmp = \App\Models\BrandMasterProduct::where('product_name', $cleanName)->first();
-                        if ($bmp && !empty($bmp->image_url)) {
-                            $catalogImage = $bmp->image_url;
-                        }
+                }
+                if (!$catalogImage && !empty($name)) {
+                    $lName = strtolower(trim($name));
+                    if (isset($masterByName[$lName])) {
+                        $catalogImage = $masterByName[$lName];
                     }
-                } catch (\Throwable $e) {
-                    \Log::warning('BrandMasterProduct lookup error: ' . $e->getMessage());
                 }
 
                 if ($product) {
                     $prodUpdates = [];
-
-                    // 1. Allow updating Product Name if explicitly provided and matched by ID
-                    if ($rawId && !empty($name) && $name !== $product->name) {
-                        $prodUpdates['name'] = $name;
-                        $newSlug = Str::slug($name) ?: ('prod-' . $product->id . '-' . time());
-                        if ($newSlug !== $product->slug) {
-                            $slugCandidate = $newSlug;
-                            $suffix = 1;
-                            while (Product::where('slug', $slugCandidate)->where('id', '!=', $product->id)->exists()) {
-                                $slugCandidate = $newSlug . '-' . $seller->id . ($suffix > 1 ? '-' . $suffix : '');
-                                if (Product::where('slug', $slugCandidate)->where('id', '!=', $product->id)->exists()) {
-                                    $slugCandidate = $newSlug . '-' . Str::random(5);
-                                    break;
-                                }
-                                $suffix++;
-                            }
-                            $prodUpdates['slug'] = $slugCandidate;
-                        }
-                    }
 
                     if (!empty($brand)) {
                         $prodUpdates['brand'] = $brand;
@@ -526,14 +614,13 @@ class ProductSpreadsheetController extends Controller
                     }
 
                     if (!empty($categoryName)) {
-                        $cat = Category::firstOrCreate(
-                            ['name' => ucwords($categoryName)],
-                            ['slug' => Str::slug($categoryName) ?: ('cat-' . time())]
-                        );
-                        $prodUpdates['category_id'] = $cat->id;
+                        $catId = $getOrCreateCat($categoryName);
+                        if ($catId && $product->category_id !== $catId) {
+                            $prodUpdates['category_id'] = $catId;
+                        }
                     }
 
-                    // 2. Check if product has variants or matches a variant row
+                    // Check if product has variants or matches a variant row
                     $hasVariants = $product->variants && $product->variants->isNotEmpty();
                     $matchedVariant = null;
 
@@ -549,17 +636,18 @@ class ProductSpreadsheetController extends Controller
                                     break;
                                 }
                             }
-                        if (!$matchedVariant) {
-                            $matchedVariant = $product->variants->first(function($pv) {
-                                $vName = strtolower(trim($pv->variant_name ?? ''));
-                                return in_array($vName, ['standard', 'std', 'default', '']);
-                            });
+                            // Fallback: adopt dummy "Standard" variant if present
+                            if (!$matchedVariant) {
+                                $matchedVariant = $product->variants->first(function($pv) {
+                                    $vName = strtolower(trim($pv->variant_name ?? ''));
+                                    return in_array($vName, ['standard', 'std', 'default', '']);
+                                });
+                            }
                         }
                     }
 
                     $isChanged = false;
                     if ($matchedVariant) {
-                        // Update variant-specific fields cleanly with exact Excel values
                         $varUpdates = [];
                         if (!is_null($sellingPrice) && $sellingPrice > 0) {
                             if (abs(floatval($matchedVariant->retail_price ?? $matchedVariant->price) - $sellingPrice) > 0.01) {
@@ -599,6 +687,9 @@ class ProductSpreadsheetController extends Controller
                             $attrs['size'] = $sizeVariant;
                             $varUpdates['attributes'] = $attrs;
                         }
+                        if (!empty($productCode)) {
+                            $varUpdates['sku'] = $productCode;
+                        }
 
                         if (!empty($varUpdates)) {
                             $matchedVariant->update($varUpdates);
@@ -610,7 +701,6 @@ class ProductSpreadsheetController extends Controller
                             $affectedProductIds[$product->id] = true;
                         }
                     } elseif (!empty($sizeVariant)) {
-                        // Product exists, this particular size is added as a variant
                         $vPrice = ($sellingPrice && $sellingPrice > 0) ? $sellingPrice : (($mrp && $mrp > 0) ? $mrp : $product->price);
                         $newVar = ProductVariant::create([
                             'product_id' => $product->id,
@@ -636,7 +726,6 @@ class ProductSpreadsheetController extends Controller
                         $updatedVariantsCount++;
                         $affectedProductIds[$product->id] = true;
                     } else {
-                        // Single Product rate update (when product has no variants)
                         if (!$hasVariants) {
                             if (!is_null($sellingPrice) && $sellingPrice > 0) {
                                 if (abs(floatval($product->price) - $sellingPrice) > 0.01) $isChanged = true;
@@ -662,7 +751,6 @@ class ProductSpreadsheetController extends Controller
                         }
                     }
 
-                    // Backfill product image from Brand Master catalog if currently empty
                     if (empty($product->image) && $catalogImage) {
                         $prodUpdates['image'] = $catalogImage;
                         $isChanged = true;
@@ -679,55 +767,22 @@ class ProductSpreadsheetController extends Controller
                         $unchangedCount++;
                     }
                 } else {
-                    // Case B: No product_id provided and not matched
+                    // Create new Product if allowed
                     $hasValidPrice = (!is_null($sellingPrice) && $sellingPrice > 0) || (!is_null($mrp) && $mrp > 0);
                     if ($allowCreateNew && !empty($name) && $hasValidPrice) {
                         if ($seller->canAddProduct()) {
-                            $catId = null;
-                            if (!empty($categoryName)) {
-                                $cat = Category::firstOrCreate(
-                                    ['name' => ucwords($categoryName)],
-                                    ['slug' => Str::slug($categoryName) ?: ('cat-' . time())]
-                                );
-                                $catId = $cat->id;
-                            }
-
+                            $catId = !empty($categoryName) ? $getOrCreateCat($categoryName) : null;
                             $finalPrice = ($sellingPrice && $sellingPrice > 0) ? $sellingPrice : $mrp;
 
-                            // Generate guaranteed globally unique slug to prevent Postgres 23505 Unique Violation
-                            $baseSlug = Str::slug($name);
+                            $baseSlug = Str::slug($familyBaseName);
                             if (empty($baseSlug)) {
                                 $baseSlug = 'prod-' . $seller->id . '-' . time();
                             }
-                            $uniqueSlug = $baseSlug;
-                            $suffix = 1;
-                            while (Product::where('slug', $uniqueSlug)->exists()) {
-                                $uniqueSlug = $baseSlug . '-' . $seller->id . ($suffix > 1 ? '-' . $suffix : '');
-                                if (Product::where('slug', $uniqueSlug)->exists()) {
-                                    $uniqueSlug = $baseSlug . '-' . Str::random(5);
-                                    break;
-                                }
-                                $suffix++;
-                            }
-
-                            // Derive clean base product family name for the card (strip size, add material prefix if missing)
-                            $baseCardName = $name;
-                            if (!empty($sizeVariant)) {
-                                $baseCardName = trim(str_ireplace($sizeVariant, '', $baseCardName));
-                                $baseCardName = trim(preg_replace('/\s+/', ' ', $baseCardName));
-                            }
-                            if (!empty($categoryName)) {
-                                foreach (['UPVC', 'CPVC', 'SWR'] as $mat) {
-                                    if (stripos($categoryName, $mat) !== false && stripos($baseCardName, $mat) === false) {
-                                        $baseCardName = $mat . ' ' . $baseCardName;
-                                        break;
-                                    }
-                                }
-                            }
+                            $uniqueSlug = $baseSlug . '-' . Str::random(5);
 
                             $newProduct = Product::create([
                                 'user_id' => $seller->id,
-                                'name' => !empty($baseCardName) ? $baseCardName : $name,
+                                'name' => $familyBaseName,
                                 'sku' => !empty($productCode) ? $productCode : ('PLASTO-' . time() . '-' . rand(10, 99)),
                                 'slug' => $uniqueSlug,
                                 'description' => !empty($desc) ? $desc : $name,
@@ -777,29 +832,38 @@ class ProductSpreadsheetController extends Controller
                 }
             }
 
-            // Re-sync base prices and stock for all affected products that have variants
-            foreach (array_keys($affectedProductIds) as $pId) {
-                $p = Product::with('variants')->find($pId);
-                if ($p && $p->variants->isNotEmpty()) {
-                    $minRetail = $p->variants->where('retail_price', '>', 0)->min('retail_price');
-                    $minWholesale = $p->variants->where('wholesale_price', '>', 0)->min('wholesale_price');
-                    $minMrp = $p->variants->where('mrp', '>', 0)->min('mrp');
-                    $minPurchase = $p->variants->where('purchase_price', '>', 0)->min('purchase_price');
-                    $totalStock = $p->variants->sum('stock_quantity');
+            // 🚀 Lightning-Fast 1-Query Re-sync for Base Prices
+            if (!empty($affectedProductIds)) {
+                $affectedProducts = Product::whereIn('id', array_keys($affectedProductIds))->with('variants')->get();
+                foreach ($affectedProducts as $p) {
+                    if ($p->variants->isNotEmpty()) {
+                        $minRetail = $p->variants->where('retail_price', '>', 0)->min('retail_price');
+                        $minWholesale = $p->variants->where('wholesale_price', '>', 0)->min('wholesale_price');
+                        $minMrp = $p->variants->where('mrp', '>', 0)->min('mrp');
+                        $minPurchase = $p->variants->where('purchase_price', '>', 0)->min('purchase_price');
+                        $totalStock = $p->variants->sum('stock_quantity');
 
-                    $p->update([
-                        'price' => $minRetail ?: $p->price,
-                        'wholesale_price' => $minWholesale ?: $p->wholesale_price,
-                        'mrp' => $minMrp ?: $p->mrp,
-                        'purchase_price' => $minPurchase ?: $p->purchase_price,
-                        'stock_quantity' => $totalStock > 0 ? $totalStock : $p->stock_quantity,
-                    ]);
+                        $p->update([
+                            'price' => $minRetail ?: $p->price,
+                            'wholesale_price' => $minWholesale ?: $p->wholesale_price,
+                            'mrp' => $minMrp ?: $p->mrp,
+                            'purchase_price' => $minPurchase ?: $p->purchase_price,
+                            'stock_quantity' => $totalStock > 0 ? $totalStock : $p->stock_quantity,
+                        ]);
+                    }
                 }
             }
         });
 
         $totalRows = count($rawRows);
         $parts = [];
+        if (!empty($detectedCols)) {
+            $mappedList = [];
+            foreach ($detectedCols as $target => $source) {
+                $mappedList[] = "{$target}='{$source}'";
+            }
+            $parts[] = "🎯 पहचानी गई मैपिंग: [" . implode(', ', $mappedList) . "]";
+        }
         if ($updatedProductsCount > 0) {
             $parts[] = "✅ {$updatedProductsCount} प्रोडक्ट्स के भाव बदले गए";
         }
@@ -807,17 +871,17 @@ class ProductSpreadsheetController extends Controller
             $parts[] = "📦 {$updatedVariantsCount} साइज़ वेरिएंट्स के भाव बदले गए";
         }
         if ($unchangedCount > 0) {
-            $parts[] = "🟢 {$unchangedCount} आइटम्स पहले से अप-टू-डेट थे (भाव में कोई बदलाव नहीं था)";
+            $parts[] = "🟢 {$unchangedCount} आइटम्स पहले से अप-टू-डेट थे";
         }
         if ($createdProductsCount > 0) {
             $parts[] = "✨ {$createdProductsCount} नए प्रोडक्ट्स जोड़े गए";
         }
         if ($unmatchedCount > 0) {
-            $parts[] = "ℹ️ {$unmatchedCount} नए आइटम्स नहीं जुड़े (क्योंकि 'नया प्रोडक्ट बनाएं' विकल्प अनचेक था)";
+            $parts[] = "ℹ️ {$unmatchedCount} नए आइटम्स नहीं जुड़े (विकल्प अनचेक था)";
         }
         if ($quotaExceededCount > 0) {
             $limitStr = $seller->productLimit() ? "{$seller->productLimit()} प्रोडक्ट्स" : "100 प्रोडक्ट्स";
-            $parts[] = "⚠️ {$quotaExceededCount} प्रोडक्ट्स लिमिट ({$limitStr}) पूरी होने के कारण नहीं जुड़े (अनलिमिटेड के लिए प्लान अपग्रेड करें)";
+            $parts[] = "⚠️ {$quotaExceededCount} प्रोडक्ट्स लिमिट ({$limitStr}) पूरी होने के कारण नहीं जुड़े";
         }
         $otherSkipped = $skippedCount - $quotaExceededCount - $unmatchedCount;
         if ($otherSkipped > 0) {
@@ -828,7 +892,7 @@ class ProductSpreadsheetController extends Controller
 
         if ($quotaExceededCount > 0) {
             $limitStr = $seller->productLimit() ? "{$seller->productLimit()} प्रोडक्ट्स" : "100 प्रोडक्ट्स";
-            session()->flash('warning', "सावधानी: आपकी प्रोडक्ट लिमिट ({$limitStr}) पूरी हो चुकी है। और अधिक प्रोडक्ट्स जोड़ने के लिए कृपया प्रीमियम प्लान में अपग्रेड करें।");
+            session()->flash('warning', "सावधानी: आपकी प्रोडक्ट लिमिट ({$limitStr}) पूरी हो चुकी है।");
         }
 
         return back()->with('success', $msg);

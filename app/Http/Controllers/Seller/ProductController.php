@@ -23,12 +23,18 @@ class ProductController extends Controller
         $hasGroupCol = \Illuminate\Support\Facades\Schema::hasColumn('products', 'group_name');
 
         if ($hasGroupCol && $activeFolder && $activeFolder !== 'all') {
-            $query->where('group_name', $activeFolder);
+            $folderTerm = strtolower(trim($activeFolder));
+            $query->whereRaw('LOWER(group_name) = ?', [$folderTerm]);
         }
 
         if ($activeCategory && $activeCategory !== 'all') {
-            $query->whereHas('category', function($q) use ($activeCategory) {
-                $q->where('slug', $activeCategory)->orWhere('name', $activeCategory);
+            $catTerm = strtolower(trim($activeCategory));
+            $query->where(function($q) use ($catTerm) {
+                $q->whereHas('category', function($cq) use ($catTerm) {
+                    $cq->whereRaw('LOWER(slug) = ?', [$catTerm])
+                       ->orWhereRaw('LOWER(name) = ?', [$catTerm]);
+                })
+                ->orWhereRaw('LOWER(group_name) = ?', [$catTerm]);
             });
         }
 
@@ -66,6 +72,11 @@ class ProductController extends Controller
             ->pluck('category')
             ->filter()
             ->unique('id')
+            ->map(function($cat) use ($allSellerProducts) {
+                $count = $allSellerProducts->where('category_id', $cat->id)->count();
+                $cat->products_count = $count;
+                return $cat;
+            })
             ->values();
 
         return view('seller.products.index', compact(
