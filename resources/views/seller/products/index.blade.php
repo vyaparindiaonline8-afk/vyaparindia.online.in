@@ -440,11 +440,24 @@
                 @forelse($products as $product)
                     @php
                         $variants = $product->variants ?? collect();
-                        $varCount = $variants->count();
                         
-                        // Extract all non-zero prices from variants (retail_price or price or wholesale_price)
-                        $vPrices = $variants->map(function($v) {
-                            return (float)($v->retail_price ?: ($v->price ?: ($v->wholesale_price ?: 0)));
+                        // If product has real size variants, filter out dummy 'Standard' placeholder variants with no price
+                        $hasRealSizes = $variants->contains(function($v) {
+                            $n = strtolower(trim($v->variant_name ?? ''));
+                            return !in_array($n, ['standard', 'std', 'default', '']);
+                        });
+                        $cleanVariants = $hasRealSizes
+                            ? $variants->reject(function($v) {
+                                $n = strtolower(trim($v->variant_name ?? ''));
+                                return in_array($n, ['standard', 'std', 'default', '']) && (float)($v->retail_price ?: ($v->price ?: 0)) <= 0;
+                            })
+                            : $variants;
+
+                        $varCount = $cleanVariants->count();
+                        
+                        // Extract all non-zero prices from variants (retail_price or price)
+                        $vPrices = $cleanVariants->map(function($v) {
+                            return (float)($v->retail_price ?: ($v->price ?: 0));
                         })->filter(function($p) { return $p > 0; });
 
                         $minPrice = $vPrices->isNotEmpty() ? $vPrices->min() : (float)$product->price;
@@ -511,7 +524,7 @@
                             <div class="p-4 space-y-2">
                                 <div class="flex items-baseline justify-between gap-2">
                                     <div>
-                                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">विक्रय मूल्य (Rate Range)</span>
+                                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">विक्रय मूल्य (Price A Range)</span>
                                         @if($hasPrice)
                                             <div class="text-base font-black text-gray-900">
                                                 @if($minPrice == $maxPrice || $minPrice <= 0)
@@ -552,7 +565,7 @@
                                 </div>
                             </div>
 
-                            <!-- 📦 DIRECTLY VISIBLE SIZES & RATES TABLE (No extra clicking needed!) -->
+                            <!-- 📦 DIRECTLY VISIBLE SIZES & RATES TABLE (Price A Focus) -->
                             @if($varCount > 0)
                                 <div class="px-4 py-3 bg-slate-50/70 border-t border-gray-100 space-y-2">
                                     <div class="flex items-center justify-between text-[11px] font-black text-gray-700">
@@ -560,20 +573,19 @@
                                             <i class="fa-solid fa-tags text-indigo-600"></i>
                                             <span>सभी साइज़ व भाव ({{ $varCount }} Sizes):</span>
                                         </span>
-                                        <span class="text-[10px] text-gray-400 font-semibold">SALE A / थोक भाव</span>
+                                        <span class="text-[10px] text-emerald-700 font-extrabold uppercase">विक्रय भाव (Price A)</span>
                                     </div>
 
                                     <div class="max-h-56 overflow-y-auto space-y-1.5 pr-1 overscroll-contain">
-                                        @foreach($variants as $v)
+                                        @foreach($cleanVariants as $v)
                                             @php
                                                 $vRetail = (float)($v->retail_price ?: ($v->price ?: 0));
-                                                $vWs = (float)($v->wholesale_price ?: 0);
                                             @endphp
-                                            <div class="p-2 rounded-xl bg-white border border-gray-200 flex items-center justify-between text-xs hover:border-indigo-300 transition shadow-2xs">
+                                            <div class="p-2.5 rounded-xl bg-white border border-gray-200 flex items-center justify-between text-xs hover:border-indigo-300 transition shadow-2xs">
                                                 <div class="space-y-0.5">
                                                     <div class="font-extrabold text-gray-900 flex items-center gap-1.5">
-                                                        <span class="h-1.5 w-1.5 rounded-full {{ $vRetail > 0 ? 'bg-emerald-500' : 'bg-amber-500' }}"></span>
-                                                        <span>{{ $v->variant_name }}</span>
+                                                        <span class="h-2 w-2 rounded-full {{ $vRetail > 0 ? 'bg-emerald-500' : 'bg-amber-500' }}"></span>
+                                                        <span class="text-xs">{{ $v->variant_name }}</span>
                                                     </div>
                                                     <div class="text-[10px] text-gray-400 font-mono">
                                                         SKU: {{ $v->sku ?? 'STD' }} &bull; स्टॉक: <strong class="text-gray-700">{{ $v->stock_quantity ?? 0 }}</strong>
@@ -582,11 +594,9 @@
                                                 <div class="text-right">
                                                     @if($vRetail > 0)
                                                         <div class="font-black text-emerald-700 text-sm">₹{{ number_format($vRetail, 2) }}</div>
+                                                        <span class="text-[9px] text-gray-400 font-semibold">Price A</span>
                                                     @else
                                                         <div class="font-bold text-amber-600 text-xs">⚠️ भाव नहीं (₹0)</div>
-                                                    @endif
-                                                    @if($vWs > 0)
-                                                        <div class="text-[10px] text-indigo-600 font-semibold">थोक: ₹{{ number_format($vWs, 2) }}</div>
                                                     @endif
                                                 </div>
                                             </div>
@@ -647,9 +657,20 @@
                         @forelse($products as $product)
                             @php
                                 $variants = $product->variants ?? collect();
-                                $varCount = $variants->count();
-                                $vPrices = $variants->map(function($v) {
-                                    return (float)($v->retail_price ?: ($v->price ?: ($v->wholesale_price ?: 0)));
+                                $hasRealSizes = $variants->contains(function($v) {
+                                    $n = strtolower(trim($v->variant_name ?? ''));
+                                    return !in_array($n, ['standard', 'std', 'default', '']);
+                                });
+                                $cleanVariants = $hasRealSizes
+                                    ? $variants->reject(function($v) {
+                                        $n = strtolower(trim($v->variant_name ?? ''));
+                                        return in_array($n, ['standard', 'std', 'default', '']) && (float)($v->retail_price ?: ($v->price ?: 0)) <= 0;
+                                    })
+                                    : $variants;
+
+                                $varCount = $cleanVariants->count();
+                                $vPrices = $cleanVariants->map(function($v) {
+                                    return (float)($v->retail_price ?: ($v->price ?: 0));
                                 })->filter(function($p) { return $p > 0; });
 
                                 $minPrice = $vPrices->isNotEmpty() ? $vPrices->min() : (float)$product->price;
@@ -750,7 +771,7 @@
                                     <td colspan="7" class="py-3 px-6">
                                         <div class="bg-white rounded-2xl border border-blue-200 p-3 space-y-2 shadow-xs">
                                             <div class="flex items-center justify-between text-[11px] font-black text-blue-900 border-b border-gray-100 pb-2">
-                                                <span>📦 "{{ $product->name }}" के सभी साइज़ वेरिएंट्स व रेट्स ({{ $varCount }} साइज़):</span>
+                                                <span>📦 "{{ $product->name }}" के सभी साइज़ वेरिएंट्स व भाव (Price A):</span>
                                                 <span class="text-[10px] text-gray-400 font-normal">Excel Sync से अपडेटेड</span>
                                             </div>
                                             <div class="overflow-x-auto">
@@ -759,24 +780,19 @@
                                                         <tr class="text-[10px] font-black text-gray-500 uppercase tracking-wider border-b border-gray-100">
                                                             <th class="py-1.5 px-2">साइज़ (Variant)</th>
                                                             <th class="py-1.5 px-2">SKU</th>
-                                                            <th class="py-1.5 px-2">विक्रय भाव (SALE A)</th>
-                                                            <th class="py-1.5 px-2">थोक भाव (SALE B)</th>
-                                                            <th class="py-1.5 px-2">MRP</th>
-                                                            <th class="py-1.5 px-2">स्टॉक</th>
+                                                            <th class="py-1.5 px-2">विक्रय भाव (Price A)</th>
+                                                            <th class="py-1.5 px-2">स्टॉक स्थिति</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody class="divide-y divide-gray-50">
-                                                        @foreach($variants as $v)
+                                                        @foreach($cleanVariants as $v)
                                                             @php
                                                                 $vRetail = (float)($v->retail_price ?: ($v->price ?: 0));
-                                                                $vWs = (float)($v->wholesale_price ?: 0);
                                                             @endphp
                                                             <tr class="hover:bg-blue-50/30">
                                                                 <td class="py-1.5 px-2 font-extrabold text-gray-900">{{ $v->variant_name }}</td>
                                                                 <td class="py-1.5 px-2 text-[10px] text-gray-400 font-mono">{{ $v->sku ?? '-' }}</td>
                                                                 <td class="py-1.5 px-2 font-black text-emerald-700">{{ $vRetail > 0 ? '₹'.number_format($vRetail, 2) : '₹0.00' }}</td>
-                                                                <td class="py-1.5 px-2 text-gray-600">{{ $vWs > 0 ? '₹'.number_format($vWs, 2) : '-' }}</td>
-                                                                <td class="py-1.5 px-2 text-gray-500">{{ !empty($v->mrp) && $v->mrp > 0 ? '₹'.number_format($v->mrp, 2) : '-' }}</td>
                                                                 <td class="py-1.5 px-2">
                                                                     <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">
                                                                         {{ $v->stock_quantity ?? 0 }} in stock

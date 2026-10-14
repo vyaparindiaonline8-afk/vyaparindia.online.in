@@ -549,6 +549,11 @@ class ProductSpreadsheetController extends Controller
                                     break;
                                 }
                             }
+                        if (!$matchedVariant) {
+                            $matchedVariant = $product->variants->first(function($pv) {
+                                $vName = strtolower(trim($pv->variant_name ?? ''));
+                                return in_array($vName, ['standard', 'std', 'default', '']);
+                            });
                         }
                     }
 
