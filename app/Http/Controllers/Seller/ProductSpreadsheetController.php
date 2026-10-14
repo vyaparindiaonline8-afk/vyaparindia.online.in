@@ -364,15 +364,17 @@ class ProductSpreadsheetController extends Controller
                 return [preg_replace('/\s+/', ' ', $base), $size];
             }
 
-            // 6. Metric Dimensions (Pipes, Fittings, Rods, Hardware): 15MM, 20MM, 110 MM, 2", 10 FEET, 20 FT, 3 MTR, 90 MTR, 1 YARD
-            if (preg_match('~\b\d+(?:\.\d+)?\s*(?:mm|cm|mtr|meter|feet|ft|yard|gaj|inch|")(?:(?:\s*(?:sch|gauge|swg|g)\s*\d+))?\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+            // 6. Diameter Metric Dimensions (Pipes, Fittings, Rods, Hardware): 15MM, 20MM, 110 MM, 2"
+            // CRITICAL: Diameter (mm, cm, inch, ") takes precedence over linear length (feet, mtr)
+            // Example: "UPVC PIPE 40 SCH 10 FEET 15MM" -> Size is "15MM", Base Card is "UPVC PIPE 40 SCH 10 FEET"
+            if (preg_match('~\b\d+(?:\.\d+)?\s*(?:mm|cm|inch|")(?:(?:\s*(?:sch|gauge|swg|g)\s*\d+))?\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
                 $size = trim($m[0][0]);
                 $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
                 return [preg_replace('/\s+/', ' ', $base), $size];
             }
 
-            // 7. Area & Construction: 50 SQFT, 100 CFT, 10 BRASS
-            if (preg_match('~\b\d+(?:\.\d+)?\s*(?:sqft|sq\.ft|cft|sqyd|sqm|sqmtr|brass)\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+            // 7. Linear Length / Area (Only when NO diameter is present): 10 FEET, 20 FT, 3 MTR, 90 MTR, 1 YARD, 50 SQFT, 100 CFT, 10 BRASS
+            if (preg_match('~\b\d+(?:\.\d+)?\s*(?:feet|ft|mtr|meter|yard|gaj|sqft|sq\.ft|cft|sqyd|sqm|sqmtr|brass)\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
                 $size = trim($m[0][0]);
                 $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
                 return [preg_replace('/\s+/', ' ', $base), $size];
@@ -608,7 +610,13 @@ class ProductSpreadsheetController extends Controller
                         $product = $sellerProducts->first(function($p) use ($name, $familyBaseName) {
                             $pName = strtolower(trim($p->name));
                             if (strlen($pName) < 4) return false;
-                            return stripos(strtolower($name), $pName) !== false || stripos(strtolower($familyBaseName), $pName) !== false;
+                            $cleanRow = strtolower(trim($familyBaseName ?: $name));
+                            foreach (['reducer', 'reduser', 'reducing', 'brass'] as $crit) {
+                                if (str_contains($cleanRow, $crit) !== str_contains($pName, $crit)) {
+                                    return false;
+                                }
+                            }
+                            return stripos($cleanRow, $pName) !== false || stripos($pName, $cleanRow) !== false;
                         });
                     }
 
@@ -618,7 +626,13 @@ class ProductSpreadsheetController extends Controller
                         if (!empty($normName)) {
                             $product = $sellerProducts->first(function($p) use ($normName, $normalizeForMatching) {
                                 $pNorm = $normalizeForMatching($p->name);
-                                return !empty($pNorm) && ($pNorm === $normName || str_contains($pNorm, $normName) || str_contains($normName, $pNorm));
+                                if (empty($pNorm)) return false;
+                                foreach (['reducer', 'reduser', 'reducing', 'brass'] as $crit) {
+                                    if (str_contains($normName, $crit) !== str_contains($pNorm, $crit)) {
+                                        return false;
+                                    }
+                                }
+                                return ($pNorm === $normName || str_contains($pNorm, $normName) || str_contains($normName, $pNorm));
                             });
                         }
                     }
@@ -632,6 +646,18 @@ class ProductSpreadsheetController extends Controller
                             foreach ($sellerProducts as $p) {
                                 $pWords = $extractWordSet($p->name . ' ' . ($p->category->name ?? ''));
                                 if (empty($pWords)) continue;
+
+                                // 🛡️ Strict Fitting Type Discrimination: Reducer vs Regular fittings MUST NEVER MERGE!
+                                $typeKeywords = ['reducer', 'reduser', 'reducing', 'brass', 'elbow', 'tee', 'coupler', 'socket', 'bush', 'union', 'nipple', 'nippale', 'mta', 'fta', 'bend', 'trap', 'valve', 'cap', 'cross'];
+                                $mismatch = false;
+                                foreach ($typeKeywords as $tk) {
+                                    if (in_array($tk, $rowWords) !== in_array($tk, $pWords)) {
+                                        $mismatch = true;
+                                        break;
+                                    }
+                                }
+                                if ($mismatch) continue;
+
                                 $intersect = array_intersect($rowWords, $pWords);
                                 if (!empty($intersect)) {
                                     $score = count($intersect);
