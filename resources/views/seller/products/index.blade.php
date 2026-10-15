@@ -70,6 +70,42 @@
             </div>
         @endif
 
+        @if(session('duplicate_code_warnings') && count(session('duplicate_code_warnings')) > 0)
+            <div class="p-4 rounded-2xl bg-amber-50/90 border border-amber-300 text-amber-950 text-xs space-y-2 shadow-2xs">
+                <div class="font-black flex items-center gap-2 text-amber-900">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base shrink-0"></i>
+                    <span>एक्सेल शीट में डुप्लीकेट कोड (SKU Warnings) मिले:</span>
+                </div>
+                <ul class="space-y-1 list-disc list-inside text-amber-900 text-[11px]">
+                    @foreach(session('duplicate_code_warnings') as $dupWarn)
+                        <li>{{ $dupWarn }}</li>
+                    @endforeach
+                </ul>
+                <p class="text-[11px] text-amber-700 font-medium">💡 सलाह: अपनी एक्सेल शीट में एक ही कोड (ITAM CODE) दो अलग-अलग आइटम को न दें, हर आइटम का कोड अलग रखें।</p>
+            </div>
+        @endif
+
+        @if(session('skipped_details') && count(session('skipped_details')) > 0)
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-300 text-slate-800 text-xs space-y-2 shadow-2xs">
+                <div class="font-black flex items-center justify-between gap-2 text-slate-900">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info text-blue-600 text-base shrink-0"></i>
+                        <span>छोड़ी गई पंक्तियों (Skipped Rows) का विवरण:</span>
+                    </div>
+                    <span class="text-[11px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">कुल {{ count(session('skipped_details')) }} पंक्तियाँ</span>
+                </div>
+                <div class="max-h-48 overflow-y-auto space-y-1 text-slate-700 bg-white p-3 rounded-xl border border-slate-200">
+                    @foreach(session('skipped_details') as $skipInfo)
+                        <div class="text-[11px] flex items-start gap-1.5 py-1 border-b border-slate-100 last:border-0">
+                            <span class="text-amber-600 shrink-0 font-bold">•</span>
+                            <span>{{ $skipInfo }}</span>
+                        </div>
+                    @endforeach
+                </div>
+                <p class="text-[11px] text-slate-500 font-medium">💡 आप अपनी एक्सेल शीट में ऊपर दी गई पंक्तियों को सुधारकर दोबारा अपलोड कर सकते हैं।</p>
+            </div>
+        @endif
+
         <!-- Tier Status & Quota Banner -->
         @php
             $isOwner = Auth::user()->isOwnerOrAdmin();

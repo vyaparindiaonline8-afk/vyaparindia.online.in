@@ -403,6 +403,9 @@ class ProductSpreadsheetController extends Controller
         };
 
         $detectedCols = [];
+        $skippedIssues = [];
+        $duplicateCodeWarnings = [];
+        $seenCodesInSheet = [];
 
         // 🛡️ Auto-align Postgres sequences if out-of-sync to avoid ID duplicate/FK collision
         if (DB::connection()->getDriverName() === 'pgsql') {
@@ -414,8 +417,9 @@ class ProductSpreadsheetController extends Controller
             }
         }
 
-        DB::transaction(function () use ($rawRows, $seller, $sellerProducts, $allowCreateNew, $normalizeForMatching, $extractWordSet, $masterByCode, $masterByName, $getOrCreateCat, $extractSizeAndBase, &$updatedProductsCount, &$updatedVariantsCount, &$unchangedCount, &$createdProductsCount, &$skippedCount, &$affectedProductIds, &$quotaExceededCount, &$unmatchedCount, &$detectedCols) {
-            foreach ($rawRows as $row) {
+        DB::transaction(function () use ($rawRows, $seller, $sellerProducts, $allowCreateNew, $normalizeForMatching, $extractWordSet, $masterByCode, $masterByName, $getOrCreateCat, $extractSizeAndBase, &$updatedProductsCount, &$updatedVariantsCount, &$unchangedCount, &$createdProductsCount, &$skippedCount, &$affectedProductIds, &$quotaExceededCount, &$unmatchedCount, &$detectedCols, &$skippedIssues, &$duplicateCodeWarnings, &$seenCodesInSheet) {
+            foreach ($rawRows as $index => $row) {
+                $rowNum = $index + 2;
                 try {
                 // Pre-build normalized key-value map for robust header lookup
                 $normMap = [];
@@ -538,6 +542,20 @@ class ProductSpreadsheetController extends Controller
                     'itam_code', 'item_code', 'product_code', 'code', 'sku', 'itam_kod', 'item_kod'
                 ]);
                 if ($codeKey && !isset($detectedCols['Code'])) $detectedCols['Code'] = $codeKey;
+
+                // 🔍 Detect duplicate codes (SKU) in sheet with conflicting product names
+                if (!empty($productCode)) {
+                    $uCode = strtoupper(trim($productCode));
+                    if (isset($seenCodesInSheet[$uCode])) {
+                        $prev = $seenCodesInSheet[$uCode];
+                        $prevName = $prev['name'] ?? '';
+                        if (!empty($prevName) && !empty($name) && strtolower(trim($prevName)) !== strtolower(trim($name))) {
+                            $duplicateCodeWarnings[] = "कोड '{$productCode}' पंक्ति {$prev['row']} ('{$prevName}') और पंक्ति {$rowNum} ('{$name}') दोनों में अलग-अलग नाम के साथ इस्तेमाल हुआ है!";
+                        }
+                    } else {
+                        $seenCodesInSheet[$uCode] = ['row' => $rowNum, 'name' => $name];
+                    }
+                }
 
                 // Smart extraction: If sizeVariant is missing, derive base name and size variant
                 $extractedBaseName = $name;
@@ -936,16 +954,24 @@ class ProductSpreadsheetController extends Controller
                         } else {
                             $quotaExceededCount++;
                             $skippedCount++;
+                            $skippedIssues[] = "पंक्ति {$rowNum} ('{$name}'): प्रोडक्ट लिमिट ({$seller->productLimit()} प्रोडक्ट्स) पूरी होने के कारण नहीं जुड़ा।";
                         }
                     } else {
                         if (!$allowCreateNew && !empty($name) && $hasValidPrice) {
                             $unmatchedCount++;
+                            $skippedIssues[] = "पंक्ति {$rowNum} ('{$name}'): पहले से कोई कार्ड नहीं मिला और 'नया प्रोडक्ट बनाएं' विकल्प अनचेक था।";
+                        } elseif (empty($name)) {
+                            // Empty line or heading
+                        } elseif (!$hasValidPrice) {
+                            $skippedIssues[] = "पंक्ति {$rowNum} ('{$name}'): बिक्री भाव (Price A / MRP) शून्य या खाली था।";
                         }
                         $skippedCount++;
                     }
                 }
                 } catch (\Throwable $rowEx) {
-                    \Log::warning("Excel sync row error: " . $rowEx->getMessage());
+                    \Log::warning("Excel sync row error on row {$rowNum}: " . $rowEx->getMessage());
+                    $cleanName = !empty($name) ? "'{$name}'" : "अज्ञात";
+                    $skippedIssues[] = "पंक्ति {$rowNum} ({$cleanName}): डेटा त्रुटि (" . Str::limit($rowEx->getMessage(), 60) . ")।";
                     $skippedCount++;
                 }
             }
@@ -1011,6 +1037,14 @@ class ProductSpreadsheetController extends Controller
         if ($quotaExceededCount > 0) {
             $limitStr = $seller->productLimit() ? "{$seller->productLimit()} प्रोडक्ट्स" : "100 प्रोडक्ट्स";
             session()->flash('warning', "सावधानी: आपकी प्रोडक्ट लिमिट ({$limitStr}) पूरी हो चुकी है।");
+        }
+
+        if (!empty($duplicateCodeWarnings)) {
+            session()->flash('duplicate_code_warnings', array_unique($duplicateCodeWarnings));
+        }
+
+        if (!empty($skippedIssues)) {
+            session()->flash('skipped_details', $skippedIssues);
         }
 
         return back()->with('success', $msg);
