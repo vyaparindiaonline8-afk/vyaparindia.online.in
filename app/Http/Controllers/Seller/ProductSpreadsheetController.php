@@ -897,12 +897,11 @@ class ProductSpreadsheetController extends Controller
                         $unchangedCount++;
                     }
                 } else {
-                    // Create new Product if allowed
-                    $hasValidPrice = (!is_null($sellingPrice) && $sellingPrice > 0) || (!is_null($mrp) && $mrp > 0);
-                    if ($allowCreateNew && !empty($name) && $hasValidPrice) {
+                    // Create new Product if allowed (Product Name is the ONLY strictly mandatory field!)
+                    if ($allowCreateNew && !empty($name)) {
                         if ($seller->canAddProduct()) {
                             $catId = !empty($categoryName) ? $getOrCreateCat($categoryName) : null;
-                            $finalPrice = ($sellingPrice && $sellingPrice > 0) ? $sellingPrice : $mrp;
+                            $finalPrice = ($sellingPrice && $sellingPrice > 0) ? $sellingPrice : (($mrp && $mrp > 0) ? $mrp : 0.00);
 
                             $baseSlug = Str::slug($familyBaseName);
                             if (empty($baseSlug)) {
@@ -957,13 +956,11 @@ class ProductSpreadsheetController extends Controller
                             $skippedIssues[] = "पंक्ति {$rowNum} ('{$name}'): प्रोडक्ट लिमिट ({$seller->productLimit()} प्रोडक्ट्स) पूरी होने के कारण नहीं जुड़ा।";
                         }
                     } else {
-                        if (!$allowCreateNew && !empty($name) && $hasValidPrice) {
+                        if (!$allowCreateNew && !empty($name)) {
                             $unmatchedCount++;
                             $skippedIssues[] = "पंक्ति {$rowNum} ('{$name}'): पहले से कोई कार्ड नहीं मिला और 'नया प्रोडक्ट बनाएं' विकल्प अनचेक था।";
                         } elseif (empty($name)) {
-                            // Empty line or heading
-                        } elseif (!$hasValidPrice) {
-                            $skippedIssues[] = "पंक्ति {$rowNum} ('{$name}'): बिक्री भाव (Price A / MRP) शून्य या खाली था।";
+                            // Empty line or heading (Name missing)
                         }
                         $skippedCount++;
                     }
