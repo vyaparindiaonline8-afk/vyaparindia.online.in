@@ -146,7 +146,16 @@
                 <div class="flex items-baseline gap-1.5 flex-wrap">
                     <span class="text-base sm:text-lg font-black text-gray-900" id="card_unit_price_{{ $product->id }}">₹{{ number_format($initPrice, 2) }}</span>
                     <span class="text-[11px] font-bold text-gray-500">/ Pc</span>
-                    <span class="text-xs text-gray-400 line-through" id="card_mrp_{{ $product->id }}">₹{{ number_format($initMrp, 2) }}</span>
+                    @if($initMrp > $initPrice)
+                        @php $initDiscPct = round((($initMrp - $initPrice) / $initMrp) * 100); @endphp
+                        <span class="text-xs text-gray-400 line-through" id="card_mrp_{{ $product->id }}">₹{{ number_format($initMrp, 2) }}</span>
+                        @if($initDiscPct > 0)
+                            <span class="text-[10px] font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md" id="card_disc_{{ $product->id }}">{{ $initDiscPct }}% OFF</span>
+                        @endif
+                    @else
+                        <span class="text-xs text-gray-400 line-through hidden" id="card_mrp_{{ $product->id }}"></span>
+                        <span class="hidden" id="card_disc_{{ $product->id }}"></span>
+                    @endif
                 </div>
                 <div class="text-[11px] font-bold text-emerald-700" id="card_total_box_{{ $product->id }}">
                     Total: <span id="card_total_price_{{ $product->id }}" class="font-extrabold">₹{{ number_format($initPrice, 2) }}</span>

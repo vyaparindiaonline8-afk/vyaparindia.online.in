@@ -902,6 +902,7 @@ class ProductSpreadsheetController extends Controller
                         if ($seller->canAddProduct()) {
                             $catId = !empty($categoryName) ? $getOrCreateCat($categoryName) : null;
                             $finalPrice = ($sellingPrice && $sellingPrice > 0) ? $sellingPrice : (($mrp && $mrp > 0) ? $mrp : 0.00);
+                            $finalMrp = ($mrp && $mrp > 0) ? max($mrp, $finalPrice) : $finalPrice;
 
                             $baseSlug = Str::slug($familyBaseName);
                             if (empty($baseSlug)) {
@@ -921,7 +922,7 @@ class ProductSpreadsheetController extends Controller
                                 'price' => $finalPrice,
                                 'wholesale_price' => ($wholesalePrice && $wholesalePrice > 0) ? $wholesalePrice : $finalPrice,
                                 'purchase_price' => $purchasePrice ?? 0,
-                                'mrp' => ($mrp && $mrp > 0) ? $mrp : $finalPrice,
+                                'mrp' => $finalMrp,
                                 'stock_quantity' => !is_null($stock) ? $stock : 0,
                                 'track_inventory' => !is_null($stock) && $stock > 0,
                                 'has_variants' => !empty($sizeVariant),
@@ -940,7 +941,7 @@ class ProductSpreadsheetController extends Controller
                                         'retail_price' => $finalPrice,
                                         'wholesale_price' => ($wholesalePrice && $wholesalePrice > 0) ? $wholesalePrice : $finalPrice,
                                         'purchase_price' => $purchasePrice ?? 0,
-                                        'mrp' => ($mrp && $mrp > 0) ? $mrp : $finalPrice,
+                                        'mrp' => $finalMrp,
                                         'stock_quantity' => !is_null($stock) ? $stock : 0,
                                         'track_inventory' => !is_null($stock) && $stock > 0,
                                         'attributes' => ['size' => $sizeVariant],

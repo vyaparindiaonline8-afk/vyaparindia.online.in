@@ -392,10 +392,28 @@
 
         const unitEl = document.getElementById(`card_unit_price_${prodId}`);
         const mrpEl = document.getElementById(`card_mrp_${prodId}`);
+        const discEl = document.getElementById(`card_disc_${prodId}`);
         const totalEl = document.getElementById(`card_total_price_${prodId}`);
 
         if (unitEl) unitEl.innerText = '₹' + state.unitPrice.toFixed(2);
-        if (mrpEl) mrpEl.innerText = '₹' + state.mrp.toFixed(2);
+        if (mrpEl) {
+            if (state.mrp > state.unitPrice) {
+                mrpEl.classList.remove('hidden');
+                mrpEl.innerText = '₹' + state.mrp.toFixed(2);
+                if (discEl) {
+                    const disc = Math.round(((state.mrp - state.unitPrice) / state.mrp) * 100);
+                    if (disc > 0) {
+                        discEl.classList.remove('hidden');
+                        discEl.innerText = disc + '% OFF';
+                    } else {
+                        discEl.classList.add('hidden');
+                    }
+                }
+            } else {
+                mrpEl.classList.add('hidden');
+                if (discEl) discEl.classList.add('hidden');
+            }
+        }
         if (totalEl) totalEl.innerText = '₹' + state.total.toFixed(2);
     }
 

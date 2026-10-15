@@ -138,10 +138,25 @@
                 </h1>
 
                 <!-- Price Box -->
-                <div class="mt-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 flex items-baseline gap-3">
-                    <span class="text-3xl font-black text-gray-900" id="display-price">₹{{ number_format($product->price, 2) }}</span>
-                    <span class="text-sm text-gray-400 line-through" id="display-mrp">₹{{ number_format($product->mrp ?? ($product->price * 1.35), 2) }}</span>
-                    <span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-md" id="display-discount">SAVE 35%</span>
+                @php
+                    $detPrice = (float)$product->price;
+                    $detMrp = (float)($product->mrp ?: ($detPrice * 1.35));
+                    if ($detMrp < $detPrice) $detMrp = $detPrice;
+                    $detDisc = $detMrp > $detPrice ? round((($detMrp - $detPrice) / $detMrp) * 100) : 0;
+                    $detSavings = $detMrp - $detPrice;
+                @endphp
+                <div class="mt-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 flex items-baseline gap-3 flex-wrap">
+                    <span class="text-3xl font-black text-gray-900" id="display-price">₹{{ number_format($detPrice, 2) }}</span>
+                    <span class="text-xs font-bold text-gray-500">/ Pc</span>
+                    @if($detMrp > $detPrice)
+                        <span class="text-sm text-gray-400 line-through" id="display-mrp">₹{{ number_format($detMrp, 2) }}</span>
+                        @if($detDisc > 0)
+                            <span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-md" id="display-discount">{{ $detDisc }}% OFF (बचत ₹{{ number_format($detSavings, 2) }})</span>
+                        @endif
+                    @else
+                        <span class="text-sm text-gray-400 line-through hidden" id="display-mrp"></span>
+                        <span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-md hidden" id="display-discount"></span>
+                    @endif
                 </div>
 
 
@@ -481,10 +496,26 @@
 
         // Update Prices
         const price = parseFloat(selectedVariant.retail_price || selectedVariant.wholesale_price || currentProduct.price);
-        const mrp = parseFloat(selectedVariant.mrp || (price * 1.35));
+        let mrp = parseFloat(selectedVariant.mrp || (price * 1.35));
+        if (mrp < price) mrp = price;
         
         document.getElementById('display-price').textContent = '₹' + price.toFixed(2);
-        document.getElementById('display-mrp').textContent = '₹' + mrp.toFixed(2);
+        const mrpEl = document.getElementById('display-mrp');
+        const discEl = document.getElementById('display-discount');
+        if (mrp > price) {
+            if (mrpEl) {
+                mrpEl.style.display = 'inline';
+                mrpEl.textContent = '₹' + mrp.toFixed(2);
+            }
+            if (discEl) {
+                const discPct = Math.round(((mrp - price) / mrp) * 100);
+                discEl.style.display = 'inline-block';
+                discEl.textContent = `${discPct}% OFF (बचत ₹${(mrp - price).toFixed(2)})`;
+            }
+        } else {
+            if (mrpEl) mrpEl.style.display = 'none';
+            if (discEl) discEl.style.display = 'none';
+        }
 
         // Update Stock status badge
         const stockEl = document.getElementById('variant-stock-status');
