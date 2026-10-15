@@ -1038,11 +1038,20 @@ class ProductSpreadsheetController extends Controller
         }
 
         if (!empty($duplicateCodeWarnings)) {
-            session()->flash('duplicate_code_warnings', array_unique($duplicateCodeWarnings));
+            $dedup = array_values(array_unique($duplicateCodeWarnings));
+            $showDups = array_slice($dedup, 0, 5);
+            if (count($dedup) > 5) {
+                $showDups[] = "...और " . (count($dedup) - 5) . " अन्य डुप्लीकेट कोड मिले।";
+            }
+            session()->flash('duplicate_code_warnings', $showDups);
         }
 
         if (!empty($skippedIssues)) {
-            session()->flash('skipped_details', $skippedIssues);
+            $showSkips = array_slice($skippedIssues, 0, 10);
+            if (count($skippedIssues) > 10) {
+                $showSkips[] = "...और " . (count($skippedIssues) - 10) . " अन्य पंक्तियाँ छोड़ी गईं।";
+            }
+            session()->flash('skipped_details', $showSkips);
         }
 
         return back()->with('success', $msg);

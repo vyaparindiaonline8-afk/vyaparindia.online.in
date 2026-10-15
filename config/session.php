@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'cookie'),
+    'driver' => env('SESSION_DRIVER', 'database'),
 
     // Extended session lifetime (7 days) so users don't randomly get 419 expired sessions
     'lifetime' => (int) env('SESSION_LIFETIME', 10080),
