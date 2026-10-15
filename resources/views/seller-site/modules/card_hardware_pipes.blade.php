@@ -3,15 +3,30 @@
     $firstVar = $variants->first();
     $initPrice = $firstVar ? ($firstVar->retail_price ?: ($firstVar->wholesale_price ?: $product->price)) : $product->price;
     $initMrp = $firstVar ? ($firstVar->mrp ?: ($initPrice * 1.35)) : ($product->mrp ?: ($product->price * 1.35));
+
+    // 🖼️ Multi-Image Card Carousel
+    $cardImages = [];
+    if (!empty($product->image_url)) {
+        $cardImages[] = $product->image_url;
+    }
+    if ($product->images && $product->images->isNotEmpty()) {
+        foreach ($product->images as $gImg) {
+            $u = $gImg->url;
+            if (!empty($u) && !in_array($u, $cardImages)) {
+                $cardImages[] = $u;
+            }
+        }
+    }
+    $totalCardImages = count($cardImages);
 @endphp
 <div class="bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden group p-3.5 space-y-3 relative" id="card_box_{{ $product->id }}">
     
     <!-- Top Image & Quick Badges -->
     <div>
-        <div class="relative block aspect-square bg-slate-50 rounded-xl overflow-hidden border border-slate-100 mb-3 flex items-center justify-center p-2">
+        <div class="relative block aspect-square bg-slate-50 rounded-xl overflow-hidden border border-slate-100 mb-3 flex items-center justify-center p-2 group/slider" id="card_img_wrap_{{ $product->id }}">
             <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]) }}" class="w-full h-full flex items-center justify-center">
-                @if($product->image_url)
-                    <img src="{{ $product->image_url }}" alt="{{ $product->name }}" id="prod_img_{{ $product->id }}" class="w-full h-full object-contain crisp-img group-hover:scale-105 transition-transform duration-300">
+                @if(!empty($cardImages))
+                    <img src="{{ $cardImages[0] }}" alt="{{ $product->name }}" id="prod_img_{{ $product->id }}" class="w-full h-full object-contain crisp-img group-hover:scale-105 transition-all duration-300">
                 @else
                     <div class="text-gray-300 text-center" id="prod_img_{{ $product->id }}">
                         <i class="fa-solid fa-wrench text-3xl"></i>
@@ -19,26 +34,43 @@
                 @endif
             </a>
 
+            <!-- ◀ ▶ Card Carousel Arrows (only if multiple images) -->
+            @if($totalCardImages > 1)
+                <button type="button" onclick="event.preventDefault(); event.stopPropagation(); slideCardPhoto({{ $product->id }}, -1)" class="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-900/70 hover:bg-slate-900 text-white flex items-center justify-center text-[10px] opacity-0 group-hover/slider:opacity-100 transition shadow-sm z-10" title="Previous photo">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <button type="button" onclick="event.preventDefault(); event.stopPropagation(); slideCardPhoto({{ $product->id }}, 1)" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-900/70 hover:bg-slate-900 text-white flex items-center justify-center text-[10px] opacity-0 group-hover/slider:opacity-100 transition shadow-sm z-10" title="Next photo">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <!-- Dots Indicator -->
+                <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10 bg-slate-900/60 backdrop-blur-xs px-2 py-0.5 rounded-full pointer-events-none" id="card_dots_{{ $product->id }}">
+                    @for($i = 0; $i < $totalCardImages; $i++)
+                        <span class="w-1.5 h-1.5 rounded-full {{ $i === 0 ? 'bg-white scale-110' : 'bg-white/40' }} transition-all"></span>
+                    @endfor
+                </div>
+                <div class="hidden" id="card_imgs_json_{{ $product->id }}">{!! json_encode($cardImages) !!}</div>
+            @endif
+
             <!-- Brand Badge (Top Left) -->
             @if($product->brand)
-                <span class="absolute top-2 left-2 bg-blue-600/90 backdrop-blur-xs text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-2xs">
+                <span class="absolute top-2 left-2 bg-blue-600/90 backdrop-blur-xs text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-2xs z-10">
                     {{ $product->brand }}
                 </span>
             @elseif($product->category)
-                <span class="absolute top-2 left-2 bg-gray-900/90 backdrop-blur-xs text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-2xs">
+                <span class="absolute top-2 left-2 bg-gray-900/90 backdrop-blur-xs text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-2xs z-10">
                     {{ $product->category->name }}
                 </span>
             @endif
 
             <!-- 📲 Card 1-Click WhatsApp Share Button -->
-            <button type="button" onclick="shareProductCardWhatsapp({{ $product->id }})" class="absolute top-2 right-2 h-7 w-7 rounded-full bg-white/90 hover:bg-emerald-500 hover:text-white text-emerald-600 shadow-sm flex items-center justify-center text-xs transition" title="Share this Product on WhatsApp">
+            <button type="button" onclick="shareProductCardWhatsapp({{ $product->id }})" class="absolute top-2 right-2 h-7 w-7 rounded-full bg-white/90 hover:bg-emerald-500 hover:text-white text-emerald-600 shadow-sm flex items-center justify-center text-xs transition z-10" title="Share this Product on WhatsApp">
                 <i class="fa-brands fa-whatsapp text-sm"></i>
             </button>
 
             <!-- 📷 Store Owner Photo Swapper & ✏️ Edit Button -->
             @auth
                 @if(Auth::id() === $sellerPage->user_id)
-                    <div class="absolute bottom-2 right-2 flex items-center gap-1">
+                    <div class="absolute bottom-2 right-2 flex items-center gap-1 z-10">
                         <a href="{{ route('seller.products.edit', $product->id) }}" target="_blank" class="px-2 py-1 rounded-md bg-blue-600/90 hover:bg-blue-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-xs backdrop-blur-xs transition" title="Edit Rate & Details">
                             <i class="fa-solid fa-pen-to-square"></i>
                             <span>Edit</span>
@@ -111,8 +143,9 @@
         <!-- Dynamic Live Price & Calculated Total -->
         <div class="mt-3 flex items-baseline justify-between">
             <div>
-                <div class="flex items-baseline gap-1.5">
+                <div class="flex items-baseline gap-1.5 flex-wrap">
                     <span class="text-base sm:text-lg font-black text-gray-900" id="card_unit_price_{{ $product->id }}">₹{{ number_format($initPrice, 2) }}</span>
+                    <span class="text-[11px] font-bold text-gray-500">/ Pc</span>
                     <span class="text-xs text-gray-400 line-through" id="card_mrp_{{ $product->id }}">₹{{ number_format($initMrp, 2) }}</span>
                 </div>
                 <div class="text-[11px] font-bold text-emerald-700" id="card_total_box_{{ $product->id }}">
@@ -142,3 +175,31 @@
         </button>
     </div>
 </div>
+
+<script>
+if (typeof window.slideCardPhoto === 'undefined') {
+    window.cardImageIndex = window.cardImageIndex || {};
+    window.slideCardPhoto = function(productId, direction) {
+        const jsonEl = document.getElementById(`card_imgs_json_${productId}`);
+        if (!jsonEl) return;
+        try {
+            const imgs = JSON.parse(jsonEl.textContent);
+            if (!imgs || imgs.length <= 1) return;
+            let cur = window.cardImageIndex[productId] || 0;
+            cur = (cur + direction + imgs.length) % imgs.length;
+            window.cardImageIndex[productId] = cur;
+            const imgEl = document.getElementById(`prod_img_${productId}`);
+            if (imgEl) {
+                imgEl.src = imgs[cur];
+            }
+            const dotsWrap = document.getElementById(`card_dots_${productId}`);
+            if (dotsWrap) {
+                const dots = dotsWrap.querySelectorAll('span');
+                dots.forEach((dot, idx) => {
+                    dot.className = (idx === cur) ? 'w-1.5 h-1.5 rounded-full bg-white scale-110 transition-all' : 'w-1.5 h-1.5 rounded-full bg-white/40 transition-all';
+                });
+            }
+        } catch(e) {}
+    };
+}
+</script>

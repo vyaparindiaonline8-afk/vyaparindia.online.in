@@ -164,7 +164,7 @@ class MiniSiteController extends Controller
             $sellerPage->increment('visits_count');
         }
 
-        $products = $sellerPage->user->products()->latest()->take(12)->get();
+        $products = $sellerPage->user->products()->with(['variants', 'category', 'images'])->latest()->take(12)->get();
         $totalProducts = $sellerPage->user->products()->count();
         $authorizedBrands = $sellerPage->authorized_brands ?? [];
         $businessModule = BusinessModuleManager::forSellerPage($sellerPage);
@@ -173,7 +173,7 @@ class MiniSiteController extends Controller
 
     public function products(SellerPage $sellerPage, Request $request)
     {
-        $query = $sellerPage->user->products()->with(['variants', 'category', 'pricingTiers']);
+        $query = $sellerPage->user->products()->with(['variants', 'category', 'pricingTiers', 'images']);
 
         if ($request->filled('search')) {
             $search = $request->input('search');
