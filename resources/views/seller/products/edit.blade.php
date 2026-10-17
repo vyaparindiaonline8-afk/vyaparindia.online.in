@@ -335,17 +335,21 @@
 
                 <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 max-h-[55vh] overflow-y-auto p-1" id="editGalleryGrid">
                     @forelse($galleryImages ?? [] as $gImg)
+                        @php
+                            $imgUrl = is_array($gImg) ? ($gImg['asset_url'] ?? ($gImg['url'] ?? ($gImg['image'] ?? ''))) : ($gImg->image ?? ($gImg->url ?? ''));
+                            $imgName = is_array($gImg) ? ($gImg['name'] ?? ($gImg['filename'] ?? 'Item')) : ($gImg->name ?? 'Item');
+                        @endphp
                         <div class="edit-gallery-item group relative rounded-2xl border-2 border-gray-200 hover:border-indigo-500 bg-white p-1.5 cursor-pointer transition shadow-2xs hover:shadow-md flex flex-col items-center justify-between"
-                             data-url="{{ $gImg->image }}"
-                             data-name="{{ strtolower($gImg->name) }}"
-                             onclick="selectPhotoForEdit('{{ $gImg->image }}', '{{ addslashes($gImg->name) }}')">
+                             data-url="{{ $imgUrl }}"
+                             data-name="{{ strtolower($imgName) }}"
+                             onclick="selectPhotoForEdit('{{ $imgUrl }}', '{{ addslashes($imgName) }}')">
                             
                             <div class="h-20 w-full rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center p-1">
-                                <img src="{{ $gImg->image }}" alt="{{ $gImg->name }}" class="h-full w-full object-contain group-hover:scale-105 transition" loading="lazy">
+                                <img src="{{ $imgUrl }}" alt="{{ $imgName }}" class="h-full w-full object-contain group-hover:scale-105 transition" loading="lazy">
                             </div>
 
-                            <span class="text-[10px] font-extrabold text-gray-700 line-clamp-1 mt-1 text-center w-full" title="{{ $gImg->name }}">
-                                {{ $gImg->name }}
+                            <span class="text-[10px] font-extrabold text-gray-700 line-clamp-1 mt-1 text-center w-full" title="{{ $imgName }}">
+                                {{ $imgName }}
                             </span>
                         </div>
                     @empty

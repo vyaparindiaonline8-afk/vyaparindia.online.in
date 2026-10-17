@@ -12,6 +12,7 @@ use App\Services\AICatalogIngestionService;
 use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -417,14 +418,7 @@ class CatalogIngestionController extends Controller
 
         $sellerPage = Auth::user()->sellerPage;
 
-        $galleryImages = Product::where('user_id', $sellerId)
-            ->whereNotNull('image')
-            ->where('image', '!=', '')
-            ->select('id', 'name', 'image', 'group_name')
-            ->orderBy('name')
-            ->get()
-            ->unique('image')
-            ->values();
+        $galleryImages = self::getAllGalleryImages($sellerId);
 
         return view('seller.inventory.index', compact('products', 'totalCatalogItems', 'lowStockCount', 'outOfStockCount', 'sellerCategories', 'sellerPage', 'galleryImages'));
     }
@@ -841,7 +835,7 @@ class CatalogIngestionController extends Controller
     /**
      * JSON Registry Helpers for persisting Cloudinary and Custom Crops across deploys.
      */
-    protected function getCropsRegistry($userId): array
+    public static function getCropsRegistry($userId): array
     {
         $regFile = storage_path('app/gallery_crops_' . $userId . '.json');
         if (file_exists($regFile)) {
@@ -851,19 +845,19 @@ class CatalogIngestionController extends Controller
         return [];
     }
 
-    protected function addCropToRegistry($userId, array $cropItem): void
+    public static function addCropToRegistry($userId, array $cropItem): void
     {
         $regFile = storage_path('app/gallery_crops_' . $userId . '.json');
-        $crops = $this->getCropsRegistry($userId);
+        $crops = self::getCropsRegistry($userId);
         array_unshift($crops, $cropItem);
         $crops = array_slice($crops, 0, 500);
         @file_put_contents($regFile, json_encode($crops, JSON_PRETTY_PRINT));
     }
 
-    protected function removeCropFromRegistry($userId, string $url): void
+    public static function removeCropFromRegistry($userId, string $url): void
     {
         $regFile = storage_path('app/gallery_crops_' . $userId . '.json');
-        $crops = $this->getCropsRegistry($userId);
+        $crops = self::getCropsRegistry($userId);
         $crops = array_filter($crops, fn($item) => ($item['url'] ?? '') !== $url && ($item['asset_url'] ?? '') !== $url);
         @file_put_contents($regFile, json_encode(array_values($crops), JSON_PRETTY_PRINT));
     }
@@ -871,7 +865,7 @@ class CatalogIngestionController extends Controller
     /**
      * Smart folder detector / resolver for catalog media
      */
-    protected function detectFolderForImage(string $name, ?string $explicitCategory = null): string
+    public static function detectFolderForImage(string $name, ?string $explicitCategory = null): string
     {
         if (!empty($explicitCategory) && !in_array(strtolower($explicitCategory), ['general', 'uncategorized', 'other', 'default', 'null', ''])) {
             return trim($explicitCategory);
@@ -897,7 +891,7 @@ class CatalogIngestionController extends Controller
     /**
      * Helper to collect all available gallery images for seller.
      */
-    protected function getAllGalleryImages($userId): array
+    public static function getAllGalleryImages($userId = null): array
     {
         $images = [];
         $seenUrls = [];
@@ -1031,7 +1025,7 @@ class CatalogIngestionController extends Controller
         }
 
         // 0b. Registered Cloudinary & Custom Crop URLs from JSON
-        $registryCrops = $this->getCropsRegistry($userId);
+        $registryCrops = self::getCropsRegistry($userId);
         foreach ($registryCrops as $regImg) {
             $u = $regImg['url'] ?? '';
             if ($u && !isset($seenUrls[$u])) {
@@ -1170,6 +1164,64 @@ class CatalogIngestionController extends Controller
             }
         }
 
+        // 5. All Standard Brand Master Images (Plasto, Supreme, Astral pipes & fittings catalog)
+        try {
+            $brandMasters = \App\Models\BrandMasterProduct::whereNotNull('image_url')
+                ->where('image_url', '!=', '')
+                ->select('product_name', 'image_url', 'category_name', 'brand_name')
+                ->get();
+            foreach ($brandMasters as $bm) {
+                $u = $bm->image_url;
+                if (!$u || isset($seenUrls[$u])) continue;
+                $seenUrls[$u] = true;
+                $assetUrl = (str_starts_with($u, 'http://') || str_starts_with($u, 'https://')) ? $u : asset($u);
+                $name = $bm->product_name ?: 'Brand Master Product';
+                $cat = $bm->category_name ?: ($bm->brand_name ?: 'General');
+                $images[] = [
+                    'id' => md5($u),
+                    'filename' => basename($u),
+                    'name' => trim($name),
+                    'url' => $u,
+                    'asset_url' => $assetUrl,
+                    'image' => $assetUrl,
+                    'size_kb' => 45.0,
+                    'created_at' => date('d M Y, H:i'),
+                    'source' => 'brand_master',
+                    'category' => $cat,
+                    'folder' => $cat,
+                ];
+            }
+        } catch (\Throwable $e) {}
+
+        // 6. All product catalog images from database
+        try {
+            $catalogProducts = \App\Models\Product::whereNotNull('image')
+                ->where('image', '!=', '')
+                ->select('name', 'image', 'group_name')
+                ->get();
+            foreach ($catalogProducts as $cp) {
+                $u = $cp->image;
+                if (!$u || isset($seenUrls[$u])) continue;
+                $seenUrls[$u] = true;
+                $assetUrl = (str_starts_with($u, 'http://') || str_starts_with($u, 'https://')) ? $u : asset($u);
+                $name = $cp->name ?: 'Catalog Item';
+                $cat = $cp->group_name ?: 'General';
+                $images[] = [
+                    'id' => md5($u),
+                    'filename' => basename($u),
+                    'name' => trim($name),
+                    'url' => $u,
+                    'asset_url' => $assetUrl,
+                    'image' => $assetUrl,
+                    'size_kb' => 40.0,
+                    'created_at' => date('d M Y, H:i'),
+                    'source' => 'product_catalog',
+                    'category' => $cat,
+                    'folder' => $cat,
+                ];
+            }
+        } catch (\Throwable $e) {}
+
         // Attach resolved folder & category to all images (preserving custom user folders)
         $customFolders = [];
         try {
@@ -1184,9 +1236,10 @@ class CatalogIngestionController extends Controller
             $u = $img['url'] ?? '';
             $uClean = ltrim($u, '/');
             $explicit = $customFolders[$u] ?? ($customFolders[$uClean] ?? ($img['category'] ?? null));
-            $folder = $this->detectFolderForImage($img['name'] ?? '', $explicit);
+            $folder = self::detectFolderForImage($img['name'] ?? '', $explicit);
             $img['folder'] = $folder;
             $img['category'] = $folder;
+            $img['image'] = $img['asset_url'] ?? ($img['url'] ?? '');
         }
         unset($img);
 
@@ -2509,6 +2562,7 @@ PAGE {$page} TEXT CONTENT:
 
                 $existingProd = Product::where('user_id', $userId)->where('name', $prodData['name'])->first();
                 $finalImage = !empty($prodData['image_url']) ? $prodData['image_url'] : ($existingProd->image ?? null);
+                $prodSku = !empty($prodData['sku']) ? $prodData['sku'] : (!empty($firstVar['product_code']) ? $firstVar['product_code'] : ($existingProd->sku ?? ('PRD-' . strtoupper(Str::random(8)))));
 
                 $product = Product::updateOrCreate(
                     [
@@ -2519,7 +2573,7 @@ PAGE {$page} TEXT CONTENT:
                         'category_id' => $catId,
                         'brand' => $prodBrand,
                         'group_name' => $prodGroup,
-                        'slug' => Str::slug($prodData['name']) . '-' . Str::random(5),
+                        'slug' => $existingProd->slug ?? (Str::slug($prodData['name']) . '-' . Str::random(5)),
                         'description' => "High grade {$prodData['name']} manufactured to industrial specifications.",
                         'hsn_code' => $prodHsn,
                         'image' => $finalImage,

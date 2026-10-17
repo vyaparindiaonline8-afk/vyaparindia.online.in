@@ -79,14 +79,7 @@ class ProductController extends Controller
             })
             ->values();
 
-        $galleryImages = $user->products()
-            ->whereNotNull('image')
-            ->where('image', '!=', '')
-            ->select('id', 'name', 'image', 'group_name')
-            ->orderBy('name')
-            ->get()
-            ->unique('image')
-            ->values();
+        $galleryImages = CatalogIngestionController::getAllGalleryImages($user->id);
 
         return view('seller.products.index', compact(
             'products', 'folders', 'categories', 'activeFolder', 'activeCategory', 'search',
@@ -180,14 +173,7 @@ class ProductController extends Controller
 
         $product->load('images');
         $categories = Category::all();
-        $galleryImages = Auth::user()->products()
-            ->whereNotNull('image')
-            ->where('image', '!=', '')
-            ->select('id', 'name', 'image', 'group_name')
-            ->orderBy('name')
-            ->get()
-            ->unique('image')
-            ->values();
+        $galleryImages = CatalogIngestionController::getAllGalleryImages(Auth::id());
 
         return view('seller.products.edit', compact('product', 'categories', 'galleryImages'));
     }
