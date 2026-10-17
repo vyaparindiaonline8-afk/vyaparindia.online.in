@@ -240,6 +240,23 @@ class ProductSpreadsheetController extends Controller
             return back()->with('error', 'Kripya ek valid Excel ya CSV file upload karein jisme rows mojud hon.');
         }
 
+        // 💾 Automatically persist seller's active Master Sheet for AI Auditor
+        try {
+            $masterDir = storage_path('app/catalogs/master_sheets');
+            if (!\Illuminate\Support\Facades\File::exists($masterDir)) {
+                \Illuminate\Support\Facades\File::makeDirectory($masterDir, 0777, true, true);
+            }
+            $origFileName = $request->hasFile('spreadsheet_file') ? $request->file('spreadsheet_file')->getClientOriginalName() : 'Master_Catalog_Sheet.xlsx';
+            \Illuminate\Support\Facades\File::put("{$masterDir}/seller_{$seller->id}_master.json", json_encode([
+                'updated_at' => now()->toIso8601String(),
+                'filename' => $origFileName,
+                'row_count' => count($rawRows),
+                'rows' => $rawRows
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        } catch (\Throwable $e) {
+            \Log::warning('Master sheet auto-save error: ' . $e->getMessage());
+        }
+
         $updatedProductsCount = 0;
         $updatedVariantsCount = 0;
         $unchangedCount = 0;

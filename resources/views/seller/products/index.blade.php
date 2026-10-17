@@ -296,6 +296,12 @@
                         <span>कॉलम मैपर ⚡</span>
                     </a>
 
+                    <!-- 🤖 AI Catalog Auditor & Verification Button -->
+                    <a href="{{ route('seller.catalog.auditor') }}" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-black text-xs shadow-md shadow-amber-500/30 transition flex items-center gap-2 hover:scale-102 active:scale-98" title="AI कैटलॉग ऑडिटर: एक्सेल शीट व लाइव कार्ड्स के रेट्स मिलाएं">
+                        <i class="fa-solid fa-robot text-sm"></i>
+                        <span>AI कैटलॉग ऑडिटर 🤖</span>
+                    </a>
+
                     <!-- Direct Live Cards Master Sheet Editor & Sync Hub Button -->
                     <form action="{{ route('seller.catalog.excel_mapper.load_live_cards') }}" method="POST" class="inline" onsubmit="const btn = this.querySelector('button'); btn.disabled = true; btn.innerHTML = '<i class=\'fa-solid fa-spinner fa-spin\'></i> लोड हो रहा है...';">
                         @csrf

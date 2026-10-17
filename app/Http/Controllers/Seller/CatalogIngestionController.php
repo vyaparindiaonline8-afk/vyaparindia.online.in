@@ -1823,8 +1823,19 @@ class CatalogIngestionController extends Controller
         $page = $request->input('page', 1);
         $pageText = $request->input('page_text', '');
 
+        $masterFile = storage_path("app/catalogs/master_sheets/seller_" . Auth::id() . "_master.json");
+        $masterContext = "";
+        if (\Illuminate\Support\Facades\File::exists($masterFile)) {
+            try {
+                $mData = json_decode(\Illuminate\Support\Facades\File::get($masterFile), true);
+                $auditCtrl = new \App\Http\Controllers\Seller\CatalogAuditController();
+                $audit = $auditCtrl->performAudit(Auth::id(), $mData['rows'] ?? []);
+                $masterContext = "\nSeller's Saved Master Excel Sheet: '{$mData['filename']}' ({$audit['total_excel_rows']} rows). Store Status: {$audit['total_live_cards']} Live Cards, {$audit['total_live_variants']} Items. Audit Result: {$audit['matched_count']} Items 100% Matched, {$audit['mismatch_count']} Rate Mismatches, {$audit['missing_count']} Missing.\n";
+            } catch (\Throwable $e) {}
+        }
+
         $systemPrompt = "You are VyaparIndia AI Catalog Copilot, an expert AI assistant specializing in plumbing, PVC/CPVC/UPVC/SWR pipes & fittings, hardware catalogs, pricing, HSN codes, and B2B wholesale listings.
-Current Catalog Page: Page {$page}.
+{$masterContext}Current Catalog Page: Page {$page}.
 Extracted text on active page:
 \"\"\"
 " . substr($pageText, 0, 3000) . "

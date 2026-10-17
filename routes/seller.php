@@ -22,6 +22,7 @@ use App\Http\Controllers\Seller\PhotoStudioController;
 use App\Http\Controllers\Seller\AnalyticsController;
 use App\Http\Controllers\Seller\BrandMasterController;
 use App\Http\Controllers\Seller\ProductSpreadsheetController;
+use App\Http\Controllers\Seller\CatalogAuditController;
 
 Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -166,6 +167,11 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/excel-mapper/create-sheet', [CatalogIngestionController::class, 'createSheetFromRows'])->name('excel_mapper.create_sheet');
         Route::post('/excel-mapper/publish-direct', [CatalogIngestionController::class, 'publishDirectFromMapper'])->name('excel_mapper.publish_direct');
         Route::delete('/jobs/{job}', [CatalogIngestionController::class, 'deleteJob'])->name('job.delete');
+
+        // 🤖 Page 4: AI Master Catalog Auditor & Rate Verification Hub
+        Route::get('/auditor', [CatalogAuditController::class, 'index'])->name('auditor');
+        Route::post('/auditor/upload', [CatalogAuditController::class, 'uploadMasterSheet'])->name('auditor.upload');
+        Route::post('/auditor/sync-mismatches', [CatalogAuditController::class, 'syncMismatches'])->name('auditor.sync_mismatches');
     });
 
     // 📦 Inventory & 1-Click Restock Manager
