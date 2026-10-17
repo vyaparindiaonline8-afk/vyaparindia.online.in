@@ -477,7 +477,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5">
                         @foreach($groupItems as $product)
                     @php
-                        $variants = $product->variants ?? collect();
+                        $variants = $product->sorted_variants ?? ($product->variants ?? collect());
                         
                         // If product has real size variants, filter out dummy 'Standard' placeholder variants with no price
                         $hasRealSizes = $variants->contains(function($v) {
@@ -715,7 +715,7 @@
                     <tbody class="divide-y divide-gray-100">
                         @forelse($products as $product)
                             @php
-                                $variants = $product->variants ?? collect();
+                                $variants = $product->sorted_variants ?? ($product->variants ?? collect());
                                 $hasRealSizes = $variants->contains(function($v) {
                                     $n = strtolower(trim($v->variant_name ?? ''));
                                     return !in_array($n, ['standard', 'std', 'default', '']);

@@ -121,7 +121,45 @@ class Product extends Model
 
     public function variants()
     {
-        return $this->hasMany(ProductVariant::class)->where('is_active', true);
+        return $this->hasMany(ProductVariant::class)->where('is_active', true)->orderBy('id', 'asc');
+    }
+
+    /**
+     * Get variants sorted naturally by dimension (e.g. 15mm, 20mm, 25mm, 32mm, 40mm, 50mm).
+     * Prevents larger sizes like 50mm from showing on top.
+     */
+    public function getSortedVariantsAttribute()
+    {
+        $vars = $this->relationLoaded('variants') ? $this->variants : $this->variants()->get();
+        if (!$vars || $vars->isEmpty()) {
+            return collect();
+        }
+
+        return $vars->sort(function ($a, $b) {
+            $nameA = strtolower(trim($a->variant_name ?: ($a->size ?: '')));
+            $nameB = strtolower(trim($b->variant_name ?: ($b->size ?: '')));
+
+            preg_match_all('/\d+(?:\.\d+)?/', $nameA, $mA);
+            preg_match_all('/\d+(?:\.\d+)?/', $nameB, $mB);
+
+            $numsA = !empty($mA[0]) ? array_map('floatval', $mA[0]) : [];
+            $numsB = !empty($mB[0]) ? array_map('floatval', $mB[0]) : [];
+
+            if (!empty($numsA) && !empty($numsB)) {
+                $len = min(count($numsA), count($numsB));
+                for ($i = 0; $i < $len; $i++) {
+                    if ($numsA[$i] !== $numsB[$i]) {
+                        return $numsA[$i] <=> $numsB[$i];
+                    }
+                }
+                return count($numsA) <=> count($numsB);
+            }
+
+            if (!empty($numsA) && empty($numsB)) return -1;
+            if (empty($numsA) && !empty($numsB)) return 1;
+
+            return strnatcasecmp($nameA, $nameB);
+        })->values();
     }
 
     public function stockMovements()

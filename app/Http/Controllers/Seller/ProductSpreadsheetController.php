@@ -329,8 +329,12 @@ class ProductSpreadsheetController extends Controller
             if (empty($full_name)) return ['', 'Standard'];
             $s = trim($full_name);
 
+            // 🛡️ Pre-normalization: auto-insert missing spaces before attached dimensions like FTA25*20, FTA25*15, FTA40MM, ELBOW20MM, TEE25*20
+            $s = preg_replace('/([a-zA-Z])(\d+(?:\.\d+)?\s*[\*xX\/]\s*\d+)/i', '$1 $2', $s);
+            $s = preg_replace('/([a-zA-Z])(\d+(?:\.\d+)?\s*(?:mm|cm|inch|"))/i', '$1 $2', $s);
+
             // 1. Multi-dimensional cross (Tiles, Reducer, Compound): 110*75*50, 25*20, 2x4, 4x8, etc.
-            if (preg_match('~\b\d+(?:\.\d+)?\s*[\*xX/]\s*\d+(?:\.\d+)?(?:\s*[\*xX/]\s*\d+(?:\.\d+)?)*\s*(?:mm|cm|inch|ft|feet|mtr|")?\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+            if (preg_match('~(?:^|\s|[a-zA-Z])\K\d+(?:\.\d+)?\s*[\*xX/]\s*\d+(?:\.\d+)?(?:\s*[\*xX/]\s*\d+(?:\.\d+)?)*\s*(?:mm|cm|inch|ft|feet|mtr|")?\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
                 $size = trim($m[0][0]);
                 $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
                 return [preg_replace('/\s+/', ' ', $base), $size];
@@ -367,7 +371,7 @@ class ProductSpreadsheetController extends Controller
             // 6. Diameter Metric Dimensions (Pipes, Fittings, Rods, Hardware): 15MM, 20MM, 110 MM, 2"
             // CRITICAL: Diameter (mm, cm, inch, ") takes precedence over linear length (feet, mtr)
             // Example: "UPVC PIPE 40 SCH 10 FEET 15MM" -> Size is "15MM", Base Card is "UPVC PIPE 40 SCH 10 FEET"
-            if (preg_match('~\b\d+(?:\.\d+)?\s*(?:mm|cm|inch|")(?:(?:\s*(?:sch|gauge|swg|g)\s*\d+))?\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
+            if (preg_match('~(?:^|\s|[a-zA-Z])\K\d+(?:\.\d+)?\s*(?:mm|cm|inch|")(?:(?:\s*(?:sch|gauge|swg|g)\s*\d+))?\b~i', $s, $m, PREG_OFFSET_CAPTURE)) {
                 $size = trim($m[0][0]);
                 $base = trim(substr($s, 0, $m[0][1]) . ' ' . substr($s, $m[0][1] + strlen($m[0][0])));
                 return [preg_replace('/\s+/', ' ', $base), $size];
@@ -888,9 +892,9 @@ class ProductSpreadsheetController extends Controller
 
                     if (!empty($prodUpdates)) {
                         $product->update($prodUpdates);
-                        if ($isChanged) {
+                        if ($isChanged && !$hasVariants) {
                             $updatedProductsCount++;
-                        } else {
+                        } elseif (!$hasVariants) {
                             $unchangedCount++;
                         }
                     } elseif (!$matchedVariant && !$hasVariants) {
