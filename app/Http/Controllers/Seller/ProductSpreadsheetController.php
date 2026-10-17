@@ -635,18 +635,46 @@ class ProductSpreadsheetController extends Controller
                     }
                 }
 
+                $isRowReducer = (bool)(str_contains(strtolower($name), 'reducer') || str_contains(strtolower($name), 'reduser') || preg_match('~\b\d+[\*xX/]\d+\b~', $name) || (!empty($sizeVariant) && preg_match('~\b\d+[\*xX/]\d+\b~', $sizeVariant)));
+
+                $isCompatible = function($p) use ($categoryName, $productCode, $isRowReducer) {
+                    $pText = strtolower(($p->category->name ?? '') . ' ' . ($p->group_name ?? '') . ' ' . ($p->name ?? '') . ' ' . ($p->sku ?? ''));
+                    $rowText = strtolower($categoryName . ' ' . $productCode);
+
+                    // 1. CPVC Boundary
+                    $rowIsCpvc = str_contains($rowText, 'cpvc');
+                    $pIsCpvc = str_contains($pText, 'cpvc');
+                    if ($rowIsCpvc !== $pIsCpvc) return false;
+
+                    // 2. SWR Boundary
+                    $rowIsSwr = str_contains($rowText, 'swr');
+                    $pIsSwr = str_contains($pText, 'swr');
+                    if ($rowIsSwr !== $pIsSwr) return false;
+
+                    // 3. UPVC vs CPVC Isolation
+                    $rowIsUpvc = str_contains($rowText, 'upvc') || str_contains(strtolower($productCode), 'uplasto');
+                    if ($rowIsUpvc && $pIsCpvc) return false;
+
+                    // 4. Reducer vs Regular Fitting Isolation
+                    $pIsReducer = str_contains(strtolower($p->name), 'reducer') || str_contains(strtolower($p->name), 'reduser');
+                    if ($isRowReducer !== $pIsReducer) return false;
+
+                    return true;
+                };
+
                 // Case 3 by Name / Base Family
                 if (!$product && !empty($familyBaseName)) {
                     $cleanFam = strtolower(trim($familyBaseName));
                     $famSlug = Str::slug($familyBaseName);
-                    $product = $sellerProducts->first(function($p) use ($cleanFam, $famSlug) {
-                        return strtolower(trim($p->name)) === $cleanFam
-                            || (!empty($famSlug) && $p->slug === $famSlug);
+                    $product = $sellerProducts->first(function($p) use ($cleanFam, $famSlug, $isCompatible) {
+                        return (strtolower(trim($p->name)) === $cleanFam || (!empty($famSlug) && $p->slug === $famSlug))
+                            && $isCompatible($p);
                     });
 
                     // Substring check: Does product name exist inside full item name or vice-versa?
                     if (!$product) {
-                        $product = $sellerProducts->first(function($p) use ($name, $familyBaseName) {
+                        $product = $sellerProducts->first(function($p) use ($name, $familyBaseName, $isCompatible) {
+                            if (!$isCompatible($p)) return false;
                             $pName = strtolower(trim($p->name));
                             if (strlen($pName) < 4) return false;
                             $cleanRow = strtolower(trim($familyBaseName ?: $name));
@@ -663,7 +691,8 @@ class ProductSpreadsheetController extends Controller
                     if (!$product) {
                         $normName = $normalizeForMatching($familyBaseName);
                         if (!empty($normName)) {
-                            $product = $sellerProducts->first(function($p) use ($normName, $normalizeForMatching) {
+                            $product = $sellerProducts->first(function($p) use ($normName, $normalizeForMatching, $isCompatible) {
+                                if (!$isCompatible($p)) return false;
                                 $pNorm = $normalizeForMatching($p->name);
                                 if (empty($pNorm)) return false;
                                 foreach (['reducer', 'reduser', 'reducing', 'brass'] as $crit) {
@@ -683,6 +712,7 @@ class ProductSpreadsheetController extends Controller
                             $bestP = null;
                             $bestScore = 0;
                             foreach ($sellerProducts as $p) {
+                                if (!$isCompatible($p)) continue;
                                 $pWords = $extractWordSet($p->name . ' ' . ($p->category->name ?? ''));
                                 if (empty($pWords)) continue;
 

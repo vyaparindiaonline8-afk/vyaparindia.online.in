@@ -431,20 +431,29 @@
                 @endif
             </div>
 
-            <!-- Quick Filter Chips: All / With Rates / No Rates / With Variants -->
-            <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-1 text-xs">
+            <!-- Quick Filter Chips: All / UPVC / CPVC / SWR / Reducers / Rates -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-1 text-xs scrollbar-none">
                 <span class="text-xs font-bold text-gray-400 shrink-0 mr-1">त्वरित फ़िल्टर:</span>
-                <button type="button" onclick="setQuickRateFilter('all', this)" class="quick-filter-btn px-2.5 py-1 rounded-lg text-xs font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                    सभी आइटम्स
+                <button type="button" onclick="setQuickTypeFilter('all', this)" class="quick-filter-btn px-2.5 py-1 rounded-lg text-xs font-extrabold bg-indigo-600 text-white shadow-xs">
+                    सभी (All)
                 </button>
-                <button type="button" onclick="setQuickRateFilter('with_rates', this)" class="quick-filter-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700">
-                    <i class="fa-solid fa-circle-check text-emerald-500 mr-1"></i> रेट्स उपलब्ध
+                <button type="button" onclick="setQuickTypeFilter('upvc', this)" class="quick-filter-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200">
+                    <span class="inline-block w-2 h-2 rounded-full bg-blue-600 mr-1"></span> UPVC
+                </button>
+                <button type="button" onclick="setQuickTypeFilter('cpvc', this)" class="quick-filter-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200">
+                    <span class="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1"></span> CPVC
+                </button>
+                <button type="button" onclick="setQuickTypeFilter('swr', this)" class="quick-filter-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200">
+                    <span class="inline-block w-2 h-2 rounded-full bg-slate-600 mr-1"></span> SWR
+                </button>
+                <button type="button" onclick="setQuickTypeFilter('reducer', this)" class="quick-filter-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200">
+                    <i class="fa-solid fa-shuffle mr-1 text-[10px]"></i> Reducers
+                </button>
+                <button type="button" onclick="setQuickTypeFilter('equal', this)" class="quick-filter-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200">
+                    <i class="fa-solid fa-cubes mr-1 text-[10px]"></i> Regular (Equal)
                 </button>
                 <button type="button" onclick="setQuickRateFilter('zero_rates', this)" class="quick-filter-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700">
                     <i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1"></i> बिना भाव वाले (₹0)
-                </button>
-                <button type="button" onclick="setQuickRateFilter('has_variants', this)" class="quick-filter-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700">
-                    <i class="fa-solid fa-cubes text-blue-500 mr-1"></i> मल्टी-साइज़ वेरिएंट्स
                 </button>
             </div>
         </div>
@@ -520,12 +529,19 @@
                         } elseif (stripos($catName, 'PIPE') !== false) {
                             $catBadgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200';
                         }
+                        $variantSearchTokens = $cleanVariants->map(function($v) {
+                            return strtolower(($v->variant_name ?: '') . ' ' . ($v->sku ?: ''));
+                        })->join(' ');
+                        $isCardReducer = str_contains(strtolower($product->name), 'reducer') || str_contains(strtolower($product->name), 'reduser') || $cleanVariants->contains(function($v) { return str_contains($v->variant_name ?? '', '*') || str_contains($v->variant_name ?? '', 'x'); });
                     @endphp
                     <div class="product-item-card bg-white rounded-3xl border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between"
                          data-id="{{ $product->id }}"
                          data-name="{{ strtolower($product->name) }}"
                          data-sku="{{ strtolower($product->sku ?? '') }}"
                          data-category="{{ strtolower($catName) }}"
+                         data-group="{{ strtolower($product->group_name ?? '') }}"
+                         data-variants="{{ $variantSearchTokens }}"
+                         data-is-reducer="{{ $isCardReducer ? '1' : '0' }}"
                          data-has-price="{{ $hasPrice ? '1' : '0' }}"
                          data-has-variants="{{ $varCount > 0 ? '1' : '0' }}">
                         
@@ -742,12 +758,19 @@
                                 $maxPrice = $vPrices->isNotEmpty() ? $vPrices->max() : (float)$product->price;
                                 $hasPrice = ($minPrice > 0 || $maxPrice > 0 || (float)$product->price > 0);
                                 $catName = $product->category->name ?? 'General';
+                                $variantSearchTokens = $cleanVariants->map(function($v) {
+                                    return strtolower(($v->variant_name ?: '') . ' ' . ($v->sku ?: ''));
+                                })->join(' ');
+                                $isCardReducer = str_contains(strtolower($product->name), 'reducer') || str_contains(strtolower($product->name), 'reduser') || $cleanVariants->contains(function($v) { return str_contains($v->variant_name ?? '', '*') || str_contains($v->variant_name ?? '', 'x'); });
                             @endphp
                             <tr class="product-item-row hover:bg-gray-50/60 transition" id="row-prod-{{ $product->id }}"
                                 data-id="{{ $product->id }}"
                                 data-name="{{ strtolower($product->name) }}"
                                 data-sku="{{ strtolower($product->sku ?? '') }}"
                                 data-category="{{ strtolower($catName) }}"
+                                data-group="{{ strtolower($product->group_name ?? '') }}"
+                                data-variants="{{ $variantSearchTokens }}"
+                                data-is-reducer="{{ $isCardReducer ? '1' : '0' }}"
                                 data-has-price="{{ $hasPrice ? '1' : '0' }}"
                                 data-has-variants="{{ $varCount > 0 ? '1' : '0' }}">
                                 <td class="py-3 px-3 text-center">
@@ -1469,15 +1492,26 @@
             });
         }
 
+        let currentTypeFilter = 'all';
+
+        function setQuickTypeFilter(type, btn) {
+            currentTypeFilter = type;
+            document.querySelectorAll('.quick-filter-btn').forEach(b => {
+                b.classList.remove('bg-indigo-600', 'text-white', 'shadow-xs');
+            });
+            if (btn) {
+                btn.classList.add('bg-indigo-600', 'text-white', 'shadow-xs');
+            }
+            filterItemsClientSide();
+        }
+
         function setQuickRateFilter(type, btn) {
             currentRateFilter = type;
             document.querySelectorAll('.quick-filter-btn').forEach(b => {
-                b.classList.remove('bg-indigo-50', 'text-indigo-700', 'border', 'border-indigo-200', 'font-extrabold');
-                b.classList.add('bg-gray-100', 'text-gray-700', 'font-bold');
+                b.classList.remove('bg-indigo-600', 'text-white', 'shadow-xs');
             });
             if (btn) {
-                btn.classList.add('bg-indigo-50', 'text-indigo-700', 'border', 'border-indigo-200', 'font-extrabold');
-                btn.classList.remove('bg-gray-100');
+                btn.classList.add('bg-indigo-600', 'text-white', 'shadow-xs');
             }
             filterItemsClientSide();
         }
@@ -1485,15 +1519,31 @@
         function filterItemsClientSide() {
             const query = (document.getElementById('liveSearchInput')?.value || '').toLowerCase().trim();
 
-            const matchItem = (name, sku, category, hasPrice, hasVariants) => {
+            const matchItem = (name, sku, category, group, variants, isReducer, hasPrice, hasVariants) => {
+                // Pipe Type & Reducer filter
+                if (currentTypeFilter === 'upvc') {
+                    const text = `${name} ${sku} ${category} ${group}`;
+                    if (!text.includes('upvc') && !sku.includes('uplasto')) return false;
+                } else if (currentTypeFilter === 'cpvc') {
+                    const text = `${name} ${sku} ${category} ${group}`;
+                    if (!text.includes('cpvc') && !sku.includes('cpvc')) return false;
+                } else if (currentTypeFilter === 'swr') {
+                    const text = `${name} ${sku} ${category} ${group}`;
+                    if (!text.includes('swr') && !sku.includes('swr')) return false;
+                } else if (currentTypeFilter === 'reducer') {
+                    if (isReducer !== '1') return false;
+                } else if (currentTypeFilter === 'equal') {
+                    if (isReducer === '1') return false;
+                }
+
                 // Rate filter
                 if (currentRateFilter === 'with_rates' && hasPrice !== '1') return false;
                 if (currentRateFilter === 'zero_rates' && hasPrice === '1') return false;
                 if (currentRateFilter === 'has_variants' && hasVariants !== '1') return false;
 
-                // Search query
+                // Search query across ALL tokens (product name, sku, category, group, variant sizes, variant skus)
                 if (query.length > 0) {
-                    const combined = `${name} ${sku} ${category}`;
+                    const combined = `${name} ${sku} ${category} ${group} ${variants}`;
                     if (!combined.includes(query)) return false;
                 }
                 return true;
@@ -1504,10 +1554,13 @@
                 const name = card.getAttribute('data-name') || '';
                 const sku = card.getAttribute('data-sku') || '';
                 const category = card.getAttribute('data-category') || '';
+                const group = card.getAttribute('data-group') || '';
+                const variants = card.getAttribute('data-variants') || '';
+                const isReducer = card.getAttribute('data-is-reducer') || '0';
                 const hasPrice = card.getAttribute('data-has-price') || '0';
                 const hasVariants = card.getAttribute('data-has-variants') || '0';
 
-                const matches = matchItem(name, sku, category, hasPrice, hasVariants);
+                const matches = matchItem(name, sku, category, group, variants, isReducer, hasPrice, hasVariants);
                 card.style.display = matches ? '' : 'none';
             });
 
@@ -1517,10 +1570,13 @@
                 const name = row.getAttribute('data-name') || '';
                 const sku = row.getAttribute('data-sku') || '';
                 const category = row.getAttribute('data-category') || '';
+                const group = row.getAttribute('data-group') || '';
+                const variants = row.getAttribute('data-variants') || '';
+                const isReducer = row.getAttribute('data-is-reducer') || '0';
                 const hasPrice = row.getAttribute('data-has-price') || '0';
                 const hasVariants = row.getAttribute('data-has-variants') || '0';
 
-                const matches = matchItem(name, sku, category, hasPrice, hasVariants);
+                const matches = matchItem(name, sku, category, group, variants, isReducer, hasPrice, hasVariants);
                 row.style.display = matches ? '' : 'none';
                 
                 // Hide sub-variant row if parent is hidden
