@@ -68,7 +68,8 @@ class ProductSpreadsheetController extends Controller
                 'Wholesale Price (थोक भाव / B2B)',
                 'Stock Quantity (स्टॉक)',
                 'Unit (इकाई)',
-                'SKU / Code',
+                'Current SKU / Code (वर्तमान कोड)',
+                'New SKU / Code (नया कोड - केवल बदलने के लिए)',
                 'Description (विवरण)',
                 'Image URL',
             ];
@@ -91,6 +92,7 @@ class ProductSpreadsheetController extends Controller
                             $v->stock_quantity ?? ($p->stock_quantity ?? 100),
                             'Pcs',
                             $v->sku ?: ($p->sku ?: "PRD-{$p->id}"),
+                            '', // New Code column (empty by default, fill to migrate)
                             $p->description ?? '',
                             $p->image_url ?? '',
                         ];
@@ -110,6 +112,7 @@ class ProductSpreadsheetController extends Controller
                         $p->stock_quantity ?? 0,
                         'Pcs',
                         $p->sku ?: "PRD-{$p->id}",
+                        '', // New Code column
                         $p->description ?? '',
                         $p->image_url ?? '',
                     ];
@@ -259,6 +262,7 @@ class ProductSpreadsheetController extends Controller
 
         $updatedProductsCount = 0;
         $updatedVariantsCount = 0;
+        $migratedCodesCount = 0;
         $unchangedCount = 0;
         $createdProductsCount = 0;
         $quotaExceededCount = 0;
@@ -438,7 +442,7 @@ class ProductSpreadsheetController extends Controller
             }
         }
 
-        DB::transaction(function () use ($rawRows, $seller, $sellerProducts, $allowCreateNew, $normalizeForMatching, $extractWordSet, $masterByCode, $masterByName, $getOrCreateCat, $extractSizeAndBase, &$updatedProductsCount, &$updatedVariantsCount, &$unchangedCount, &$createdProductsCount, &$skippedCount, &$affectedProductIds, &$quotaExceededCount, &$unmatchedCount, &$detectedCols, &$skippedIssues, &$duplicateCodeWarnings, &$seenCodesInSheet) {
+        DB::transaction(function () use ($rawRows, $seller, $sellerProducts, $allowCreateNew, $normalizeForMatching, $extractWordSet, $masterByCode, $masterByName, $getOrCreateCat, $extractSizeAndBase, &$updatedProductsCount, &$updatedVariantsCount, &$migratedCodesCount, &$unchangedCount, &$createdProductsCount, &$skippedCount, &$affectedProductIds, &$quotaExceededCount, &$unmatchedCount, &$detectedCols, &$skippedIssues, &$duplicateCodeWarnings, &$seenCodesInSheet) {
             foreach ($rawRows as $index => $row) {
                 $rowNum = $index + 2;
                 try {
@@ -457,14 +461,17 @@ class ProductSpreadsheetController extends Controller
                     }
                 }
 
-                $getValWithKey = function(array $aliases) use ($normMap, $originalKeyMap) {
+                $getValWithKey = function(array $aliases, ?callable $filter = null) use ($normMap, $originalKeyMap) {
                     foreach ($aliases as $alias) {
                         if (isset($normMap[$alias]) && trim((string)$normMap[$alias]) !== '') {
-                            return [trim((string)$normMap[$alias]), $originalKeyMap[$alias] ?? $alias];
+                            if (!$filter || $filter($alias)) {
+                                return [trim((string)$normMap[$alias]), $originalKeyMap[$alias] ?? $alias];
+                            }
                         }
                     }
                     foreach ($normMap as $k => $val) {
                         if (trim((string)$val) === '') continue;
+                        if ($filter && !$filter($k)) continue;
                         foreach ($aliases as $alias) {
                             if (strlen($alias) >= 4 && str_contains($k, $alias)) {
                                 return [trim((string)$val), $originalKeyMap[$k] ?? $k];
@@ -559,10 +566,23 @@ class ProductSpreadsheetController extends Controller
                     'description', 'description_vivrn', 'desc', 'description__vivrn_'
                 ]);
 
-                [$productCode, $codeKey] = $getValWithKey([
-                    'itam_code', 'item_code', 'product_code', 'code', 'sku', 'itam_kod', 'item_kod'
+                // 🔍 Detect New Code (for migration / swap)
+                [$newProductCode, $newCodeKey] = $getValWithKey([
+                    'new_sku_code', 'new_sku', 'new_code', 'new_item_code', 'new_itam_code', 'nyaa_kod',
+                    'new_sku_code_nyaa_kod_kevl_bdlne_ke_lie', 'new_code_kevl_bdlne_ke_lie',
+                    'new_sku_code__nyaa_kod___kevl_bdlne_ke_lie_'
                 ]);
-                if ($codeKey && !isset($detectedCols['Code'])) $detectedCols['Code'] = $codeKey;
+                if ($newCodeKey && !isset($detectedCols['New SKU'])) $detectedCols['New SKU'] = $newCodeKey;
+
+                // 🔍 Detect Current / Old Code (exclude any column named new_ / nyaa_)
+                [$productCode, $codeKey] = $getValWithKey([
+                    'current_sku_code', 'current_sku', 'current_code', 'old_sku', 'old_code',
+                    'itam_code', 'item_code', 'product_code', 'code', 'sku', 'itam_kod', 'item_kod',
+                    'current_sku_code_vrtmaan_kod', 'current_sku_code__vrtmaan_kod_'
+                ], function($k) {
+                    return !str_contains($k, 'new_') && !str_contains($k, 'nyaa_');
+                });
+                if ($codeKey && !isset($detectedCols['Current SKU'])) $detectedCols['Current SKU'] = $codeKey;
 
                 // 🔍 Detect duplicate codes (SKU) in sheet with conflicting product names
                 if (!empty($productCode)) {
@@ -865,13 +885,25 @@ class ProductSpreadsheetController extends Controller
                             $attrs['size'] = $sizeVariant;
                             $varUpdates['attributes'] = $attrs;
                         }
-                        // Allow SKU update if:
-                        // 1. Explicitly matched by Variant ID (deliberate round-trip migration)
-                        // 2. Or existing SKU was empty / temporary auto-generated (VAR- / PRD-)
-                        $existingSku = strtoupper(trim($matchedVariant->sku ?? ''));
-                        $isAutoGenerated = empty($existingSku) || str_starts_with($existingSku, 'VAR-') || str_starts_with($existingSku, 'PRD-');
-                        if (!empty($productCode) && (($variantId && $variantId > 0) || $isAutoGenerated)) {
-                            $varUpdates['sku'] = $productCode;
+                        // 🛡️ 2-Way Code Migration & SKU Guard:
+                        // 1. Explicit New SKU column provided (e.g. from round-trip export sheet)
+                        if (!empty($newProductCode) && strtoupper(trim($newProductCode)) !== strtoupper(trim($matchedVariant->sku ?? ''))) {
+                            $varUpdates['sku'] = trim($newProductCode);
+                            $migratedCodesCount++;
+                            $isChanged = true;
+                        }
+                        // 2. Or deliberate update via Variant ID / temporary auto-generated (VAR- / PRD-)
+                        else {
+                            $existingSku = strtoupper(trim($matchedVariant->sku ?? ''));
+                            $isAutoGenerated = empty($existingSku) || str_starts_with($existingSku, 'VAR-') || str_starts_with($existingSku, 'PRD-');
+                            if (!empty($productCode) && (($variantId && $variantId > 0) || $isAutoGenerated)) {
+                                if (strtoupper(trim($productCode)) !== $existingSku) {
+                                    $varUpdates['sku'] = trim($productCode);
+                                    if (!$isAutoGenerated) {
+                                        $migratedCodesCount++;
+                                    }
+                                }
+                            }
                         }
 
                         if (!empty($varUpdates)) {
@@ -889,10 +921,11 @@ class ProductSpreadsheetController extends Controller
                             continue;
                         }
                         $vPrice = ($sellingPrice && $sellingPrice > 0) ? $sellingPrice : (($mrp && $mrp > 0) ? $mrp : $product->price);
+                        $skuToAssign = !empty($newProductCode) ? trim($newProductCode) : (!empty($productCode) ? trim($productCode) : ('VAR-' . $product->id . '-' . strtoupper(Str::random(5))));
                         $newVar = ProductVariant::create([
                             'product_id' => $product->id,
                             'variant_name' => $sizeVariant,
-                            'sku' => !empty($productCode) ? $productCode : ('VAR-' . $product->id . '-' . strtoupper(Str::random(5))),
+                            'sku' => $skuToAssign,
                             'retail_price' => $vPrice,
                             'wholesale_price' => ($wholesalePrice && $wholesalePrice > 0) ? $wholesalePrice : $vPrice,
                             'purchase_price' => $purchasePrice ?? 0,
@@ -943,8 +976,18 @@ class ProductSpreadsheetController extends Controller
                         $isChanged = true;
                     }
 
-                    if (!empty($productCode) && (($rawId && $rawId > 0) || empty($product->sku) || str_starts_with(strtoupper($product->sku), 'PRD-'))) {
-                        $prodUpdates['sku'] = $productCode;
+                    // 🛡️ Standalone Product SKU Migration:
+                    if (!empty($newProductCode) && strtoupper(trim($newProductCode)) !== strtoupper(trim($product->sku ?? ''))) {
+                        $prodUpdates['sku'] = trim($newProductCode);
+                        $migratedCodesCount++;
+                        $isChanged = true;
+                    } elseif (!empty($productCode) && (($rawId && $rawId > 0) || empty($product->sku) || str_starts_with(strtoupper($product->sku), 'PRD-'))) {
+                        if (strtoupper(trim($productCode)) !== strtoupper(trim($product->sku ?? ''))) {
+                            $prodUpdates['sku'] = trim($productCode);
+                            if (!empty($product->sku) && !str_starts_with(strtoupper($product->sku), 'PRD-')) {
+                                $migratedCodesCount++;
+                            }
+                        }
                     }
 
                     if (!empty($prodUpdates)) {
@@ -971,10 +1014,11 @@ class ProductSpreadsheetController extends Controller
                             }
                             $uniqueSlug = $baseSlug . '-' . Str::random(5);
 
+                            $skuToAssign = !empty($newProductCode) ? trim($newProductCode) : (!empty($productCode) ? trim($productCode) : ('PLASTO-' . time() . '-' . rand(10, 99)));
                             $newProduct = Product::create([
                                 'user_id' => $seller->id,
                                 'name' => $familyBaseName,
-                                'sku' => !empty($productCode) ? $productCode : ('PLASTO-' . time() . '-' . rand(10, 99)),
+                                'sku' => $skuToAssign,
                                 'slug' => $uniqueSlug,
                                 'description' => !empty($desc) ? $desc : $name,
                                 'category_id' => $catId,
@@ -995,10 +1039,11 @@ class ProductSpreadsheetController extends Controller
                                 $sellerProducts->push($newProduct);
 
                                 if (!empty($sizeVariant)) {
+                                    $firstVarSku = !empty($newProductCode) ? trim($newProductCode) : (!empty($productCode) ? trim($productCode) : ('VAR-' . $newProduct->id . '-' . strtoupper(Str::random(5))));
                                     $firstVar = ProductVariant::create([
                                         'product_id' => $newProduct->id,
                                         'variant_name' => $sizeVariant,
-                                        'sku' => !empty($productCode) ? $productCode : ('VAR-' . $newProduct->id . '-' . strtoupper(Str::random(5))),
+                                        'sku' => $firstVarSku,
                                         'retail_price' => $finalPrice,
                                         'wholesale_price' => ($wholesalePrice && $wholesalePrice > 0) ? $wholesalePrice : $finalPrice,
                                         'purchase_price' => $purchasePrice ?? 0,
@@ -1072,6 +1117,9 @@ class ProductSpreadsheetController extends Controller
         }
         if ($updatedVariantsCount > 0) {
             $parts[] = "📦 {$updatedVariantsCount} साइज़ वेरिएंट्स के भाव बदले गए";
+        }
+        if ($migratedCodesCount > 0) {
+            $parts[] = "🔄 {$migratedCodesCount} कोड्स सफलतापूर्वक अपग्रेड (Migrate) किए गए";
         }
         if ($unchangedCount > 0) {
             $parts[] = "🟢 {$unchangedCount} आइटम्स पहले से अप-टू-डेट थे";
