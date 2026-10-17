@@ -41,6 +41,13 @@
                 </div>
 
                 <div class="flex items-center gap-2">
+                    <form action="{{ route('seller.catalog.excel_mapper.load_live_cards') }}" method="POST" class="inline" onsubmit="const btn = this.querySelector('button'); btn.disabled = true; btn.innerHTML = '<i class=\'fa-solid fa-spinner fa-spin\'></i> लोड हो रहा है...';">
+                        @csrf
+                        <button type="submit" class="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs shadow-md shadow-blue-500/20 flex items-center gap-1.5 transition active:scale-95" title="लाइव स्टोर के सभी 78 कार्ड्स व साइज़ को एक्सेल शीट में लोड करें">
+                            <i class="fa-solid fa-rotate text-amber-300"></i>
+                            <span>🔄 लाइव कार्ड्स लोड करें (Master Sync)</span>
+                        </button>
+                    </form>
                     <button type="button" onclick="toggleDynamicMode(true)" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95">
                         <i class="fa-solid fa-file-excel"></i>
                         <span>+ Import New Excel</span>

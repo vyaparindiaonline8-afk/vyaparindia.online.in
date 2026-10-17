@@ -239,20 +239,36 @@
                                 <!-- Product Basic Info -->
                                 <td class="py-3.5 px-4">
                                     <div class="flex items-center gap-3">
-                                        <div class="h-12 w-12 rounded-xl bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center flex-shrink-0">
+                                        <div class="relative group/inv h-12 w-12 rounded-xl bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center flex-shrink-0 cursor-pointer hover:border-indigo-500 hover:ring-2 hover:ring-indigo-300 transition"
+                                             onclick="openQuickImageModal({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->image_url ?? '' }}')"
+                                             title="फोटो बदलें या गैलरी से चुनें"
+                                             id="inv-prod-img-box-{{ $product->id }}">
                                             @if($product->image_url)
-                                                <img src="{{ $product->image_url }}" class="w-full h-full object-contain">
+                                                <img src="{{ $product->image_url }}" id="inv-prod-img-{{ $product->id }}" class="w-full h-full object-contain">
+                                                <i class="fa-solid fa-camera text-gray-400 text-xs hidden" id="inv-prod-placeholder-{{ $product->id }}"></i>
                                             @else
-                                                <i class="fa-solid fa-cube text-gray-400"></i>
+                                                <i class="fa-solid fa-camera text-gray-400 text-sm group-hover/inv:text-indigo-600" id="inv-prod-placeholder-{{ $product->id }}"></i>
+                                                <img src="" id="inv-prod-img-{{ $product->id }}" class="w-full h-full object-contain hidden">
                                             @endif
+                                            <div class="absolute inset-0 bg-indigo-950/70 text-white flex flex-col items-center justify-center opacity-0 group-hover/inv:opacity-100 transition rounded-xl text-[9px] font-bold">
+                                                <i class="fa-solid fa-images text-xs text-amber-300"></i>
+                                                <span>बदलें</span>
+                                            </div>
                                         </div>
                                         <div>
                                             <h4 class="font-extrabold text-gray-900 text-sm" id="row_name_{{ $product->id }}">{{ $product->name }}</h4>
                                             <p class="text-[11px] text-gray-400 font-mono">{{ $product->sku ?? 'NO-SKU' }}</p>
-                                            <button type="button" onclick="openProductRateEditModal({{ $product->id }})" class="mt-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition">
-                                                <i class="fa-solid fa-pen-to-square"></i>
-                                                <span>Edit Rates & Sizes</span>
-                                            </button>
+                                            <div class="flex items-center gap-2 mt-1">
+                                                <button type="button" onclick="openProductRateEditModal({{ $product->id }})" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition">
+                                                    <i class="fa-solid fa-pen-to-square"></i>
+                                                    <span>Edit Rates</span>
+                                                </button>
+                                                <span class="text-gray-300">|</span>
+                                                <button type="button" onclick="openQuickImageModal({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->image_url ?? '' }}')" class="text-[11px] font-bold text-emerald-600 hover:text-emerald-800 flex items-center gap-1 transition" title="कैटलॉग गैलरी से फोटो लगाएं">
+                                                    <i class="fa-solid fa-images"></i>
+                                                    <span>गैलरी फोटो</span>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </td>
@@ -1115,6 +1131,389 @@
                 statusMsg.textContent = '';
             });
         }
+
+        // ==========================================
+        // 🖼️ QUICK IMAGE GALLERY & PICKER MODAL (Inventory)
+        // ==========================================
+        let currentModalProductId = null;
+        let selectedGalleryImageUrl = null;
+        let selectedUploadFile = null;
+
+        function openQuickImageModal(productId, productName, currentImgUrl) {
+            currentModalProductId = productId;
+            selectedGalleryImageUrl = null;
+            selectedUploadFile = null;
+
+            const nameEl = document.getElementById('quickImageModalProductName');
+            if (nameEl) nameEl.textContent = productName;
+
+            document.querySelectorAll('.gallery-photo-item').forEach(item => {
+                item.classList.remove('border-indigo-600', 'ring-2', 'ring-indigo-300', 'bg-indigo-50/50');
+                const overlay = item.querySelector('.photo-check-overlay');
+                if (overlay) overlay.classList.add('hidden');
+                item.classList.add('border-gray-200');
+            });
+
+            if (currentImgUrl) {
+                const matchedItem = document.querySelector(`.gallery-photo-item[data-url="${currentImgUrl}"]`);
+                if (matchedItem) {
+                    matchedItem.classList.add('border-indigo-600', 'ring-2', 'ring-indigo-300', 'bg-indigo-50/50');
+                    matchedItem.classList.remove('border-gray-200');
+                    const overlay = matchedItem.querySelector('.photo-check-overlay');
+                    if (overlay) overlay.classList.remove('hidden');
+                    selectedGalleryImageUrl = currentImgUrl;
+                }
+            }
+
+            const fileInp = document.getElementById('modalUploadFileInput');
+            if (fileInp) fileInp.value = '';
+            const previewCont = document.getElementById('modalUploadPreviewContainer');
+            if (previewCont) previewCont.classList.add('hidden');
+            const previewBadge = document.getElementById('selectedImagePreviewBadge');
+            if (previewBadge) {
+                if (selectedGalleryImageUrl) {
+                    previewBadge.classList.remove('hidden');
+                    previewBadge.classList.add('flex');
+                } else {
+                    previewBadge.classList.add('hidden');
+                    previewBadge.classList.remove('flex');
+                }
+            }
+
+            switchImageModalTab('gallery');
+            updateSaveButtonState();
+
+            const modal = document.getElementById('quickImageModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function closeQuickImageModal() {
+            const modal = document.getElementById('quickImageModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        function switchImageModalTab(tab) {
+            const galleryTab = document.getElementById('tabContentGallery');
+            const uploadTab = document.getElementById('tabContentUpload');
+            const btnGallery = document.getElementById('tabBtnGallery');
+            const btnUpload = document.getElementById('tabBtnUpload');
+
+            if (tab === 'gallery') {
+                if (galleryTab) galleryTab.classList.remove('hidden');
+                if (uploadTab) uploadTab.classList.add('hidden');
+                if (btnGallery) {
+                    btnGallery.className = 'px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-indigo-600 text-white shadow-xs';
+                }
+                if (btnUpload) {
+                    btnUpload.className = 'px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700';
+                }
+            } else {
+                if (galleryTab) galleryTab.classList.add('hidden');
+                if (uploadTab) uploadTab.classList.remove('hidden');
+                if (btnUpload) {
+                    btnUpload.className = 'px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-indigo-600 text-white shadow-xs';
+                }
+                if (btnGallery) {
+                    btnGallery.className = 'px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700';
+                }
+            }
+        }
+
+        function selectGalleryPhoto(imgUrl, el) {
+            document.querySelectorAll('.gallery-photo-item').forEach(item => {
+                item.classList.remove('border-indigo-600', 'ring-2', 'ring-indigo-300', 'bg-indigo-50/50');
+                const overlay = item.querySelector('.photo-check-overlay');
+                if (overlay) overlay.classList.add('hidden');
+                item.classList.add('border-gray-200');
+            });
+
+            if (el) {
+                el.classList.add('border-indigo-600', 'ring-2', 'ring-indigo-300', 'bg-indigo-50/50');
+                el.classList.remove('border-gray-200');
+                const overlay = el.querySelector('.photo-check-overlay');
+                if (overlay) overlay.classList.remove('hidden');
+            }
+
+            selectedGalleryImageUrl = imgUrl;
+            selectedUploadFile = null;
+
+            const previewBadge = document.getElementById('selectedImagePreviewBadge');
+            if (previewBadge) {
+                previewBadge.classList.remove('hidden');
+                previewBadge.classList.add('flex');
+            }
+
+            updateSaveButtonState();
+        }
+
+        function previewUploadFile(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                selectedUploadFile = file;
+                selectedGalleryImageUrl = null;
+
+                const nameEl = document.getElementById('modalUploadFileName');
+                if (nameEl) nameEl.textContent = file.name;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imgEl = document.getElementById('modalUploadPreviewImg');
+                    if (imgEl) imgEl.src = e.target.result;
+                    const previewCont = document.getElementById('modalUploadPreviewContainer');
+                    if (previewCont) previewCont.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+
+                const previewBadge = document.getElementById('selectedImagePreviewBadge');
+                if (previewBadge) {
+                    previewBadge.classList.remove('hidden');
+                    previewBadge.classList.add('flex');
+                }
+
+                updateSaveButtonState();
+            }
+        }
+
+        function updateSaveButtonState() {
+            const btn = document.getElementById('btnSaveQuickImage');
+            if (!btn) return;
+            if (selectedGalleryImageUrl || selectedUploadFile) {
+                btn.removeAttribute('disabled');
+            } else {
+                btn.setAttribute('disabled', 'disabled');
+            }
+        }
+
+        function filterGalleryPhotos(searchVal) {
+            const q = (searchVal || '').toLowerCase().trim();
+            const items = document.querySelectorAll('.gallery-photo-item');
+            items.forEach(it => {
+                const name = it.getAttribute('data-name') || '';
+                const grp = it.getAttribute('data-group') || '';
+                if (!q || name.includes(q) || grp.includes(q)) {
+                    it.classList.remove('hidden');
+                } else {
+                    it.classList.add('hidden');
+                }
+            });
+        }
+
+        function filterGalleryByTag(tag) {
+            const input = document.getElementById('gallerySearchInput');
+            if (input) input.value = tag;
+            filterGalleryPhotos(tag);
+        }
+
+        function saveQuickImage() {
+            if (!currentModalProductId || (!selectedGalleryImageUrl && !selectedUploadFile)) {
+                return;
+            }
+
+            const btn = document.getElementById('btnSaveQuickImage');
+            const btnText = document.getElementById('btnSaveQuickImageText');
+            if (btn) btn.disabled = true;
+            if (btnText) btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> सेव हो रहा है...';
+
+            const formData = new FormData();
+            formData.append('_token', csrfToken);
+            if (selectedGalleryImageUrl) {
+                formData.append('image_url', selectedGalleryImageUrl);
+            }
+            if (selectedUploadFile) {
+                formData.append('image_file', selectedUploadFile);
+            }
+
+            fetch(`/seller/products/${currentModalProductId}/quick-image-update`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.image_url) {
+                    const rowImg = document.getElementById(`inv-prod-img-${currentModalProductId}`);
+                    const placeholder = document.getElementById(`inv-prod-placeholder-${currentModalProductId}`);
+                    if (rowImg) {
+                        rowImg.src = data.image_url;
+                        rowImg.classList.remove('hidden');
+                    }
+                    if (placeholder) {
+                        placeholder.classList.add('hidden');
+                    }
+
+                    showToastNotification('✅ फोटो सफलतापूर्वक अपडेट हो गई!');
+                    closeQuickImageModal();
+                } else {
+                    alert(data.message || 'फोटो अपडेट नहीं हो सकी। कृपया दोबारा प्रयास करें।');
+                }
+            })
+            .catch(err => {
+                alert('नेटवर्क एरर। कृपया दोबारा प्रयास करें।');
+            })
+            .finally(() => {
+                if (btn) btn.disabled = false;
+                if (btnText) btnText.innerHTML = '<i class="fa-solid fa-check mr-1"></i> फोटो सेट करें (Save Photo)';
+            });
+        }
+
+        function showToastNotification(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold border border-slate-700 animate-in fade-in slide-in-from-bottom duration-300';
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i> <span>${msg}</span>`;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
     </script>
+
+    <!-- 🖼️ Interactive Product Photo Gallery & Picker Modal -->
+    <div id="quickImageModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-5" onclick="closeQuickImageModal()">
+        <div class="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-gray-100 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200" onclick="event.stopPropagation()">
+            
+            <!-- Modal Header -->
+            <div class="p-4 sm:p-5 border-b border-gray-100 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-2xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-images"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                            <span>प्रोडक्ट फोटो गैलरी (Product Image Picker)</span>
+                        </h3>
+                        <p class="text-[11px] text-slate-300 truncate max-w-xs sm:max-w-md" id="quickImageModalProductName">
+                            Select photo for product
+                        </p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeQuickImageModal()" class="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body (Tabs + Content) -->
+            <div class="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
+                
+                <!-- Mode Switcher Tabs -->
+                <div class="flex items-center justify-between border-b border-gray-100 pb-3 gap-2">
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="switchImageModalTab('gallery')" id="tabBtnGallery" class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-indigo-600 text-white shadow-xs">
+                            <i class="fa-solid fa-photo-film"></i>
+                            <span>कैटलॉग गैलरी ({{ count($galleryImages ?? []) }} उपलब्ध फोटोज़)</span>
+                        </button>
+                        <button type="button" onclick="switchImageModalTab('upload')" id="tabBtnUpload" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700">
+                            <i class="fa-solid fa-cloud-arrow-up text-indigo-600"></i>
+                            <span>नया फोटो अपलोड करें (Upload New)</span>
+                        </button>
+                    </div>
+
+                    <div id="selectedImagePreviewBadge" class="hidden items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-200">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>फोटो चुनी गई</span>
+                    </div>
+                </div>
+
+                <!-- Tab 1: Existing Catalog Gallery -->
+                <div id="tabContentGallery" class="space-y-3">
+                    <!-- Search & Filters -->
+                    <div class="flex flex-col sm:flex-row gap-2 items-center justify-between">
+                        <div class="relative w-full sm:w-72">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                            <input type="text" id="gallerySearchInput" oninput="filterGalleryPhotos(this.value)" placeholder="गैलरी में खोजें (Elbow, Tee, Pipe, Socket, Brass...)" class="w-full pl-8 pr-3 py-2 rounded-xl border border-gray-200 text-xs bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-hidden">
+                        </div>
+                        <div class="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 text-[11px] font-bold text-gray-600">
+                            <span class="text-gray-400 shrink-0">फिल्टर:</span>
+                            <button type="button" onclick="filterGalleryByTag('')" class="gallery-tag-btn px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200">सब</button>
+                            <button type="button" onclick="filterGalleryByTag('upvc')" class="gallery-tag-btn px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200">UPVC</button>
+                            <button type="button" onclick="filterGalleryByTag('cpvc')" class="gallery-tag-btn px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200">CPVC</button>
+                            <button type="button" onclick="filterGalleryByTag('swr')" class="gallery-tag-btn px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200">SWR</button>
+                            <button type="button" onclick="filterGalleryByTag('elbow')" class="gallery-tag-btn px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200">Elbow</button>
+                            <button type="button" onclick="filterGalleryByTag('tee')" class="gallery-tag-btn px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200">Tee</button>
+                            <button type="button" onclick="filterGalleryByTag('pipe')" class="gallery-tag-btn px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200">Pipe</button>
+                            <button type="button" onclick="filterGalleryByTag('brass')" class="gallery-tag-btn px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200">Brass</button>
+                        </div>
+                    </div>
+
+                    <!-- Photos Grid -->
+                    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 max-h-[50vh] overflow-y-auto p-1" id="galleryPhotosGrid">
+                        @forelse($galleryImages ?? [] as $gImg)
+                            <div class="gallery-photo-item group relative rounded-2xl border-2 border-gray-200 hover:border-indigo-500 bg-white p-1.5 cursor-pointer transition shadow-2xs hover:shadow-md flex flex-col items-center justify-between"
+                                 data-url="{{ $gImg->image }}"
+                                 data-name="{{ strtolower($gImg->name) }}"
+                                 data-group="{{ strtolower($gImg->group_name ?? '') }}"
+                                 onclick="selectGalleryPhoto('{{ $gImg->image }}', this)">
+                                
+                                <div class="h-20 w-full rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center p-1">
+                                    <img src="{{ $gImg->image }}" alt="{{ $gImg->name }}" class="h-full w-full object-contain group-hover:scale-105 transition" loading="lazy">
+                                </div>
+
+                                <span class="text-[10px] font-extrabold text-gray-700 line-clamp-1 mt-1 text-center w-full" title="{{ $gImg->name }}">
+                                    {{ $gImg->name }}
+                                </span>
+
+                                <!-- Selected Checkmark Overlay -->
+                                <div class="photo-check-overlay hidden absolute top-1 right-1 h-5 w-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] shadow-sm">
+                                    <i class="fa-solid fa-check"></i>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="col-span-full py-12 text-center text-gray-400">
+                                <i class="fa-solid fa-images text-3xl mb-2 text-gray-300"></i>
+                                <p class="text-xs font-bold text-gray-500">कोई गैलरी इमेज उपलब्ध नहीं है</p>
+                                <p class="text-[11px] text-gray-400 mt-1">नई फोटो अपलोड करने के लिए "नया फोटो अपलोड करें" टैब चुनें।</p>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <!-- Tab 2: Upload New File -->
+                <div id="tabContentUpload" class="hidden space-y-4">
+                    <div class="border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center hover:border-indigo-500 transition bg-slate-50/50">
+                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-600 mb-2"></i>
+                        <p class="text-xs font-bold text-gray-700">फ़ोन की गैलरी या कंप्यूटर से फोटो चुनें</p>
+                        <p class="text-[11px] text-gray-400 mt-0.5">JPG, PNG, WebP (अधिकतम 4MB)</p>
+                        
+                        <input type="file" id="modalUploadFileInput" accept="image/*" class="hidden" onchange="previewUploadFile(this)">
+                        <button type="button" onclick="document.getElementById('modalUploadFileInput').click()" class="mt-3 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition">
+                            <i class="fa-solid fa-folder-open mr-1"></i> फ़ाइल ब्राउज़ करें
+                        </button>
+                    </div>
+
+                    <div id="modalUploadPreviewContainer" class="hidden p-3 rounded-2xl bg-white border border-gray-200 flex items-center gap-3">
+                        <img id="modalUploadPreviewImg" src="" class="h-16 w-16 object-contain rounded-xl border border-gray-200 bg-gray-50">
+                        <div>
+                            <p class="text-xs font-bold text-gray-800" id="modalUploadFileName">Selected file</p>
+                            <span class="text-[10px] text-emerald-600 font-bold">✨ अपलोड के लिए तैयार</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 sm:p-5 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
+                <button type="button" onclick="closeQuickImageModal()" class="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 text-xs font-bold hover:bg-gray-100 transition">
+                    रद्द करें (Cancel)
+                </button>
+
+                <button type="button" id="btnSaveQuickImage" onclick="saveQuickImage()" disabled class="px-6 py-2.5 rounded-xl bg-indigo-600 disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-indigo-700 text-white text-xs font-black shadow-md shadow-indigo-600/20 transition flex items-center gap-2">
+                    <i class="fa-solid fa-check"></i>
+                    <span id="btnSaveQuickImageText">फोटो सेट करें (Save Photo)</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
 </body>
 </html>

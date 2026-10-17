@@ -79,9 +79,18 @@ class ProductController extends Controller
             })
             ->values();
 
+        $galleryImages = $user->products()
+            ->whereNotNull('image')
+            ->where('image', '!=', '')
+            ->select('id', 'name', 'image', 'group_name')
+            ->orderBy('name')
+            ->get()
+            ->unique('image')
+            ->values();
+
         return view('seller.products.index', compact(
             'products', 'folders', 'categories', 'activeFolder', 'activeCategory', 'search',
-            'productCardsCount', 'totalVariantsCount'
+            'productCardsCount', 'totalVariantsCount', 'galleryImages'
         ));
     }
 
@@ -171,7 +180,16 @@ class ProductController extends Controller
 
         $product->load('images');
         $categories = Category::all();
-        return view('seller.products.edit', compact('product', 'categories'));
+        $galleryImages = Auth::user()->products()
+            ->whereNotNull('image')
+            ->where('image', '!=', '')
+            ->select('id', 'name', 'image', 'group_name')
+            ->orderBy('name')
+            ->get()
+            ->unique('image')
+            ->values();
+
+        return view('seller.products.edit', compact('product', 'categories', 'galleryImages'));
     }
 
     public function update(Request $request, Product $product)
@@ -187,6 +205,7 @@ class ProductController extends Controller
             'category_id' => 'nullable|exists:categories,id',
             'new_category_name' => 'nullable|string|max:100',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
+            'existing_image_url' => 'nullable|string|max:1000',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
             'video_url' => 'nullable|url|max:500',
         ]);
@@ -208,6 +227,8 @@ class ProductController extends Controller
         $imageName = $product->image;
         if ($request->hasFile('image')) {
             $imageName = CloudinaryService::upload($request->file('image'), 'vyaparindia/products');
+        } elseif ($request->filled('existing_image_url')) {
+            $imageName = $request->input('existing_image_url');
         }
 
         $product->update([

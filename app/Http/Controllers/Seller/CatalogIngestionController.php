@@ -417,7 +417,16 @@ class CatalogIngestionController extends Controller
 
         $sellerPage = Auth::user()->sellerPage;
 
-        return view('seller.inventory.index', compact('products', 'totalCatalogItems', 'lowStockCount', 'outOfStockCount', 'sellerCategories', 'sellerPage'));
+        $galleryImages = Product::where('user_id', $sellerId)
+            ->whereNotNull('image')
+            ->where('image', '!=', '')
+            ->select('id', 'name', 'image', 'group_name')
+            ->orderBy('name')
+            ->get()
+            ->unique('image')
+            ->values();
+
+        return view('seller.inventory.index', compact('products', 'totalCatalogItems', 'lowStockCount', 'outOfStockCount', 'sellerCategories', 'sellerPage', 'galleryImages'));
     }
 
     /**
@@ -1964,6 +1973,99 @@ PAGE {$page} TEXT CONTENT:
     }
 
     /**
+     * 🔄 Load all existing live product cards and variants directly into Excel Mapper Spreadsheet.
+     * Enables 1 single source of truth: changes reflect in the sheet and sync to cards automatically!
+     */
+    public function loadLiveCardsToSheet(Request $request)
+    {
+        $userId = Auth::id() ?: 1;
+        $products = Product::where('user_id', $userId)
+            ->with(['category', 'variants'])
+            ->orderBy('name')
+            ->get();
+
+        if ($products->isEmpty()) {
+            return back()->withErrors(['आपके स्टोर पर अभी कोई लाइव प्रोडक्ट्स उपलब्ध नहीं हैं। पहले एक्सेल शीट अपलोड करें।']);
+        }
+
+        $cardItems = [];
+        $totalVariants = 0;
+
+        foreach ($products as $p) {
+            $variants = [];
+            if ($p->variants && $p->variants->isNotEmpty()) {
+                foreach ($p->variants as $v) {
+                    $totalVariants++;
+                    $variants[] = [
+                        'variant_name' => $v->variant_name,
+                        'size' => $v->size ?: $v->variant_name,
+                        'product_code' => $v->sku,
+                        'sku' => $v->sku,
+                        'hsn_code' => $p->hsn_code ?: '39174000',
+                        'mrp' => (float)($v->mrp ?: $p->mrp),
+                        'retail_price' => (float)($v->retail_price ?: ($v->price ?: $p->price)),
+                        'wholesale_price' => (float)($v->wholesale_price ?: $v->retail_price),
+                        'raw_rate' => (float)$v->purchase_price,
+                        'cost_price_2' => (float)$v->wholesale_price,
+                        'cost_price_3' => 0,
+                        'stock_quantity' => (int)$v->stock_quantity,
+                        'packing_1' => $v->attributes['packing_1'] ?? '',
+                        'packing_2' => $v->attributes['packing_2'] ?? '',
+                    ];
+                }
+            } else {
+                $totalVariants++;
+                $variants[] = [
+                    'variant_name' => 'Standard',
+                    'size' => 'Standard',
+                    'product_code' => $p->sku,
+                    'sku' => $p->sku,
+                    'hsn_code' => $p->hsn_code ?: '39174000',
+                    'mrp' => (float)$p->mrp,
+                    'retail_price' => (float)$p->price,
+                    'wholesale_price' => (float)($p->wholesale_price ?: $p->price),
+                    'raw_rate' => (float)$p->purchase_price,
+                    'cost_price_2' => (float)($p->wholesale_price ?: $p->price),
+                    'cost_price_3' => 0,
+                    'stock_quantity' => (int)$p->stock_quantity,
+                    'packing_1' => '',
+                    'packing_2' => '',
+                ];
+            }
+
+            $cardItems[] = [
+                'name' => $p->name,
+                'category' => $p->category->name ?? ($p->group_name ?: 'Plumbing'),
+                'group_type' => $p->group_name ?: ($p->category->name ?? 'Plumbing'),
+                'brand' => $p->brand ?: 'Plasto',
+                'image_url' => $p->image,
+                'hsn_code' => $p->hsn_code ?: '39174000',
+                'variants' => $variants,
+            ];
+        }
+
+        $sheetName = 'Live Store Cards (' . count($cardItems) . ' Cards, ' . $totalVariants . ' Sizes)';
+
+        $job = CatalogIngestionJob::updateOrCreate(
+            [
+                'user_id' => $userId,
+                'filename' => 'LIVE_CARDS_MASTER_SYNC.xlsx',
+            ],
+            [
+                'status' => 'draft',
+                'total_products_detected' => count($cardItems),
+                'extracted_data' => [
+                    'sheet_name' => $sheetName,
+                    'products' => $cardItems,
+                ],
+            ]
+        );
+
+        return redirect()->route('seller.catalog.excel_mapper', $job->id)
+            ->with('success', "✅ लाइव स्टोर के सभी " . count($cardItems) . " मुख्य कार्ड्स और " . $totalVariants . " साइज़ वेरिएंट्स एक्सेल शीट में लोड हो गए हैं! अब आप यहाँ से रेट्स या नाम बदलकर 1-क्लिक में सभी कार्ड्स में सिंक कर सकते हैं।");
+    }
+
+    /**
      * 📊 Page 3: Excel Multi-Row Mapper (Select 6-8 Lines -> 1-Click Batch Image Link)
      */
     public function excelMapper(Request $request, $jobId = null)
@@ -1977,9 +2079,12 @@ PAGE {$page} TEXT CONTENT:
             $job = CatalogIngestionJob::where('id', $request->input('job_id'))->where('user_id', $userId)->first();
         }
 
-        // Auto-load latest job so seller never loses their uploaded excel data
-        if (!$job) {
-            $job = CatalogIngestionJob::where('user_id', $userId)->latest()->first();
+        // Only auto-load un-published/pending draft job so old published batches don't haunt the mapper
+        if (!$job && !$request->has('view_published')) {
+            $job = CatalogIngestionJob::where('user_id', $userId)
+                ->where('status', '!=', 'published')
+                ->latest()
+                ->first();
         }
 
         $recentJobs = CatalogIngestionJob::where('user_id', $userId)->latest()->take(5)->get();
@@ -2402,6 +2507,9 @@ PAGE {$page} TEXT CONTENT:
                 $prodBrand = !empty($prodData['brand']) ? trim($prodData['brand']) : (stripos($prodData['name'], 'Astral') !== false ? 'Astral' : (stripos($prodData['name'], 'Supreme') !== false ? 'Supreme' : 'Plasto'));
                 $prodGroup = !empty($prodData['group_type']) ? trim($prodData['group_type']) : (!empty($prodData['group']) ? trim($prodData['group']) : (stripos($catName, 'swr') !== false || stripos($prodData['name'], 'trap') !== false ? 'Sanitary & Drainage' : 'Plumbing'));
 
+                $existingProd = Product::where('user_id', $userId)->where('name', $prodData['name'])->first();
+                $finalImage = !empty($prodData['image_url']) ? $prodData['image_url'] : ($existingProd->image ?? null);
+
                 $product = Product::updateOrCreate(
                     [
                         'user_id' => $userId,
@@ -2414,7 +2522,7 @@ PAGE {$page} TEXT CONTENT:
                         'slug' => Str::slug($prodData['name']) . '-' . Str::random(5),
                         'description' => "High grade {$prodData['name']} manufactured to industrial specifications.",
                         'hsn_code' => $prodHsn,
-                        'image' => $prodData['image_url'] ?? null,
+                        'image' => $finalImage,
                         'purchase_price' => $basePurchase,
                         'wholesale_price' => $baseWholesale,
                         'price' => $baseRetail,

@@ -110,15 +110,28 @@
                     <input type="number" name="price" value="{{ old('price', $product->price) }}" step="0.01" required class="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs font-bold focus:border-blue-500 focus:outline-hidden">
                 </div>
 
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Main Cover Photo (Optional)</label>
-                    <input type="file" name="image" accept="image/*" class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
-                    @if ($product->image)
-                        <div class="mt-2 flex items-center gap-2">
-                            <span class="text-[11px] text-gray-500 font-semibold">Current Main:</span>
-                            <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="h-10 w-10 object-cover rounded-lg border border-gray-200 shadow-xs">
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-bold text-gray-700">Main Cover Photo (Optional)</label>
+                        <button type="button" onclick="openEditGalleryModal()" class="px-3 py-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold transition flex items-center gap-1.5 border border-indigo-200">
+                            <i class="fa-solid fa-photo-film text-indigo-600"></i>
+                            <span>कैटलॉग गैलरी से चुनें ({{ count($galleryImages ?? []) }} Photos)</span>
+                        </button>
+                    </div>
+
+                    <input type="hidden" name="existing_image_url" id="existing_image_url" value="">
+                    <input type="file" name="image" id="edit_file_image" accept="image/*" onchange="previewEditUploadedFile(this)" class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
+
+                    <div id="cover_photo_preview_container" class="mt-2 flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl border border-gray-200 {{ $product->image ? '' : 'hidden' }}">
+                        <img id="cover_photo_preview_img" src="{{ $product->image_url }}" alt="{{ $product->name }}" class="h-12 w-12 object-contain rounded-lg border border-gray-200 bg-white shadow-2xs">
+                        <div class="flex-1 min-w-0">
+                            <span class="text-[11px] text-gray-800 font-bold block" id="cover_photo_status_text">Current Photo</span>
+                            <span class="text-[10px] text-emerald-600 font-semibold" id="cover_photo_source_text">Live Catalog Image</span>
                         </div>
-                    @endif
+                        <button type="button" onclick="clearSelectedCoverPhoto()" class="text-xs text-rose-600 hover:text-rose-800 font-bold px-2 py-1" title="फोटो हटाएं">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Add More Gallery Photos -->
@@ -200,9 +213,157 @@
                 })
                 .catch(() => alert('Network error deleting image.'));
             }
+
+            // ==========================================
+            // 🖼️ EDIT PAGE GALLERY PICKER MODAL
+            // ==========================================
+            function openEditGalleryModal() {
+                const modal = document.getElementById('editGalleryModal');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                }
+            }
+
+            function closeEditGalleryModal() {
+                const modal = document.getElementById('editGalleryModal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            }
+
+            function selectPhotoForEdit(imgUrl, imgName) {
+                const hiddenInput = document.getElementById('existing_image_url');
+                if (hiddenInput) hiddenInput.value = imgUrl;
+
+                // Clear file input so existing URL takes precedence
+                const fileInp = document.getElementById('edit_file_image');
+                if (fileInp) fileInp.value = '';
+
+                // Update Preview container
+                const previewImg = document.getElementById('cover_photo_preview_img');
+                if (previewImg) previewImg.src = imgUrl;
+
+                const statusText = document.getElementById('cover_photo_status_text');
+                if (statusText) statusText.textContent = imgName || 'Selected from Gallery';
+
+                const sourceText = document.getElementById('cover_photo_source_text');
+                if (sourceText) sourceText.textContent = '✨ Selected from Catalog Gallery';
+
+                const previewCont = document.getElementById('cover_photo_preview_container');
+                if (previewCont) previewCont.classList.remove('hidden');
+
+                closeEditGalleryModal();
+            }
+
+            function previewEditUploadedFile(input) {
+                if (input.files && input.files[0]) {
+                    const file = input.files[0];
+                    // Clear existing URL so uploaded file is used
+                    const hiddenInput = document.getElementById('existing_image_url');
+                    if (hiddenInput) hiddenInput.value = '';
+
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const previewImg = document.getElementById('cover_photo_preview_img');
+                        if (previewImg) previewImg.src = e.target.result;
+
+                        const statusText = document.getElementById('cover_photo_status_text');
+                        if (statusText) statusText.textContent = file.name;
+
+                        const sourceText = document.getElementById('cover_photo_source_text');
+                        if (sourceText) sourceText.textContent = '📤 New File to Upload';
+
+                        const previewCont = document.getElementById('cover_photo_preview_container');
+                        if (previewCont) previewCont.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+
+            function clearSelectedCoverPhoto() {
+                const hiddenInput = document.getElementById('existing_image_url');
+                if (hiddenInput) hiddenInput.value = '';
+
+                const fileInp = document.getElementById('edit_file_image');
+                if (fileInp) fileInp.value = '';
+
+                const previewCont = document.getElementById('cover_photo_preview_container');
+                if (previewCont) previewCont.classList.add('hidden');
+            }
+
+            function filterEditGalleryPhotos(searchVal) {
+                const q = (searchVal || '').toLowerCase().trim();
+                const items = document.querySelectorAll('.edit-gallery-item');
+                items.forEach(it => {
+                    const name = it.getAttribute('data-name') || '';
+                    if (!q || name.includes(q)) {
+                        it.classList.remove('hidden');
+                    } else {
+                        it.classList.add('hidden');
+                    }
+                });
+            }
         </script>
 
     </main>
+
+    <!-- 🖼️ Catalog Gallery Picker Modal for Edit Page -->
+    <div id="editGalleryModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-5" onclick="closeEditGalleryModal()">
+        <div class="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] shadow-2xl border border-gray-100 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200" onclick="event.stopPropagation()">
+            <div class="p-4 sm:p-5 border-b border-gray-100 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-2xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-photo-film"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm sm:text-base font-black text-white">कैटलॉग फोटो गैलरी (Catalog Gallery)</h3>
+                        <p class="text-[11px] text-slate-300">पहले से अपलोड की गई तस्वीरों में से 1-क्लिक में चुनें</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeEditGalleryModal()" class="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <div class="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
+                <div class="relative w-full">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="text" id="editGallerySearchInput" oninput="filterEditGalleryPhotos(this.value)" placeholder="गैलरी में खोजें (Elbow, Tee, Pipe, Socket, Brass...)" class="w-full pl-8 pr-3 py-2.5 rounded-xl border border-gray-200 text-xs bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-hidden">
+                </div>
+
+                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 max-h-[55vh] overflow-y-auto p-1" id="editGalleryGrid">
+                    @forelse($galleryImages ?? [] as $gImg)
+                        <div class="edit-gallery-item group relative rounded-2xl border-2 border-gray-200 hover:border-indigo-500 bg-white p-1.5 cursor-pointer transition shadow-2xs hover:shadow-md flex flex-col items-center justify-between"
+                             data-url="{{ $gImg->image }}"
+                             data-name="{{ strtolower($gImg->name) }}"
+                             onclick="selectPhotoForEdit('{{ $gImg->image }}', '{{ addslashes($gImg->name) }}')">
+                            
+                            <div class="h-20 w-full rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center p-1">
+                                <img src="{{ $gImg->image }}" alt="{{ $gImg->name }}" class="h-full w-full object-contain group-hover:scale-105 transition" loading="lazy">
+                            </div>
+
+                            <span class="text-[10px] font-extrabold text-gray-700 line-clamp-1 mt-1 text-center w-full" title="{{ $gImg->name }}">
+                                {{ $gImg->name }}
+                            </span>
+                        </div>
+                    @empty
+                        <div class="col-span-full py-12 text-center text-gray-400">
+                            <i class="fa-solid fa-images text-3xl mb-2 text-gray-300"></i>
+                            <p class="text-xs font-bold text-gray-500">कोई गैलरी इमेज उपलब्ध नहीं है</p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="p-4 sm:p-5 border-t border-gray-100 bg-gray-50 flex items-center justify-end">
+                <button type="button" onclick="closeEditGalleryModal()" class="px-5 py-2.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold transition">
+                    बंद करें (Close)
+                </button>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>
