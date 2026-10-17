@@ -858,13 +858,14 @@ class ProductSpreadsheetController extends Controller
                             $varUpdates['stock_quantity'] = $stock;
                             $varUpdates['track_inventory'] = true;
                         }
-                        if (!empty($sizeVariant)) {
+                        // 🛡️ Immutable SKU & Established Size Guard: Never overwrite existing valid SKUs or established sizes during auto-sync
+                        if (!empty($sizeVariant) && (empty($matchedVariant->variant_name) || in_array(strtolower(trim($matchedVariant->variant_name)), ['standard', 'std', 'default']))) {
                             $varUpdates['variant_name'] = $sizeVariant;
                             $attrs = $matchedVariant->custom_attributes ?? [];
                             $attrs['size'] = $sizeVariant;
                             $varUpdates['attributes'] = $attrs;
                         }
-                        if (!empty($productCode)) {
+                        if (!empty($productCode) && empty($matchedVariant->sku)) {
                             $varUpdates['sku'] = $productCode;
                         }
 
