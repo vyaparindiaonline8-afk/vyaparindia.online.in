@@ -1971,6 +1971,7 @@
                         card_id: groupedCardNextId++,
                         parent_name: prod.name,
                         category: cat,
+                        description: prod.description || '',
                         image_url: img,
                         asset_url: assetUrl,
                         variants: variants.map((v) => ({
@@ -1995,6 +1996,7 @@
                         product_code: v.product_code || v.sku || '',
                         hsn_code: v.hsn_code || '39174000',
                         product_name: prod.name,
+                        description: prod.description || '',
                         size: v.size || v.variant_name || 'Standard',
                         packing_1: v.packing_1 || '',
                         packing_2: v.packing_2 || '',
@@ -2156,9 +2158,18 @@
                 raw = raw.replace(skuMatch[0], ' ').trim();
             }
 
-            // 3. Detect and strip Size (mm, inch, dimension)
+            // 3. Detect and strip Description in parentheses e.g. (Auto Stop)
+            let description = '';
+            const parenMatch = raw.match(/\(([^)]+)\)/);
+            if (parenMatch) {
+                description = parenMatch[1].trim();
+                raw = raw.replace(parenMatch[0], ' ').trim();
+            }
+
+            // 4. Detect and strip Size (mm, inch, meter, dimension)
             let size = '';
             const sizePatterns = [
+                /\b\d+(\.\d+)?\s*(m|mtr|meter)\s*[xX*]\s*\d+(\.\d+)?\s*(mm)?\b/i,
                 /\b\d+(\.\d+)?\s*(mm|cm|mtr|meter)\b/i,
                 /\b\d+(\.\d+)?\s*(inch|\"|'')\b/i,
                 /\b\d+\s*x\s*\d+(\.\d+)?\s*(mm|inch|\")?\b/i,
@@ -2173,7 +2184,14 @@
                 }
             }
 
-            // 4. Detect packing numbers
+            // Check measuring tape SKU model codes (3016 -> 3m x 16mm, 5019 -> 5m x 19mm, 1025 -> 10m x 25mm)
+            if (!size && sku) {
+                if (/3016/.test(sku)) size = '3 Meter x 16mm';
+                else if (/5019/.test(sku)) size = '5 Meter x 19mm';
+                else if (/1025/.test(sku)) size = '10 Meter x 25mm';
+            }
+
+            // 5. Detect packing numbers
             let pack1 = '';
             let pack2 = '';
             const boxM = raw.match(/box[\:\s]*(\d+)/i);
@@ -2224,6 +2242,7 @@
 
             return {
                 name: cleanName,
+                description: description,
                 size: size || 'Standard',
                 pack1: pack1,
                 pack2: pack2,
@@ -2250,20 +2269,28 @@
             if (structuredRows && structuredRows.length > 0) {
                 structuredRows.forEach((r, idx) => {
                     const name = (r.name || r.product_name || `Item ${idx + 1}`).trim();
-                    const size = (r.size && r.size !== '-') ? r.size.trim() : 'Standard';
+                    let size = (r.size && r.size !== '-') ? r.size.trim() : '';
+                    const sku = (r.sku && r.sku !== '-') ? r.sku.trim() : `ITM-${100 + idx}`;
+                    if (!size || size === 'Standard') {
+                        if (/3016/.test(sku)) size = '3 Meter x 16mm';
+                        else if (/5019/.test(sku)) size = '5 Meter x 19mm';
+                        else if (/1025/.test(sku)) size = '10 Meter x 25mm';
+                        else size = size || 'Standard';
+                    }
                     const mrp = parseFloat(r.mrp) || (100 + (idx * 20));
                     const cost = Math.round(mrp * 0.65);
                     const retail = Math.round(mrp * 0.88);
                     const category = (r.category && r.category !== '-') ? r.category.trim() : targetCategory;
-                    const sku = (r.sku && r.sku !== '-') ? r.sku.trim() : `ITM-${100 + idx}`;
                     const pack1 = (r.packing_1 && r.packing_1 !== '-') ? r.packing_1.trim() : (r.pack1 || '');
                     const pack2 = (r.packing_2 && r.packing_2 !== '-') ? r.packing_2.trim() : (r.pack2 || '');
+                    const desc = (r.description && r.description !== '-') ? r.description.trim() : '';
 
                     dynamicRows.push({
                         id: dynamicRowNextId++,
                         product_code: sku,
                         hsn_code: '39174000',
                         product_name: name,
+                        description: desc,
                         size: size,
                         packing_1: pack1,
                         packing_2: pack2,
@@ -2306,6 +2333,7 @@
                         product_code: parsed.sku || `ITM-${100 + idx}`,
                         hsn_code: '39174000',
                         product_name: parsed.name,
+                        description: parsed.description || '',
                         size: parsed.size,
                         packing_1: parsed.pack1,
                         packing_2: parsed.pack2,
@@ -3024,11 +3052,14 @@
                 const firstRow = rowsInFamily[0];
                 const assignedImg = rowsInFamily.find(r => r.image_url)?.image_url || '';
                 const assignedAsset = rowsInFamily.find(r => r.asset_url)?.asset_url || (assignedImg ? ('/' + assignedImg.replace(/^\//, '')) : '');
+                const rowWithDesc = rowsInFamily.find(r => r.description && r.description.trim().length > 0);
+                const assignedDesc = rowWithDesc ? rowWithDesc.description.trim() : '';
 
                 const newCard = {
                     card_id: groupedCardNextId++,
                     parent_name: familyName,
                     category: firstRow.category || firstRow.group_type || (isScoped ? activeCategory : 'General Hardware'),
+                    description: assignedDesc,
                     image_url: assignedImg,
                     asset_url: assignedAsset,
                     variants: rowsInFamily.map(r => ({
@@ -3036,6 +3067,7 @@
                         product_code: r.product_code || '',
                         hsn_code: r.hsn_code || '39174000',
                         size: r.size || 'Standard',
+                        description: r.description || '',
                         packing_1: r.packing_1 || '',
                         packing_2: r.packing_2 || '',
                         mrp: r.mrp,
@@ -3098,11 +3130,14 @@
 
             const assignedImg = specificImgUrl || selectedRows.find(r => r.image_url)?.image_url || preselectedImg || '';
             const assignedAsset = specificAssetUrl || selectedRows.find(r => r.asset_url)?.asset_url || (preselectedImg ? ('/' + preselectedImg.replace(/^\//, '')) : '');
+            const rowWithDesc = selectedRows.find(r => r.description && r.description.trim().length > 0);
+            const assignedDesc = rowWithDesc ? rowWithDesc.description.trim() : '';
 
             const newCard = {
                 card_id: groupedCardNextId++,
                 parent_name: parentTitle,
                 category: firstRow.category || firstRow.group_type || 'General Hardware',
+                description: assignedDesc,
                 image_url: assignedImg,
                 asset_url: assignedAsset,
                 variants: selectedRows.map(r => ({
@@ -3110,6 +3145,7 @@
                     product_code: r.product_code || '',
                     hsn_code: r.hsn_code || '39174000',
                     size: r.size || 'Standard',
+                    description: r.description || '',
                     packing_1: r.packing_1 || '',
                     packing_2: r.packing_2 || '',
                     mrp: r.mrp,
@@ -3214,12 +3250,27 @@
                                     </div>
                                 </div>
 
-                                <div class="flex-1">
-                                    <div class="flex items-center gap-2 mb-1.5">
-                                        <input list="allCategoriesList" value="${escapeHtml(cardCategory)}" onchange="updateGroupedCardField(${c.card_id}, 'category', this.value); refreshCategoryFilterTabs();" class="text-xs font-bold py-1 px-2.5 rounded-xl border border-indigo-200 bg-white text-indigo-900 focus:ring-2 focus:ring-indigo-500 w-44" placeholder="Category">
-                                        <span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-extrabold text-[10px]">${c.variants.length} Sizes Included</span>
+                                <div class="flex-1 min-w-[280px] space-y-2">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-[10px] font-bold text-gray-400 uppercase">Category:</span>
+                                            <input list="allCategoriesList" value="${escapeHtml(cardCategory)}" onchange="updateGroupedCardField(${c.card_id}, 'category', this.value); refreshCategoryFilterTabs();" class="text-xs font-bold py-1 px-2.5 rounded-xl border border-indigo-200 bg-white text-indigo-900 focus:ring-2 focus:ring-indigo-500 w-44 shadow-2xs" placeholder="Category">
+                                        </div>
+                                        <span class="px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 font-extrabold text-[10px] border border-indigo-100 flex items-center gap-1">
+                                            <i class="fa-solid fa-layer-group text-[9px]"></i> ${c.variants.length} Sizes Included
+                                        </span>
                                     </div>
-                                    <input type="text" value="${escapeHtml(c.parent_name)}" oninput="updateGroupedCardField(${c.card_id}, 'parent_name', this.value)" class="w-full text-base font-black text-gray-900 border border-transparent hover:border-gray-300 focus:border-indigo-600 focus:bg-white rounded-lg px-2 py-1 transition bg-transparent" placeholder="e.g. UPVC 90° Elbow Heavy Duty">
+                                    <div>
+                                        <label class="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-0.5">Product Title / Name (Click to edit)</label>
+                                        <input type="text" value="${escapeHtml(c.parent_name)}" oninput="updateGroupedCardField(${c.card_id}, 'parent_name', this.value)" class="w-full text-sm font-black text-gray-900 border border-gray-200 hover:border-indigo-300 focus:border-indigo-600 focus:bg-white rounded-xl px-3 py-1.5 transition bg-slate-50/70" placeholder="e.g. Yorker Measuring Tape / UPVC 90° Elbow">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-indigo-700 uppercase tracking-wider mb-0.5 flex items-center justify-between">
+                                            <span class="flex items-center gap-1"><i class="fa-solid fa-align-left text-indigo-500"></i> Product Description / Specifications / Series:</span>
+                                            <span class="text-[9px] font-normal text-gray-400">Card & Website par customer ko dikhega</span>
+                                        </label>
+                                        <textarea rows="2" oninput="updateGroupedCardField(${c.card_id}, 'description', this.value)" class="w-full text-xs text-gray-800 border border-indigo-100 hover:border-indigo-300 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-500 rounded-xl p-2.5 bg-indigo-50/20 focus:bg-white transition resize-y" placeholder="e.g. Heavy Duty Auto Stop Steel Tape / Schedule 40 ISI standard high pressure fitting...">${escapeHtml(c.description || '')}</textarea>
+                                    </div>
                                 </div>
                             </div>
 
@@ -3347,10 +3398,12 @@
                     product_code: v.product_code || '',
                     hsn_code: v.hsn_code || '39174000',
                     product_name: `${card.parent_name} ${v.size === 'Standard' ? '' : v.size}`.trim() || card.parent_name,
+                    description: card.description || v.description || '',
                     size: v.size || 'Standard',
                     packing_1: v.packing_1 || '',
                     packing_2: v.packing_2 || '',
                     group_type: card.category,
+                    category: card.category,
                     mrp: v.mrp,
                     purchase_cost: v.purchase_cost,
                     cost_price_2: v.cost_price_2 || 0,
@@ -3928,8 +3981,9 @@
                         <td class="p-3">
                             <input list="allCategoriesList" value="${escapeHtml(catVal)}" onchange="updateDynamicRowField(${r.id}, 'group_type', this.value); updateDynamicRowField(${r.id}, 'category', this.value); refreshCategoryFilterTabs();" class="text-xs font-bold py-1 px-2 rounded-lg border border-gray-200 bg-white text-gray-800 focus:ring-1 focus:ring-emerald-500 w-28" placeholder="Category" title="Select or type Category">
                         </td>
-                        <td class="p-3 min-w-[200px]">
+                        <td class="p-3 min-w-[220px]">
                             <input type="text" value="${escapeHtml(r.product_name)}" oninput="updateDynamicRowField(${r.id}, 'product_name', this.value)" class="w-full text-xs font-bold text-gray-900 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" placeholder="Product Name">
+                            <input type="text" value="${escapeHtml(r.description || '')}" oninput="updateDynamicRowField(${r.id}, 'description', this.value)" class="w-full text-[10px] text-gray-500 border border-transparent hover:border-gray-300 focus:border-indigo-500 focus:bg-white rounded px-1 py-0.5 transition bg-transparent mt-0.5" placeholder="Specs / Series / Desc" title="Product Description / Series">
                         </td>
                         <td class="p-3">
                             <input type="text" value="${escapeHtml(r.product_code || '')}" placeholder="Item Code" oninput="updateDynamicRowField(${r.id}, 'product_code', this.value)" class="w-24 text-[11px] font-mono text-gray-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" title="Product / Item Code (SKU)">
@@ -4099,7 +4153,7 @@
             }
 
             const sheetName = (document.getElementById('dynamicSheetName')?.value || 'catalog').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-            let csv = "Category,Product Code,HSN Code,Product Name,Size/Dimension,Packing 1 (Box),Packing 2 (Carton),MRP,Purchase Cost 1,Cost Price 2,Cost Price 3,Selling Price,Stock,Image URL\n";
+            let csv = "Category,Product Code,HSN Code,Product Name,Description,Size/Dimension,Packing 1 (Box),Packing 2 (Carton),MRP,Purchase Cost 1,Cost Price 2,Cost Price 3,Selling Price,Stock,Image URL\n";
 
             // Add grouped cards
             groupedProductCards.forEach(c => {
@@ -4110,6 +4164,7 @@
                         escapeCsv(v.product_code || ''),
                         escapeCsv(v.hsn_code || '39174000'),
                         escapeCsv(c.parent_name),
+                        escapeCsv(c.description || v.description || ''),
                         escapeCsv(v.size || 'Standard'),
                         escapeCsv(v.packing_1 || ''),
                         escapeCsv(v.packing_2 || ''),
@@ -4132,6 +4187,7 @@
                     escapeCsv(r.product_code || ''),
                     escapeCsv(r.hsn_code || '39174000'),
                     escapeCsv(r.product_name),
+                    escapeCsv(r.description || ''),
                     escapeCsv(r.size || 'Standard'),
                     escapeCsv(r.packing_1 || ''),
                     escapeCsv(r.packing_2 || ''),

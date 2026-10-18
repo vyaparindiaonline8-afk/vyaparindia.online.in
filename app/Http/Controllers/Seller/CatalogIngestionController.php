@@ -2041,7 +2041,7 @@ class CatalogIngestionController extends Controller
             } catch (\Throwable $e) {}
         }
 
-        $systemPrompt = "You are VyaparIndia AI Catalog Copilot, an expert universal AI catalog digitizer and business assistant for ALL wholesale B2B and retail sectors across India (Hardware, Sanitaryware, Electricals, Pipes & Fittings, FMCG, Grocery, Clothing & Apparel, Paints, Building Materials, Agriculture, Electronics, and Automobiles).
+        $systemPrompt = "You are VyaparIndia AI Catalog Copilot, an expert universal AI catalog digitizer and business assistant for ALL wholesale B2B and retail sectors across India (Hardware, Hand Tools, Measuring Tapes, Blades, Sanitaryware, Electricals, Pipes & Fittings, FMCG, Grocery, Clothing & Apparel, Paints, Building Materials, Agriculture, Electronics, and Automobiles).
 {$masterContext}Current Catalog Page: Page {$page}.
 Extracted text lines on active page (ordered line-by-line horizontally from top to bottom):
 \"\"\"
@@ -2050,14 +2050,20 @@ Extracted text lines on active page (ordered line-by-line horizontally from top 
 
 User question: \"{$prompt}\"
 
-CRITICAL INSTRUCTIONS FOR CATALOG ROW & PRICE MATCHING:
+CRITICAL INSTRUCTIONS FOR UNIVERSAL CATALOG ROW, SPECS & PRICE MATCHING:
 1. In the text above, each line represents a single horizontal row across the catalog page.
 2. The price/MRP on a line STRICTLY BELONGS to the product variant or size on THAT SAME LINE.
 3. NEVER mix, swap, or borrow prices from other lines or lower down the page! Do NOT assign bottom table rates to items at the top.
-4. When a product heading (e.g. \"UPVC ELBOW 90°\") appears above a table of sizes, use that product heading as the \"Product Name\" for all size rows in that section, with each row keeping its own size and MRP.
-5. If no price is visible for an item on its row, mark MRP as '-' or '0'. Never invent or hallucinate prices.
-6. Always format product listings as a neat Markdown Table:
-| Product Name | Size / Variant | MRP (INR) | Pack / Code |";
+4. When a product heading appears above a table of items/sizes, use that heading as the \"Product Name\" for all rows in that section.
+5. NEVER IGNORE DESCRIPTIONS, SERIES, OR SPECIFICATIONS: Always extract the product's series, model name, material or sub-description (e.g. 'Auto Stop', 'Neo Lock', 'First Choice', 'Pro Model', 'Jupiter', 'Steel Strip', 'Schedule 40', 'Brass Insert', 'High Gloss') into the Description / Series column!
+6. ACCURATE SIZES & DIMENSIONS (NO HALLUCINATIONS):
+   - For measuring tapes and tools: extract tape dimensions (e.g. '3 Meter x 16mm', '5 Meter x 19mm', '10m x 25mm' from codes like 3016, 5019, 1025 or text). NEVER hallucinate plumbing pipe sizes (like 1/2\", 3/4\") for non-pipe items!
+   - For plumbing/pipes: extract pipe sizes (e.g. '1/2 inch (15mm)', '1 inch (25mm)', '110mm').
+   - For paints/chemicals: extract volume/weight (e.g. '1 Ltr', '4 Ltr', '20 Ltr', '250ml').
+   - DO NOT default everything to 'Standard' if size, length, or dimension is identifiable.
+7. If no price is visible for an item on its row, mark MRP as '-' or '0'. Never invent or hallucinate prices.
+8. Always format product listings as a neat Markdown Table with these 5 columns:
+| Product Name | Description / Series | Size / Dimension | MRP (INR) | Pack / Code |";
 
         // If OpenAI key is present (starts with sk- or env variable set)
         if ($openAiKey && (str_starts_with($openAiKey, 'sk-') || !$geminiKey)) {
@@ -2148,24 +2154,26 @@ CRITICAL INSTRUCTIONS FOR CATALOG ROW & PRICE MATCHING:
         $page = $request->input('page');
         $pageText = substr($request->input('page_text'), 0, 15000);
 
-        $prompt = "You are an expert product catalog digitizer for wholesale B2B hardware, plumbing, sanitary, and electrical price lists.
+        $prompt = "You are an expert product catalog digitizer for wholesale B2B catalogs across all sectors (Hardware, Hand Tools, Measuring Tapes, Blades, Plumbing, Sanitary, Electricals, FMCG, Paints, Agriculture).
 Convert the following text from ONLY Page {$page} into a structured JSON array of table rows.
 
 Each item in the JSON array must be an object with these exact keys:
-- \"name\": Clean Product Item Name WITHOUT size or price attached (e.g. \"UPVC 90° Elbow\", \"UPVC Brass MTA\", \"SWR Door Bend\").
-- \"size\": Dimension or variant size (e.g. \"20mm\", \"25mm (1 inch)\", \"32mm x 1/2\\\"\", \"-\").
+- \"name\": Clean Product Item Name WITHOUT size or price attached (e.g. \"Yorker Measuring Tape\", \"UPVC 90° Elbow\", \"Cutting Blade\").
+- \"description\": Product Description, Series Name, or Specifications (e.g. \"Auto Stop Series\", \"Pro Model Heavy Duty\", \"Steel Strip\", \"Schedule 40 Heavy\", \"ISI Marked\", \"-\"). NEVER ignore descriptions or series!
+- \"size\": Dimension or variant size (e.g. \"3m x 16mm\", \"5m x 19mm\", \"20mm\", \"25mm (1 inch)\", \"32mm x 1/2\\\"\", \"-\"). DO NOT default to 'Standard' if dimensions or model codes indicate size.
 - \"packing_1\": Box or inner pack quantity if present (e.g. \"100\" or \"-\").
 - \"packing_2\": Bag or master carton pack quantity if present (e.g. \"800\" or \"-\").
 - \"mrp\": Numeric MRP or Price (e.g. 45.00 or 120.50). Numbers only, no currency symbols.
-- \"sku\": Item Code, Cat No, or Art No if visible (e.g. \"UP-101\" or \"-\").
-- \"category\": Category classification (e.g. \"UPVC Fittings\", \"CPVC Fittings\", \"Pipes\", \"Hardware\").
+- \"sku\": Item Code, Cat No, or Art No if visible (e.g. \"YK-3016\", \"PR-5019\", \"UP-101\" or \"-\").
+- \"category\": Category classification (e.g. \"Hardware & Tools\", \"UPVC Fittings\", \"CPVC Fittings\", \"Pipes\", \"Hardware\").
 
 CRITICAL RULES FOR CATALOG LAYOUTS:
-1. In product catalogs, an item heading (e.g. \"UPVC ELBOW 90° HEAVY\") usually appears once above a table of 5 to 15 size rows. You MUST assign this full product name into the \"name\" field for EVERY corresponding size row.
-2. DO NOT mix sizes, packaging numbers, or prices into the \"name\" field. The \"name\" must be clean.
-3. Ignore noise words, headers, and footnotes like \"Available in:\", \"Price List\", \"Terms & Conditions\", \"Page X of Y\".
-4. Return ONLY the raw valid JSON array starting with [ and ending with ]. No explanation, no conversational text, no markdown codeblocks.
-5. CRITICAL PRICE INTEGRITY: Each size variant's price/MRP is located STRICTLY on that exact same horizontal line in the text. NEVER mix or borrow an MRP from lower down the page or from a different table to assign to an item at the top. If a row has no visible price, set \"mrp\": 0. Never guess prices.
+1. In product catalogs, an item heading usually appears once above a table of 5 to 15 size rows. You MUST assign this full product name into the \"name\" field for EVERY corresponding size row.
+2. DO NOT mix sizes, packaging numbers, or prices into the \"name\" field. The \"name\" must be clean. Always put model/series/specs into \"description\".
+3. ACCURATE SIZES: For measuring tapes (e.g., Yorker codes 3016 -> 3m x 16mm, 5019 -> 5m x 19mm), extract tape dimensions. NEVER hallucinate pipe sizes (like 1/2 inch) for measuring tapes, blades, or hand tools!
+4. Ignore noise words, headers, and footnotes like \"Available in:\", \"Price List\", \"Terms & Conditions\", \"Page X of Y\".
+5. Return ONLY the raw valid JSON array starting with [ and ending with ]. No explanation, no conversational text, no markdown codeblocks.
+6. CRITICAL PRICE INTEGRITY: Each size variant's price/MRP is located STRICTLY on that exact same horizontal line in the text. NEVER mix or borrow an MRP from lower down the page or from a different table to assign to an item at the top. If a row has no visible price, set \"mrp\": 0. Never guess prices.
 
 PAGE {$page} TEXT CONTENT:
 \"\"\"
@@ -2595,7 +2603,8 @@ PAGE {$page} TEXT CONTENT:
         // 1. Process Grouped Cards first
         foreach ($groupedCards as $card) {
             $cardName = trim($card['parent_name'] ?? 'Product Family');
-            $groupType = !empty($card['category']) ? $card['category'] : (!empty($card['group_type']) ? $card['group_type'] : 'UPVC');
+            $groupType = !empty($card['category']) ? $card['category'] : (!empty($card['group_type']) ? $card['group_type'] : 'General Hardware');
+            $cardDesc = trim($card['description'] ?? '');
             $img = !empty($card['image_url']) ? $card['image_url'] : null;
 
             $cardVariants = [];
@@ -2634,6 +2643,7 @@ PAGE {$page} TEXT CONTENT:
             if (!empty($cardVariants)) {
                 $products[] = [
                     'name' => $cardName,
+                    'description' => $cardDesc,
                     'category' => $groupType,
                     'group_type' => $groupType,
                     'image_url' => $img,
@@ -2661,10 +2671,12 @@ PAGE {$page} TEXT CONTENT:
             $img = !empty($r['image_url']) ? $r['image_url'] : null;
             $groupType = !empty($r['group_type']) ? trim($r['group_type']) : (!empty($r['category']) ? trim($r['category']) : 'General Hardware');
             $categoryName = !empty($r['category']) ? trim($r['category']) : $groupType;
+            $desc = trim($r['description'] ?? '');
 
             if (!isset($flatGrouped[$prodName])) {
                 $flatGrouped[$prodName] = [
                     'name' => $prodName,
+                    'description' => $desc,
                     'category' => $categoryName,
                     'group_type' => $groupType,
                     'image_url' => $img,
@@ -2787,8 +2799,17 @@ PAGE {$page} TEXT CONTENT:
                 $baseRetail = floatval($firstVar['retail_price'] ?? ($basePurchase * 1.35));
                 $baseMrp = floatval($firstVar['mrp'] ?? ($basePurchase * 1.60));
                 $prodHsn = !empty($prodData['hsn_code']) ? $prodData['hsn_code'] : (!empty($firstVar['hsn_code']) ? $firstVar['hsn_code'] : '39174000');
-                $prodBrand = !empty($prodData['brand']) ? trim($prodData['brand']) : (stripos($prodData['name'], 'Astral') !== false ? 'Astral' : (stripos($prodData['name'], 'Supreme') !== false ? 'Supreme' : 'Plasto'));
-                $prodGroup = !empty($prodData['group_type']) ? trim($prodData['group_type']) : (!empty($prodData['group']) ? trim($prodData['group']) : (stripos($catName, 'swr') !== false || stripos($prodData['name'], 'trap') !== false ? 'Sanitary & Drainage' : 'Plumbing'));
+                $prodBrand = !empty($prodData['brand']) ? trim($prodData['brand']) : (
+                    stripos($prodData['name'], 'Yorker') !== false ? 'Yorker' : (
+                        stripos($prodData['name'], 'Astral') !== false ? 'Astral' : (
+                            stripos($prodData['name'], 'Supreme') !== false ? 'Supreme' : (
+                                stripos($prodData['name'], 'Plasto') !== false ? 'Plasto' : ''
+                            )
+                        )
+                    )
+                );
+                $prodGroup = !empty($prodData['group_type']) ? trim($prodData['group_type']) : (!empty($prodData['group']) ? trim($prodData['group']) : (stripos($catName, 'swr') !== false || stripos($prodData['name'], 'trap') !== false ? 'Sanitary & Drainage' : 'General Hardware'));
+                $prodDesc = !empty($prodData['description']) ? trim($prodData['description']) : "High grade {$prodData['name']} manufactured to industrial specifications.";
 
                 $existingProd = Product::where('user_id', $userId)->where('name', $prodData['name'])->first();
                 $finalImage = !empty($prodData['image_url']) ? $prodData['image_url'] : ($existingProd->image ?? null);
@@ -2801,10 +2822,10 @@ PAGE {$page} TEXT CONTENT:
                     ],
                     [
                         'category_id' => $catId,
-                        'brand' => $prodBrand,
+                        'brand' => $prodBrand ?: 'Generic',
                         'group_name' => $prodGroup,
                         'slug' => $existingProd->slug ?? (Str::slug($prodData['name']) . '-' . Str::random(5)),
-                        'description' => "High grade {$prodData['name']} manufactured to industrial specifications.",
+                        'description' => $prodDesc,
                         'hsn_code' => $prodHsn,
                         'image' => $finalImage,
                         'purchase_price' => $basePurchase,

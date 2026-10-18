@@ -446,6 +446,7 @@
                                     <tr>
                                         <th class="p-2 border-r border-gray-200">P.</th>
                                         <th class="p-2 border-r border-gray-200">Product Name</th>
+                                        <th class="p-2 border-r border-gray-200">Description / Specs</th>
                                         <th class="p-2 border-r border-gray-200">Size</th>
                                         <th class="p-2 border-r border-gray-200">MRP</th>
                                         <th class="p-2 border-r border-gray-200">Code</th>
@@ -810,6 +811,7 @@
                             <tr>
                                 <th class="p-2 border-r border-gray-200">Page</th>
                                 <th class="p-2 border-r border-gray-200">Product Name</th>
+                                <th class="p-2 border-r border-gray-200">Description / Specs</th>
                                 <th class="p-2 border-r border-gray-200">Size / Variant</th>
                                 <th class="p-2 border-r border-gray-200">MRP / Rate</th>
                                 <th class="p-2">Code / SKU</th>
@@ -1005,6 +1007,7 @@
                 <tr class="hover:bg-emerald-50/40">
                     <td class="p-2 border-r border-gray-100 font-bold text-indigo-700">P.${r.page || 1}</td>
                     <td class="p-2 border-r border-gray-100 font-bold text-gray-900 break-words" contenteditable="true" onblur="updateStagedRowField(${idx}, 'name', this.innerText)" title="Click to edit item name">${escapeHtml(r.name || '-')}</td>
+                    <td class="p-2 border-r border-gray-100 text-gray-600 text-[11px]" contenteditable="true" onblur="updateStagedRowField(${idx}, 'description', this.innerText)" title="Click to edit description / series">${escapeHtml(r.description || '-')}</td>
                     <td class="p-2 border-r border-gray-100 text-indigo-600 font-medium" contenteditable="true" onblur="updateStagedRowField(${idx}, 'size', this.innerText)" title="Click to edit size">${escapeHtml(r.size || '-')}</td>
                     <td class="p-2 border-r border-gray-100 text-emerald-700 font-black font-mono" contenteditable="true" onblur="updateStagedRowField(${idx}, 'mrp', this.innerText)" title="Click to edit rate">${r.mrp ? '₹' + escapeHtml(String(r.mrp)) : '-'}</td>
                     <td class="p-2 border-r border-gray-100 font-mono text-gray-500" contenteditable="true" onblur="updateStagedRowField(${idx}, 'sku', this.innerText)" title="Click to edit code">${escapeHtml(r.sku || '-')}</td>
@@ -1891,9 +1894,11 @@
                     headerCells.forEach((h, cIdx) => {
                         const val = rowCells[cIdx] !== undefined ? rowCells[cIdx] : '';
                         const hLower = h.toLowerCase();
-                        if (hLower.includes('name') || hLower.includes('product') || hLower.includes('item') || hLower.includes('description')) {
+                        if (hLower.includes('desc') || hLower.includes('spec') || hLower.includes('series') || hLower.includes('model') || hLower.includes('feature')) {
+                            rowObj.description = val;
+                        } else if (hLower.includes('name') || hLower.includes('product') || hLower.includes('item') || hLower.includes('title')) {
                             rowObj.name = val;
-                        } else if (hLower.includes('size') || hLower.includes('dimension') || hLower.includes('variant')) {
+                        } else if (hLower.includes('size') || hLower.includes('dimension') || hLower.includes('variant') || hLower.includes('meter') || hLower.includes('inch') || hLower.includes('mm')) {
                             rowObj.size = val;
                         } else if (hLower.includes('mrp') || hLower.includes('price') || hLower.includes('rate') || hLower.includes('cost')) {
                             rowObj.mrp = val.replace(/[^\d.]/g, '') || val;
@@ -1905,9 +1910,17 @@
                         }
                     });
 
+                    // 5-column standard: | Product Name | Description / Series | Size / Dimension | MRP (INR) | Pack / Code |
                     if (!rowObj.name && rowCells[0]) rowObj.name = rowCells[0];
-                    if (!rowObj.size && rowCells[1]) rowObj.size = rowCells[1];
-                    if (!rowObj.mrp && rowCells[2]) rowObj.mrp = (rowCells[2] || '').replace(/[^\d.]/g, '') || rowCells[2];
+                    if (headerCells.length >= 5) {
+                        if (!rowObj.description && rowCells[1]) rowObj.description = rowCells[1];
+                        if (!rowObj.size && rowCells[2]) rowObj.size = rowCells[2];
+                        if (!rowObj.mrp && rowCells[3]) rowObj.mrp = (rowCells[3] || '').replace(/[^\d.]/g, '') || rowCells[3];
+                        if (!rowObj.sku && rowCells[4]) rowObj.sku = rowCells[4];
+                    } else {
+                        if (!rowObj.size && rowCells[1]) rowObj.size = rowCells[1];
+                        if (!rowObj.mrp && rowCells[2]) rowObj.mrp = (rowCells[2] || '').replace(/[^\d.]/g, '') || rowCells[2];
+                    }
 
                     return rowObj;
                 });
@@ -2139,6 +2152,7 @@
                 <tr class="hover:bg-slate-50 transition">
                     <td class="p-2 border-r border-gray-100 font-bold text-indigo-700">P.${r.page || 1}</td>
                     <td class="p-2 border-r border-gray-100 font-bold text-gray-900">${escapeHtml(r.name || '-')}</td>
+                    <td class="p-2 border-r border-gray-100 text-gray-600 text-[11px]">${escapeHtml(r.description || '-')}</td>
                     <td class="p-2 border-r border-gray-100 text-indigo-600 font-mono">${escapeHtml(r.size || '-')}</td>
                     <td class="p-2 border-r border-gray-100 font-mono font-bold text-emerald-700">${r.mrp ? '₹' + escapeHtml(String(r.mrp)) : '-'}</td>
                     <td class="p-2 font-mono text-gray-500">${escapeHtml(r.sku || '-')}</td>
@@ -2191,7 +2205,7 @@
                 return;
             }
 
-            const headers = ['Page', 'Product Name', 'Size / Variant', 'MRP (INR)', 'Item Code / SKU', 'Box Packing', 'Bag Packing'];
+            const headers = ['Page', 'Product Name', 'Description / Series', 'Size / Variant', 'MRP (INR)', 'Item Code / SKU', 'Box Packing', 'Bag Packing'];
             const csvRows = [headers.join(',')];
 
             staged.forEach(r => {
@@ -2203,6 +2217,7 @@
                 csvRows.push([
                     escapeCsv(r.page || 1),
                     escapeCsv(r.name || ''),
+                    escapeCsv(r.description || ''),
                     escapeCsv(r.size || ''),
                     escapeCsv(r.mrp || ''),
                     escapeCsv(r.sku || ''),
@@ -2234,6 +2249,7 @@
 
             const lines = staged.map(r => {
                 const parts = [r.name || 'Item'];
+                if (r.description && r.description !== '-') parts.push(`(${r.description})`);
                 if (r.size && r.size !== '-') parts.push(r.size);
                 if (r.mrp && r.mrp !== '-') parts.push(`MRP ₹${r.mrp}`);
                 if (r.sku && r.sku !== '-') parts.push(`Code: ${r.sku}`);
