@@ -1065,6 +1065,10 @@ class CatalogIngestionController extends Controller
 
                 $url = $m->file_path;
                 if (isset($seenUrls[$url])) continue;
+                if (!str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
+                    $cleanPath = public_path(ltrim($url, '/'));
+                    if (!file_exists($cleanPath)) continue;
+                }
                 $seenUrls[$url] = true;
                 $assetUrl = (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) ? $url : asset($url);
                 $name = $m->filename ? ucwords(str_replace(['crop_', 'p_', '_', '-'], ' ', pathinfo($m->filename, PATHINFO_FILENAME))) : 'Catalog Image';
@@ -1167,6 +1171,10 @@ class CatalogIngestionController extends Controller
         foreach ($registryCrops as $regImg) {
             $u = $regImg['url'] ?? '';
             if ($u && !isset($seenUrls[$u])) {
+                if (!str_starts_with($u, 'http://') && !str_starts_with($u, 'https://')) {
+                    $cleanPath = public_path(ltrim($u, '/'));
+                    if (!file_exists($cleanPath)) continue;
+                }
                 $seenUrls[$u] = true;
                 $images[] = $regImg;
             }
@@ -1311,6 +1319,10 @@ class CatalogIngestionController extends Controller
             foreach ($brandMasters as $bm) {
                 $u = $bm->image_url;
                 if (!$u || isset($seenUrls[$u])) continue;
+                if (!str_starts_with($u, 'http://') && !str_starts_with($u, 'https://')) {
+                    $cleanPath = public_path(ltrim($u, '/'));
+                    if (!file_exists($cleanPath)) continue;
+                }
                 $seenUrls[$u] = true;
                 $assetUrl = (str_starts_with($u, 'http://') || str_starts_with($u, 'https://')) ? $u : asset($u);
                 $name = $bm->product_name ?: 'Brand Master Product';
@@ -1340,6 +1352,10 @@ class CatalogIngestionController extends Controller
             foreach ($catalogProducts as $cp) {
                 $u = $cp->image;
                 if (!$u || isset($seenUrls[$u])) continue;
+                if (!str_starts_with($u, 'http://') && !str_starts_with($u, 'https://')) {
+                    $cleanPath = public_path(ltrim($u, '/'));
+                    if (!file_exists($cleanPath)) continue;
+                }
                 $seenUrls[$u] = true;
                 $assetUrl = (str_starts_with($u, 'http://') || str_starts_with($u, 'https://')) ? $u : asset($u);
                 $name = $cp->name ?: 'Catalog Item';
@@ -1972,7 +1988,7 @@ class CatalogIngestionController extends Controller
             } catch (\Throwable $e) {}
         }
 
-        $systemPrompt = "You are VyaparIndia AI Catalog Copilot, an expert AI assistant specializing in plumbing, PVC/CPVC/UPVC/SWR pipes & fittings, hardware catalogs, pricing, HSN codes, and B2B wholesale listings.
+        $systemPrompt = "You are VyaparIndia AI Catalog Copilot, an expert universal AI catalog digitizer and business assistant for ALL wholesale B2B and retail sectors across India (Hardware, Sanitaryware, Electricals, Pipes & Fittings, FMCG, Grocery, Clothing & Apparel, Paints, Building Materials, Agriculture, Electronics, and Automobiles).
 {$masterContext}Current Catalog Page: Page {$page}.
 Extracted text on active page:
 \"\"\"
@@ -1980,7 +1996,7 @@ Extracted text on active page:
 \"\"\"
 
 User question: \"{$prompt}\"
-Please respond clearly in simple professional Hinglish/English with bullet points, product names, dimensions, or calculations as needed.";
+Please respond clearly in simple professional Hinglish/English. If listing products, sizes, or prices, always output in a neat Markdown Table format with columns: | Product Name | Size / Variant | MRP (INR) | Pack / Code | whenever applicable. DO NOT hallucinate, guess or fabricate prices; if a price or size is not visible in the text, mark it as '-' or '0'.";
 
         // If OpenAI key is present (starts with sk- or env variable set)
         if ($openAiKey && (str_starts_with($openAiKey, 'sk-') || !$geminiKey)) {

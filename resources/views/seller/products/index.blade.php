@@ -562,7 +562,7 @@
                                      onclick="openQuickImageModal({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->image_url ?? '' }}')"
                                      title="फोटो बदलें या गैलरी से चुनें">
                                     @if($product->image_url)
-                                        <img src="{{ $product->image_url }}" alt="{{ $product->name }}" id="product-card-img-{{ $product->id }}" class="h-full w-full object-contain">
+                                        <img src="{{ $product->image_url }}" alt="{{ $product->name }}" id="product-card-img-{{ $product->id }}" class="h-full w-full object-contain" onerror="this.style.display='none'; var p = document.getElementById('product-card-img-placeholder-{{ $product->id }}'); if(p){ p.classList.remove('hidden'); p.classList.add('flex'); }">
                                         <div id="product-card-img-placeholder-{{ $product->id }}" class="hidden flex-col items-center justify-center text-gray-300 group-hover/img:text-indigo-600 transition">
                                             <i class="fa-solid fa-camera text-xl"></i>
                                             <span class="text-[9px] font-bold mt-0.5 text-gray-400 group-hover/img:text-indigo-600">+फोटो</span>
@@ -572,7 +572,7 @@
                                             <i class="fa-solid fa-camera text-xl"></i>
                                             <span class="text-[9px] font-bold mt-0.5 text-gray-400 group-hover/img:text-indigo-600">+फोटो</span>
                                         </div>
-                                        <img src="" alt="{{ $product->name }}" id="product-card-img-{{ $product->id }}" class="h-full w-full object-contain hidden">
+                                        <img src="" alt="{{ $product->name }}" id="product-card-img-{{ $product->id }}" class="h-full w-full object-contain hidden" onerror="this.style.display='none';">
                                     @endif
                                     <div class="absolute inset-0 bg-indigo-950/70 text-white flex flex-col items-center justify-center opacity-0 group-hover/img:opacity-100 transition rounded-2xl text-[10px] font-bold">
                                         <i class="fa-solid fa-images text-sm mb-0.5 text-amber-300"></i>
@@ -787,7 +787,8 @@
                                     <div class="flex items-center gap-3">
                                         <div class="h-10 w-10 rounded-xl bg-gray-100 overflow-hidden flex items-center justify-center shrink-0 border border-gray-100">
                                             @if($product->image_url)
-                                                <img src="{{ $product->image_url }}" class="h-full w-full object-contain">
+                                                <img src="{{ $product->image_url }}" class="h-full w-full object-contain" onerror="this.style.display='none'; if(this.nextElementSibling){ this.nextElementSibling.style.display='inline-block'; }">
+                                                <i class="fa-solid fa-cube text-gray-300" style="display:none;"></i>
                                             @else
                                                 <i class="fa-solid fa-cube text-gray-300"></i>
                                             @endif

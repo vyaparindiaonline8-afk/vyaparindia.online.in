@@ -231,21 +231,93 @@ class Product extends Model
 
     public function getImageUrlAttribute()
     {
-        if ($this->image) {
-            if (filter_var($this->image, FILTER_VALIDATE_URL)) {
-                return $this->image;
+        if (!empty($this->image)) {
+            $img = trim($this->image);
+            if (filter_var($img, FILTER_VALIDATE_URL)) {
+                return $img;
             }
-            if (file_exists(public_path('storage/' . $this->image))) {
-                return asset('storage/' . $this->image);
+            $cleanPath = ltrim($img, '/\\');
+            if (file_exists(public_path($cleanPath))) {
+                return asset($cleanPath);
             }
-            if (file_exists(public_path('images/' . $this->image))) {
-                return asset('images/' . $this->image);
+            if (file_exists(public_path('storage/' . $cleanPath))) {
+                return asset('storage/' . $cleanPath);
             }
-            if (file_exists(public_path($this->image))) {
-                return asset($this->image);
+            if (file_exists(public_path('images/' . $cleanPath))) {
+                return asset('images/' . $cleanPath);
             }
         }
-        return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80';
+
+        // Smart Category / Product Name auto-match from high-res verified catalog library
+        $smartImg = $this->getSmartCategoryFallbackImage();
+        if ($smartImg) {
+            return asset($smartImg);
+        }
+
+        return null;
+    }
+
+    public function getSmartCategoryFallbackImage(): ?string
+    {
+        $name = strtoupper($this->name ?? '');
+        $cat = strtoupper($this->category->name ?? '');
+
+        // Brass items
+        if (str_contains($name, 'BRASS') && str_contains($name, 'ELBOW')) {
+            return 'images/catalog/plasto/items/brass_elbow.jpg';
+        }
+        if (str_contains($name, 'BRASS') && str_contains($name, 'TEE')) {
+            return 'images/catalog/plasto/items/brass_tee.jpg';
+        }
+        if (str_contains($name, 'BRASS') && str_contains($name, 'MTA')) {
+            return 'images/catalog/plasto/items/brass_mta.jpg';
+        }
+        if (str_contains($name, 'BRASS') && str_contains($name, 'FTA')) {
+            return 'images/catalog/plasto/items/brass_fta.jpg';
+        }
+
+        // Valves
+        if (str_contains($name, 'VALVE')) {
+            return 'images/catalog/plasto/items/cpvc_ball_valve.jpg';
+        }
+
+        // CPVC Fittings & Pipes
+        if (str_contains($name, 'CPVC') || str_contains($cat, 'CPVC')) {
+            if (str_contains($name, 'ELBOW') || str_contains($name, 'BEND')) return 'images/catalog/plasto/items/cpvc_elbow.jpg';
+            if (str_contains($name, 'TEE')) return 'images/catalog/plasto/items/cpvc_tee.jpg';
+            if (str_contains($name, 'COUPLER') || str_contains($name, 'SOCKET')) return 'images/catalog/plasto/items/cpvc_coupler.jpg';
+            if (str_contains($name, 'UNION')) return 'images/catalog/plasto/items/cpvc_union.jpg';
+            if (str_contains($name, 'MTA')) return 'images/catalog/plasto/items/cpvc_mta.jpg';
+            if (str_contains($name, 'FTA')) return 'images/catalog/plasto/items/cpvc_fta.jpg';
+            if (str_contains($name, 'TANK NIPPLE') || str_contains($name, 'TANK CONNECTOR')) return 'images/catalog/plasto/items/cpvc_tank_nipple.jpg';
+            if (str_contains($name, 'PIPE')) return 'images/catalog/plasto/items/cpvc_pipe.jpg';
+        }
+
+        // UPVC Fittings & Pipes
+        if (str_contains($name, 'UPVC') || str_contains($cat, 'UPVC')) {
+            if (str_contains($name, 'ELBOW') || str_contains($name, 'BEND')) return 'images/catalog/plasto/items/upvc_elbow.jpg';
+            if (str_contains($name, 'TEE')) return 'images/catalog/plasto/items/upvc_tee.jpg';
+            if (str_contains($name, 'COUPLER') || str_contains($name, 'SOCKET')) return 'images/catalog/plasto/items/upvc_coupler.jpg';
+            if (str_contains($name, 'MTA')) return 'images/catalog/plasto/items/upvc_mta.jpg';
+        }
+
+        // Tanks & Garden
+        if (str_contains($name, 'TANK') && str_contains($name, 'LID')) {
+            return 'images/catalog/plasto/items/water_tank_lid.jpg';
+        }
+        if (str_contains($name, 'GARDEN') || str_contains($name, 'HOSE')) {
+            return 'images/catalog/plasto/items/garden_pipe.jpg';
+        }
+        if (str_contains($name, 'END CAP') || str_contains($name, 'PLUG')) {
+            return 'images/catalog/plasto/items/end_cap.jpg';
+        }
+
+        // Generic fitting fallbacks
+        if (str_contains($name, 'ELBOW')) return 'images/catalog/plasto/items/upvc_elbow.jpg';
+        if (str_contains($name, 'TEE')) return 'images/catalog/plasto/items/upvc_tee.jpg';
+        if (str_contains($name, 'COUPLER') || str_contains($name, 'SOCKET')) return 'images/catalog/plasto/items/upvc_coupler.jpg';
+
+        return null;
     }
 
     /**

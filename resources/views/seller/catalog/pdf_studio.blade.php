@@ -186,6 +186,13 @@
                             <span class="px-1.5 py-0.5 rounded-md text-[9px] bg-white/20 text-white font-mono font-bold">0 Tokens / AI</span>
                         </button>
 
+                        <!-- 📥 Accumulated Staged Excel Sheet Badge & Trigger -->
+                        <button type="button" onclick="openStagedExcelModal()" id="btnStagedExcelBadge" class="hidden px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 animate-pulse" title="View & Download Accumulated Staged Excel Sheet">
+                            <i class="fa-solid fa-list-check"></i>
+                            <span>Staged Sheet</span>
+                            <span class="px-1.5 py-0.5 rounded-md text-[9px] bg-white text-amber-900 font-mono font-bold" id="stagedExcelCountPill">0 Items</span>
+                        </button>
+
                         <!-- Layout Toggle: Split vs Full Page -->
                         <button type="button" onclick="toggleLayoutMode()" id="btnLayoutToggle" class="px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-extrabold transition flex items-center gap-1 border border-indigo-200" title="Toggle Full Page Wide View">
                             <i class="fa-solid fa-expand" id="layoutToggleIcon"></i>
@@ -294,7 +301,7 @@
                             @endphp
                             <div class="gallery-item-card flex items-center gap-3 p-2.5 rounded-2xl bg-gray-50 hover:bg-indigo-50/50 border border-gray-200 transition group" id="card_img_{{ $gImg['id'] }}" data-img-url="{{ $gImg['url'] }}">
                                 <div class="h-14 w-14 rounded-xl bg-white border border-gray-200 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
-                                    <img src="{{ $gImg['asset_url'] }}" alt="{{ $gImg['name'] }}" class="max-h-full max-w-full object-contain">
+                                    <img src="{{ $gImg['asset_url'] }}" alt="{{ $gImg['name'] }}" class="max-h-full max-w-full object-contain" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\'fa-solid fa-image text-gray-300 text-lg\'></i>';">
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <h4 class="text-xs font-bold text-gray-900 truncate" id="card_name_{{ $gImg['id'] }}" title="{{ $gImg['name'] }}">
@@ -429,11 +436,11 @@
 
             <!-- AI Quick Action Chips -->
             <div class="p-2.5 border-b border-gray-100 bg-gray-50/80 flex items-center gap-1.5 overflow-x-auto text-[11px] whitespace-nowrap">
-                <button type="button" onclick="askAiPrompt('Is page ke sabhi products, fittings aur pipes identify karke unke standard names list karo.')" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-indigo-50 text-gray-700 font-medium transition">
+                <button type="button" onclick="askAiPrompt('Is page ke sabhi products identify karke unke standard names list karo.')" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-indigo-50 text-gray-700 font-medium transition">
                     🔍 Is page ke products pehchano
                 </button>
-                <button type="button" onclick="askAiPrompt('Plasto/CPVC fittings ke standard sizes (e.g. 1/2 inch to 2 inch) aur MRP table format me batao.')" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-indigo-50 text-gray-700 font-medium transition">
-                    📏 Sizes & MRP list karo
+                <button type="button" onclick="askAiPrompt('Is page ke sabhi items ke sizes aur rates/MRP table format me extract karo.')" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-indigo-50 text-gray-700 font-medium transition">
+                    📏 Sizes & Rates Table nikalo
                 </button>
                 <button type="button" onclick="askAiPrompt('Agar me crop kar raha hu, to product card title aur HSN code suggest karo.')" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-indigo-50 text-gray-700 font-medium transition">
                     💡 HSN & Title suggest karo
@@ -449,13 +456,13 @@
                     </div>
                     <div class="bg-gray-100 text-gray-800 p-3 rounded-2xl rounded-tl-sm text-xs leading-relaxed max-w-[85%] space-y-1">
                         <p class="font-bold text-gray-900">Namaste! Mai aapka AI Catalog Copilot hu.</p>
-                        <p>Aap PDF ka koi bhi page kholkar mujhse pooch sakte hain:</p>
+                        <p>Aap kisi bhi product catalog (Hardware, Sanitary, Pipes, Groceries, Clothing, Paints etc.) ka koi bhi page kholkar mujhse pooch sakte hain:</p>
                         <ul class="list-disc list-inside text-gray-600 space-y-0.5">
-                            <li>Is page par kaun se products hain?</li>
-                            <li>Cropped photo ka name aur standard size kya hai?</li>
-                            <li>Discount aur wholesale margin calculation</li>
+                            <li>Is page par kaun se products aur items hain?</li>
+                            <li>Items, sizes aur MRP ka neat table banao</li>
+                            <li>HSN code, wholesale margin aur discount calculation</li>
                         </ul>
-                        <p class="text-[10px] text-indigo-600 font-bold pt-1">Upar ⚙️ "API Key" button par click karke apni free Gemini Key jodein aur start karein!</p>
+                        <p class="text-[10px] text-emerald-700 font-bold pt-1">💡 Tip: Table aate hi aap 1-click me use Excel Sheet me jod sakte hain!</p>
                     </div>
                 </div>
             </div>
@@ -714,6 +721,74 @@
                     <button type="button" onclick="saveEditCropDetails()" id="btnSaveCropDetails" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-md shadow-indigo-600/20 transition flex items-center gap-1.5 active:scale-95">
                         <i class="fa-solid fa-floppy-disk"></i>
                         <span>Save Details</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- 📊 ACCUMULATED STAGED EXCEL SHEET MODAL                 -->
+    <!-- ======================================================= -->
+    <div id="stagedExcelModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4" onclick="closeStagedExcelModal()">
+        <div class="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-gray-100 overflow-hidden transform transition-all flex flex-col max-h-[85vh]" onclick="event.stopPropagation()">
+            <div class="p-4 bg-gradient-to-r from-emerald-800 to-teal-900 text-white flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="h-9 w-9 rounded-xl bg-white/20 flex items-center justify-center text-sm shadow-inner">
+                        <i class="fa-solid fa-file-excel text-amber-300"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h4 class="text-sm font-black">Accumulated Staged Excel Sheet</h4>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] bg-white text-emerald-900 font-mono font-black" id="stagedModalBadgeCount">0 Items</span>
+                        </div>
+                        <p class="text-[11px] text-emerald-200">AI Copilot dwara alag-alag pages se extract kiye gaye sabhi products</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeStagedExcelModal()" class="h-8 w-8 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 flex items-center justify-center text-xs transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-4 flex-1 overflow-y-auto space-y-3 min-h-0">
+                <div class="border border-gray-200 rounded-2xl overflow-hidden max-h-72 overflow-y-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="bg-gray-100 text-[10px] font-black text-gray-600 uppercase border-b border-gray-200 sticky top-0">
+                            <tr>
+                                <th class="p-2 border-r border-gray-200">Page</th>
+                                <th class="p-2 border-r border-gray-200">Product Name</th>
+                                <th class="p-2 border-r border-gray-200">Size / Variant</th>
+                                <th class="p-2 border-r border-gray-200">MRP / Rate</th>
+                                <th class="p-2">Code / SKU</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stagedModalTableBody" class="divide-y divide-gray-100 text-[11px]">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
+                    <i class="fa-solid fa-lightbulb text-amber-600 mt-0.5"></i>
+                    <p class="text-[11px] leading-relaxed">
+                        Aap alag-alag pages kholkar AI Copilot se items nikalte jayein aur <b>"इस टेबल को एक्सेल शीट में जोड़ें"</b> dabate jayein. Sare items yahan ikattha hote rahenge!
+                    </p>
+                </div>
+            </div>
+
+            <div class="p-4 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center justify-between gap-2 shrink-0">
+                <button type="button" onclick="clearStagedExcelRows()" class="px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Clear Sheet</span>
+                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="downloadStagedExcelAsCsv()" class="px-3.5 py-2 rounded-xl bg-white hover:bg-gray-100 text-emerald-800 font-bold text-xs border border-emerald-300 transition flex items-center gap-1.5 shadow-2xs cursor-pointer">
+                        <i class="fa-solid fa-download text-emerald-600"></i>
+                        <span>📥 Download CSV</span>
+                    </button>
+                    <button type="button" onclick="openStagedInExcelMapper()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
+                        <i class="fa-solid fa-table-cells text-amber-300"></i>
+                        <span>✏️ Open in Excel Mapper & Photos Link karein &rarr;</span>
                     </button>
                 </div>
             </div>
@@ -1277,7 +1352,7 @@
             card.setAttribute('data-img-url', img.url);
             card.innerHTML = `
                 <div class="h-14 w-14 rounded-xl bg-white border border-gray-200 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
-                    <img src="${img.asset_url}" alt="${escapeHtml(img.name)}" class="max-h-full max-w-full object-contain">
+                    <img src="${img.asset_url}" alt="${escapeHtml(img.name)}" class="max-h-full max-w-full object-contain" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\\\'fa-solid fa-image text-gray-300 text-lg\\\'></i>';">
                 </div>
                 <div class="flex-1 min-w-0">
                     <h4 class="text-xs font-bold text-gray-900 truncate" id="card_name_${img.id}" title="${escapeHtml(img.name)}">
@@ -1570,29 +1645,321 @@
             container.scrollTop = container.scrollHeight;
         }
 
+        window.aiExtractedTables = window.aiExtractedTables || [];
+
+        function formatMarkdownWithTables(markdownText) {
+            if (!markdownText) return '';
+            const lines = markdownText.split('\n');
+            let out = [];
+            let inTable = false;
+            let tableLines = [];
+
+            function renderTableBlock(tblLines) {
+                if (!tblLines || tblLines.length < 2) return '';
+                const headerCells = tblLines[0].split('|').map(s => s.trim()).filter(s => s.length > 0);
+                if (headerCells.length === 0) return '';
+
+                let startIndex = 1;
+                if (tblLines.length > 1 && /^[|\s\-:]+$/.test(tblLines[1])) {
+                    startIndex = 2;
+                }
+
+                const dataRows = [];
+                for (let i = startIndex; i < tblLines.length; i++) {
+                    const rawLine = tblLines[i].trim();
+                    if (!rawLine || /^[|\s\-:]+$/.test(rawLine)) continue;
+                    let cells = rawLine.split('|').map(s => s.trim());
+                    if (rawLine.startsWith('|')) cells.shift();
+                    if (rawLine.endsWith('|')) cells.pop();
+                    if (cells.length > 0) {
+                        dataRows.push(cells);
+                    }
+                }
+
+                if (dataRows.length === 0) return '';
+
+                const tableIndex = window.aiExtractedTables.length;
+                const structuredRows = dataRows.map((rowCells) => {
+                    let rowObj = { page: currentPdfPage };
+                    headerCells.forEach((h, cIdx) => {
+                        const val = rowCells[cIdx] !== undefined ? rowCells[cIdx] : '';
+                        const hLower = h.toLowerCase();
+                        if (hLower.includes('name') || hLower.includes('product') || hLower.includes('item') || hLower.includes('description')) {
+                            rowObj.name = val;
+                        } else if (hLower.includes('size') || hLower.includes('dimension') || hLower.includes('variant')) {
+                            rowObj.size = val;
+                        } else if (hLower.includes('mrp') || hLower.includes('price') || hLower.includes('rate') || hLower.includes('cost')) {
+                            rowObj.mrp = val.replace(/[^\d.]/g, '') || val;
+                            rowObj.raw_rate = val;
+                        } else if (hLower.includes('code') || hLower.includes('sku') || hLower.includes('cat') || hLower.includes('art')) {
+                            rowObj.sku = val;
+                        } else if (hLower.includes('pack')) {
+                            rowObj.packing_1 = val;
+                        }
+                    });
+
+                    if (!rowObj.name && rowCells[0]) rowObj.name = rowCells[0];
+                    if (!rowObj.size && rowCells[1]) rowObj.size = rowCells[1];
+                    if (!rowObj.mrp && rowCells[2]) rowObj.mrp = (rowCells[2] || '').replace(/[^\d.]/g, '') || rowCells[2];
+
+                    return rowObj;
+                });
+
+                window.aiExtractedTables.push({
+                    headers: headerCells,
+                    rows: structuredRows,
+                    page: currentPdfPage
+                });
+
+                let tableHtml = `
+                    <div class="my-2.5 border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-2xs">
+                        <div class="max-h-60 overflow-y-auto overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="bg-slate-100 text-[10px] font-black text-gray-700 uppercase border-b border-gray-200 sticky top-0 z-10">
+                                    <tr>
+                                        ${headerCells.map(h => `<th class="p-2 border-r border-gray-200 whitespace-nowrap">${escapeHtml(h)}</th>`).join('')}
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 text-[11px]">
+                                    ${dataRows.map(row => `
+                                        <tr class="hover:bg-indigo-50/40">
+                                            ${row.map(cell => `<td class="p-2 border-r border-gray-100 whitespace-nowrap">${escapeHtml(cell)}</td>`).join('')}
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="p-2.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-t border-emerald-200 flex items-center justify-between gap-2">
+                            <div class="text-[11px] text-emerald-900 font-extrabold flex items-center gap-1.5">
+                                <i class="fa-solid fa-file-excel text-emerald-600 text-sm"></i>
+                                <span>${dataRows.length} Items (Page ${currentPdfPage})</span>
+                            </div>
+                            <button type="button" onclick="stageAiTableRows(this, ${tableIndex})" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
+                                <i class="fa-solid fa-plus text-xs"></i>
+                                <span>📥 इस टेबल को एक्सेल शीट में जोड़ें</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                return tableHtml;
+            }
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.startsWith('|') && line.includes('|', 1)) {
+                    inTable = true;
+                    tableLines.push(line);
+                } else {
+                    if (inTable) {
+                        out.push(renderTableBlock(tableLines));
+                        tableLines = [];
+                        inTable = false;
+                    }
+                    if (line) {
+                        out.push(escapeHtml(line)
+                            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                            .replace(/\*(.*?)\*/g, '<i>$1</i>')
+                            .replace(/`(.*?)`/g, '<code class="bg-white/70 px-1 py-0.5 rounded text-indigo-700 font-mono text-[11px]">$1</code>')
+                        );
+                    } else {
+                        out.push('');
+                    }
+                }
+            }
+            if (inTable && tableLines.length > 0) {
+                out.push(renderTableBlock(tableLines));
+            }
+
+            return out.join('<br>').replace(/(<br>){3,}/g, '<br><br>');
+        }
+
         function appendAiChatMessage(markdownText) {
             const container = document.getElementById('aiChatMessages');
             const div = document.createElement('div');
             div.className = "flex items-start gap-2.5";
             
-            // Format basic markdown (bold, lists, code)
-            let formatted = escapeHtml(markdownText)
-                .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-                .replace(/\*(.*?)\*/g, '<i>$1</i>')
-                .replace(/`(.*?)`/g, '<code class="bg-white/70 px-1 py-0.5 rounded text-indigo-700 font-mono text-[11px]">$1</code>')
-                .replace(/\n\n/g, '<br><br>')
-                .replace(/\n/g, '<br>');
+            let formatted = formatMarkdownWithTables(markdownText);
 
             div.innerHTML = `
                 <div class="h-7 w-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs shrink-0 mt-0.5">
                     <i class="fa-solid fa-robot"></i>
                 </div>
-                <div class="bg-gray-100 text-gray-800 p-3 rounded-2xl rounded-tl-sm text-xs leading-relaxed max-w-[88%] space-y-1">
+                <div class="bg-gray-100 text-gray-800 p-3 rounded-2xl rounded-tl-sm text-xs leading-relaxed max-w-[92%] space-y-1">
                     <div>${formatted}</div>
                 </div>
             `;
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
+        }
+
+        function stageAiTableRows(btn, tableIndex) {
+            const tableData = window.aiExtractedTables ? window.aiExtractedTables[tableIndex] : null;
+            if (!tableData || !tableData.rows || tableData.rows.length === 0) {
+                alert('Table data uplabdh nahi hai.');
+                return;
+            }
+
+            let staged = [];
+            try {
+                staged = JSON.parse(localStorage.getItem('vyapar_staged_excel_rows') || '[]');
+            } catch(e) {
+                staged = [];
+            }
+
+            tableData.rows.forEach(r => staged.push(r));
+            localStorage.setItem('vyapar_staged_excel_rows', JSON.stringify(staged));
+
+            updateStagedExcelHeaderBadge();
+
+            if (btn) {
+                btn.disabled = true;
+                btn.className = "px-3 py-1.5 rounded-xl bg-gray-200 text-gray-700 font-bold text-xs cursor-default flex items-center gap-1.5";
+                btn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600"></i> <span>✅ शीट में जुड़ गया (${tableData.rows.length})</span>`;
+            }
+
+            showToast(`✅ ${tableData.rows.length} items एक्सेल शीट में जुड़ गए! कुल: ${staged.length} items`, 'success');
+        }
+
+        function updateStagedExcelHeaderBadge() {
+            let staged = [];
+            try {
+                staged = JSON.parse(localStorage.getItem('vyapar_staged_excel_rows') || '[]');
+            } catch(e) { staged = []; }
+
+            const badgeBtn = document.getElementById('btnStagedExcelBadge');
+            const pill = document.getElementById('stagedExcelCountPill');
+            const modalCount = document.getElementById('stagedModalBadgeCount');
+
+            if (staged.length > 0) {
+                if (badgeBtn) badgeBtn.classList.remove('hidden');
+                if (pill) pill.innerText = `${staged.length} Items`;
+                if (modalCount) modalCount.innerText = `${staged.length} Items`;
+            } else {
+                if (badgeBtn) badgeBtn.classList.add('hidden');
+                if (pill) pill.innerText = `0 Items`;
+                if (modalCount) modalCount.innerText = `0 Items`;
+            }
+        }
+
+        function openStagedExcelModal() {
+            let staged = [];
+            try {
+                staged = JSON.parse(localStorage.getItem('vyapar_staged_excel_rows') || '[]');
+            } catch(e) { staged = []; }
+
+            const tbody = document.getElementById('stagedModalTableBody');
+            const modalCount = document.getElementById('stagedModalBadgeCount');
+            if (modalCount) modalCount.innerText = `${staged.length} Items`;
+
+            if (tbody) {
+                if (staged.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-400">Sheet abhi khali hai. PDF pages se items extract karke "इस टेबल को एक्सेल शीट में जोड़ें" dabayein.</td></tr>`;
+                } else {
+                    tbody.innerHTML = staged.map((r) => `
+                        <tr class="hover:bg-emerald-50/30">
+                            <td class="p-2 border-r border-gray-100 font-bold text-indigo-700">P.${r.page || 1}</td>
+                            <td class="p-2 border-r border-gray-100 font-bold text-gray-900 break-words">${escapeHtml(r.name || '-')}</td>
+                            <td class="p-2 border-r border-gray-100 text-indigo-600 font-medium">${escapeHtml(r.size || '-')}</td>
+                            <td class="p-2 border-r border-gray-100 text-emerald-700 font-black font-mono">${r.mrp ? '₹' + escapeHtml(String(r.mrp)) : '-'}</td>
+                            <td class="p-2 font-mono text-gray-500">${escapeHtml(r.sku || '-')}</td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
+            const modal = document.getElementById('stagedExcelModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeStagedExcelModal() {
+            const modal = document.getElementById('stagedExcelModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function clearStagedExcelRows() {
+            if (!confirm('Kya aap sachme staged Excel sheet ko khali karna chahte hain?')) return;
+            localStorage.removeItem('vyapar_staged_excel_rows');
+            updateStagedExcelHeaderBadge();
+            openStagedExcelModal();
+            showToast('Staged Excel Sheet reset ho gayi!', 'info');
+        }
+
+        function downloadStagedExcelAsCsv() {
+            let staged = [];
+            try {
+                staged = JSON.parse(localStorage.getItem('vyapar_staged_excel_rows') || '[]');
+            } catch(e) { staged = []; }
+
+            if (staged.length === 0) {
+                alert('Download karne ke liye koi items uplabdh nahi hain.');
+                return;
+            }
+
+            const headers = ['Page', 'Product Name', 'Size / Variant', 'MRP (INR)', 'Item Code / SKU', 'Box Packing', 'Bag Packing'];
+            const csvRows = [headers.join(',')];
+
+            staged.forEach(r => {
+                const escapeCsv = (val) => {
+                    const s = String(val || '').replace(/"/g, '""');
+                    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s}"` : s;
+                };
+
+                csvRows.push([
+                    escapeCsv(r.page || 1),
+                    escapeCsv(r.name || ''),
+                    escapeCsv(r.size || ''),
+                    escapeCsv(r.mrp || ''),
+                    escapeCsv(r.sku || ''),
+                    escapeCsv(r.packing_1 || ''),
+                    escapeCsv(r.packing_2 || '')
+                ].join(','));
+            });
+
+            const csvBlob = new Blob(["\uFEFF" + csvRows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(csvBlob);
+            link.download = `Catalog_Staged_Sheet_${Date.now()}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast(`✅ ${staged.length} items ki Excel CSV download ho gayi!`, 'success');
+        }
+
+        function openStagedInExcelMapper() {
+            let staged = [];
+            try {
+                staged = JSON.parse(localStorage.getItem('vyapar_staged_excel_rows') || '[]');
+            } catch(e) { staged = []; }
+
+            if (staged.length === 0) {
+                alert('Excel Mapper me bhejne ke liye pehle items add karein.');
+                return;
+            }
+
+            const lines = staged.map(r => {
+                const parts = [r.name || 'Item'];
+                if (r.size && r.size !== '-') parts.push(r.size);
+                if (r.mrp && r.mrp !== '-') parts.push(`MRP ₹${r.mrp}`);
+                if (r.sku && r.sku !== '-') parts.push(`Code: ${r.sku}`);
+                return parts.join(' - ');
+            });
+
+            const defaultCat = (document.getElementById('textDrawerCategoryInput')?.value || '').trim() || 'General';
+
+            const payload = {
+                lines: lines,
+                category: defaultCat,
+                structured_rows: staged,
+                page: currentPdfPage,
+                timestamp: Date.now()
+            };
+
+            localStorage.setItem('vyapar_custom_excel_lines', JSON.stringify(payload));
+            showToast(`Opening Excel Multi-Row Mapper with ${staged.length} items...`, 'success');
+
+            setTimeout(() => {
+                window.location.href = "{{ route('seller.catalog.excel_mapper') }}?source=pdf_lines";
+            }, 300);
         }
 
         function appendAiSystemMessage(text) {
@@ -2244,6 +2611,10 @@
                         }
                     });
                 }
+            } catch (e) {}
+
+            try {
+                updateStagedExcelHeaderBadge();
             } catch (e) {}
         });
     </script>

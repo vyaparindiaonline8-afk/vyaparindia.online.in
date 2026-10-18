@@ -253,12 +253,43 @@
                                     @endif
                                 </div>
                                 <div class="w-full aspect-square rounded-2xl bg-gray-50 border border-gray-200 overflow-hidden relative group flex items-center justify-center p-2" id="img_box_{{ $pIdx }}">
-                                    @if(!empty($prod['image_url']))
-                                        <img src="{{ asset($prod['image_url']) }}" alt="{{ $prod['name'] }}" class="w-full h-full object-contain" id="img_tag_{{ $pIdx }}">
-                                        <input type="hidden" name="products[{{ $pIdx }}][image_url]" id="img_val_{{ $pIdx }}" value="{{ $prod['image_url'] }}">
+                                    @php
+                                        $displayImg = !empty($prod['image_url']) ? $prod['image_url'] : null;
+                                        if (!$displayImg) {
+                                            $pn = strtoupper($prod['name'] ?? '');
+                                            if (str_contains($pn, 'BRASS') && str_contains($pn, 'ELBOW')) $displayImg = 'images/catalog/plasto/items/brass_elbow.jpg';
+                                            elseif (str_contains($pn, 'BRASS') && str_contains($pn, 'TEE')) $displayImg = 'images/catalog/plasto/items/brass_tee.jpg';
+                                            elseif (str_contains($pn, 'BRASS') && str_contains($pn, 'MTA')) $displayImg = 'images/catalog/plasto/items/brass_mta.jpg';
+                                            elseif (str_contains($pn, 'BRASS') && str_contains($pn, 'FTA')) $displayImg = 'images/catalog/plasto/items/brass_fta.jpg';
+                                            elseif (str_contains($pn, 'VALVE')) $displayImg = 'images/catalog/plasto/items/cpvc_ball_valve.jpg';
+                                            elseif (str_contains($pn, 'CPVC') && (str_contains($pn, 'ELBOW') || str_contains($pn, 'BEND'))) $displayImg = 'images/catalog/plasto/items/cpvc_elbow.jpg';
+                                            elseif (str_contains($pn, 'CPVC') && str_contains($pn, 'TEE')) $displayImg = 'images/catalog/plasto/items/cpvc_tee.jpg';
+                                            elseif (str_contains($pn, 'CPVC') && (str_contains($pn, 'COUPLER') || str_contains($pn, 'SOCKET'))) $displayImg = 'images/catalog/plasto/items/cpvc_coupler.jpg';
+                                            elseif (str_contains($pn, 'CPVC') && str_contains($pn, 'UNION')) $displayImg = 'images/catalog/plasto/items/cpvc_union.jpg';
+                                            elseif (str_contains($pn, 'CPVC') && str_contains($pn, 'PIPE')) $displayImg = 'images/catalog/plasto/items/cpvc_pipe.jpg';
+                                            elseif (str_contains($pn, 'ELBOW') || str_contains($pn, 'BEND')) $displayImg = 'images/catalog/plasto/items/upvc_elbow.jpg';
+                                            elseif (str_contains($pn, 'TEE')) $displayImg = 'images/catalog/plasto/items/upvc_tee.jpg';
+                                            elseif (str_contains($pn, 'COUPLER') || str_contains($pn, 'SOCKET')) $displayImg = 'images/catalog/plasto/items/upvc_coupler.jpg';
+                                            elseif (str_contains($pn, 'MTA')) $displayImg = 'images/catalog/plasto/items/upvc_mta.jpg';
+                                            elseif (str_contains($pn, 'END CAP') || str_contains($pn, 'PLUG')) $displayImg = 'images/catalog/plasto/items/end_cap.jpg';
+                                            elseif (str_contains($pn, 'GARDEN') || str_contains($pn, 'HOSE')) $displayImg = 'images/catalog/plasto/items/garden_pipe.jpg';
+                                            elseif (str_contains($pn, 'TANK') && str_contains($pn, 'LID')) $displayImg = 'images/catalog/plasto/items/water_tank_lid.jpg';
+                                        }
+                                    @endphp
+                                    @if($displayImg)
+                                        <img src="{{ filter_var($displayImg, FILTER_VALIDATE_URL) ? $displayImg : asset($displayImg) }}" alt="{{ $prod['name'] }}" class="w-full h-full object-contain" id="img_tag_{{ $pIdx }}" onerror="this.style.display='none'; document.getElementById('placeholder_{{ $pIdx }}').classList.remove('hidden'); document.getElementById('placeholder_{{ $pIdx }}').classList.add('flex');">
+                                        <div id="placeholder_{{ $pIdx }}" class="hidden flex-col items-center justify-center text-gray-300">
+                                            <i class="fa-solid fa-camera text-3xl"></i>
+                                            <span class="text-[10px] text-gray-400 font-bold mt-1">+ फोटो लगाएं</span>
+                                        </div>
+                                        <input type="hidden" name="products[{{ $pIdx }}][image_url]" id="img_val_{{ $pIdx }}" value="{{ $displayImg }}">
                                     @else
-                                        <img src="{{ asset('images/catalog/plasto/items/upvc_elbow.jpg') }}" alt="Default" class="w-full h-full object-contain opacity-50" id="img_tag_{{ $pIdx }}">
-                                        <input type="hidden" name="products[{{ $pIdx }}][image_url]" id="img_val_{{ $pIdx }}" value="images/catalog/plasto/items/upvc_elbow.jpg">
+                                        <div id="placeholder_{{ $pIdx }}" class="flex flex-col items-center justify-center text-gray-300">
+                                            <i class="fa-solid fa-camera text-3xl"></i>
+                                            <span class="text-[10px] text-gray-400 font-bold mt-1">+ फोटो लगाएं</span>
+                                        </div>
+                                        <img src="" alt="{{ $prod['name'] }}" class="w-full h-full object-contain hidden" id="img_tag_{{ $pIdx }}" onerror="this.style.display='none'; document.getElementById('placeholder_{{ $pIdx }}').classList.remove('hidden');">
+                                        <input type="hidden" name="products[{{ $pIdx }}][image_url]" id="img_val_{{ $pIdx }}" value="">
                                     @endif
                                 </div>
 
