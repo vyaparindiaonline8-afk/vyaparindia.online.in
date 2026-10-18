@@ -846,26 +846,26 @@ class ProductSpreadsheetController extends Controller
                     $isChanged = false;
                     if ($matchedVariant) {
                         $varUpdates = [];
-                        if (!is_null($sellingPrice) && $sellingPrice > 0) {
+                        if (!is_null($sellingPrice) && $sellingPrice >= 0) {
                             if (abs(floatval($matchedVariant->retail_price ?? $matchedVariant->price) - $sellingPrice) > 0.01) {
                                 $isChanged = true;
                             }
                             $varUpdates['retail_price'] = $sellingPrice;
                         }
-                        if (!is_null($wholesalePrice) && $wholesalePrice > 0) {
+                        if (!is_null($wholesalePrice) && $wholesalePrice >= 0) {
                             if (abs(floatval($matchedVariant->wholesale_price) - $wholesalePrice) > 0.01) {
                                 $isChanged = true;
                             }
                             $varUpdates['wholesale_price'] = $wholesalePrice;
                         }
-                        if (!is_null($purchasePrice) && $purchasePrice > 0) {
+                        if (!is_null($purchasePrice) && $purchasePrice >= 0) {
                             if (abs(floatval($matchedVariant->purchase_price) - $purchasePrice) > 0.01) {
                                 $isChanged = true;
                             }
                             $varUpdates['purchase_price'] = $purchasePrice;
                             $varUpdates['raw_rate'] = $purchasePrice;
                         }
-                        if (!is_null($mrp) && $mrp > 0) {
+                        if (!is_null($mrp) && $mrp >= 0) {
                             if (abs(floatval($matchedVariant->mrp) - $mrp) > 0.01) {
                                 $isChanged = true;
                             }
@@ -920,16 +920,20 @@ class ProductSpreadsheetController extends Controller
                         if (!$product || !Product::where('id', $product->id)->exists()) {
                             continue;
                         }
-                        $vPrice = ($sellingPrice && $sellingPrice > 0) ? $sellingPrice : (($mrp && $mrp > 0) ? $mrp : $product->price);
+                        $vPrice = (!is_null($sellingPrice) && $sellingPrice >= 0) ? $sellingPrice : 0.00;
+                        $wPrice = (!is_null($wholesalePrice) && $wholesalePrice >= 0) ? $wholesalePrice : 0.00;
+                        $pPrice = (!is_null($purchasePrice) && $purchasePrice >= 0) ? $purchasePrice : 0.00;
+                        $mPrice = (!is_null($mrp) && $mrp >= 0) ? $mrp : 0.00;
+
                         $skuToAssign = !empty($newProductCode) ? trim($newProductCode) : (!empty($productCode) ? trim($productCode) : ('VAR-' . $product->id . '-' . strtoupper(Str::random(5))));
                         $newVar = ProductVariant::create([
                             'product_id' => $product->id,
                             'variant_name' => $sizeVariant,
                             'sku' => $skuToAssign,
                             'retail_price' => $vPrice,
-                            'wholesale_price' => ($wholesalePrice && $wholesalePrice > 0) ? $wholesalePrice : $vPrice,
-                            'purchase_price' => $purchasePrice ?? 0,
-                            'mrp' => ($mrp && $mrp > 0) ? $mrp : $vPrice,
+                            'wholesale_price' => $wPrice,
+                            'purchase_price' => $pPrice,
+                            'mrp' => $mPrice,
                             'stock_quantity' => !is_null($stock) ? $stock : 0,
                             'track_inventory' => !is_null($stock) && $stock > 0,
                             'attributes' => ['size' => $sizeVariant],
@@ -947,19 +951,19 @@ class ProductSpreadsheetController extends Controller
                         $affectedProductIds[$product->id] = true;
                     } else {
                         if (!$hasVariants) {
-                            if (!is_null($sellingPrice) && $sellingPrice > 0) {
+                            if (!is_null($sellingPrice) && $sellingPrice >= 0) {
                                 if (abs(floatval($product->price) - $sellingPrice) > 0.01) $isChanged = true;
                                 $prodUpdates['price'] = $sellingPrice;
                             }
-                            if (!is_null($wholesalePrice) && $wholesalePrice > 0) {
+                            if (!is_null($wholesalePrice) && $wholesalePrice >= 0) {
                                 if (abs(floatval($product->wholesale_price) - $wholesalePrice) > 0.01) $isChanged = true;
                                 $prodUpdates['wholesale_price'] = $wholesalePrice;
                             }
-                            if (!is_null($purchasePrice) && $purchasePrice > 0) {
+                            if (!is_null($purchasePrice) && $purchasePrice >= 0) {
                                 if (abs(floatval($product->purchase_price) - $purchasePrice) > 0.01) $isChanged = true;
                                 $prodUpdates['purchase_price'] = $purchasePrice;
                             }
-                            if (!is_null($mrp) && $mrp > 0) {
+                            if (!is_null($mrp) && $mrp >= 0) {
                                 if (abs(floatval($product->mrp) - $mrp) > 0.01) $isChanged = true;
                                 $prodUpdates['mrp'] = $mrp;
                             }
@@ -1005,8 +1009,10 @@ class ProductSpreadsheetController extends Controller
                     if ($allowCreateNew && !empty($name)) {
                         if ($seller->canAddProduct()) {
                             $catId = !empty($categoryName) ? $getOrCreateCat($categoryName) : null;
-                            $finalPrice = ($sellingPrice && $sellingPrice > 0) ? $sellingPrice : (($mrp && $mrp > 0) ? $mrp : 0.00);
-                            $finalMrp = ($mrp && $mrp > 0) ? max($mrp, $finalPrice) : $finalPrice;
+                            $finalPrice = (!is_null($sellingPrice) && $sellingPrice >= 0) ? $sellingPrice : 0.00;
+                            $finalWholesale = (!is_null($wholesalePrice) && $wholesalePrice >= 0) ? $wholesalePrice : 0.00;
+                            $finalPurchase = (!is_null($purchasePrice) && $purchasePrice >= 0) ? $purchasePrice : 0.00;
+                            $finalMrp = (!is_null($mrp) && $mrp >= 0) ? $mrp : 0.00;
 
                             $baseSlug = Str::slug($familyBaseName);
                             if (empty($baseSlug)) {
@@ -1025,8 +1031,8 @@ class ProductSpreadsheetController extends Controller
                                 'brand' => !empty($brand) ? $brand : 'Plasto',
                                 'group_name' => !empty($groupName) ? $groupName : null,
                                 'price' => $finalPrice,
-                                'wholesale_price' => ($wholesalePrice && $wholesalePrice > 0) ? $wholesalePrice : $finalPrice,
-                                'purchase_price' => $purchasePrice ?? 0,
+                                'wholesale_price' => $finalWholesale,
+                                'purchase_price' => $finalPurchase,
                                 'mrp' => $finalMrp,
                                 'stock_quantity' => !is_null($stock) ? $stock : 0,
                                 'track_inventory' => !is_null($stock) && $stock > 0,
@@ -1045,8 +1051,8 @@ class ProductSpreadsheetController extends Controller
                                         'variant_name' => $sizeVariant,
                                         'sku' => $firstVarSku,
                                         'retail_price' => $finalPrice,
-                                        'wholesale_price' => ($wholesalePrice && $wholesalePrice > 0) ? $wholesalePrice : $finalPrice,
-                                        'purchase_price' => $purchasePrice ?? 0,
+                                        'wholesale_price' => $finalWholesale,
+                                        'purchase_price' => $finalPurchase,
                                         'mrp' => $finalMrp,
                                         'stock_quantity' => !is_null($stock) ? $stock : 0,
                                         'track_inventory' => !is_null($stock) && $stock > 0,
@@ -1092,10 +1098,10 @@ class ProductSpreadsheetController extends Controller
                         $totalStock = $p->variants->sum('stock_quantity');
 
                         $p->update([
-                            'price' => $minRetail ?: $p->price,
-                            'wholesale_price' => $minWholesale ?: $p->wholesale_price,
-                            'mrp' => $minMrp ?: $p->mrp,
-                            'purchase_price' => $minPurchase ?: $p->purchase_price,
+                            'price' => !is_null($minRetail) ? $minRetail : 0.00,
+                            'wholesale_price' => !is_null($minWholesale) ? $minWholesale : 0.00,
+                            'mrp' => !is_null($minMrp) ? $minMrp : 0.00,
+                            'purchase_price' => !is_null($minPurchase) ? $minPurchase : 0.00,
                             'stock_quantity' => $totalStock > 0 ? $totalStock : $p->stock_quantity,
                         ]);
                     }

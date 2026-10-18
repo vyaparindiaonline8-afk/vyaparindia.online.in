@@ -255,61 +255,63 @@
         </div>
 
         <!-- 📊 Excel Sync & Daily Rate Revision Suite Banner -->
-        <div class="bg-gradient-to-br from-indigo-900 via-slate-900 to-blue-900 rounded-3xl p-5 sm:p-6 text-white shadow-lg relative overflow-hidden">
-            <div class="absolute -right-8 -bottom-8 w-44 h-44 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-4 sm:p-5 text-white shadow-md relative overflow-hidden border border-indigo-900/50">
+            <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
             
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-10">
-                <div class="space-y-1.5 max-w-xl">
-                    <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase tracking-wider border border-emerald-500/30">
-                        <i class="fa-solid fa-bolt"></i> 1-क्लिक एक्सेल सिंक & दैनिक भाव रिवीज़न
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+                <!-- Left: Title & Compact Description -->
+                <div class="space-y-1 max-w-md">
+                    <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase tracking-wider border border-emerald-500/30">
+                        <i class="fa-solid fa-bolt text-emerald-400"></i>
+                        <span>1-क्लिक एक्सेल सिंक & दैनिक भाव</span>
                     </div>
-                    <h2 class="text-lg sm:text-xl font-black text-white tracking-tight">
+                    <h2 class="text-base sm:text-lg font-black text-white tracking-tight leading-snug">
                         एक्सेल शीट डाउनलोड व बल्क रेट अपडेट
                     </h2>
                     <p class="text-xs text-slate-300 leading-relaxed">
-                        हार्डवेयर, मंडी व किराना के दैनिक रेट्स बदलें या पूरे कैटलॉग को एक्सेल में डाउनलोड करके एडिट करें। सिस्टम <strong>Product ID</strong> से पहचान कर नाम व रेट्स तुरंत अपडेट कर देता है।
+                        दैनिक रेट्स बदलें या पूरे कैटलॉग को एक्सेल में डाउनलोड करें। सिस्टम <strong>Product ID</strong> से पहचान कर भाव तुरंत अपडेट कर देता है।
                     </p>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-2.5 shrink-0">
-                    <!-- Daily Rates Sheet Export -->
-                    <a href="{{ route('seller.products.export_sheet', ['type' => 'rates']) }}" class="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition flex items-center gap-2 backdrop-blur-xs hover:scale-102 active:scale-98" title="Download quick rates revision template">
-                        <i class="fa-solid fa-file-invoice-dollar text-amber-400 text-sm"></i>
-                        <span>दैनिक भाव शीट (.csv)</span>
-                    </a>
+                <!-- Right: Clean Organized Action Buttons -->
+                <div class="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-stretch sm:items-center gap-2 shrink-0">
+                    <!-- Downloads Pill Group -->
+                    <div class="flex items-center gap-1.5 bg-white/5 p-1 rounded-xl border border-white/10 backdrop-blur-xs">
+                        <a href="{{ route('seller.products.export_sheet', ['type' => 'rates']) }}" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-[11px] transition flex items-center gap-1.5" title="दैनिक भाव बदलने के लिए शीट">
+                            <i class="fa-solid fa-file-invoice-dollar text-amber-400"></i>
+                            <span>दैनिक भाव (.csv)</span>
+                        </a>
+                        <a href="{{ route('seller.products.export_sheet', ['type' => 'full']) }}" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-[11px] transition flex items-center gap-1.5" title="पूरा कैटलॉग मास्टर शीट">
+                            <i class="fa-solid fa-table-list text-emerald-400"></i>
+                            <span>पूरा कैटलॉग (.csv)</span>
+                        </a>
+                    </div>
 
-                    <!-- Full Catalog Export -->
-                    <a href="{{ route('seller.products.export_sheet', ['type' => 'full']) }}" class="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition flex items-center gap-2 backdrop-blur-xs hover:scale-102 active:scale-98" title="Download entire catalog master excel">
-                        <i class="fa-solid fa-table-list text-emerald-400 text-sm"></i>
-                        <span>पूरा कैटलॉग (.csv)</span>
-                    </a>
-
-                    <!-- Upload & Sync Button -->
-                    <button type="button" onclick="openExcelSyncModal()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs shadow-md shadow-emerald-500/20 transition flex items-center gap-2 hover:scale-102 active:scale-98">
-                        <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
-                        <span>1-क्लिक ऑटो सिंक</span>
-                    </button>
-
-                    <!-- Interactive Column Mapper Tool Button -->
-                    <a href="{{ route('seller.catalog.excel_mapper') }}" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 transition flex items-center gap-2 hover:scale-102 active:scale-98" title="कॉलम मैपिंग टूल">
-                        <i class="fa-solid fa-table-columns text-sm text-amber-300"></i>
-                        <span>कॉलम मैपर ⚡</span>
-                    </a>
-
-                    <!-- 🤖 AI Catalog Auditor & Verification Button -->
-                    <a href="{{ route('seller.catalog.auditor') }}" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-black text-xs shadow-md shadow-amber-500/30 transition flex items-center gap-2 hover:scale-102 active:scale-98" title="AI कैटलॉग ऑडिटर: एक्सेल शीट व लाइव कार्ड्स के रेट्स मिलाएं">
-                        <i class="fa-solid fa-robot text-sm"></i>
-                        <span>AI कैटलॉग ऑडिटर 🤖</span>
-                    </a>
-
-                    <!-- Direct Live Cards Master Sheet Editor & Sync Hub Button -->
-                    <form action="{{ route('seller.catalog.excel_mapper.load_live_cards') }}" method="POST" class="inline" onsubmit="const btn = this.querySelector('button'); btn.disabled = true; btn.innerHTML = '<i class=\'fa-solid fa-spinner fa-spin\'></i> लोड हो रहा है...';">
-                        @csrf
-                        <button type="submit" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs shadow-md shadow-purple-600/30 transition flex items-center gap-2 hover:scale-102 active:scale-98" title="लाइव कार्ड्स को एक्सेल शीट में खोलें और 1-क्लिक में सिंक करें">
-                            <i class="fa-solid fa-file-pen text-sm text-amber-300"></i>
-                            <span>कार्ड्स एक्सेल एडिटर व सिंक हब 🔄</span>
+                    <!-- Sync & Tools Group -->
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <button type="button" onclick="openExcelSyncModal()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs shadow-xs transition flex items-center gap-1.5 hover:scale-102 active:scale-98">
+                            <i class="fa-solid fa-cloud-arrow-up text-xs"></i>
+                            <span>1-क्लिक सिंक</span>
                         </button>
-                    </form>
+
+                        <a href="{{ route('seller.catalog.auditor') }}" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs shadow-xs transition flex items-center gap-1.5 hover:scale-102 active:scale-98" title="एक्सेल शीट व लाइव कार्ड्स के रेट्स मिलाएं">
+                            <i class="fa-solid fa-robot text-xs"></i>
+                            <span>AI ऑडिटर 🤖</span>
+                        </a>
+
+                        <a href="{{ route('seller.catalog.excel_mapper') }}" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition flex items-center gap-1.5 hover:scale-102 active:scale-98" title="कॉलम मैपिंग टूल">
+                            <i class="fa-solid fa-table-columns text-amber-300 text-xs"></i>
+                            <span>मैपर ⚡</span>
+                        </a>
+
+                        <form action="{{ route('seller.catalog.excel_mapper.load_live_cards') }}" method="POST" class="inline" onsubmit="const btn = this.querySelector('button'); btn.disabled = true; btn.innerHTML = '<i class=\'fa-solid fa-spinner fa-spin\'></i> लोड...';">
+                            @csrf
+                            <button type="submit" class="px-2.5 py-1.5 rounded-xl bg-purple-600/40 hover:bg-purple-600/60 border border-purple-400/30 text-white font-bold text-xs transition flex items-center gap-1.5 hover:scale-102 active:scale-98" title="लाइव कार्ड्स को एक्सेल शीट में खोलें">
+                                <i class="fa-solid fa-file-pen text-amber-300 text-xs"></i>
+                                <span>एडिटर 🔄</span>
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
