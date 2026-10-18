@@ -2408,13 +2408,21 @@
                 return;
             }
 
+            // ALWAYS restore existing saved cards & rows from localStorage first!
+            loadFromLocalStorage();
+
             const rawStored = localStorage.getItem('vyapar_custom_excel_lines');
 
-            // 1. TOP PRIORITY: If coming from PDF Studio with source=pdf_lines, ALWAYS import fresh PDF lines!
+            // 1. TOP PRIORITY: If coming from PDF Studio with source=pdf_lines, import fresh PDF lines!
             if (isFromPdf && rawStored) {
                 try {
                     const parsed = JSON.parse(rawStored);
                     if (loadPdfExtractedDataIntoDynamicRows(parsed)) {
+                        // Clean the URL query param immediately so F5/Refresh doesn't reset or re-import
+                        if (window.history && window.history.replaceState) {
+                            const cleanUrl = window.location.pathname + (window.location.search.replace(/[?&]source=pdf_lines(&|$)/, '$1').replace(/[?&]$/, ''));
+                            window.history.replaceState({}, document.title, cleanUrl || window.location.pathname);
+                        }
                         toggleDynamicMode(true);
                         return;
                     }
@@ -2423,8 +2431,8 @@
                 }
             }
 
-            // 2. PRIORITY 2: If we have existing saved dynamic spreadsheet rows in localStorage
-            if (loadFromLocalStorage() && (dynamicRows.length > 0 || groupedProductCards.length > 0)) {
+            // 2. PRIORITY 2: If we have existing saved dynamic spreadsheet rows or grouped cards in localStorage
+            if (groupedProductCards.length > 0 || dynamicRows.length > 0) {
                 renderDynamicRows();
                 renderGroupedProductCards();
                 refreshCategoryFilterTabs();
@@ -3238,8 +3246,18 @@
                             <td class="p-2 font-mono">
                                 <input type="number" value="${(v.stock !== undefined && v.stock !== null && v.stock !== '') ? v.stock : 0}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'stock', parseInt(this.value) || 0)" class="w-14 text-xs font-mono text-gray-700 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent">
                             </td>
-                            <td class="p-2 text-right">
-                                <button type="button" onclick="deleteVariantFromCard(${c.card_id}, ${v.id})" class="h-6 w-6 rounded bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition inline-flex items-center justify-center text-[10px]" title="Remove size"><i class="fa-solid fa-xmark"></i></button>
+                            <td class="p-2 text-right whitespace-nowrap">
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <button type="button" onclick="sendVariantBackToDynamicRows(${c.card_id}, ${v.id})" class="h-6 px-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-200 flex items-center gap-1 transition" title="Card se nikal kar wapas Table List me bhejein (taaki alag card bana sakein)">
+                                        <i class="fa-solid fa-arrow-turn-up text-amber-600"></i>
+                                        <span>List me bhejein</span>
+                                    </button>
+                                    <button type="button" onclick="moveVariantToNewCard(${c.card_id}, ${v.id})" class="h-6 px-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-800 text-[10px] font-bold border border-indigo-200 flex items-center gap-1 transition" title="Is size ka alag se naya card banayein (Company / Brand ke hisab se)">
+                                        <i class="fa-solid fa-plus text-indigo-600"></i>
+                                        <span>Naya Card</span>
+                                    </button>
+                                    <button type="button" onclick="deleteVariantFromCard(${c.card_id}, ${v.id})" class="h-6 w-6 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition inline-flex items-center justify-center text-[10px]" title="Permanently delete this size"><i class="fa-solid fa-trash-can"></i></button>
+                                </div>
                             </td>
                         </tr>
                     `;
@@ -3293,9 +3311,9 @@
                                     <i class="fa-solid fa-floppy-disk"></i>
                                     <span>Save Card</span>
                                 </button>
-                                <button type="button" onclick="ungroupCard(${c.card_id})" class="px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-extrabold border border-amber-200 flex items-center gap-1.5 transition" title="Restore back to flat table rows">
-                                    <i class="fa-solid fa-arrow-rotate-left"></i>
-                                    <span>Ungroup</span>
+                                <button type="button" onclick="ungroupCard(${c.card_id})" class="px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-black border border-amber-200 flex items-center gap-1.5 transition" title="Is card ke sabhi items ko wapas table listing me bhej do taaki company-wise alag cards bana sakein">
+                                    <i class="fa-solid fa-arrow-rotate-left text-amber-600"></i>
+                                    <span>Wapas List Me Kholein (Ungroup)</span>
                                 </button>
                                 <button type="button" onclick="deleteGroupedCard(${c.card_id})" class="h-8 w-8 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 flex items-center justify-center text-xs transition" title="Delete Card">
                                     <i class="fa-solid fa-trash-can"></i>
@@ -3316,7 +3334,7 @@
                                         <th class="p-2.5">Cost Price</th>
                                         <th class="p-2.5">Selling Price</th>
                                         <th class="p-2.5">Stock</th>
-                                        <th class="p-2.5 text-right w-12">Action</th>
+                                        <th class="p-2.5 text-right min-w-[210px]">Actions (Move / Delete)</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-100 font-medium">
@@ -3388,22 +3406,122 @@
 
         function deleteVariantFromCard(cardId, variantId) {
             const card = groupedProductCards.find(c => c.card_id === cardId);
-            if (card) {
-                card.variants = card.variants.filter(v => v.id !== variantId);
-                if (card.variants.length === 0) {
-                    deleteGroupedCard(cardId);
-                    return;
-                }
-                renderGroupedProductCards();
+            if (!card) return;
+            const v = card.variants.find(item => item.id === variantId);
+            const sizeName = v ? (v.size || v.product_code || 'variant') : 'variant';
+
+            if (!confirm(`Kya aap "${sizeName}" size ko PERMANENTLY delete karna chahte hain?\n\nTip: Agar iska alag card banana hai, toh "List me bhejein" dabayein taaki ye table me wapas aa jaye!`)) {
+                return;
             }
+
+            card.variants = card.variants.filter(v => v.id !== variantId);
+            if (card.variants.length === 0) {
+                groupedProductCards = groupedProductCards.filter(c => c.card_id !== cardId);
+            }
+            renderGroupedProductCards();
+            saveToLocalStorage();
+            autoSaveDraftToBackend();
+            showToastNotification(`🗑️ Size "${sizeName}" delete ho gaya.`);
+        }
+
+        function sendVariantBackToDynamicRows(cardId, variantId) {
+            const card = groupedProductCards.find(c => c.card_id === cardId);
+            if (!card) return;
+
+            const vIndex = card.variants.findIndex(item => item.id === variantId);
+            if (vIndex === -1) return;
+
+            const v = card.variants[vIndex];
+            card.variants.splice(vIndex, 1);
+
+            const rowName = (v.size && v.size !== 'Standard' && !card.parent_name.includes(v.size))
+                ? `${card.parent_name} - ${v.size}`
+                : card.parent_name;
+
+            dynamicRows.unshift({
+                id: dynamicRowNextId++,
+                product_code: v.product_code || '',
+                hsn_code: v.hsn_code || '39174000',
+                product_name: rowName,
+                description: v.description || card.description || '',
+                size: v.size || 'Standard',
+                packing_1: v.packing_1 || '',
+                packing_2: v.packing_2 || '',
+                group_type: card.category || 'General Hardware',
+                category: card.category || 'General Hardware',
+                mrp: v.mrp,
+                purchase_cost: v.purchase_cost,
+                cost_price_2: v.cost_price_2 || 0,
+                cost_price_3: v.cost_price_3 || 0,
+                retail_price: v.retail_price,
+                stock: (v.stock !== undefined && v.stock !== null && v.stock !== '') ? parseInt(v.stock) : 100,
+                image_url: card.image_url || '',
+                asset_url: card.asset_url || ''
+            });
+
+            if (card.variants.length === 0) {
+                groupedProductCards = groupedProductCards.filter(c => c.card_id !== cardId);
+            }
+
+            renderDynamicRows();
+            renderGroupedProductCards();
+            refreshCategoryFilterTabs();
+            updateFloatingBatchBar();
+            saveToLocalStorage();
+            autoSaveDraftToBackend();
+
+            showToastNotification(`↩️ Item "${v.size || v.product_code}" wapas Table List me aa gaya! Ab aap iska alag card bana sakte hain.`);
+        }
+
+        function moveVariantToNewCard(cardId, variantId) {
+            const card = groupedProductCards.find(c => c.card_id === cardId);
+            if (!card) return;
+
+            const vIndex = card.variants.findIndex(item => item.id === variantId);
+            if (vIndex === -1) return;
+
+            const v = card.variants[vIndex];
+            const sizeLabel = v.size || v.product_code || '';
+            const suggestedTitle = prompt('Naye Card ka Title / Company Name dalein:', `${card.parent_name} (${sizeLabel})`.trim());
+            if (suggestedTitle === null) return; // User cancelled
+
+            card.variants.splice(vIndex, 1);
+
+            const newCard = {
+                card_id: groupedCardNextId++,
+                parent_name: suggestedTitle.trim() || `${card.parent_name} (${sizeLabel})`.trim(),
+                category: card.category || 'General Hardware',
+                description: v.description || card.description || '',
+                image_url: card.image_url || '',
+                asset_url: card.asset_url || '',
+                variants: [v]
+            };
+
+            groupedProductCards.push(newCard);
+
+            if (card.variants.length === 0) {
+                groupedProductCards = groupedProductCards.filter(c => c.card_id !== cardId);
+            }
+
+            renderDynamicRows();
+            renderGroupedProductCards();
+            refreshCategoryFilterTabs();
+            saveToLocalStorage();
+            autoSaveDraftToBackend();
+
+            showToastNotification(`✨ Naya card "${newCard.parent_name}" ban gaya!`);
         }
 
         function ungroupCard(cardId) {
             const card = groupedProductCards.find(c => c.card_id === cardId);
             if (!card) return;
 
+            if (!confirm(`Kya aap "${card.parent_name}" card ko dismantle karke iske sabhi ${card.variants.length} items wapas Table Listing me bhejna chahte hain?\n\nIsse ye sabhi items wapas table me aa jayenge aur aap inke alag-alag company cards bana sakenge.`)) {
+                return;
+            }
+
             card.variants.forEach(v => {
-                dynamicRows.push({
+                dynamicRows.unshift({
                     id: dynamicRowNextId++,
                     product_code: v.product_code || '',
                     hsn_code: v.hsn_code || '39174000',
@@ -3432,6 +3550,7 @@
             updateFloatingBatchBar();
             saveToLocalStorage();
             autoSaveDraftToBackend();
+            showToastNotification(`↩️ "${card.parent_name}" ke sabhi items wapas Table Listing me bhej diye gaye!`);
         }
 
         function addVariantToCard(cardId) {
