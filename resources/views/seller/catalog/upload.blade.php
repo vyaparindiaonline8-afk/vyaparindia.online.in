@@ -236,6 +236,50 @@
                     </div>
                 </div>
 
+                <!-- Page Range Selector (Selective Scanning to Skip Cover & Junk Pages) -->
+                <div class="space-y-3 p-5 rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/40 to-blue-50/20">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                        <label class="text-xs font-black text-gray-900 flex items-center gap-2">
+                            <i class="fa-solid fa-file-circle-check text-indigo-600"></i>
+                            <span>स्कैन करने हेतु पेज चुनें (Selective Page Scanning):</span>
+                        </label>
+                        <span class="text-[11px] font-bold text-indigo-700 bg-indigo-100/70 px-2.5 py-0.5 rounded-full w-fit">
+                            कवर, सर्टिफिकेट व नियम-शर्तें छोड़ें
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label class="flex items-center gap-3 p-3.5 rounded-xl border border-gray-200 bg-white cursor-pointer hover:border-indigo-400 transition" onclick="toggleCustomPages(false)">
+                            <input type="radio" name="page_selection" value="all" checked class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                            <div>
+                                <span class="text-xs font-black text-gray-900 block">सभी पेज स्कैन करें (All Pages)</span>
+                                <span class="text-[11px] text-gray-500">PDF के पहले पेज से आखिरी पेज तक सारा डेटा लेगा</span>
+                            </div>
+                        </label>
+
+                        <label class="flex items-center gap-3 p-3.5 rounded-xl border border-gray-200 bg-white cursor-pointer hover:border-indigo-400 transition" onclick="toggleCustomPages(true)">
+                            <input type="radio" name="page_selection" value="custom" id="customPagesRadio" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                            <div>
+                                <span class="text-xs font-black text-gray-900 block">केवल काम के पेज चुनें (Custom Pages)</span>
+                                <span class="text-[11px] text-gray-500">जैसे: 2-10 या 3, 5, 8-12</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Custom Range Input -->
+                    <div id="customPageInputContainer" class="hidden pt-3 border-t border-indigo-100/80">
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                            <div class="relative flex-1">
+                                <input type="text" name="custom_pages" id="custom_pages" placeholder="उदा. 2-10 या 2, 4, 6-9" class="w-full bg-white border border-indigo-200 rounded-xl px-4 py-2.5 text-xs text-gray-900 font-bold placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <span class="absolute right-3 top-2.5 text-[11px] font-bold text-indigo-600">Page Range</span>
+                            </div>
+                            <div class="text-[11px] text-indigo-950 sm:max-w-xs leading-tight bg-white/80 p-2 rounded-xl border border-indigo-100">
+                                💡 <strong>उदाहरण:</strong> 30 पेज की किताब में पहले पेज पर कवर व अंत में नियम हैं, तो बस <code>2-10</code> लिख दें। AI केवल 2 से 10 तक के ही पेज प्रोसेस करेगा!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex items-center justify-between pt-2">
                     <div class="text-xs text-gray-500 flex items-center gap-2">
                         <i class="fa-solid fa-circle-info text-blue-500"></i>
@@ -318,13 +362,25 @@
 
     <script>
         const dropzone = document.getElementById('dropzone');
-        const fileInput = document.getElementById('catalog_pdf');
+        const fileInput = document.getElementById('catalog_file') || document.getElementById('catalog_pdf');
         const fileLabel = document.getElementById('fileLabel');
         const fileSubtext = document.getElementById('fileSubtext');
         const uploadForm = document.getElementById('uploadForm');
         const submitBtn = document.getElementById('submitBtn');
         const spinner = document.getElementById('spinner');
         const btnText = document.getElementById('btnText');
+
+        function toggleCustomPages(isCustom) {
+            const container = document.getElementById('customPageInputContainer');
+            const input = document.getElementById('custom_pages');
+            if (isCustom) {
+                container.classList.remove('hidden');
+                input.focus();
+            } else {
+                container.classList.add('hidden');
+                input.value = '';
+            }
+        }
 
         dropzone.addEventListener('click', () => fileInput.click());
 

@@ -50,6 +50,8 @@ class CatalogIngestionController extends Controller
             'catalog_file' => 'nullable|file|mimes:pdf,xlsx,xls,csv|max:51200', // Up to 50MB
             'catalog_pdf' => 'nullable|file|mimes:pdf,xlsx,xls,csv|max:51200',
             'extraction_mode' => 'nullable|string|in:text_only,with_images',
+            'page_selection' => 'nullable|string|in:all,custom',
+            'custom_pages' => 'nullable|string|max:100',
         ]);
 
         $user = Auth::user();
@@ -60,6 +62,14 @@ class CatalogIngestionController extends Controller
         }
 
         $mode = $request->input('extraction_mode', 'text_only');
+        $pageRange = 'all';
+        if ($request->input('page_selection') === 'custom') {
+            $customPages = trim((string)$request->input('custom_pages', ''));
+            if (!empty($customPages)) {
+                $pageRange = $customPages;
+            }
+        }
+
         $originalName = $file->getClientOriginalName();
         $storedPath = $file->store('catalogs/' . $user->id, 'public');
 
@@ -71,8 +81,8 @@ class CatalogIngestionController extends Controller
             'total_products_detected' => 0,
         ]);
 
-        // Process PDF or Excel via AI Ingestion Service (with selected mode)
-        $job = $this->ingestionService->processCatalog($job, $mode);
+        // Process PDF or Excel via AI Ingestion Service (with selected mode & page range)
+        $job = $this->ingestionService->processCatalog($job, $mode, $pageRange);
 
         return redirect()->route('seller.catalog.review', $job->id)
             ->with('success', 'Catalog successfully processed! Review grouped products, verify photos & margins before publishing.');

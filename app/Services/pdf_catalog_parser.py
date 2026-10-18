@@ -58,19 +58,44 @@ def extract_sizes_and_specs(text):
     grades = re.findall(r'\b(sdr\s*11|sdr\s*13\.5|sdr\s*9|sch\s*40|sch\s*80|grade\s*[a-z0-9]+|class\s*[a-z0-9]+)\b', text, re.IGNORECASE)
     return list(set(sizes)), list(set(grades))
 
-def process_pdf(pdf_path, output_dir, job_id, skip_images=False):
+def parse_page_range(range_str, total_pages):
+    if not range_str or range_str.strip().lower() in ('all', '', 'none'):
+        return list(range(total_pages))
+    pages = set()
+    for part in range_str.split(','):
+        part = part.strip()
+        if not part:
+            continue
+        if '-' in part:
+            try:
+                start, end = part.split('-', 1)
+                s = max(1, int(start.strip()))
+                e = min(total_pages, int(end.strip()))
+                if s <= e:
+                    pages.update(range(s - 1, e))
+            except:
+                pass
+        elif part.isdigit():
+            p = int(part)
+            if 1 <= p <= total_pages:
+                pages.add(p - 1)
+    res = sorted(list(pages))
+    return res if res else list(range(total_pages))
+
+def process_pdf(pdf_path, output_dir, job_id, skip_images=False, page_range="all"):
     os.makedirs(output_dir, exist_ok=True)
     images_dir = os.path.join(output_dir, f"job_{job_id}_images")
     os.makedirs(images_dir, exist_ok=True)
 
     doc = fitz.open(pdf_path)
     total_pages = len(doc)
+    selected_pages = parse_page_range(page_range, total_pages)
 
     extracted_images = []
-    # 1. Extract all meaningful images (only if skip_images is False)
+    # 1. Extract all meaningful images (only if skip_images is False) from selected pages
     if not skip_images:
         img_counter = 1
-        for page_idx in range(total_pages):
+        for page_idx in selected_pages:
             page = doc[page_idx]
             image_list = page.get_images(full=True)
             for img_info in image_list:
@@ -100,7 +125,7 @@ def process_pdf(pdf_path, output_dir, job_id, skip_images=False):
     products = []
     current_product = None
 
-    for page_idx in range(total_pages):
+    for page_idx in selected_pages:
         page = doc[page_idx]
         text_blocks = page.get_text("blocks")
         
@@ -167,6 +192,7 @@ def process_pdf(pdf_path, output_dir, job_id, skip_images=False):
                 current_product = {
                     "name": block_text,
                     "category": "Industrial & Commercial",
+                    "catalog_page": f"Page {page_idx + 1}",
                     "description": "",
                     "base_price": price_found,
                     "mrp": round(price_found * 1.35, 2),
@@ -186,9 +212,11 @@ def process_pdf(pdf_path, output_dir, job_id, skip_images=False):
     # Fallback if no specific products isolated
     if not products:
         default_img = extracted_images[0]["relative_url"] if extracted_images else None
+        first_page_num = (selected_pages[0] + 1) if selected_pages else 1
         products.append({
             "name": os.path.splitext(os.path.basename(pdf_path))[0].replace("_", " ").title(),
             "category": "General Catalog",
+            "catalog_page": f"Page {first_page_num}",
             "description": "Extracted from uploaded commercial catalog brochure.",
             "base_price": 299.0,
             "mrp": 399.0,
@@ -226,16 +254,17 @@ def process_pdf(pdf_path, output_dir, job_id, skip_images=False):
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        print(json.dumps({"success": False, "error": "Usage: python extract_catalog.py <pdf_path> <output_dir> <job_id> [mode]"}))
+        print(json.dumps({"success": False, "error": "Usage: python extract_catalog.py <pdf_path> <output_dir> <job_id> [mode] [page_range]"}))
         sys.exit(1)
     
     pdf_path = sys.argv[1]
     output_dir = sys.argv[2]
     job_id = sys.argv[3]
     mode = sys.argv[4] if len(sys.argv) > 4 else "text_only"
+    page_range = sys.argv[5] if len(sys.argv) > 5 else "all"
     skip_images = (mode == "text_only" or "--text-only" in sys.argv)
     try:
-        process_pdf(pdf_path, output_dir, job_id, skip_images=skip_images)
+        process_pdf(pdf_path, output_dir, job_id, skip_images=skip_images, page_range=page_range)
     except Exception as e:
         print(json.dumps({"success": False, "error": str(e)}))
         sys.exit(1)

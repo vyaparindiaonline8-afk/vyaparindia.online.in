@@ -18,7 +18,7 @@ class AICatalogIngestionService
     /**
      * Process an uploaded PDF catalog through PyMuPDF and AI extraction.
      */
-    public function processCatalog(CatalogIngestionJob $job, string $mode = 'text_only'): CatalogIngestionJob
+    public function processCatalog(CatalogIngestionJob $job, string $mode = 'text_only', string $pageRange = 'all'): CatalogIngestionJob
     {
         $job->update(['status' => 'processing']);
 
@@ -42,7 +42,7 @@ class AICatalogIngestionService
 
         if (file_exists($pdfPath) && file_exists($pythonScript)) {
             try {
-                $process = new Process([$pythonExec, $pythonScript, $pdfPath, $outputDir, (string)$job->id, $mode]);
+                $process = new Process([$pythonExec, $pythonScript, $pdfPath, $outputDir, (string)$job->id, $mode, (string)$pageRange]);
                 $process->setTimeout(180);
                 $process->run();
 
