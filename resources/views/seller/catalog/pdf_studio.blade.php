@@ -83,6 +83,13 @@
                         <span>Open PDF</span>
                     </button>
 
+                    <!-- Staged Excel Header Button -->
+                    <button type="button" onclick="openStagedExcelModal()" id="btnStagedExcelBadge" class="hidden px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/25 flex items-center gap-1.5 transition active:scale-95" title="View Staged Excel Sheet">
+                        <i class="fa-solid fa-table-list text-amber-300"></i>
+                        <span>📊 Staged Sheet</span>
+                        <span id="stagedExcelCountPill" class="px-1.5 py-0.5 rounded-md bg-white/20 text-[10px] font-black">0</span>
+                    </button>
+
                     <a href="{{ route('seller.catalog.gallery') }}" class="px-3.5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition flex items-center gap-1.5">
                         <i class="fa-solid fa-images text-blue-600"></i>
                         <span>Media Vault</span>
@@ -117,6 +124,18 @@
     <!-- Main Workspace Container -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
         
+        <!-- Staged Sheet Recovery Alert -->
+        <div id="stagedRecoveryBanner" class="hidden mb-4 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2.5">
+                <i class="fa-solid fa-cloud-arrow-down text-emerald-600 text-base"></i>
+                <span><b>Pichla Data Surakshit Hai:</b> Aapki pichli session ke <b id="stagedRecoveryCount" class="font-black text-emerald-700">0</b> items Staged Excel Sheet me maujood hain!</span>
+            </div>
+            <button type="button" onclick="openStagedExcelModal()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1 cursor-pointer">
+                <span>Right Tab Kholein</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </button>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start" id="mainWorkspaceGrid">
             
             <!-- LEFT COLUMN: PDF View / Canvas & Tools -->
@@ -1996,6 +2015,7 @@
 
             tableData.rows.forEach(r => staged.push(r));
             localStorage.setItem('vyapar_staged_excel_rows', JSON.stringify(staged));
+            syncStagedSheetToBackend(staged);
 
             updateStagedExcelHeaderBadge();
             const tabStagedCount = document.getElementById('rightTabStagedCount');
@@ -2009,6 +2029,57 @@
             }
 
             showToast(`✅ ${tableData.rows.length} items एक्सेल शीट में जुड़ गए! कुल: ${staged.length} items`, 'success');
+        }
+
+        function syncStagedSheetToBackend(stagedRows) {
+            try {
+                fetch("{{ route('seller.catalog.pdf_studio.save_staged_draft') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": csrfToken,
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify({ staged_rows: stagedRows })
+                }).catch(e => console.warn('Draft sync warning', e));
+            } catch(e) {}
+        }
+
+        function restoreStagedSheetFromBackend() {
+            let localStaged = [];
+            try {
+                localStaged = JSON.parse(localStorage.getItem('vyapar_staged_excel_rows') || '[]');
+            } catch(e) { localStaged = []; }
+
+            fetch("{{ route('seller.catalog.pdf_studio.get_staged_draft') }}")
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.rows && data.rows.length > 0) {
+                        if (localStaged.length === 0) {
+                            localStorage.setItem('vyapar_staged_excel_rows', JSON.stringify(data.rows));
+                            updateStagedExcelHeaderBadge();
+                            renderRightTabStagedSheet();
+                            showDraftRecoveryBanner(data.rows.length);
+                        } else {
+                            showDraftRecoveryBanner(localStaged.length);
+                        }
+                    } else if (localStaged.length > 0) {
+                        syncStagedSheetToBackend(localStaged);
+                        showDraftRecoveryBanner(localStaged.length);
+                    }
+                })
+                .catch(e => {
+                    if (localStaged.length > 0) showDraftRecoveryBanner(localStaged.length);
+                });
+        }
+
+        function showDraftRecoveryBanner(count) {
+            const banner = document.getElementById('stagedRecoveryBanner');
+            const cnt = document.getElementById('stagedRecoveryCount');
+            if (banner && count > 0) {
+                banner.classList.remove('hidden');
+                if (cnt) cnt.innerText = count;
+            }
         }
 
         function updateStagedExcelHeaderBadge() {
@@ -2028,10 +2099,13 @@
                 if (badgeBtn) badgeBtn.classList.remove('hidden');
                 if (pill) pill.innerText = `${staged.length} Items`;
                 if (modalCount) modalCount.innerText = `${staged.length} Items`;
+                showDraftRecoveryBanner(staged.length);
             } else {
                 if (badgeBtn) badgeBtn.classList.add('hidden');
                 if (pill) pill.innerText = `0 Items`;
                 if (modalCount) modalCount.innerText = `0 Items`;
+                const banner = document.getElementById('stagedRecoveryBanner');
+                if (banner) banner.classList.add('hidden');
             }
         }
 
@@ -2045,26 +2119,6 @@
             showToast('Staged Excel Sheet right side me khul gayi hai!', 'info');
         }
 
-            if (tbody) {
-                if (staged.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-400">Sheet abhi khali hai. PDF pages se items extract karke "इस टेबल को एक्सेल शीट में जोड़ें" dabayein.</td></tr>`;
-                } else {
-                    tbody.innerHTML = staged.map((r) => `
-                        <tr class="hover:bg-emerald-50/30">
-                            <td class="p-2 border-r border-gray-100 font-bold text-indigo-700">P.${r.page || 1}</td>
-                            <td class="p-2 border-r border-gray-100 font-bold text-gray-900 break-words">${escapeHtml(r.name || '-')}</td>
-                            <td class="p-2 border-r border-gray-100 text-indigo-600 font-medium">${escapeHtml(r.size || '-')}</td>
-                            <td class="p-2 border-r border-gray-100 text-emerald-700 font-black font-mono">${r.mrp ? '₹' + escapeHtml(String(r.mrp)) : '-'}</td>
-                            <td class="p-2 font-mono text-gray-500">${escapeHtml(r.sku || '-')}</td>
-                        </tr>
-                    `).join('');
-                }
-            }
-
-            const modal = document.getElementById('stagedExcelModal');
-            if (modal) modal.classList.remove('hidden');
-        }
-
         function closeStagedExcelModal() {
             const modal = document.getElementById('stagedExcelModal');
             if (modal) modal.classList.add('hidden');
@@ -2073,8 +2127,9 @@
         function clearStagedExcelRows() {
             if (!confirm('Kya aap sachme staged Excel sheet ko khali karna chahte hain?')) return;
             localStorage.removeItem('vyapar_staged_excel_rows');
+            syncStagedSheetToBackend([]);
             updateStagedExcelHeaderBadge();
-            openStagedExcelModal();
+            renderRightTabStagedSheet();
             showToast('Staged Excel Sheet reset ho gayi!', 'info');
         }
 
@@ -2809,6 +2864,7 @@
 
             try {
                 updateStagedExcelHeaderBadge();
+                restoreStagedSheetFromBackend();
             } catch (e) {}
         });
     </script>

@@ -195,4 +195,54 @@ class CloudinaryService
 
         return [];
     }
+
+    /**
+     * Delete a resource from Cloudinary by public_id or full URL
+     *
+     * @param string $publicIdOrUrl
+     * @return bool
+     */
+    public static function deleteResource(string $publicIdOrUrl): bool
+    {
+        [$cloudName, $apiKey, $apiSecret] = self::getCredentials();
+        if (!$cloudName || !$apiKey || !$apiSecret || empty($publicIdOrUrl)) {
+            return false;
+        }
+
+        // Extract public_id if full Cloudinary URL was provided
+        $publicId = $publicIdOrUrl;
+        if (str_starts_with($publicIdOrUrl, 'http://') || str_starts_with($publicIdOrUrl, 'https://')) {
+            $path = parse_url($publicIdOrUrl, PHP_URL_PATH);
+            if ($path && preg_match('#/image/upload/(?:v\d+/)?(.+?)(?:\.[a-zA-Z0-9]+)?$#i', $path, $m)) {
+                $publicId = $m[1];
+            } else {
+                $publicId = pathinfo($path, PATHINFO_FILENAME);
+            }
+        }
+
+        try {
+            $timestamp = time();
+            $toSign = "public_id={$publicId}&timestamp={$timestamp}" . $apiSecret;
+            $signature = sha1($toSign);
+
+            $url = "https://api.cloudinary.com/v1_1/{$cloudName}/image/destroy";
+            $response = Http::timeout(15)
+                ->withoutVerifying()
+                ->post($url, [
+                    'public_id' => $publicId,
+                    'api_key' => $apiKey,
+                    'timestamp' => $timestamp,
+                    'signature' => $signature,
+                ]);
+
+            if ($response->successful()) {
+                $res = $response->json();
+                return ($res['result'] ?? '') === 'ok';
+            }
+        } catch (\Throwable $e) {
+            Log::error('Cloudinary deleteResource exception: ' . $e->getMessage());
+        }
+
+        return false;
+    }
 }

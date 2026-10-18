@@ -52,6 +52,10 @@
                         <i class="fa-solid fa-file-excel"></i>
                         <span>+ Import New Excel</span>
                     </button>
+                    <button type="button" onclick="resetDynamicTable()" class="px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-black text-xs border border-rose-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer" title="Purana data hatakar nayi list shuru karein">
+                        <i class="fa-solid fa-broom text-rose-600"></i>
+                        <span>Start Fresh (Nayi List)</span>
+                    </button>
                     <button type="button" onclick="downloadSampleExcelTemplate()" class="px-3.5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition flex items-center gap-1.5" title="Download Excel template (.xlsx)">
                         <i class="fa-solid fa-download text-emerald-600"></i>
                         <span>Excel Template</span>
@@ -2267,6 +2271,23 @@
         function initDynamicSheet() {
             const urlParams = new URLSearchParams(window.location.search);
             const isFromPdf = urlParams.get('source') === 'pdf_lines';
+            const isFreshStart = urlParams.get('new') === '1' || urlParams.get('fresh') === '1';
+
+            if (isFreshStart) {
+                dynamicRows = [];
+                groupedProductCards = [];
+                localStorage.removeItem('vyapar_custom_excel_lines');
+                localStorage.removeItem('vyapar_grouped_cards');
+                localStorage.removeItem('vyapar_dynamic_rows');
+                localStorage.removeItem('vyapar_grouped_next_id');
+                localStorage.removeItem('vyapar_dynamic_next_id');
+                renderDynamicRows();
+                renderGroupedProductCards();
+                refreshCategoryFilterTabs();
+                toggleDynamicMode(true);
+                return;
+            }
+
             const rawStored = localStorage.getItem('vyapar_custom_excel_lines');
 
             // 1. TOP PRIORITY: If coming from PDF Studio with source=pdf_lines, ALWAYS import fresh PDF lines!
@@ -2312,9 +2333,12 @@
                 }
             }
 
-            // 5. Default Fallback
-            loadSampleDynamicRows();
+            // 5. Default Fallback: Clean empty workspace! Never load fake UPVC sample rows!
+            dynamicRows = [];
+            groupedProductCards = [];
+            renderDynamicRows();
             renderGroupedProductCards();
+            refreshCategoryFilterTabs();
         }
 
         function handleExcelDroppedFile(file) {
@@ -3827,10 +3851,10 @@
 
         function resetDynamicTable() {
             if (dynamicRows.length === 0 && groupedProductCards.length === 0) {
-                alert('Table pehle se hi khali hai.');
+                alert('Table pehle se hi bilkul saaf aur khali hai.');
                 return;
             }
-            if (confirm('Kya aap table ke sabhi purane rows aur cards ko delete karke fresh shuru karna chahte hain?')) {
+            if (confirm('Kya aap table ke sabhi purane rows aur cards ko hatakar nayi list ke liye fresh shuru karna chahte hain?')) {
                 dynamicRows = [];
                 groupedProductCards = [];
                 localStorage.removeItem('vyapar_custom_excel_lines');
@@ -3840,7 +3864,9 @@
                 localStorage.removeItem('vyapar_dynamic_next_id');
                 renderDynamicRows();
                 renderGroupedProductCards();
+                refreshCategoryFilterTabs();
                 clearDynamicRowSelection();
+                showToastNotification('✨ Sabhi purane rows aur cards saaf ho gaye! Ab aap nayi list shuru kar sakte hain.');
             }
         }
 

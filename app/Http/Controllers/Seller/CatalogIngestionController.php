@@ -1005,25 +1005,11 @@ class CatalogIngestionController extends Controller
      */
     public static function detectFolderForImage(string $name, ?string $explicitCategory = null): string
     {
-        if (!empty($explicitCategory) && !in_array(strtolower($explicitCategory), ['general', 'uncategorized', 'other', 'default', 'null', ''])) {
+        if (!empty($explicitCategory) && !in_array(strtolower(trim($explicitCategory)), ['general', 'uncategorized', 'other', 'default', 'null', ''])) {
             return trim($explicitCategory);
         }
 
-        $n = strtolower($name);
-        if (str_contains($n, 'cpvc')) return 'CPVC Fittings';
-        if (str_contains($n, 'upvc')) return 'UPVC Fittings';
-        if (str_contains($n, 'swr') || str_contains($n, 'drain') || str_contains($n, 'trap') || str_contains($n, 'nahani') || str_contains($n, 'cowl')) return 'SWR Drainage';
-        if (str_contains($n, 'tank') || str_contains($n, 'water tank') || str_contains($n, 'loft')) return 'Water Tanks';
-        if (str_contains($n, 'valve') || str_contains($n, 'cock') || str_contains($n, 'brass') || str_contains($n, 'bib') || str_contains($n, 'pillar')) return 'Valves & Brass';
-        if (str_contains($n, 'bath') || str_contains($n, 'shower') || str_contains($n, 'faucet') || str_contains($n, 'basin') || str_contains($n, 'toilet') || str_contains($n, 'commode') || str_contains($n, 'sanitary')) return 'Bathroom & Sanitary';
-        if (str_contains($n, 'pump') || str_contains($n, 'motor') || str_contains($n, 'submersible') || str_contains($n, 'monobloc')) return 'Pumps & Motors';
-        if (str_contains($n, 'paint') || str_contains($n, 'distemper') || str_contains($n, 'primer') || str_contains($n, 'enamel') || str_contains($n, 'emulsion')) return 'Paints & Coatings';
-        if (str_contains($n, 'wire') || str_contains($n, 'switch') || str_contains($n, 'cable') || str_contains($n, 'mcb') || str_contains($n, 'socket') || str_contains($n, 'electrical')) return 'Electrical & Wiring';
-        if (str_contains($n, 'ply') || str_contains($n, 'door') || str_contains($n, 'hinge') || str_contains($n, 'lock') || str_contains($n, 'hardware')) return 'Hardware & Tools';
-        if (str_contains($n, 'pipe') || str_contains($n, 'conduit')) return 'Pipes';
-        if (str_contains($n, 'agri') || str_contains($n, 'solvent') || str_contains($n, 'cement') || str_contains($n, 'teflon')) return 'Agri & Solvents';
-
-        return !empty($explicitCategory) ? trim($explicitCategory) : 'General';
+        return 'General';
     }
 
     /**
@@ -1310,71 +1296,8 @@ class CatalogIngestionController extends Controller
             }
         }
 
-        // 5. All Standard Brand Master Images (Plasto, Supreme, Astral pipes & fittings catalog)
-        try {
-            $brandMasters = \App\Models\BrandMasterProduct::whereNotNull('image_url')
-                ->where('image_url', '!=', '')
-                ->select('product_name', 'image_url', 'category_name', 'brand_name')
-                ->get();
-            foreach ($brandMasters as $bm) {
-                $u = $bm->image_url;
-                if (!$u || isset($seenUrls[$u])) continue;
-                if (!str_starts_with($u, 'http://') && !str_starts_with($u, 'https://')) {
-                    $cleanPath = public_path(ltrim($u, '/'));
-                    if (!file_exists($cleanPath)) continue;
-                }
-                $seenUrls[$u] = true;
-                $assetUrl = (str_starts_with($u, 'http://') || str_starts_with($u, 'https://')) ? $u : asset($u);
-                $name = $bm->product_name ?: 'Brand Master Product';
-                $cat = $bm->category_name ?: ($bm->brand_name ?: 'General');
-                $images[] = [
-                    'id' => md5($u),
-                    'filename' => basename($u),
-                    'name' => trim($name),
-                    'url' => $u,
-                    'asset_url' => $assetUrl,
-                    'image' => $assetUrl,
-                    'size_kb' => 45.0,
-                    'created_at' => date('d M Y, H:i'),
-                    'source' => 'brand_master',
-                    'category' => $cat,
-                    'folder' => $cat,
-                ];
-            }
-        } catch (\Throwable $e) {}
-
-        // 6. All product catalog images from database
-        try {
-            $catalogProducts = \App\Models\Product::whereNotNull('image')
-                ->where('image', '!=', '')
-                ->select('name', 'image', 'group_name')
-                ->get();
-            foreach ($catalogProducts as $cp) {
-                $u = $cp->image;
-                if (!$u || isset($seenUrls[$u])) continue;
-                if (!str_starts_with($u, 'http://') && !str_starts_with($u, 'https://')) {
-                    $cleanPath = public_path(ltrim($u, '/'));
-                    if (!file_exists($cleanPath)) continue;
-                }
-                $seenUrls[$u] = true;
-                $assetUrl = (str_starts_with($u, 'http://') || str_starts_with($u, 'https://')) ? $u : asset($u);
-                $name = $cp->name ?: 'Catalog Item';
-                $cat = $cp->group_name ?: 'General';
-                $images[] = [
-                    'id' => md5($u),
-                    'filename' => basename($u),
-                    'name' => trim($name),
-                    'url' => $u,
-                    'asset_url' => $assetUrl,
-                    'image' => $assetUrl,
-                    'size_kb' => 40.0,
-                    'created_at' => date('d M Y, H:i'),
-                    'source' => 'product_catalog',
-                    'category' => $cat,
-                    'folder' => $cat,
-                ];
-            }
-        } catch (\Throwable $e) {}
+        // 5. Exclude external brand master and store products from personal media vault
+        // (Ensures seller only sees their genuine cropped and uploaded images)
 
         // Attach resolved folder & category to all images (preserving custom user folders)
         $customFolders = [];
@@ -1386,23 +1309,29 @@ class CatalogIngestionController extends Controller
                 ->toArray();
         } catch (\Throwable $e) {}
 
-        foreach ($images as &$img) {
+        $deletedList = \Illuminate\Support\Facades\Cache::get('vyapar_deleted_image_urls', []);
+
+        $finalImages = [];
+        foreach ($images as $img) {
             $u = $img['url'] ?? '';
             $uClean = ltrim($u, '/');
+            if (isset($deletedList[$u]) || isset($deletedList[$uClean])) {
+                continue;
+            }
             $explicit = $customFolders[$u] ?? ($customFolders[$uClean] ?? ($img['category'] ?? null));
             $folder = self::detectFolderForImage($img['name'] ?? '', $explicit);
             $img['folder'] = $folder;
             $img['category'] = $folder;
             $img['image'] = $img['asset_url'] ?? ($img['url'] ?? '');
+            $finalImages[] = $img;
         }
-        unset($img);
 
         // Sort latest first
-        usort($images, function ($a, $b) {
+        usort($finalImages, function ($a, $b) {
             return ($b['created_at'] ?? 0) <=> ($a['created_at'] ?? 0);
         });
 
-        return $images;
+        return $finalImages;
     }
 
     /**
@@ -1709,39 +1638,46 @@ class CatalogIngestionController extends Controller
         $userId = Auth::id() ?: 1;
         $rawUrl = $request->input('image_url');
 
-        // If it's a Cloudinary / HTTP URL or registered crop
+        // 1. Remove from local JSON crop registry
         $this->removeCropFromRegistry($userId, $rawUrl);
+
+        // 2. Delete from Cloudinary if it's a Cloudinary URL
+        if (str_contains($rawUrl, 'cloudinary.com')) {
+            CloudinaryService::deleteResource($rawUrl);
+        }
+
+        // 3. Delete from SellerMedia DB
         try {
-            \App\Models\SellerMedia::where('user_id', $userId)
-                ->where(function($q) use ($rawUrl) {
-                    $q->where('file_path', $rawUrl)
-                      ->orWhere('file_path', ltrim($rawUrl, '/'));
-                })->delete();
+            \App\Models\SellerMedia::where(function($q) use ($rawUrl) {
+                $q->where('file_path', $rawUrl)
+                  ->orWhere('file_path', ltrim($rawUrl, '/'));
+            })->delete();
         } catch (\Throwable $e) {}
 
-        \Illuminate\Support\Facades\Cache::forget('cloudinary_resources_vyaparindia');
+        // 4. Delete from BrandMasterProduct if exists
+        try {
+            \App\Models\BrandMasterProduct::where('image_url', $rawUrl)->delete();
+        } catch (\Throwable $e) {}
 
-        if (str_starts_with($rawUrl, 'http://') || str_starts_with($rawUrl, 'https://')) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Image successfully removed from Gallery Vault.',
-            ]);
-        }
-
+        // 5. Delete physical file if local
         $relUrl = ltrim($rawUrl, '/');
         $fullPath = public_path($relUrl);
-
-        if (file_exists($fullPath)) {
+        if (file_exists($fullPath) && is_file($fullPath)) {
             @unlink($fullPath);
-            return response()->json([
-                'success' => true,
-                'message' => 'Image successfully deleted from Gallery Vault.',
-            ]);
         }
+
+        // 6. Invalidate Cloudinary cache
+        \Illuminate\Support\Facades\Cache::forget('cloudinary_resources_vyaparindia');
+
+        // 7. Add to deleted URLs blacklist so it never resurfaces
+        $deletedList = \Illuminate\Support\Facades\Cache::get('vyapar_deleted_image_urls', []);
+        $deletedList[$rawUrl] = true;
+        $deletedList[$relUrl] = true;
+        \Illuminate\Support\Facades\Cache::put('vyapar_deleted_image_urls', $deletedList, now()->addYears(1));
 
         return response()->json([
             'success' => true,
-            'message' => 'Image removed from gallery view.',
+            'message' => 'Image permanently deleted from Gallery Vault.',
         ]);
     }
 
@@ -1757,24 +1693,141 @@ class CatalogIngestionController extends Controller
 
         $userId = Auth::id() ?: 1;
         $deletedCount = 0;
+        $deletedList = \Illuminate\Support\Facades\Cache::get('vyapar_deleted_image_urls', []);
+
         foreach ($request->input('image_urls') as $url) {
             $this->removeCropFromRegistry($userId, $url);
-            if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
-                $deletedCount++;
-                continue;
+
+            if (str_contains($url, 'cloudinary.com')) {
+                CloudinaryService::deleteResource($url);
             }
+
+            try {
+                \App\Models\SellerMedia::where(function($q) use ($url) {
+                    $q->where('file_path', $url)
+                      ->orWhere('file_path', ltrim($url, '/'));
+                })->delete();
+            } catch (\Throwable $e) {}
+
+            try {
+                \App\Models\BrandMasterProduct::where('image_url', $url)->delete();
+            } catch (\Throwable $e) {}
+
             $relUrl = ltrim($url, '/');
             $fullPath = public_path($relUrl);
-            if (file_exists($fullPath)) {
+            if (file_exists($fullPath) && is_file($fullPath)) {
                 @unlink($fullPath);
-                $deletedCount++;
             }
+
+            $deletedList[$url] = true;
+            $deletedList[$relUrl] = true;
+            $deletedCount++;
         }
+
+        \Illuminate\Support\Facades\Cache::forget('cloudinary_resources_vyaparindia');
+        \Illuminate\Support\Facades\Cache::put('vyapar_deleted_image_urls', $deletedList, now()->addYears(1));
 
         return response()->json([
             'success' => true,
             'deleted_count' => $deletedCount,
             'message' => "Successfully deleted {$deletedCount} images.",
+        ]);
+    }
+
+    /**
+     * Delete an entire image folder / category in Gallery.
+     */
+    public function deleteFolder(Request $request)
+    {
+        $request->validate([
+            'folder_name' => 'required|string|max:100',
+            'action' => 'nullable|string|in:move_to_general,delete_images',
+        ]);
+
+        $userId = Auth::id() ?: 1;
+        $folderName = trim($request->input('folder_name'));
+        $action = $request->input('action', 'move_to_general');
+
+        if (in_array(strtolower($folderName), ['general', 'all'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'General folder ko delete nahi kiya ja sakta.',
+            ], 422);
+        }
+
+        if ($action === 'delete_images') {
+            $medias = \App\Models\SellerMedia::where('user_id', $userId)
+                ->where('category_type', $folderName)
+                ->get();
+
+            $deletedList = \Illuminate\Support\Facades\Cache::get('vyapar_deleted_image_urls', []);
+            foreach ($medias as $m) {
+                $url = $m->file_path;
+                if (str_contains($url, 'cloudinary.com')) {
+                    CloudinaryService::deleteResource($url);
+                }
+                $rel = ltrim($url, '/');
+                $fp = public_path($rel);
+                if (file_exists($fp) && is_file($fp)) {
+                    @unlink($fp);
+                }
+                $deletedList[$url] = true;
+                $deletedList[$rel] = true;
+                $m->delete();
+            }
+            \Illuminate\Support\Facades\Cache::put('vyapar_deleted_image_urls', $deletedList, now()->addYears(1));
+            $msg = "Folder '{$folderName}' aur uske saare photos delete kar diye gaye hain!";
+        } else {
+            \App\Models\SellerMedia::where('user_id', $userId)
+                ->where('category_type', $folderName)
+                ->update(['category_type' => 'General']);
+            $msg = "Folder '{$folderName}' delete ho gaya aur photos 'General' me move ho gaye hain!";
+        }
+
+        \Illuminate\Support\Facades\Cache::forget('cloudinary_resources_vyaparindia');
+
+        return response()->json([
+            'success' => true,
+            'message' => $msg,
+        ]);
+    }
+
+    /**
+     * Auto-save / Backup Staged Excel Sheet rows for seller so it never gets lost across restarts.
+     */
+    public function saveStagedSheetDraft(Request $request)
+    {
+        $userId = Auth::id() ?: 1;
+        $rows = $request->input('staged_rows', []);
+
+        \Illuminate\Support\Facades\Cache::put("seller_staged_sheet_draft_{$userId}", [
+            'rows' => $rows,
+            'updated_at' => now()->toDateTimeString(),
+        ], now()->addDays(60));
+
+        return response()->json([
+            'success' => true,
+            'count' => count($rows),
+            'message' => 'Staged sheet draft saved safely to server!',
+        ]);
+    }
+
+    /**
+     * Retrieve Staged Excel Sheet draft from server.
+     */
+    public function getStagedSheetDraft(Request $request)
+    {
+        $userId = Auth::id() ?: 1;
+        $draft = \Illuminate\Support\Facades\Cache::get("seller_staged_sheet_draft_{$userId}", [
+            'rows' => [],
+            'updated_at' => null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'rows' => $draft['rows'] ?? [],
+            'count' => count($draft['rows'] ?? []),
+            'updated_at' => $draft['updated_at'] ?? null,
         ]);
     }
 
@@ -2309,8 +2362,8 @@ PAGE {$page} TEXT CONTENT:
             $job = CatalogIngestionJob::where('id', $request->input('job_id'))->where('user_id', $userId)->first();
         }
 
-        // Only auto-load un-published/pending draft job so old published batches don't haunt the mapper
-        if (!$job && !$request->has('view_published')) {
+        // Only load un-published/pending draft job if explicitly requested with ?resume_job=1
+        if (!$job && $request->has('resume_job')) {
             $job = CatalogIngestionJob::where('user_id', $userId)
                 ->where('status', '!=', 'published')
                 ->latest()

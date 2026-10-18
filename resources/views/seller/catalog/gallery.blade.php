@@ -112,11 +112,18 @@
                     <span class="px-1.5 py-0.2 bg-white/25 rounded-md text-[10px]">{{ $totalImages }}</span>
                 </button>
                 @foreach($folders as $fName => $fCount)
-                    <button type="button" onclick="filterGalleryByFolder('{{ addslashes($fName) }}')" id="tabFolder_{{ md5($fName) }}" class="folder-chip-btn px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap bg-gray-100 hover:bg-gray-200 text-gray-700">
-                        <i class="fa-solid fa-folder text-indigo-500"></i>
-                        <span>{{ $fName }}</span>
-                        <span class="px-1.5 py-0.2 bg-gray-200 rounded-md text-[10px] text-gray-800 font-bold">{{ $fCount }}</span>
-                    </button>
+                    <div class="inline-flex items-center rounded-xl bg-gray-100 hover:bg-gray-200 transition group/fchip">
+                        <button type="button" onclick="filterGalleryByFolder('{{ addslashes($fName) }}')" id="tabFolder_{{ md5($fName) }}" class="folder-chip-btn px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap text-gray-700">
+                            <i class="fa-solid fa-folder text-indigo-500"></i>
+                            <span>{{ $fName }}</span>
+                            <span class="px-1.5 py-0.2 bg-gray-200 rounded-md text-[10px] text-gray-800 font-bold">{{ $fCount }}</span>
+                        </button>
+                        @if(strtolower($fName) !== 'general')
+                            <button type="button" onclick="confirmDeleteFolder('{{ addslashes($fName) }}', {{ $fCount }})" class="pr-2.5 pl-1 py-1.5 text-gray-400 hover:text-rose-600 transition cursor-pointer" title="Delete folder '{{ $fName }}'">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                            </button>
+                        @endif
+                    </div>
                 @endforeach
             </div>
         </div>
@@ -597,6 +604,38 @@
             // Switch filter to newly created folder name or open upload modal
             closeNewFolderModal();
             filterGalleryByFolder(name);
+        }
+
+        function confirmDeleteFolder(folderName, count) {
+            if (!confirm(`Kya aap folder "${folderName}" ko delete karna chahte hain?\n\n- OK dabane se yeh folder delete ho jayega aur iski sabhi ${count} photos "General" folder me surakshit move ho jayengi.`)) {
+                return;
+            }
+
+            fetch("{{ route('seller.catalog.gallery.delete_folder') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": csrfToken,
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify({
+                    folder_name: folderName,
+                    action: 'move_to_general'
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    window.location.href = "{{ route('seller.catalog.gallery') }}";
+                } else {
+                    alert(data.message || 'Error deleting folder.');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Network error while deleting folder.');
+            });
         }
 
         function deleteSingleImage(url, id, name) {
