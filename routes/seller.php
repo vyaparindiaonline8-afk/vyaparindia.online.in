@@ -169,6 +169,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/excel-mapper/assign-batch', [CatalogIngestionController::class, 'assignBatchImage'])->name('excel_mapper.assign_batch');
         Route::post('/excel-mapper/create-sheet', [CatalogIngestionController::class, 'createSheetFromRows'])->name('excel_mapper.create_sheet');
         Route::post('/excel-mapper/publish-direct', [CatalogIngestionController::class, 'publishDirectFromMapper'])->name('excel_mapper.publish_direct');
+        Route::post('/excel-mapper/heal-existing-products', [CatalogIngestionController::class, 'autoHealExistingProducts'])->name('excel_mapper.heal_existing_products');
         Route::delete('/jobs/{job}', [CatalogIngestionController::class, 'deleteJob'])->name('job.delete');
 
         // 🤖 Page 4: AI Master Catalog Auditor & Rate Verification Hub

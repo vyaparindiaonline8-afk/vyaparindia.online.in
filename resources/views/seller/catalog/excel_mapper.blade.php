@@ -420,6 +420,10 @@
                             <i class="fa-solid fa-bolt text-amber-300"></i>
                             <span>Auto-Distribute Cards</span>
                         </button>
+                        <button type="button" onclick="autoFixAllExistingCards()" class="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition ml-1 active:scale-95" title="Bina manual mehnat ke Cards ke Descriptions aur Tape sizes ko auto-fix karein">
+                            <i class="fa-solid fa-wand-magic-sparkles text-yellow-200"></i>
+                            <span>Auto-Fix Cards</span>
+                        </button>
                         <button type="button" onclick="saveSelectedIntoCardAndRemove()" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition ml-1 active:scale-95" title="Selected rows ko 1 card me group karke table se hata do taaki next items samne aa sakein">
                             <i class="fa-solid fa-floppy-disk"></i>
                             <span>Save Card & Next &rarr;</span>
@@ -457,7 +461,7 @@
 
             <!-- Grouped Product Cards Container (When user groups 6-8 sizes into 1 card) -->
             <div id="groupedCardsSection" class="space-y-4 pt-2">
-                <div class="flex items-center justify-between pb-2 border-b border-gray-200">
+                <div class="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-gray-200">
                     <div class="flex items-center gap-2">
                         <div class="h-8 w-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm shadow-xs">
                             <i class="fa-solid fa-layer-group"></i>
@@ -469,6 +473,12 @@
                             </h3>
                             <p class="text-[11px] text-gray-500">6-8 sizes ko jodkar banaye gaye cards. Live store par customer in sabhi sizes ke aage quantity dalker order karega.</p>
                         </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="autoFixAllExistingCards()" id="btnAutoFixAllCards" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-indigo-600 hover:from-amber-600 hover:to-indigo-700 text-white font-black text-xs shadow-md hover:shadow-lg flex items-center gap-2 transition active:scale-95" title="Bina manual mehnat ke sare cards ke Descriptions, Tape Sizes (3M x 16mm, 5M x 19mm) aur Series Names auto-fix karein">
+                            <i class="fa-solid fa-wand-magic-sparkles text-yellow-200"></i>
+                            <span>✨ 1-Click Auto-Fix All Cards (No Manual Work)</span>
+                        </button>
                     </div>
                 </div>
 
@@ -3512,6 +3522,224 @@
             renderGroupedProductCards();
             saveToLocalStorage();
             autoSaveDraftToBackend();
+        }
+
+        async function autoFixAllExistingCards() {
+            const btn = document.getElementById('btnAutoFixAllCards');
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Fixing All Cards...</span>`;
+            }
+
+            try {
+                let fixedCardsCount = 0;
+                let fixedVariantsCount = 0;
+                let fixedRowsCount = 0;
+
+                const tapeSeriesMap = {
+                    'AS': { series: 'Auto Stop Series', desc: 'Heavy Duty Steel Strip Tape with Auto-Stop mechanism, shockproof rubber casing, ISI grade' },
+                    'NL': { series: 'Neo Lock Series', desc: 'Self-Locking Heavy Duty Measuring Tape with smooth recoil and dual metric/inch markings' },
+                    'PR': { series: 'Pro Model Heavy Duty', desc: 'Yorker Professional Heavy Duty Tape with high tensile steel blade and impact resistant body' },
+                    'PF': { series: 'Perfect Series', desc: 'Yorker Perfect Series compact measuring tape with belt clip and ergonomic grip' },
+                    'BW': { series: 'Black & White Series', desc: 'Black & White Contractor Grade high contrast measuring tape' },
+                    'FC': { series: 'First Choice Series', desc: 'First Choice Contractor Grade Measuring Tape with heavy duty spring mechanism' },
+                    'JP': { series: 'Jupiter Series', desc: 'Jupiter Series Heavy Duty Measuring Tape with smooth blade payout and belt clip' },
+                    'YK': { series: 'Yorker Y-Series', desc: 'Yorker Standard Y-Series Measuring Tape with durable compact case' },
+                    '2IN1': { series: 'Yorker 2-in-1 Dual Scale', desc: 'Yorker 2-in-1 Dual Scale Measuring Tape with metric and imperial units' },
+                    '2in1': { series: 'Yorker 2-in-1 Dual Scale', desc: 'Yorker 2-in-1 Dual Scale Measuring Tape with metric and imperial units' },
+                    'SS': { series: 'Stainless Steel Strip Series', desc: 'Stainless Steel Strip Measuring Tape with rustproof blade for heavy outdoor work' },
+                    'SP': { series: 'High Tensile Spring Series', desc: 'Yorker High Tensile Spring Mechanism Measuring Tape with shockproof bumper' }
+                };
+
+                const inchMap = {
+                    '15': '1/2"', '20': '3/4"', '25': '1"', '32': '1-1/4"',
+                    '40': '1-1/2"', '50': '2"', '65': '2-1/2"', '80': '3"', '100': '4"'
+                };
+
+                // 1. Process all Grouped Product Cards
+                if (Array.isArray(groupedProductCards)) {
+                    groupedProductCards.forEach(card => {
+                        let cardModified = false;
+                        const cardText = `${card.parent_name || ''} ${card.category || ''} ${card.variants ? card.variants.map(v => v.product_code || '').join(' ') : ''}`.toUpperCase();
+
+                        // Detect if tape card
+                        let isTape = false;
+                        let matchedSeries = null;
+
+                        for (const [codeKey, sObj] of Object.entries(tapeSeriesMap)) {
+                            const upperKey = codeKey.toUpperCase();
+                            if (cardText.includes(upperKey + '-3016') || cardText.includes(upperKey + '-5019') || cardText.includes(sObj.series.toUpperCase()) || new RegExp(`\\b${upperKey}[-_\\s\\d]`, 'i').test(cardText)) {
+                                isTape = true;
+                                matchedSeries = sObj;
+                                break;
+                            }
+                        }
+
+                        if (!isTape && (cardText.includes('TAPE') || cardText.includes('YORKER') || cardText.includes('3016') || cardText.includes('5019'))) {
+                            isTape = true;
+                            matchedSeries = { series: 'Measuring Tape', desc: 'Heavy Duty Measuring Tape with high tensile steel blade and shockproof rubber casing.' };
+                        }
+
+                        if (isTape) {
+                            // Fix Category
+                            if (card.category !== 'Hardware & Tools') {
+                                card.category = 'Hardware & Tools';
+                                cardModified = true;
+                            }
+
+                            // Fix Parent Title if too generic or has code
+                            if (matchedSeries) {
+                                const currentTitle = card.parent_name || '';
+                                if (!currentTitle.includes(matchedSeries.series) || currentTitle.includes('-3016') || currentTitle.includes('-5019') || currentTitle.toLowerCase().includes('plasto')) {
+                                    card.parent_name = `Yorker Measuring Tape (${matchedSeries.series})`;
+                                    cardModified = true;
+                                }
+                            }
+
+                            // Fix Description if empty or generic
+                            if (!card.description || card.description.trim().length < 15 || card.description.toLowerCase().includes('high grade') || card.description.toLowerCase().includes('manufactured to industrial specifications')) {
+                                card.description = matchedSeries ? matchedSeries.desc : 'Heavy Duty Measuring Tape with high tensile steel blade and shockproof rubber casing.';
+                                cardModified = true;
+                            }
+
+                            // Fix Variants sizes
+                            if (Array.isArray(card.variants)) {
+                                card.variants.forEach(v => {
+                                    const code = (v.product_code || '').toUpperCase();
+                                    const oldSize = v.size || '';
+                                    let newSize = oldSize;
+
+                                    if (code.includes('3016') || oldSize === 'Standard' || oldSize === '1/2 inch' || oldSize === '1/2"') {
+                                        newSize = '3 Meter x 16mm';
+                                    } else if (code.includes('5019') || oldSize === '3/4 inch' || oldSize === '3/4"') {
+                                        newSize = '5 Meter x 19mm';
+                                    } else if (code.includes('1025')) {
+                                        newSize = '10 Meter x 25mm';
+                                    }
+
+                                    if (newSize !== oldSize) {
+                                        v.size = newSize;
+                                        fixedVariantsCount++;
+                                        cardModified = true;
+                                    }
+                                    if (!v.description || v.description.trim().length < 10) {
+                                        v.description = card.description;
+                                    }
+                                });
+                            }
+                        } else {
+                            // Plumbing cards: enrich description & variant sizes
+                            const nameUp = (card.parent_name || '').toUpperCase();
+                            if (!card.description || card.description.trim().length < 15 || card.description.toLowerCase().includes('manufactured to industrial specifications')) {
+                                if (nameUp.includes('CPVC')) {
+                                    card.description = 'CPVC High Temperature & Pressure Fitting manufactured as per ASTM D2846 (SDR 11 Class 1).';
+                                    cardModified = true;
+                                } else if (nameUp.includes('SWR') || nameUp.includes('TRAP')) {
+                                    card.description = 'SWR Soil, Waste & Rainwater drainage fitting with precision leak-proof socket as per IS:14735.';
+                                    cardModified = true;
+                                } else if (nameUp.includes('UPVC')) {
+                                    card.description = 'Heavy Duty UPVC Lead-Free Pressure Pipe Fitting manufactured as per ASTM D2466 / Schedule 40 ISI standard.';
+                                    cardModified = true;
+                                }
+                            }
+
+                            if (Array.isArray(card.variants)) {
+                                card.variants.forEach(v => {
+                                    if (!v.size || v.size === 'Standard') {
+                                        const combo = `${v.product_code || ''} ${card.parent_name || ''}`;
+                                        const match = combo.match(/\b(15|20|25|32|40|50|65|75|80|90|100|110|160)\s*(?:mm)?\b/i);
+                                        if (match) {
+                                            const mm = match[1];
+                                            const resolved = inchMap[mm] ? `${mm}mm (${inchMap[mm]})` : `${mm}mm`;
+                                            v.size = resolved;
+                                            fixedVariantsCount++;
+                                            cardModified = true;
+                                        }
+                                    }
+                                    if (!v.description) {
+                                        v.description = card.description || '';
+                                    }
+                                });
+                            }
+                        }
+
+                        if (cardModified) {
+                            fixedCardsCount++;
+                        }
+                    });
+                }
+
+                // 2. Also heal any pending dynamicRows
+                if (Array.isArray(dynamicRows)) {
+                    dynamicRows.forEach(r => {
+                        const rCode = (r.product_code || '').toUpperCase();
+                        const rName = (r.product_name || '').toUpperCase();
+                        let rModified = false;
+
+                        if (rCode.includes('3016') || rName.includes('3016')) {
+                            if (r.size === 'Standard' || !r.size || r.size === '1/2 inch') {
+                                r.size = '3 Meter x 16mm';
+                                rModified = true;
+                            }
+                            if (r.category !== 'Hardware & Tools') {
+                                r.category = 'Hardware & Tools';
+                                r.group_type = 'Hardware & Tools';
+                                rModified = true;
+                            }
+                        } else if (rCode.includes('5019') || rName.includes('5019')) {
+                            if (r.size === 'Standard' || !r.size || r.size === '3/4 inch') {
+                                r.size = '5 Meter x 19mm';
+                                rModified = true;
+                            }
+                            if (r.category !== 'Hardware & Tools') {
+                                r.category = 'Hardware & Tools';
+                                r.group_type = 'Hardware & Tools';
+                                rModified = true;
+                            }
+                        }
+
+                        if (rModified) fixedRowsCount++;
+                    });
+                }
+
+                // 3. Trigger backend database healing asynchronously
+                let dbHealResult = null;
+                try {
+                    const healUrl = "{{ route('seller.catalog.excel_mapper.heal_existing_products') }}";
+                    const resp = await fetch(healUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken
+                        }
+                    });
+                    if (resp.ok) {
+                        dbHealResult = await resp.json();
+                    }
+                } catch (e) {
+                    console.warn('Backend DB heal notice:', e);
+                }
+
+                // 4. Save and re-render everything
+                saveToLocalStorage();
+                renderGroupedProductCards();
+                renderDynamicRows();
+                refreshCategoryFilterTabs();
+                autoSaveDraftToBackend();
+
+                let msg = `✨ Zabardast! ${fixedCardsCount} Grouped Cards, ${fixedVariantsCount} Variant Sizes aur Description auto-fix ho gaye bina kisi manual mehnat ke!`;
+                if (dbHealResult && dbHealResult.healed_products_count > 0) {
+                    msg += ` (${dbHealResult.healed_products_count} database products bhi sync ho gaye)`;
+                }
+                showToastNotification(msg);
+                alert(`✅ Auto-Fix Complete!\n\n• ${fixedCardsCount} Cards ke Titles & Descriptions theek hue\n• ${fixedVariantsCount} Sizes (3M x 16mm, 5M x 19mm) auto-update ho gaye\n• Category "Hardware & Tools" me classify ho gayi\n\nAapko kuch bhi manually type karne ki zaroorat nahi padi!`);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                }
+            }
         }
 
         function loadLinesIntoDynamicRows(lines) {
