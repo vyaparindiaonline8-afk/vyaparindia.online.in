@@ -263,15 +263,23 @@
                                 </div>
 
                                 <!-- Photo Controls -->
-                                <div class="grid grid-cols-2 gap-2 pt-1">
-                                    <button type="button" onclick="openPdfCropper({{ $pIdx }}, '{{ $prod['catalog_page'] ?? 'Page 3' }}')" class="py-1.5 px-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] border border-blue-200 flex items-center justify-center gap-1 transition">
-                                        <i class="fa-solid fa-crop-simple"></i>
-                                        <span>Crop PDF</span>
+                                <div class="space-y-1.5 pt-1">
+                                    <button type="button" onclick="triggerDirectUpload({{ $pIdx }})" class="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 transition hover:scale-101 active:scale-98">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                                        <span>📁 अपनी फोटो लगाएं</span>
                                     </button>
-                                    <button type="button" onclick="openImageLibrary({{ $pIdx }})" class="py-1.5 px-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] border border-indigo-200 flex items-center justify-center gap-1 transition">
-                                        <i class="fa-solid fa-images"></i>
-                                        <span>Pick Photo</span>
-                                    </button>
+                                    <input type="file" id="direct_upload_{{ $pIdx }}" accept="image/*" class="hidden" onchange="uploadDirectProductImage(this, {{ $pIdx }})">
+
+                                    <div class="grid grid-cols-2 gap-1.5">
+                                        <button type="button" onclick="openImageLibrary({{ $pIdx }})" class="py-1 px-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[10px] border border-indigo-200 flex items-center justify-center gap-1 transition">
+                                            <i class="fa-solid fa-images"></i>
+                                            <span>Media Vault</span>
+                                        </button>
+                                        <button type="button" onclick="openPdfCropper({{ $pIdx }}, '{{ $prod['catalog_page'] ?? 'Page 1' }}')" class="py-1 px-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[10px] border border-gray-200 flex items-center justify-center gap-1 transition">
+                                            <i class="fa-solid fa-crop-simple"></i>
+                                            <span>Crop PDF</span>
+                                        </button>
+                                    </div>
                                 </div>
                                 <p class="text-[10px] text-gray-400 text-center leading-tight">
                                     Same photo used for all {{ count($prod['variants'] ?? []) }} sizes below
@@ -971,11 +979,51 @@
             recalculateProduct(pIdx);
         }
 
-        function updateTotalCount() {
-            const count = document.querySelectorAll('.product-card').length;
-            const el = document.getElementById('totalCount');
-            if (el) el.textContent = count;
-            document.getElementById('visibleCount').textContent = count;
+        function triggerDirectUpload(pIdx) {
+            const input = document.getElementById('direct_upload_' + pIdx);
+            if (input) input.click();
+        }
+
+        function uploadDirectProductImage(input, pIdx) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            
+            // Immediate visual feedback
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imgTag = document.getElementById('img_tag_' + pIdx);
+                if (imgTag) {
+                    imgTag.src = e.target.result;
+                    imgTag.classList.remove('opacity-50');
+                }
+            };
+            reader.readAsDataURL(file);
+
+            // Upload via AJAX
+            const formData = new FormData();
+            formData.append('photo', file);
+            formData.append('product_index', pIdx);
+            formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+
+            fetch("{{ route('seller.catalog.crop') }}", {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.image_url) {
+                    const valInput = document.getElementById('img_val_' + pIdx);
+                    if (valInput) valInput.value = data.image_url;
+                    const imgTag = document.getElementById('img_tag_' + pIdx);
+                    if (imgTag) imgTag.src = data.asset_url;
+                } else {
+                    alert('फोटो अपलोड में त्रुटि: ' + (data.message || 'Kripya dubara koshish karein.'));
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('फोटो अपलोड में कनेक्शन एरर');
+            });
         }
     </script>
 </body>

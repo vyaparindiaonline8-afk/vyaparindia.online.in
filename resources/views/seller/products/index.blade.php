@@ -299,6 +299,11 @@
                             <span>AI ऑडिटर 🤖</span>
                         </a>
 
+                        <a href="{{ route('seller.catalog.upload') }}" class="px-2.5 py-1.5 rounded-xl bg-red-600/30 hover:bg-red-600/50 border border-red-400/30 text-white font-bold text-xs transition flex items-center gap-1.5 hover:scale-102 active:scale-98" title="PDF कैटलॉग अपलोड करें और सीधे लिस्ट बनाएं">
+                            <i class="fa-solid fa-file-pdf text-red-400 text-xs"></i>
+                            <span>PDF लिस्टिंग 📄</span>
+                        </a>
+
                         <a href="{{ route('seller.catalog.excel_mapper') }}" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition flex items-center gap-1.5 hover:scale-102 active:scale-98" title="कॉलम मैपिंग टूल">
                             <i class="fa-solid fa-table-columns text-amber-300 text-xs"></i>
                             <span>मैपर ⚡</span>

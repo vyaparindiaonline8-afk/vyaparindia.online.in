@@ -202,6 +202,40 @@
                     </div>
                 </div>
 
+                <!-- Mode Selector (Text Only vs Auto Crop) -->
+                <div class="space-y-2">
+                    <label class="text-xs font-black text-gray-900 block">
+                        कैटलॉग पार्सिंग मोड चुनें (Extraction Mode):
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label class="flex items-start gap-3 p-3.5 rounded-2xl border-2 border-emerald-500 bg-emerald-50/40 cursor-pointer transition hover:bg-emerald-50">
+                            <input type="radio" name="extraction_mode" value="text_only" checked class="mt-1 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300">
+                            <div>
+                                <span class="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-file-lines text-emerald-600"></i>
+                                    <span>केवल टेक्स्ट व रेट्स निकालें (Recommended)</span>
+                                </span>
+                                <p class="text-[11px] text-emerald-800/80 mt-0.5 leading-snug">
+                                    AI केवल आइटम नाम, साइज़, MRP व रेट्स निकालेगा। कोई कटी-फटी फोटो नहीं आएगी। अपनी असली फोटो आप खुद 1-क्लिक में जोड़ सकेंगे।
+                                </p>
+                            </div>
+                        </label>
+
+                        <label class="flex items-start gap-3 p-3.5 rounded-2xl border border-gray-200 bg-white cursor-pointer transition hover:bg-gray-50">
+                            <input type="radio" name="extraction_mode" value="with_images" class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                            <div>
+                                <span class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-image text-blue-600"></i>
+                                    <span>टेक्स्ट + ऑटो-क्रॉप फोटो दोनों</span>
+                                </span>
+                                <p class="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                                    AI पीडीएफ से फोटो भी अपने आप निकालने की कोशिश करेगा (यदि पीडीएफ में क्लियर फोटो ग्रिड हो)।
+                                </p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
                 <div class="flex items-center justify-between pt-2">
                     <div class="text-xs text-gray-500 flex items-center gap-2">
                         <i class="fa-solid fa-circle-info text-blue-500"></i>

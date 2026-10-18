@@ -58,7 +58,7 @@ def extract_sizes_and_specs(text):
     grades = re.findall(r'\b(sdr\s*11|sdr\s*13\.5|sdr\s*9|sch\s*40|sch\s*80|grade\s*[a-z0-9]+|class\s*[a-z0-9]+)\b', text, re.IGNORECASE)
     return list(set(sizes)), list(set(grades))
 
-def process_pdf(pdf_path, output_dir, job_id):
+def process_pdf(pdf_path, output_dir, job_id, skip_images=False):
     os.makedirs(output_dir, exist_ok=True)
     images_dir = os.path.join(output_dir, f"job_{job_id}_images")
     os.makedirs(images_dir, exist_ok=True)
@@ -67,33 +67,34 @@ def process_pdf(pdf_path, output_dir, job_id):
     total_pages = len(doc)
 
     extracted_images = []
-    # 1. Extract all meaningful images
-    img_counter = 1
-    for page_idx in range(total_pages):
-        page = doc[page_idx]
-        image_list = page.get_images(full=True)
-        for img_info in image_list:
-            xref = img_info[0]
-            base_image = doc.extract_image(xref)
-            image_bytes = base_image["image"]
-            image_ext = base_image["ext"]
-            width = base_image["width"]
-            height = base_image["height"]
+    # 1. Extract all meaningful images (only if skip_images is False)
+    if not skip_images:
+        img_counter = 1
+        for page_idx in range(total_pages):
+            page = doc[page_idx]
+            image_list = page.get_images(full=True)
+            for img_info in image_list:
+                xref = img_info[0]
+                base_image = doc.extract_image(xref)
+                image_bytes = base_image["image"]
+                image_ext = base_image["ext"]
+                width = base_image["width"]
+                height = base_image["height"]
 
-            # Filter out tiny icons, spacers, and header lines (under 100x100)
-            if width >= 100 and height >= 100:
-                img_filename = f"prod_img_{job_id}_{img_counter}.{image_ext}"
-                img_save_path = os.path.join(images_dir, img_filename)
-                with open(img_save_path, "wb") as f:
-                    f.write(image_bytes)
-                extracted_images.append({
-                    "page": page_idx + 1,
-                    "filename": img_filename,
-                    "relative_url": f"storage/catalog_extracted/job_{job_id}_images/{img_filename}",
-                    "width": width,
-                    "height": height
-                })
-                img_counter += 1
+                # Filter out tiny icons, spacers, and header lines (under 100x100)
+                if width >= 100 and height >= 100:
+                    img_filename = f"prod_img_{job_id}_{img_counter}.{image_ext}"
+                    img_save_path = os.path.join(images_dir, img_filename)
+                    with open(img_save_path, "wb") as f:
+                        f.write(image_bytes)
+                    extracted_images.append({
+                        "page": page_idx + 1,
+                        "filename": img_filename,
+                        "relative_url": f"storage/catalog_extracted/job_{job_id}_images/{img_filename}",
+                        "width": width,
+                        "height": height
+                    })
+                    img_counter += 1
 
     # 2. Extract Text Blocks & Filter Noise
     products = []
@@ -225,14 +226,16 @@ def process_pdf(pdf_path, output_dir, job_id):
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        print(json.dumps({"success": False, "error": "Usage: python extract_catalog.py <pdf_path> <output_dir> <job_id>"}))
+        print(json.dumps({"success": False, "error": "Usage: python extract_catalog.py <pdf_path> <output_dir> <job_id> [mode]"}))
         sys.exit(1)
     
     pdf_path = sys.argv[1]
     output_dir = sys.argv[2]
     job_id = sys.argv[3]
+    mode = sys.argv[4] if len(sys.argv) > 4 else "text_only"
+    skip_images = (mode == "text_only" or "--text-only" in sys.argv)
     try:
-        process_pdf(pdf_path, output_dir, job_id)
+        process_pdf(pdf_path, output_dir, job_id, skip_images=skip_images)
     except Exception as e:
         print(json.dumps({"success": False, "error": str(e)}))
         sys.exit(1)

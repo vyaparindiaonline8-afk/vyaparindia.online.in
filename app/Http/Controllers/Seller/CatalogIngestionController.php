@@ -49,6 +49,7 @@ class CatalogIngestionController extends Controller
         $request->validate([
             'catalog_file' => 'nullable|file|mimes:pdf,xlsx,xls,csv|max:51200', // Up to 50MB
             'catalog_pdf' => 'nullable|file|mimes:pdf,xlsx,xls,csv|max:51200',
+            'extraction_mode' => 'nullable|string|in:text_only,with_images',
         ]);
 
         $user = Auth::user();
@@ -58,6 +59,7 @@ class CatalogIngestionController extends Controller
             return back()->withErrors(['catalog_file' => 'Please select a valid PDF brochure or Excel (.xlsx/.csv) rate list file.']);
         }
 
+        $mode = $request->input('extraction_mode', 'text_only');
         $originalName = $file->getClientOriginalName();
         $storedPath = $file->store('catalogs/' . $user->id, 'public');
 
@@ -69,8 +71,8 @@ class CatalogIngestionController extends Controller
             'total_products_detected' => 0,
         ]);
 
-        // Process PDF or Excel via AI Ingestion Service
-        $job = $this->ingestionService->processCatalog($job);
+        // Process PDF or Excel via AI Ingestion Service (with selected mode)
+        $job = $this->ingestionService->processCatalog($job, $mode);
 
         return redirect()->route('seller.catalog.review', $job->id)
             ->with('success', 'Catalog successfully processed! Review grouped products, verify photos & margins before publishing.');
@@ -154,12 +156,34 @@ class CatalogIngestionController extends Controller
     public function cropImage(Request $request)
     {
         $request->validate([
-            'image_data' => 'required|string',
+            'image_data' => 'nullable|string',
+            'photo' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:10240',
             'product_index' => 'nullable|integer',
         ]);
 
+        $cropsDir = public_path('storage/catalog_extracted/custom_crops');
+        if (!is_dir($cropsDir)) {
+            mkdir($cropsDir, 0755, true);
+        }
+
+        // 1. Direct file upload
+        if ($request->hasFile('photo')) {
+            $file = $request->file('photo');
+            $ext = $file->getClientOriginalExtension() ?: 'jpg';
+            $fileName = 'prod_' . Auth::id() . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
+            $file->move($cropsDir, $fileName);
+            $relativeUrl = 'storage/catalog_extracted/custom_crops/' . $fileName;
+
+            return response()->json([
+                'success' => true,
+                'image_url' => $relativeUrl,
+                'asset_url' => asset($relativeUrl),
+            ]);
+        }
+
+        // 2. Base64 crop data
         $data = $request->input('image_data');
-        if (preg_match('/^data:image\/(\w+);base64,/', $data, $type)) {
+        if ($data && preg_match('/^data:image\/(\w+);base64,/', $data, $type)) {
             $data = substr($data, strpos($data, ',') + 1);
             $type = strtolower($type[1]);
             if (!in_array($type, ['jpg', 'jpeg', 'png', 'webp'])) {
@@ -169,26 +193,20 @@ class CatalogIngestionController extends Controller
             if ($data === false) {
                 return response()->json(['success' => false, 'message' => 'Base64 decode failed'], 422);
             }
-        } else {
-            return response()->json(['success' => false, 'message' => 'Invalid data URI'], 422);
+            $fileName = 'crop_' . Auth::id() . '_' . time() . '_' . rand(100, 999) . '.' . ($type === 'png' ? 'png' : 'jpg');
+            $filePath = $cropsDir . DIRECTORY_SEPARATOR . $fileName;
+            file_put_contents($filePath, $data);
+
+            $relativeUrl = 'storage/catalog_extracted/custom_crops/' . $fileName;
+
+            return response()->json([
+                'success' => true,
+                'image_url' => $relativeUrl,
+                'asset_url' => asset($relativeUrl),
+            ]);
         }
 
-        $cropsDir = public_path('storage/catalog_extracted/custom_crops');
-        if (!is_dir($cropsDir)) {
-            mkdir($cropsDir, 0755, true);
-        }
-
-        $fileName = 'crop_' . Auth::id() . '_' . time() . '_' . rand(100, 999) . '.' . ($type === 'png' ? 'png' : 'jpg');
-        $filePath = $cropsDir . DIRECTORY_SEPARATOR . $fileName;
-        file_put_contents($filePath, $data);
-
-        $relativeUrl = 'storage/catalog_extracted/custom_crops/' . $fileName;
-
-        return response()->json([
-            'success' => true,
-            'image_url' => $relativeUrl,
-            'asset_url' => asset($relativeUrl),
-        ]);
+        return response()->json(['success' => false, 'message' => 'No image data or file provided'], 422);
     }
 
     /**
