@@ -120,7 +120,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start" id="mainWorkspaceGrid">
             
             <!-- LEFT COLUMN: PDF View / Canvas & Tools -->
-            <div id="pdfWorkspaceCol" class="lg:col-span-8 space-y-4 transition-all duration-300">
+            <div id="pdfWorkspaceCol" class="lg:col-span-7 space-y-4 transition-all duration-300">
                 
                 <!-- STATE A: No PDF Loaded Yet (Drop Zone & File Selector) -->
                 <div id="dropZoneContainer" class="bg-white rounded-3xl border-2 border-dashed border-indigo-300 hover:border-indigo-500 p-10 text-center transition cursor-pointer shadow-xs" onclick="document.getElementById('pdfFileInput').click()">
@@ -275,77 +275,226 @@
 
             </div>
 
-            <!-- RIGHT COLUMN: Real-Time Live Gallery Vault -->
-            <div id="galleryCol" class="lg:col-span-4 space-y-4 transition-all duration-300">
+            <!-- RIGHT COLUMN: Interactive Side-by-Side Workstation (AI Copilot + Staged Sheet + Media Vault) -->
+            <div id="galleryCol" class="lg:col-span-5 space-y-4 transition-all duration-300">
                 
-                <div class="bg-white rounded-3xl border border-gray-200 p-5 shadow-xs space-y-4 sticky top-24">
+                <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden sticky top-20 flex flex-col h-[85vh]">
                     
-                    <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <h3 class="text-sm font-black text-gray-900">Media Vault Gallery</h3>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-bold font-mono" id="rightGalleryCount">{{ count($galleryImages) }}</span>
-                            </div>
-                            <p class="text-[11px] text-gray-500">Naye photos sabse upar dikhenge, purane photos scroll karke dekhein (Kram-anusar)</p>
+                    <!-- 1. Workstation Tab Navigation Bar -->
+                    <div class="p-2 border-b border-gray-200 bg-slate-900 text-white flex items-center justify-between shrink-0">
+                        <div class="flex items-center gap-1 bg-white/10 p-1 rounded-xl">
+                            <!-- Tab 1: AI Copilot -->
+                            <button type="button" onclick="switchRightPanelTab('ai')" id="tabBtnRightAi" class="px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-xs cursor-pointer">
+                                <i class="fa-solid fa-robot text-amber-300"></i>
+                                <span>AI Copilot</span>
+                            </button>
+                            <!-- Tab 2: Staged Excel Sheet -->
+                            <button type="button" onclick="switchRightPanelTab('sheet')" id="tabBtnRightSheet" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-gray-300 hover:text-white cursor-pointer">
+                                <i class="fa-solid fa-file-excel text-emerald-400"></i>
+                                <span>Staged Excel</span>
+                                <span class="px-1.5 py-0.2 rounded-full text-[9px] bg-emerald-500 text-white font-mono font-bold" id="rightTabStagedCount">0</span>
+                            </button>
+                            <!-- Tab 3: Media Gallery Vault -->
+                            <button type="button" onclick="switchRightPanelTab('gallery')" id="tabBtnRightGallery" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-gray-300 hover:text-white cursor-pointer">
+                                <i class="fa-solid fa-images text-indigo-300"></i>
+                                <span>Media Vault</span>
+                                <span class="px-1.5 py-0.2 rounded-full text-[9px] bg-white/20 text-gray-300 font-mono" id="rightTabGalleryCount">{{ count($galleryImages) }}</span>
+                            </button>
                         </div>
-                        <a href="{{ route('seller.catalog.gallery') }}" target="_blank" class="h-8 w-8 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center text-xs transition" title="Open Full Media Vault">
-                            <i class="fa-solid fa-up-right-from-square"></i>
-                        </a>
+
+                        <div class="flex items-center gap-1.5">
+                            <!-- Toggle Split Width (7:5 vs 6:6) -->
+                            <button type="button" onclick="toggle5050Split()" id="btn5050Split" class="h-8 px-2 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer" title="Toggle 50/50 Side-by-Side Split">
+                                <i class="fa-solid fa-table-columns text-amber-300"></i>
+                                <span class="text-[10px]" id="splitModeText">50/50</span>
+                            </button>
+                            <!-- API Key button -->
+                            <button type="button" onclick="toggleApiKeyPanel()" class="h-8 w-8 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 flex items-center justify-center text-xs transition cursor-pointer" title="API Key Setup">
+                                <i class="fa-solid fa-key text-amber-400"></i>
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- Side Gallery Scrollable List -->
-                    <div class="space-y-3 max-h-[75vh] overflow-y-auto pr-1 divide-y divide-gray-100/50" id="sideGalleryList">
-                        @forelse($galleryImages as $gImg)
-                            @php
-                                $cardFolder = $gImg['folder'] ?? $gImg['category'] ?? 'General';
-                            @endphp
-                            <div class="gallery-item-card flex items-center gap-3 p-2.5 rounded-2xl bg-gray-50 hover:bg-indigo-50/50 border border-gray-200 transition group" id="card_img_{{ $gImg['id'] }}" data-img-url="{{ $gImg['url'] }}">
-                                <div class="h-14 w-14 rounded-xl bg-white border border-gray-200 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
-                                    <img src="{{ $gImg['asset_url'] }}" alt="{{ $gImg['name'] }}" class="max-h-full max-w-full object-contain" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\'fa-solid fa-image text-gray-300 text-lg\'></i>';">
+                    <!-- 2. TAB 1: AI Copilot (Side-by-Side, Zero Clashing, Never Disappears) -->
+                    <div id="rightTabContentAi" class="flex-1 flex flex-col min-h-0 bg-white">
+                        <!-- API Key Configuration Dropdown Panel -->
+                        <div id="apiKeyPanel" class="p-3 bg-indigo-50 border-b border-indigo-100 space-y-2.5 hidden shrink-0">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-black text-indigo-900 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-key text-indigo-600"></i>
+                                    <span>AI API Key (OpenAI / Gemini)</span>
+                                </span>
+                                <span id="keyStatusPill" class="px-2 py-0.5 rounded-md text-[9px] font-bold bg-indigo-100 text-indigo-800">⚡ Server Key Auto</span>
+                            </div>
+                            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-2 text-[10px] text-emerald-800 leading-relaxed">
+                                <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i>
+                                Server me <b>OPENAI_KEY</b> ya <b>OPENAI_API_KEY</b> maujood hai toh yahan key dalna zaroori nahi hai.
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <input type="password" id="geminiApiKeyInput" placeholder="sk-... ya AIza... (Paste Key)" class="flex-1 px-2.5 py-1.5 text-xs rounded-xl border border-indigo-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-600 font-mono">
+                                <button type="button" onclick="saveGeminiApiKey()" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-sm transition cursor-pointer">
+                                    Save
+                                </button>
+                                <button type="button" onclick="clearGeminiApiKey()" class="px-2 py-1.5 text-rose-600 text-[10px] hover:underline cursor-pointer">Clear</button>
+                            </div>
+                        </div>
+
+                        <!-- Active Page Context Badge -->
+                        <div class="px-3 py-1.5 bg-slate-50 border-b border-gray-100 flex items-center justify-between text-[11px] shrink-0">
+                            <span class="font-bold text-gray-700 flex items-center gap-1">
+                                <i class="fa-solid fa-file-lines text-indigo-600"></i>
+                                <span id="aiPageContextStatus">Page 1 Active</span>
+                            </span>
+                            <span class="px-2 py-0.5 rounded-full text-[9px] bg-indigo-100 text-indigo-800 font-mono font-bold" id="aiModelBadge">OpenAI / Gemini</span>
+                        </div>
+
+                        <!-- AI Quick Action Chips -->
+                        <div class="p-2 border-b border-gray-100 bg-gray-50/80 flex items-center gap-1.5 overflow-x-auto text-[11px] whitespace-nowrap shrink-0">
+                            <button type="button" onclick="askAiPrompt('Is page ke sabhi products identify karke unke standard names list karo.')" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-indigo-50 text-gray-700 font-medium transition cursor-pointer">
+                                🔍 Products pehchano
+                            </button>
+                            <button type="button" onclick="askAiPrompt('Is page ke sabhi items ke sizes aur rates/MRP table format me extract karo.')" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-indigo-50 text-gray-700 font-medium transition cursor-pointer">
+                                📏 Sizes & Rates Table
+                            </button>
+                            <button type="button" onclick="askAiPrompt('Agar me crop kar raha hu, to product card title aur HSN code suggest karo.')" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-indigo-50 text-gray-700 font-medium transition cursor-pointer">
+                                💡 HSN & Title
+                            </button>
+                        </div>
+
+                        <!-- Chat Message Stream (Scrollable) -->
+                        <div class="flex-1 p-3.5 overflow-y-auto space-y-3" id="aiChatMessages">
+                            <!-- Welcome Message from AI -->
+                            <div class="flex items-start gap-2.5">
+                                <div class="h-7 w-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                    <i class="fa-solid fa-robot"></i>
                                 </div>
-                                <div class="flex-1 min-w-0">
-                                    <h4 class="text-xs font-bold text-gray-900 truncate" id="card_name_{{ $gImg['id'] }}" title="{{ $gImg['name'] }}">
-                                        {{ $gImg['name'] }}
-                                    </h4>
-                                    <div class="flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5 flex-wrap">
-                                        <span class="px-1.5 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold" id="card_folder_{{ $gImg['id'] }}">
-                                            {{ $cardFolder }}
-                                        </span>
-                                        <span>{{ $gImg['size_kb'] }} KB</span>
+                                <div class="bg-gray-100 text-gray-800 p-3 rounded-2xl rounded-tl-sm text-xs leading-relaxed max-w-[90%] space-y-1">
+                                    <p class="font-bold text-gray-900">Namaste! Mai aapka AI Catalog Copilot hu.</p>
+                                    <p>Left side me PDF dekhein aur mujhse table nikalwayein:</p>
+                                    <ul class="list-disc list-inside text-gray-600 space-y-0.5 text-[11px]">
+                                        <li>Is page ke sabhi items aur rates ka neat table banao</li>
+                                        <li>Table ke neeche <b>"इस टेबल को एक्सेल शीट में जोड़ें"</b> dabayein</li>
+                                        <li>Dono side-by-side khule rahenge — koi popup gayab nahi hoga!</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat Input Bar -->
+                        <div class="p-2.5 border-t border-gray-200 bg-white shrink-0">
+                            <div class="flex items-center gap-2">
+                                <input type="text" id="aiChatInput" placeholder="AI se poochein (e.g. Is page ke sabhi items batao)..." class="flex-1 px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-600 font-medium" onkeydown="if(event.key === 'Enter') sendAiMessage()">
+                                <button type="button" onclick="sendAiMessage()" id="btnSendAi" class="h-8 w-8 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center text-xs transition shadow-sm active:scale-95 cursor-pointer">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. TAB 2: Staged Excel Sheet (Live Side-by-Side Comparison & Inline Editing) -->
+                    <div id="rightTabContentSheet" class="flex-1 flex flex-col min-h-0 bg-white hidden">
+                        <!-- Top Toolbar of Staged Sheet -->
+                        <div class="p-2.5 bg-slate-50 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2 shrink-0">
+                            <div class="flex items-center gap-1.5 text-xs font-black text-gray-800">
+                                <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                                <span id="rightTabStagedCountText">0 Items Staged</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <button type="button" onclick="downloadStagedExcelAsCsv()" class="px-2.5 py-1.5 rounded-lg bg-white border border-emerald-300 hover:bg-emerald-50 text-emerald-800 font-extrabold text-[11px] flex items-center gap-1 transition shadow-2xs cursor-pointer">
+                                    <i class="fa-solid fa-download text-emerald-600"></i>
+                                    <span>CSV</span>
+                                </button>
+                                <button type="button" onclick="openStagedInExcelMapper()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] flex items-center gap-1 transition shadow-xs active:scale-95 cursor-pointer">
+                                    <i class="fa-solid fa-table-cells"></i>
+                                    <span>Open Mapper &rarr;</span>
+                                </button>
+                                <button type="button" onclick="clearStagedExcelRows()" class="h-7 w-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-xs transition cursor-pointer" title="Clear Sheet">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Hint banner -->
+                        <div class="px-3 py-1.5 bg-amber-50/70 border-b border-amber-200 text-[10px] text-amber-900 flex items-center gap-1.5 shrink-0">
+                            <i class="fa-solid fa-pencil text-amber-600"></i>
+                            <span>Aap kisi bhi Name ya Rate par click karke use turant yahan edit/theek kar sakte hain!</span>
+                        </div>
+
+                        <!-- Staged Rows Table Preview (Scrollable) -->
+                        <div class="flex-1 overflow-y-auto overflow-x-auto min-h-0">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="bg-gray-100 text-[10px] font-black text-gray-600 uppercase border-b border-gray-200 sticky top-0 z-10">
+                                    <tr>
+                                        <th class="p-2 border-r border-gray-200">P.</th>
+                                        <th class="p-2 border-r border-gray-200">Product Name</th>
+                                        <th class="p-2 border-r border-gray-200">Size</th>
+                                        <th class="p-2 border-r border-gray-200">MRP</th>
+                                        <th class="p-2 border-r border-gray-200">Code</th>
+                                        <th class="p-2 text-center">Del</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rightTabStagedTableBody" class="divide-y divide-gray-100 text-[11px]">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 4. TAB 3: Media Vault Gallery -->
+                    <div id="rightTabContentGallery" class="flex-1 flex flex-col min-h-0 bg-white p-3.5 space-y-3 hidden overflow-y-auto">
+                        <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                            <div>
+                                <h3 class="text-xs font-black text-gray-900">Media Vault Gallery</h3>
+                                <p class="text-[10px] text-gray-500">Cropped photos kram-anusar</p>
+                            </div>
+                            <a href="{{ route('seller.catalog.gallery') }}" target="_blank" class="h-7 w-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center text-xs transition" title="Open Full Vault">
+                                <i class="fa-solid fa-up-right-from-square"></i>
+                            </a>
+                        </div>
+                        <div class="space-y-2.5 overflow-y-auto pr-1 divide-y divide-gray-100/50" id="sideGalleryList">
+                            @forelse($galleryImages as $gImg)
+                                @php
+                                    $cardFolder = $gImg['folder'] ?? $gImg['category'] ?? 'General';
+                                @endphp
+                                <div class="gallery-item-card flex items-center gap-3 p-2.5 rounded-2xl bg-gray-50 hover:bg-indigo-50/50 border border-gray-200 transition group" id="card_img_{{ $gImg['id'] }}" data-img-url="{{ $gImg['url'] }}">
+                                    <div class="h-14 w-14 rounded-xl bg-white border border-gray-200 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
+                                        <img src="{{ $gImg['asset_url'] }}" alt="{{ $gImg['name'] }}" class="max-h-full max-w-full object-contain" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\'fa-solid fa-image text-gray-300 text-lg\'></i>';">
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="text-xs font-bold text-gray-900 truncate" id="card_name_{{ $gImg['id'] }}" title="{{ $gImg['name'] }}">
+                                            {{ $gImg['name'] }}
+                                        </h4>
+                                        <div class="flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5 flex-wrap">
+                                            <span class="px-1.5 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold" id="card_folder_{{ $gImg['id'] }}">
+                                                {{ $cardFolder }}
+                                            </span>
+                                            <span>{{ $gImg['size_kb'] }} KB</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-1 shrink-0">
+                                        <button type="button" onclick="openEditCropModal('{{ $gImg['id'] }}', '{{ addslashes($gImg['name']) }}', '{{ addslashes($cardFolder) }}', '{{ $gImg['url'] }}', '{{ $gImg['asset_url'] }}')" title="Edit Details & Folder" class="h-8 w-8 rounded-xl bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 flex items-center justify-center text-xs transition cursor-pointer">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <a href="{{ route('seller.catalog.excel_mapper') }}?assign_img={{ urlencode($gImg['url']) }}" title="Assign to Excel Rows" class="h-8 w-8 rounded-xl bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 flex items-center justify-center text-xs transition">
+                                            <i class="fa-solid fa-arrow-right"></i>
+                                        </a>
+                                        <button type="button" onclick="deleteSideGalleryImage('{{ $gImg['url'] }}', '{{ $gImg['id'] }}', '{{ addslashes($gImg['name']) }}')" title="Delete from Vault" class="h-8 w-8 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 flex items-center justify-center text-xs transition cursor-pointer">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-1 shrink-0">
-                                    <button type="button" onclick="openEditCropModal('{{ $gImg['id'] }}', '{{ addslashes($gImg['name']) }}', '{{ addslashes($cardFolder) }}', '{{ $gImg['url'] }}', '{{ $gImg['asset_url'] }}')" title="Edit Details & Folder" class="h-8 w-8 rounded-xl bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 flex items-center justify-center text-xs transition">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                    </button>
-                                    <a href="{{ route('seller.catalog.excel_mapper') }}?assign_img={{ urlencode($gImg['url']) }}" title="Assign to Excel Rows" class="h-8 w-8 rounded-xl bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 flex items-center justify-center text-xs transition">
-                                        <i class="fa-solid fa-arrow-right"></i>
-                                    </a>
-                                    <button type="button" onclick="deleteSideGalleryImage('{{ $gImg['url'] }}', '{{ $gImg['id'] }}', '{{ addslashes($gImg['name']) }}')" title="Delete from Vault" class="h-8 w-8 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 flex items-center justify-center text-xs transition">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                    </button>
+                            @empty
+                                <div class="py-12 text-center space-y-2" id="sideGalleryEmptyPrompt">
+                                    <div class="h-12 w-12 mx-auto rounded-2xl bg-gray-100 text-gray-400 flex items-center justify-center text-lg">
+                                        <i class="fa-solid fa-images"></i>
+                                    </div>
+                                    <h4 class="text-xs font-bold text-gray-700">Gallery abhi khali hai</h4>
+                                    <p class="text-[11px] text-gray-400 max-w-xs mx-auto">
+                                        Left side me PDF par rectangle box drag karein aur "Save Photo" dabayein.
+                                    </p>
                                 </div>
-                            </div>
-                        @empty
-                            <div class="py-12 text-center space-y-2" id="sideGalleryEmptyPrompt">
-                                <div class="h-12 w-12 mx-auto rounded-2xl bg-gray-100 text-gray-400 flex items-center justify-center text-lg">
-                                    <i class="fa-solid fa-images"></i>
-                                </div>
-                                <h4 class="text-xs font-bold text-gray-700">Gallery abhi khali hai</h4>
-                                <p class="text-[11px] text-gray-400 max-w-xs mx-auto">
-                                    Left side me PDF par rectangle box drag karein aur "Save Photo" dabayein.
-                                </p>
-                            </div>
-                        @endforelse
-                    </div>
-
-                    <div class="pt-2 border-t border-gray-100 flex items-center justify-between text-xs font-bold">
-                        <a href="{{ route('seller.catalog.gallery') }}" class="text-indigo-600 hover:text-indigo-800">
-                            View Full Media Vault &rarr;
-                        </a>
-                        <a href="{{ route('seller.catalog.excel_mapper') }}" class="text-emerald-700 hover:text-emerald-900">
-                            Open Excel Mapper &rarr;
-                        </a>
+                            @endforelse
+                        </div>
                     </div>
 
                 </div>
@@ -366,125 +515,10 @@
     </div>
 
     <!-- ======================================================= -->
-    <!-- 🤖 AI CATALOG COPILOT SLIDE-OVER DRAWER & CHAT BOX     -->
-    <!-- ======================================================= -->
-    <div id="aiDrawerOverlay" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 hidden flex justify-end transition-opacity duration-300" onclick="toggleAiDrawer(false)">
-        <div class="w-full max-w-md bg-white h-full shadow-2xl flex flex-col transform transition-transform duration-300" onclick="event.stopPropagation()">
-            
-            <!-- AI Header -->
-            <div class="p-4 border-b border-gray-200 bg-slate-900 text-white flex items-center justify-between">
-                <div class="flex items-center gap-2.5">
-                    <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-sm shadow-md">
-                        <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <h3 class="text-sm font-black tracking-tight">AI Catalog Copilot</h3>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] bg-white/10 text-emerald-300 font-mono font-bold" id="aiModelBadge">OpenAI / Gemini</span>
-                        </div>
-                        <p class="text-[11px] text-gray-400" id="aiPageContextStatus">Page 1 Active</p>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="toggleApiKeyPanel()" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 text-xs font-bold flex items-center gap-1 transition" title="API Key Setup">
-                        <i class="fa-solid fa-key text-amber-400"></i>
-                        <span>API Key</span>
-                    </button>
-                    <button type="button" onclick="toggleAiDrawer(false)" class="h-8 w-8 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 flex items-center justify-center text-sm transition">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- API Key Configuration Dropdown Panel -->
-            <div id="apiKeyPanel" class="p-4 bg-indigo-50 border-b border-indigo-100 space-y-3 hidden">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-black text-indigo-900 flex items-center gap-1.5">
-                        <i class="fa-solid fa-key text-indigo-600"></i>
-                        <span>AI API Key (OpenAI / Gemini)</span>
-                    </span>
-                    <span id="keyStatusPill" class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-100 text-indigo-800">⚡ Server OPENAI_KEY Auto</span>
-                </div>
-                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 text-[11px] text-emerald-800 leading-relaxed">
-                    <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i>
-                    <b>Sahi Hai:</b> Agar aapne apne server environment / Render me variable ka name <b>OPENAI_KEY</b> ya <b>OPENAI_API_KEY</b> daal diya hai, to backend use automatically use karega. Yahan dobara key paste karna zaroori nahi hai!
-                </div>
-                <p class="text-[11px] text-gray-600 leading-relaxed">
-                    (Optional) Agar aap browser me direct custom OpenAI (<code class="bg-white px-1 py-0.5 rounded font-mono text-[10px]">sk-...</code>) ya Gemini (<code class="bg-white px-1 py-0.5 rounded font-mono text-[10px]">AIza...</code>) key save karna chahte hain, to yahan paste karein:
-                </p>
-                <div class="flex items-center gap-2">
-                    <input type="password" id="geminiApiKeyInput" placeholder="sk-... ya AIza... (Paste API Key)" class="flex-1 px-3 py-2 text-xs rounded-xl border border-indigo-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-600 font-mono">
-                    <button type="button" onclick="saveGeminiApiKey()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-sm transition">
-                        Save
-                    </button>
-                </div>
-                <div class="flex items-center justify-between text-[10px] text-gray-500 pt-1">
-                    <div class="flex items-center gap-3">
-                        <a href="https://platform.openai.com/api-keys" target="_blank" class="text-indigo-600 hover:underline font-bold flex items-center gap-1">
-                            <span>OpenAI Keys</span>
-                            <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
-                        </a>
-                        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-indigo-600 hover:underline font-bold flex items-center gap-1">
-                            <span>Gemini Keys</span>
-                            <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
-                        </a>
-                    </div>
-                    <button type="button" onclick="clearGeminiApiKey()" class="text-rose-600 hover:underline">Clear Key</button>
-                </div>
-            </div>
-
-            <!-- AI Quick Action Chips -->
-            <div class="p-2.5 border-b border-gray-100 bg-gray-50/80 flex items-center gap-1.5 overflow-x-auto text-[11px] whitespace-nowrap">
-                <button type="button" onclick="askAiPrompt('Is page ke sabhi products identify karke unke standard names list karo.')" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-indigo-50 text-gray-700 font-medium transition">
-                    🔍 Is page ke products pehchano
-                </button>
-                <button type="button" onclick="askAiPrompt('Is page ke sabhi items ke sizes aur rates/MRP table format me extract karo.')" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-indigo-50 text-gray-700 font-medium transition">
-                    📏 Sizes & Rates Table nikalo
-                </button>
-                <button type="button" onclick="askAiPrompt('Agar me crop kar raha hu, to product card title aur HSN code suggest karo.')" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-indigo-50 text-gray-700 font-medium transition">
-                    💡 HSN & Title suggest karo
-                </button>
-            </div>
-
-            <!-- Chat Message Stream -->
-            <div class="flex-1 p-4 overflow-y-auto space-y-3" id="aiChatMessages">
-                <!-- Welcome Message from AI -->
-                <div class="flex items-start gap-2.5">
-                    <div class="h-7 w-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs shrink-0 mt-0.5">
-                        <i class="fa-solid fa-robot"></i>
-                    </div>
-                    <div class="bg-gray-100 text-gray-800 p-3 rounded-2xl rounded-tl-sm text-xs leading-relaxed max-w-[85%] space-y-1">
-                        <p class="font-bold text-gray-900">Namaste! Mai aapka AI Catalog Copilot hu.</p>
-                        <p>Aap kisi bhi product catalog (Hardware, Sanitary, Pipes, Groceries, Clothing, Paints etc.) ka koi bhi page kholkar mujhse pooch sakte hain:</p>
-                        <ul class="list-disc list-inside text-gray-600 space-y-0.5">
-                            <li>Is page par kaun se products aur items hain?</li>
-                            <li>Items, sizes aur MRP ka neat table banao</li>
-                            <li>HSN code, wholesale margin aur discount calculation</li>
-                        </ul>
-                        <p class="text-[10px] text-emerald-700 font-bold pt-1">💡 Tip: Table aate hi aap 1-click me use Excel Sheet me jod sakte hain!</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Chat Input Bar -->
-            <div class="p-3 border-t border-gray-200 bg-white">
-                <div class="flex items-center gap-2">
-                    <input type="text" id="aiChatInput" placeholder="AI se poochein (e.g. Is page ke sabhi items batao)..." class="flex-1 px-3.5 py-2.5 text-xs rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-600 font-medium" onkeydown="if(event.key === 'Enter') sendAiMessage()">
-                    <button type="button" onclick="sendAiMessage()" id="btnSendAi" class="h-9 w-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center text-xs transition shadow-sm active:scale-95">
-                        <i class="fa-solid fa-paper-plane"></i>
-                    </button>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- ======================================================= -->
     <!-- 📄 CONVERT CURRENT PAGE TO EXCEL SLIDE-OVER DRAWER       -->
     <!-- ======================================================= -->
-    <div id="textDrawerOverlay" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 hidden flex justify-end transition-opacity duration-300" onclick="toggleTextDrawer(false)">
-        <div class="w-full max-w-lg bg-white h-full shadow-2xl flex flex-col transform transition-transform duration-300" onclick="event.stopPropagation()">
+    <div id="textDrawerOverlay" class="fixed top-16 right-4 bottom-4 w-full max-w-lg z-40 hidden flex justify-end pointer-events-none transition-all duration-300">
+        <div class="w-full bg-white h-full shadow-2xl rounded-3xl border border-gray-200 flex flex-col pointer-events-auto overflow-hidden" onclick="event.stopPropagation()">
             
             <!-- Drawer Header -->
             <div class="p-4 border-b border-gray-200 bg-slate-900 text-white flex items-center justify-between">
@@ -892,13 +926,137 @@
             }
         }
 
-        function toggleAiDrawer(force) {
-            const overlay = document.getElementById('aiDrawerOverlay');
-            if (typeof force === 'boolean') {
-                overlay.classList.toggle('hidden', !force);
-            } else {
-                overlay.classList.toggle('hidden');
+        let activeRightTab = 'ai';
+        let is5050Mode = false;
+
+        function switchRightPanelTab(tab) {
+            activeRightTab = tab;
+            const btnAi = document.getElementById('tabBtnRightAi');
+            const btnSheet = document.getElementById('tabBtnRightSheet');
+            const btnGallery = document.getElementById('tabBtnRightGallery');
+
+            const contentAi = document.getElementById('rightTabContentAi');
+            const contentSheet = document.getElementById('rightTabContentSheet');
+            const contentGallery = document.getElementById('rightTabContentGallery');
+
+            // Reset tab styles
+            [btnAi, btnSheet, btnGallery].forEach(btn => {
+                if (btn) {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-gray-300 hover:text-white cursor-pointer";
+                }
+            });
+            [contentAi, contentSheet, contentGallery].forEach(c => {
+                if (c) c.classList.add('hidden');
+            });
+
+            if (tab === 'ai') {
+                if (btnAi) btnAi.className = "px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-xs cursor-pointer";
+                if (contentAi) contentAi.classList.remove('hidden');
+            } else if (tab === 'sheet') {
+                if (btnSheet) btnSheet.className = "px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-emerald-600 text-white shadow-xs cursor-pointer";
+                if (contentSheet) contentSheet.classList.remove('hidden');
+                renderRightTabStagedSheet();
+            } else if (tab === 'gallery') {
+                if (btnGallery) btnGallery.className = "px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-blue-600 text-white shadow-xs cursor-pointer";
+                if (contentGallery) contentGallery.classList.remove('hidden');
             }
+        }
+
+        function renderRightTabStagedSheet() {
+            let staged = [];
+            try {
+                staged = JSON.parse(localStorage.getItem('vyapar_staged_excel_rows') || '[]');
+            } catch(e) { staged = []; }
+
+            const tbody = document.getElementById('rightTabStagedTableBody');
+            const countText = document.getElementById('rightTabStagedCountText');
+            const badgeCount = document.getElementById('rightTabStagedCount');
+
+            if (badgeCount) badgeCount.innerText = staged.length;
+            if (countText) countText.innerText = `${staged.length} Items Staged`;
+
+            if (!tbody) return;
+
+            if (staged.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400 text-xs">Sheet abhi khali hai. "AI Copilot" tab me jakar items extract karein aur "इस टेबल को एक्सेल शीट में जोड़ें" dabayein.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = staged.map((r, idx) => `
+                <tr class="hover:bg-emerald-50/40">
+                    <td class="p-2 border-r border-gray-100 font-bold text-indigo-700">P.${r.page || 1}</td>
+                    <td class="p-2 border-r border-gray-100 font-bold text-gray-900 break-words" contenteditable="true" onblur="updateStagedRowField(${idx}, 'name', this.innerText)" title="Click to edit item name">${escapeHtml(r.name || '-')}</td>
+                    <td class="p-2 border-r border-gray-100 text-indigo-600 font-medium" contenteditable="true" onblur="updateStagedRowField(${idx}, 'size', this.innerText)" title="Click to edit size">${escapeHtml(r.size || '-')}</td>
+                    <td class="p-2 border-r border-gray-100 text-emerald-700 font-black font-mono" contenteditable="true" onblur="updateStagedRowField(${idx}, 'mrp', this.innerText)" title="Click to edit rate">${r.mrp ? '₹' + escapeHtml(String(r.mrp)) : '-'}</td>
+                    <td class="p-2 border-r border-gray-100 font-mono text-gray-500" contenteditable="true" onblur="updateStagedRowField(${idx}, 'sku', this.innerText)" title="Click to edit code">${escapeHtml(r.sku || '-')}</td>
+                    <td class="p-2 text-center">
+                        <button type="button" onclick="deleteStagedRow(${idx})" class="h-6 w-6 rounded-md hover:bg-rose-50 text-rose-500 hover:text-rose-700 flex items-center justify-center text-[10px] transition cursor-pointer" title="Remove Item">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStagedRowField(index, field, value) {
+            let staged = [];
+            try {
+                staged = JSON.parse(localStorage.getItem('vyapar_staged_excel_rows') || '[]');
+            } catch(e) { staged = []; }
+
+            if (staged[index]) {
+                if (field === 'mrp') {
+                    staged[index].mrp = value.replace(/[^\d.]/g, '');
+                } else {
+                    staged[index][field] = value.trim();
+                }
+                localStorage.setItem('vyapar_staged_excel_rows', JSON.stringify(staged));
+                showToast(`Row #${index + 1} ${field} updated!`, 'info');
+            }
+        }
+
+        function deleteStagedRow(index) {
+            let staged = [];
+            try {
+                staged = JSON.parse(localStorage.getItem('vyapar_staged_excel_rows') || '[]');
+            } catch(e) { staged = []; }
+
+            if (staged[index]) {
+                staged.splice(index, 1);
+                localStorage.setItem('vyapar_staged_excel_rows', JSON.stringify(staged));
+                renderRightTabStagedSheet();
+                updateStagedExcelHeaderBadge();
+                showToast('Item removed from staged sheet!', 'info');
+            }
+        }
+
+        function toggle5050Split() {
+            is5050Mode = !is5050Mode;
+            const pdfCol = document.getElementById('pdfWorkspaceCol');
+            const galleryCol = document.getElementById('galleryCol');
+            const text = document.getElementById('splitModeText');
+
+            if (is5050Mode) {
+                if (pdfCol) pdfCol.className = "lg:col-span-6 space-y-4 transition-all duration-300";
+                if (galleryCol) galleryCol.className = "lg:col-span-6 space-y-4 transition-all duration-300";
+                if (text) text.innerText = "7:5 Split";
+                showToast('50/50 Side-by-Side Split Active!', 'info');
+            } else {
+                if (pdfCol) pdfCol.className = "lg:col-span-7 space-y-4 transition-all duration-300";
+                if (galleryCol) galleryCol.className = "lg:col-span-5 space-y-4 transition-all duration-300";
+                if (text) text.innerText = "50/50";
+                showToast('Standard 7:5 Split Active!', 'info');
+            }
+            setTimeout(fitCanvasToWidth, 60);
+        }
+
+        function toggleAiDrawer() {
+            switchRightPanelTab('ai');
+            const galleryCol = document.getElementById('galleryCol');
+            if (galleryCol && galleryCol.classList.contains('hidden')) {
+                toggleLayoutMode();
+            }
+            showToast('AI Catalog Copilot side panel active!', 'info');
         }
 
         // Drag & Drop Setup for the Drop Zone
@@ -1018,11 +1176,40 @@
                     }
                 });
 
+        function formatPdfTextLines(rawItems) {
+            if (!rawItems || rawItems.length === 0) return '';
+            const lineBuckets = {};
+            rawItems.forEach(item => {
+                if (!item || !item.str) return;
+                const text = item.str.trim();
+                if (!text) return;
+                const y = item.transform ? Math.round(item.transform[5] / 4) * 4 : 0;
+                const x = item.transform ? item.transform[4] : 0;
+                if (!lineBuckets[y]) {
+                    lineBuckets[y] = [];
+                }
+                lineBuckets[y].push({ text, x });
+            });
+
+            const sortedY = Object.keys(lineBuckets).map(Number).sort((a, b) => b - a);
+            const lineTexts = [];
+            sortedY.forEach(y => {
+                const rowItems = lineBuckets[y].sort((a, b) => a.x - b.x);
+                const line = rowItems.map(i => i.text).join('   ').trim();
+                if (line) {
+                    lineTexts.push(line);
+                }
+            });
+
+            return lineTexts.join('\n');
+        }
+
                 // Extract Text content for AI context and Text Lines Drawer
                 page.getTextContent().then(textContent => {
                     currentPageRawItems = textContent.items || [];
-                    currentPageTextContent = currentPageRawItems.map(item => item.str).join(' ');
-                    document.getElementById('aiPageContextStatus').innerText = `Page ${pageNum} Active (${currentPageRawItems.length} text items)`;
+                    currentPageTextContent = formatPdfTextLines(currentPageRawItems);
+                    const lineCount = currentPageTextContent ? currentPageTextContent.split('\n').length : 0;
+                    document.getElementById('aiPageContextStatus').innerText = `Page ${pageNum} Active (${lineCount} lines)`;
                     renderPageTextLines(currentPageRawItems, pageNum);
                 });
 
@@ -1101,14 +1288,15 @@
 
             if (isFullViewMode) {
                 pdfCol.className = "lg:col-span-12 space-y-4 transition-all duration-300";
-                galleryCol.className = "lg:col-span-12 space-y-4 transition-all duration-300";
+                galleryCol.classList.add('hidden');
                 icon.className = "fa-solid fa-compress";
                 text.innerText = "Split View";
                 setTimeout(fitCanvasToWidth, 50);
                 showToast('Full Page View Enabled — Canvas Bracket Expanded!', 'info');
             } else {
-                pdfCol.className = "lg:col-span-8 space-y-4 transition-all duration-300";
-                galleryCol.className = "lg:col-span-4 space-y-4 transition-all duration-300";
+                pdfCol.className = is5050Mode ? "lg:col-span-6 space-y-4 transition-all duration-300" : "lg:col-span-7 space-y-4 transition-all duration-300";
+                galleryCol.className = is5050Mode ? "lg:col-span-6 space-y-4 transition-all duration-300" : "lg:col-span-5 space-y-4 transition-all duration-300";
+                galleryCol.classList.remove('hidden');
                 icon.className = "fa-solid fa-expand";
                 text.innerText = "Full View";
                 setTimeout(fitCanvasToWidth, 50);
@@ -1810,6 +1998,9 @@
             localStorage.setItem('vyapar_staged_excel_rows', JSON.stringify(staged));
 
             updateStagedExcelHeaderBadge();
+            const tabStagedCount = document.getElementById('rightTabStagedCount');
+            if (tabStagedCount) tabStagedCount.innerText = staged.length;
+            renderRightTabStagedSheet();
 
             if (btn) {
                 btn.disabled = true;
@@ -1829,6 +2020,9 @@
             const badgeBtn = document.getElementById('btnStagedExcelBadge');
             const pill = document.getElementById('stagedExcelCountPill');
             const modalCount = document.getElementById('stagedModalBadgeCount');
+            const tabStagedCount = document.getElementById('rightTabStagedCount');
+
+            if (tabStagedCount) tabStagedCount.innerText = staged.length;
 
             if (staged.length > 0) {
                 if (badgeBtn) badgeBtn.classList.remove('hidden');
@@ -1842,14 +2036,14 @@
         }
 
         function openStagedExcelModal() {
-            let staged = [];
-            try {
-                staged = JSON.parse(localStorage.getItem('vyapar_staged_excel_rows') || '[]');
-            } catch(e) { staged = []; }
-
-            const tbody = document.getElementById('stagedModalTableBody');
-            const modalCount = document.getElementById('stagedModalBadgeCount');
-            if (modalCount) modalCount.innerText = `${staged.length} Items`;
+            // Directly switch to side-by-side Staged Excel Tab in the right column
+            switchRightPanelTab('sheet');
+            const galleryCol = document.getElementById('galleryCol');
+            if (galleryCol && galleryCol.classList.contains('hidden')) {
+                toggleLayoutMode();
+            }
+            showToast('Staged Excel Sheet right side me khul gayi hai!', 'info');
+        }
 
             if (tbody) {
                 if (staged.length === 0) {

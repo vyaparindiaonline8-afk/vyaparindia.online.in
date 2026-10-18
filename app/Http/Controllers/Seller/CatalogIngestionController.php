@@ -1990,13 +1990,21 @@ class CatalogIngestionController extends Controller
 
         $systemPrompt = "You are VyaparIndia AI Catalog Copilot, an expert universal AI catalog digitizer and business assistant for ALL wholesale B2B and retail sectors across India (Hardware, Sanitaryware, Electricals, Pipes & Fittings, FMCG, Grocery, Clothing & Apparel, Paints, Building Materials, Agriculture, Electronics, and Automobiles).
 {$masterContext}Current Catalog Page: Page {$page}.
-Extracted text on active page:
+Extracted text lines on active page (ordered line-by-line horizontally from top to bottom):
 \"\"\"
-" . substr($pageText, 0, 3000) . "
+" . substr($pageText, 0, 12000) . "
 \"\"\"
 
 User question: \"{$prompt}\"
-Please respond clearly in simple professional Hinglish/English. If listing products, sizes, or prices, always output in a neat Markdown Table format with columns: | Product Name | Size / Variant | MRP (INR) | Pack / Code | whenever applicable. DO NOT hallucinate, guess or fabricate prices; if a price or size is not visible in the text, mark it as '-' or '0'.";
+
+CRITICAL INSTRUCTIONS FOR CATALOG ROW & PRICE MATCHING:
+1. In the text above, each line represents a single horizontal row across the catalog page.
+2. The price/MRP on a line STRICTLY BELONGS to the product variant or size on THAT SAME LINE.
+3. NEVER mix, swap, or borrow prices from other lines or lower down the page! Do NOT assign bottom table rates to items at the top.
+4. When a product heading (e.g. \"UPVC ELBOW 90°\") appears above a table of sizes, use that product heading as the \"Product Name\" for all size rows in that section, with each row keeping its own size and MRP.
+5. If no price is visible for an item on its row, mark MRP as '-' or '0'. Never invent or hallucinate prices.
+6. Always format product listings as a neat Markdown Table:
+| Product Name | Size / Variant | MRP (INR) | Pack / Code |";
 
         // If OpenAI key is present (starts with sk- or env variable set)
         if ($openAiKey && (str_starts_with($openAiKey, 'sk-') || !$geminiKey)) {
@@ -2009,7 +2017,7 @@ Please respond clearly in simple professional Hinglish/English. If listing produ
                             ['role' => 'system', 'content' => $systemPrompt],
                             ['role' => 'user', 'content' => $prompt],
                         ],
-                        'temperature' => 0.7,
+                        'temperature' => 0.1,
                     ]);
 
                 if ($response->successful()) {
@@ -2035,6 +2043,9 @@ Please respond clearly in simple professional Hinglish/English. If listing produ
                     ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$geminiKey}", [
                         'contents' => [
                             ['parts' => [['text' => $systemPrompt]]]
+                        ],
+                        'generationConfig' => [
+                            'temperature' => 0.1,
                         ]
                     ]);
 
@@ -2101,6 +2112,7 @@ CRITICAL RULES FOR CATALOG LAYOUTS:
 2. DO NOT mix sizes, packaging numbers, or prices into the \"name\" field. The \"name\" must be clean.
 3. Ignore noise words, headers, and footnotes like \"Available in:\", \"Price List\", \"Terms & Conditions\", \"Page X of Y\".
 4. Return ONLY the raw valid JSON array starting with [ and ending with ]. No explanation, no conversational text, no markdown codeblocks.
+5. CRITICAL PRICE INTEGRITY: Each size variant's price/MRP is located STRICTLY on that exact same horizontal line in the text. NEVER mix or borrow an MRP from lower down the page or from a different table to assign to an item at the top. If a row has no visible price, set \"mrp\": 0. Never guess prices.
 
 PAGE {$page} TEXT CONTENT:
 \"\"\"
