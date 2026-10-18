@@ -33,12 +33,15 @@ return new class extends Migration
         ];
 
         foreach ($sizeMap as $sku => $correctSize) {
+            $updateData = [
+                'variant_name' => $correctSize,
+                'attributes'   => json_encode(['size' => $correctSize]),
+            ];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('product_variants', 'size')) {
+                $updateData['size'] = $correctSize;
+            }
             ProductVariant::whereRaw('LOWER(TRIM(sku)) = ?', [strtolower(trim($sku))])
-                ->update([
-                    'variant_name' => $correctSize,
-                    'size' => $correctSize,
-                    'attributes' => json_encode(['size' => $correctSize]),
-                ]);
+                ->update($updateData);
         }
 
         // 2. Merge fragmented cards (e.g. "BRASS REDUSER FTA25*20" into "BRASS REDUSER FTA")
@@ -81,7 +84,8 @@ return new class extends Migration
                 if ($prod->variants && $prod->variants->count() > 1) {
                     $seenNames = [];
                     foreach ($prod->variants as $v) {
-                        $vKey = strtolower(trim($v->variant_name ?: $v->size));
+                        $vSize = is_array($v->attributes) ? ($v->attributes['size'] ?? '') : '';
+                        $vKey = strtolower(trim($v->variant_name ?: $vSize));
                         if (isset($seenNames[$vKey])) {
                             // Delete duplicate
                             $v->delete();

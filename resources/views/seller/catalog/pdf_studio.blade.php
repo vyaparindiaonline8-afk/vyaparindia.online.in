@@ -2021,6 +2021,15 @@
             const tabStagedCount = document.getElementById('rightTabStagedCount');
             if (tabStagedCount) tabStagedCount.innerText = staged.length;
             renderRightTabStagedSheet();
+            renderStagedModalTable();
+
+            // Automatically activate Staged Excel Sheet tab in right panel so user can see their rows
+            switchRightPanelTab('sheet');
+            if (isFullViewMode) {
+                toggleLayoutMode();
+            }
+            const galleryCol = document.getElementById('galleryCol');
+            if (galleryCol) galleryCol.classList.remove('hidden');
 
             if (btn) {
                 btn.disabled = true;
@@ -2109,14 +2118,51 @@
             }
         }
 
+        function renderStagedModalTable() {
+            let staged = [];
+            try {
+                staged = JSON.parse(localStorage.getItem('vyapar_staged_excel_rows') || '[]');
+            } catch(e) { staged = []; }
+
+            const tbody = document.getElementById('stagedModalTableBody');
+            const modalBadge = document.getElementById('stagedModalBadgeCount');
+            if (modalBadge) modalBadge.innerText = `${staged.length} Items`;
+
+            if (!tbody) return;
+
+            if (staged.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-400">Sheet abhi khali hai. PDF pages se AI dwara extract karke "शीट में जोड़ें" dabayein.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = staged.map((r, idx) => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-2 border-r border-gray-100 font-bold text-indigo-700">P.${r.page || 1}</td>
+                    <td class="p-2 border-r border-gray-100 font-bold text-gray-900">${escapeHtml(r.name || '-')}</td>
+                    <td class="p-2 border-r border-gray-100 text-indigo-600 font-mono">${escapeHtml(r.size || '-')}</td>
+                    <td class="p-2 border-r border-gray-100 font-mono font-bold text-emerald-700">${r.mrp ? '₹' + escapeHtml(String(r.mrp)) : '-'}</td>
+                    <td class="p-2 font-mono text-gray-500">${escapeHtml(r.sku || '-')}</td>
+                </tr>
+            `).join('');
+        }
+
         function openStagedExcelModal() {
-            // Directly switch to side-by-side Staged Excel Tab in the right column
+            renderStagedModalTable();
+            renderRightTabStagedSheet();
             switchRightPanelTab('sheet');
-            const galleryCol = document.getElementById('galleryCol');
-            if (galleryCol && galleryCol.classList.contains('hidden')) {
+
+            // Open the center popup modal so user can view all accumulated items
+            const modal = document.getElementById('stagedExcelModal');
+            if (modal) modal.classList.remove('hidden');
+
+            // Ensure right panel is also visible in split view
+            if (isFullViewMode) {
                 toggleLayoutMode();
             }
-            showToast('Staged Excel Sheet right side me khul gayi hai!', 'info');
+            const galleryCol = document.getElementById('galleryCol');
+            if (galleryCol) galleryCol.classList.remove('hidden');
+
+            showToast('Staged Excel Sheet open ho gayi hai!', 'info');
         }
 
         function closeStagedExcelModal() {
@@ -2130,6 +2176,7 @@
             syncStagedSheetToBackend([]);
             updateStagedExcelHeaderBadge();
             renderRightTabStagedSheet();
+            renderStagedModalTable();
             showToast('Staged Excel Sheet reset ho gayi!', 'info');
         }
 
