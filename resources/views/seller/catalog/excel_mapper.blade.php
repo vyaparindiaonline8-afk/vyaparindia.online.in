@@ -360,8 +360,30 @@
                 </button>
             </div>
 
+            <!-- 🏷️ Dynamic Category Filter Tabs Bar (Filter UPVC, CPVC, SWR, etc.) -->
+            <div class="bg-white p-3.5 rounded-3xl border border-gray-200 shadow-xs space-y-2.5" id="dynamicCategoryTabsWrapper">
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-layer-group text-indigo-600"></i>
+                            <span>Category Wise Pending Items:</span>
+                        </span>
+                        <span class="text-[11px] text-gray-500 font-medium">(Category par click karke sirf bache huye unmapped items dekhein)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1.5 shadow-2xs" id="dynamicPendingStatsBadge">
+                            <i class="fa-solid fa-clock-rotate-left text-amber-600"></i>
+                            <span>0 Unmapped Left</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 overflow-x-auto pb-1" id="dynamicCategoryFilterContainer">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
             <!-- Dynamic Table Card -->
-            <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden" id="dynamicTableCard">
                 <div class="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/70">
                     <div class="flex items-center gap-2">
                         <span class="text-xs font-black text-gray-800 uppercase tracking-wider">Dynamic Spreadsheet Lines:</span>
@@ -382,9 +404,13 @@
                             <i class="fa-solid fa-tags text-amber-600"></i>
                             <span>Bulk Category</span>
                         </button>
-                        <button type="button" onclick="resetDynamicTable()" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 flex items-center gap-1 transition" title="Purane sabhi rows ko delete karein">
+                        <button type="button" onclick="clearOnlyPendingRows()" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-300 flex items-center gap-1 transition" title="Bache huye pending rows ko saaf karein (Aapke cards surakshit rahenge)">
+                            <i class="fa-solid fa-eraser text-slate-600"></i>
+                            <span>Clear Pending List</span>
+                        </button>
+                        <button type="button" onclick="resetDynamicTable()" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 flex items-center gap-1 transition" title="Purane sabhi rows aur cards dono ko delete karein">
                             <i class="fa-solid fa-trash-can"></i>
-                            <span>Clear All Rows</span>
+                            <span>Reset Everything</span>
                         </button>
                         <button type="button" onclick="openColumnMapperModal()" id="btnOpenColumnMapper" class="px-3 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-extrabold text-xs border border-teal-200 flex items-center gap-1.5 transition ml-1" title="Excel Sheet ke columns ko dobara map karein">
                             <i class="fa-solid fa-table-columns text-teal-600"></i>
@@ -1396,20 +1422,29 @@
             document.querySelectorAll('.cat-pill').forEach(btn => {
                 const btnCat = btn.getAttribute('data-cat-key');
                 if (!btnCat) return;
-                const baseClass = "cat-pill px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 transition whitespace-nowrap ";
-                if (btnCat.toLowerCase() === cat.toLowerCase()) {
-                    btn.className = baseClass + (cat === 'ALL' ? 'bg-gray-900 text-white shadow-sm' : 'bg-indigo-600 text-white shadow-md');
+                const isSelected = (btnCat.toLowerCase() === cat.toLowerCase());
+                const baseClass = "cat-pill px-4 py-2 rounded-2xl text-xs font-black flex items-center gap-2 transition whitespace-nowrap active:scale-95 ";
+                if (isSelected) {
+                    btn.className = baseClass + (cat === 'ALL' ? 'bg-gray-900 text-white shadow-sm ring-2 ring-gray-900' : 'bg-indigo-600 text-white shadow-md ring-2 ring-indigo-500');
                 } else {
                     btn.className = baseClass + 'bg-white hover:bg-slate-50 text-gray-700 border border-gray-200 shadow-xs';
                 }
             });
 
+            if (isDynamicMode) {
+                renderDynamicRows();
+            }
             applyCombinedFilter();
         }
 
         function refreshCategoryFilterTabs() {
-            const container = document.getElementById('categoryFilterContainer');
-            if (!container) return;
+            if (typeof deduplicateDynamicRowsAgainstCards === 'function') {
+                deduplicateDynamicRowsAgainstCards();
+            }
+
+            const dynamicContainer = document.getElementById('dynamicCategoryFilterContainer');
+            const savedContainer = document.getElementById('categoryFilterContainer');
+            if (!dynamicContainer && !savedContainer) return;
 
             const counts = {};
             let total = 0;
@@ -1428,26 +1463,66 @@
                 });
             }
 
-            let html = `
-                <button type="button" onclick="filterByCategory('ALL')" data-cat-key="ALL" id="catTab_ALL" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-black ${activeCategory === 'ALL' ? 'bg-gray-900 text-white shadow-sm' : 'bg-white hover:bg-slate-50 text-gray-700 border border-gray-200 shadow-xs'} flex items-center gap-2 transition whitespace-nowrap">
-                    <i class="fa-solid fa-layer-group"></i>
-                    <span>All Categories</span>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] ${activeCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-800'} font-mono" id="catCount_ALL">${total}</span>
-                </button>
-            `;
-
-            for (const [catName, count] of Object.entries(counts)) {
-                const isActive = (activeCategory.toLowerCase() === catName.toLowerCase());
-                html += `
-                    <button type="button" onclick="filterByCategory('${escapeHtml(catName)}')" data-cat-key="${escapeHtml(catName)}" class="cat-pill px-4 py-2.5 rounded-2xl text-xs font-extrabold ${isActive ? 'bg-indigo-600 text-white shadow-md' : 'bg-white hover:bg-slate-50 text-gray-700 border border-gray-200 shadow-xs'} flex items-center gap-2 transition whitespace-nowrap">
-                        <span class="h-2 w-2 rounded-full ${isActive ? 'bg-white' : 'bg-indigo-500'}"></span>
-                        <span>${escapeHtml(catName)}</span>
-                        <span class="px-2 py-0.5 rounded-full text-[10px] ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-800'} font-mono font-bold">${count}</span>
-                    </button>
-                `;
+            const pendingStats = document.getElementById('dynamicPendingStatsBadge');
+            if (pendingStats) {
+                pendingStats.innerHTML = `<i class="fa-solid fa-clock-rotate-left text-amber-600"></i> <span>${total} Unmapped Left</span>`;
             }
 
-            container.innerHTML = html;
+            const sortedCats = Object.keys(counts).sort((a, b) => {
+                const prio = (name) => {
+                    const u = name.toUpperCase();
+                    if (u.includes('UPVC')) return 1;
+                    if (u.includes('CPVC')) return 2;
+                    if (u.includes('SWR')) return 3;
+                    return 10;
+                };
+                return prio(a) - prio(b) || a.localeCompare(b);
+            });
+
+            const buildTabsHtml = (isForDynamic) => {
+                let html = `
+                    <button type="button" onclick="filterByCategory('ALL')" data-cat-key="ALL" id="catTab_ALL" class="cat-pill px-4 py-2 rounded-2xl text-xs font-black ${activeCategory === 'ALL' ? 'bg-gray-900 text-white shadow-sm ring-2 ring-gray-900' : 'bg-white hover:bg-slate-50 text-gray-700 border border-gray-200 shadow-xs'} flex items-center gap-2 transition whitespace-nowrap active:scale-95">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span>${isForDynamic ? 'All Pending' : 'All Categories'}</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] ${activeCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-800'} font-mono font-bold" id="catCount_ALL">${total}</span>
+                    </button>
+                `;
+
+                for (const catName of sortedCats) {
+                    const count = counts[catName];
+                    const isActive = (activeCategory.toLowerCase() === catName.toLowerCase());
+                    let icon = 'fa-tag';
+                    let activeColor = 'bg-indigo-600 text-white shadow-md ring-2 ring-indigo-500';
+                    let dotColor = 'text-indigo-500';
+
+                    const u = catName.toUpperCase();
+                    if (u.includes('UPVC')) {
+                        icon = 'fa-droplet';
+                        activeColor = 'bg-blue-600 text-white shadow-md ring-2 ring-blue-500';
+                        dotColor = 'text-blue-500';
+                    } else if (u.includes('CPVC')) {
+                        icon = 'fa-fire-flame-curved';
+                        activeColor = 'bg-amber-600 text-white shadow-md ring-2 ring-amber-500';
+                        dotColor = 'text-amber-500';
+                    } else if (u.includes('SWR')) {
+                        icon = 'fa-faucet-drip';
+                        activeColor = 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-500';
+                        dotColor = 'text-emerald-500';
+                    }
+
+                    html += `
+                        <button type="button" onclick="filterByCategory('${escapeHtml(catName)}')" data-cat-key="${escapeHtml(catName)}" class="cat-pill px-4 py-2 rounded-2xl text-xs font-extrabold ${isActive ? activeColor : 'bg-white hover:bg-slate-50 text-gray-700 border border-gray-200 shadow-xs'} flex items-center gap-2 transition whitespace-nowrap active:scale-95">
+                            <i class="fa-solid ${icon} text-[11px] ${isActive ? 'text-white' : dotColor}"></i>
+                            <span>${escapeHtml(catName)}</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-800'} font-mono font-bold">${count}</span>
+                        </button>
+                    `;
+                }
+                return html;
+            };
+
+            if (dynamicContainer) dynamicContainer.innerHTML = buildTabsHtml(true);
+            if (savedContainer) savedContainer.innerHTML = buildTabsHtml(false);
         }
 
         // Live Search Filter
@@ -2013,6 +2088,9 @@
                         hasLoaded = true;
                     }
                 }
+                if (hasLoaded && typeof deduplicateDynamicRowsAgainstCards === 'function') {
+                    deduplicateDynamicRowsAgainstCards();
+                }
                 return hasLoaded;
             } catch (e) {
                 return false;
@@ -2243,6 +2321,10 @@
                         asset_url: preselectedImg ? ('/' + preselectedImg.replace(/^\//, '')) : ''
                     });
                 });
+            }
+
+            if (typeof deduplicateDynamicRowsAgainstCards === 'function') {
+                deduplicateDynamicRowsAgainstCards();
             }
 
             saveToLocalStorage();
@@ -2767,6 +2849,9 @@
             }
 
             dynamicRows = newRows;
+            if (typeof deduplicateDynamicRowsAgainstCards === 'function') {
+                deduplicateDynamicRowsAgainstCards();
+            }
             saveToLocalStorage();
             autoSaveDraftToBackend();
             renderDynamicRows();
@@ -2827,20 +2912,106 @@
             return base || fullName;
         }
 
-        function autoGroupAllDynamicRowsIntoCards() {
+        function isRowAlreadyMappedInCards(r) {
+            if (!groupedProductCards || groupedProductCards.length === 0) return false;
+            const rId = r.id;
+            const rCode = (r.product_code || '').trim().toLowerCase();
+            const rFamily = (typeof extractBaseFamilyName === 'function' ? extractBaseFamilyName(r.product_name, r.size) : (r.product_name || '')).trim().toLowerCase();
+            const rName = (r.product_name || '').trim().toLowerCase();
+            const rSize = (r.size || 'Standard').trim().toLowerCase();
+            const rCat = (r.group_type || r.category || '').trim().toLowerCase();
+
+            const rFamilyNorm = rFamily.replace(/[^a-z0-9]/g, '');
+            const rNameNorm = rName.replace(/[^a-z0-9]/g, '');
+            const rSizeNorm = rSize.replace(/[^a-z0-9]/g, '');
+
+            for (const card of groupedProductCards) {
+                const cardCat = (card.category || '').trim().toLowerCase();
+                const cardParent = (card.parent_name || '').trim().toLowerCase();
+                const cardParentNorm = cardParent.replace(/[^a-z0-9]/g, '');
+                const catMatches = (!rCat || !cardCat || rCat === cardCat || rCat.includes(cardCat) || cardCat.includes(rCat));
+
+                for (const v of (card.variants || [])) {
+                    // Check 1: direct variant id match
+                    if (rId && v.id && rId === v.id) return true;
+
+                    // Check 2: exact SKU code match if not placeholder
+                    if (rCode && !rCode.startsWith('itm-') && (v.product_code || '').trim().toLowerCase() === rCode) {
+                        return true;
+                    }
+
+                    // Check 3: Family/Name + Size match in same category
+                    if (catMatches) {
+                        const vSize = (v.size || 'Standard').trim().toLowerCase();
+                        const vSizeNorm = vSize.replace(/[^a-z0-9]/g, '');
+                        if (vSizeNorm === rSizeNorm && rSizeNorm !== '') {
+                            if (cardParentNorm === rFamilyNorm || cardParentNorm === rNameNorm) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        function deduplicateDynamicRowsAgainstCards() {
+            if (!groupedProductCards || groupedProductCards.length === 0 || !dynamicRows || dynamicRows.length === 0) return;
+            const origLength = dynamicRows.length;
+            dynamicRows = dynamicRows.filter(r => !isRowAlreadyMappedInCards(r));
+            if (dynamicRows.length !== origLength) {
+                saveToLocalStorage();
+                if (typeof autoSaveDraftToBackend === 'function') autoSaveDraftToBackend();
+            }
+        }
+
+        function clearOnlyPendingRows() {
             if (dynamicRows.length === 0) {
-                alert('Table me auto-distribute karne ke liye koi rows nahi hain. Pehle Excel import karein ya "+ Add Line" dabayein.');
+                alert('Pending rows table pehle se hi bilkul khali hai.');
+                return;
+            }
+            if (confirm(`Kya aap bache huye ${dynamicRows.length} pending rows ko table se hatana chahte hain?\n\n✨ Note: Aapke dwara banaye gaye ${groupedProductCards.length} Product Cards surakshit rahenge!`)) {
+                dynamicRows = [];
+                localStorage.removeItem('vyapar_dynamic_rows');
+                localStorage.removeItem('vyapar_custom_excel_lines');
+                renderDynamicRows();
+                refreshCategoryFilterTabs();
+                clearDynamicRowSelection();
+                saveToLocalStorage();
+                if (typeof autoSaveDraftToBackend === 'function') autoSaveDraftToBackend();
+                showToastNotification('🧹 Pending list saaf ho gayi! Aapke Product Cards bilkul surakshit hain.');
+            }
+        }
+
+        function autoGroupAllDynamicRowsIntoCards() {
+            deduplicateDynamicRowsAgainstCards();
+            if (dynamicRows.length === 0) {
+                alert('Table me auto-distribute karne ke liye koi pending rows nahi hain. Pehle Excel import karein ya "+ Add Line" dabayein.');
                 return;
             }
 
-            const rowCount = dynamicRows.length;
-            if (!confirm(`Kya aap sabhi ${rowCount} items ko unki Product Family (jaise 90° Elbow, Pipe 40 SCH, Tee, Union, etc.) ke hisab se alag-alag Cards me automatically distribute karna chahte hain?\n\n✨ Isse har product family ka apna alag Card ban jayega aur aapko sirf 1-1 photo link karni hogi!`)) {
+            const targetRows = (activeCategory === 'ALL')
+                ? [...dynamicRows]
+                : dynamicRows.filter(r => (r.group_type || r.category || 'General Hardware').trim().toLowerCase() === activeCategory.toLowerCase());
+
+            if (targetRows.length === 0) {
+                alert(`"${activeCategory}" category me koi pending unmapped row nahi hai.`);
                 return;
             }
 
+            const isScoped = (activeCategory !== 'ALL');
+            const promptTitle = isScoped
+                ? `Kya aap sirf "${activeCategory}" category ke ${targetRows.length} items ko unki Product Family ke alag-alag Cards me distribute karna chahte hain?`
+                : `Kya aap sabhi ${targetRows.length} items ko unki Product Family (Elbow, Pipe 40 SCH, Tee, Union, etc.) ke alag-alag Cards me distribute karna chahte hain?`;
+
+            if (!confirm(promptTitle + `\n\n✨ Isse har product family ka apna alag Card ban jayega aur pending table se ye items hat jayenge!`)) {
+                return;
+            }
+
+            const targetIds = new Set(targetRows.map(r => r.id));
             const familyMap = new Map();
 
-            dynamicRows.forEach(row => {
+            targetRows.forEach(row => {
                 const familyKey = extractBaseFamilyName(row.product_name, row.size);
                 if (!familyMap.has(familyKey)) {
                     familyMap.set(familyKey, []);
@@ -2857,7 +3028,7 @@
                 const newCard = {
                     card_id: groupedCardNextId++,
                     parent_name: familyName,
-                    category: firstRow.category || firstRow.group_type || 'General Hardware',
+                    category: firstRow.category || firstRow.group_type || (isScoped ? activeCategory : 'General Hardware'),
                     image_url: assignedImg,
                     asset_url: assignedAsset,
                     variants: rowsInFamily.map(r => ({
@@ -2880,8 +3051,8 @@
                 newCardsCreated++;
             });
 
-            // Empty the dynamic rows as all are now packaged in clean Cards!
-            dynamicRows = [];
+            // Remove only the distributed rows from dynamicRows!
+            dynamicRows = dynamicRows.filter(r => !targetIds.has(r.id));
 
             clearDynamicRowSelection();
             renderDynamicRows();
@@ -2891,8 +3062,8 @@
             saveToLocalStorage();
             autoSaveDraftToBackend();
 
-            showToastNotification(`🚀 Zabardast! Sabhi ${rowCount} items ${familyMap.size} alag-alag Cards me distribute ho gaye hain! Ab bas har Card par "Pick Photo" dabakar photo link karein.`);
-            
+            showToastNotification(`🚀 Zabardast! ${targetRows.length} items ${familyMap.size} alag-alag Cards me distribute ho gaye hain aur pending list se hat gaye!`);
+
             // Scroll down to cards section smoothly
             setTimeout(() => {
                 document.getElementById('groupedCardsSection')?.scrollIntoView({ behavior: 'smooth' });
@@ -3662,22 +3833,73 @@
         }
 
         function renderDynamicRows() {
+            if (typeof deduplicateDynamicRowsAgainstCards === 'function') {
+                deduplicateDynamicRowsAgainstCards();
+            }
+
             const tbody = document.getElementById('dynamicTableBody');
             const badge = document.getElementById('dynamicRowCountBadge');
-            if (badge) badge.innerText = `${dynamicRows.length} Rows`;
-
             const pendingEl = document.getElementById('pendingRowsCountText');
-            if (pendingEl) pendingEl.innerText = `${dynamicRows.length} Rows Left`;
             const completedEl = document.getElementById('completedCardsCountText');
+            const statsBadge = document.getElementById('dynamicPendingStatsBadge');
+
+            if (pendingEl) pendingEl.innerText = `${dynamicRows.length} Rows Left`;
             if (completedEl) completedEl.innerText = `${groupedProductCards.length} Cards Ready`;
+            if (statsBadge) statsBadge.innerHTML = `<i class="fa-solid fa-clock-rotate-left text-amber-600"></i> <span>${dynamicRows.length} Unmapped Left</span>`;
 
             if (!tbody) return;
 
             if (dynamicRows.length === 0) {
+                if (badge) badge.innerText = `0 Rows`;
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="13" class="p-8 text-center text-gray-400 text-xs">
-                            Koi pending flat rows nahi hain! Sabhi items cards me save ho chuke hain ya "+ Add Line" / Excel Import karein.
+                        <td colspan="13" class="p-10 text-center">
+                            <div class="max-w-md mx-auto space-y-3">
+                                <div class="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl mx-auto shadow-inner">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                </div>
+                                <h4 class="text-sm font-black text-gray-900">Sabhi Items ke Cards Ban Chuke Hain!</h4>
+                                <p class="text-xs text-gray-500">
+                                    Aapki spreadsheet ke sabhi items successfully Product Cards me save ho gaye hain. Koi pending unmapped row bachi nahi hai!
+                                </p>
+                                <div class="pt-2 flex items-center justify-center gap-3">
+                                    <button type="button" onclick="document.getElementById('groupedCardsSection')?.scrollIntoView({behavior:'smooth'})" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-600/20 flex items-center gap-2">
+                                        <i class="fa-solid fa-layer-group"></i>
+                                        <span>View Grouped Cards (${groupedProductCards.length})</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Filter dynamic rows based on activeCategory
+            const filteredRows = (activeCategory === 'ALL')
+                ? dynamicRows
+                : dynamicRows.filter(r => (r.group_type || r.category || 'General Hardware').trim().toLowerCase() === activeCategory.toLowerCase());
+
+            if (badge) {
+                badge.innerText = (activeCategory === 'ALL')
+                    ? `${dynamicRows.length} Rows`
+                    : `${filteredRows.length} of ${dynamicRows.length} Rows`;
+            }
+
+            if (filteredRows.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="13" class="p-8 text-center text-gray-500 text-xs">
+                            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold mb-2">
+                                <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                                <span>"${escapeHtml(activeCategory)}" Category Complete!</span>
+                            </div>
+                            <p class="font-bold text-gray-800 text-sm">Is category ke sabhi items ke cards ban chuke hain!</p>
+                            <p class="text-[11px] text-gray-500 mt-1">Baki bachi hui categories dekhne ke liye upar <b>"All Pending"</b> ya dusre Category tab par click karein.</p>
+                            <button type="button" onclick="filterByCategory('ALL')" class="mt-3.5 px-4 py-1.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-extrabold text-xs shadow-sm flex items-center gap-2 mx-auto active:scale-95 transition">
+                                <i class="fa-solid fa-layer-group"></i>
+                                <span>Show All Pending Items (${dynamicRows.length})</span>
+                            </button>
                         </td>
                     </tr>
                 `;
@@ -3685,7 +3907,7 @@
             }
 
             let html = '';
-            dynamicRows.forEach((r) => {
+            filteredRows.forEach((r) => {
                 const imgThumb = r.image_url 
                     ? `<img src="${r.asset_url || r.image_url}" class="max-h-full max-w-full object-contain" id="dyn_img_${r.id}">`
                     : `<span class="text-gray-300 text-xs" id="dyn_img_${r.id}"><i class="fa-solid fa-camera"></i></span>`;
