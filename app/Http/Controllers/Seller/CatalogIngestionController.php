@@ -121,12 +121,122 @@ class CatalogIngestionController extends Controller
             abort(403);
         }
 
-        $masterExcel = public_path('catalogs/PLASTO_WITH_IMAGES_MASTER.xlsx');
-        if (file_exists($masterExcel)) {
-            return response()->download($masterExcel, 'VyaparIndia_Plasto_Master_Catalog.xlsx');
+        $extractedData = $job->extracted_data ?? [];
+        $products = $extractedData['products'] ?? [];
+
+        if (empty($products)) {
+            $masterExcel = public_path('catalogs/PLASTO_WITH_IMAGES_MASTER.xlsx');
+            if (file_exists($masterExcel)) {
+                return response()->download($masterExcel, 'VyaparIndia_Plasto_Master_Catalog.xlsx');
+            }
+            return back()->with('error', 'इस कैटलॉग में कोई प्रोडक्ट्स डेटा उपलब्ध नहीं है।');
         }
 
-        return back()->with('error', 'Master Excel file not available for download.');
+        $cleanTitle = preg_replace('/[^A-Za-z0-9_-]/', '_', pathinfo($job->filename, PATHINFO_FILENAME));
+        $filename = "VyaparIndia_{$cleanTitle}_Formula_Sheet.csv";
+
+        $rows = [];
+        $headers = [
+            'ITAM CODE',
+            'PRODUCT NAME',
+            'CATEGORY',
+            'GROUP',
+            'SIZE',
+            'MRP',
+            'LESS',
+            'GST',
+            'P.COST',
+            'SALE A',
+            'SALE B',
+            'SALE C',
+            'OPN.STOCK',
+            'DESCRIPTION'
+        ];
+        $rows[] = $headers;
+
+        $codeCounter = 1;
+        foreach ($products as $prod) {
+            $baseName = trim($prod['name'] ?? 'Product');
+            $category = $prod['category'] ?? 'General';
+            $group = $prod['group_name'] ?? $category;
+            $disc = floatval($prod['trade_discount_percent'] ?? 47);
+            $gst = floatval($prod['gst_percent'] ?? 18);
+            $desc = $prod['description'] ?? '';
+
+            $variants = $prod['variants'] ?? [];
+            if (!empty($variants)) {
+                foreach ($variants as $v) {
+                    $rawRate = floatval($v['raw_rate'] ?? ($prod['base_price'] ?? 0));
+                    $pCost = round($rawRate * (1 - ($disc / 100)) * (1 + ($gst / 100)), 2);
+                    $saleA = floatval($v['retail_price'] ?? round($pCost * 1.30, 2));
+                    $saleB = floatval($v['wholesale_price'] ?? round($pCost * 1.15, 2));
+                    $saleC = round($pCost * 1.10, 2);
+                    $size = $v['size'] ?? ($v['variant_name'] ?? 'Standard');
+                    $mrp = floatval($v['mrp'] ?? $rawRate);
+                    $code = !empty($v['sku']) ? $v['sku'] : ("ITM-" . str_pad($codeCounter++, 3, '0', STR_PAD_LEFT));
+
+                    $rows[] = [
+                        $code,
+                        $baseName . ' ' . $size,
+                        $category,
+                        $group,
+                        $size,
+                        $mrp,
+                        $disc,
+                        $gst,
+                        $pCost,
+                        $saleA,
+                        $saleB,
+                        $saleC,
+                        $v['stock_quantity'] ?? 0,
+                        $desc
+                    ];
+                }
+            } else {
+                $rawRate = floatval($prod['base_price'] ?? 0);
+                $pCost = round($rawRate * (1 - ($disc / 100)) * (1 + ($gst / 100)), 2);
+                $saleA = round($pCost * 1.30, 2);
+                $saleB = round($pCost * 1.15, 2);
+                $saleC = round($pCost * 1.10, 2);
+                $mrp = floatval($prod['mrp'] ?? $rawRate);
+                $code = !empty($prod['sku']) ? $prod['sku'] : ("ITM-" . str_pad($codeCounter++, 3, '0', STR_PAD_LEFT));
+
+                $rows[] = [
+                    $code,
+                    $baseName,
+                    $category,
+                    $group,
+                    'Standard',
+                    $mrp,
+                    $disc,
+                    $gst,
+                    $pCost,
+                    $saleA,
+                    $saleB,
+                    $saleC,
+                    $prod['stock_quantity'] ?? 0,
+                    $desc
+                ];
+            }
+        }
+
+        // Generate UTF-8 CSV with Byte Order Mark (BOM)
+        $output = "\xEF\xBB\xBF";
+        $handle = fopen('php://memory', 'r+');
+        foreach ($rows as $row) {
+            fputcsv($handle, $row);
+        }
+        rewind($handle);
+        $output .= stream_get_contents($handle);
+        fclose($handle);
+
+        return response($output, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
     }
 
     /**
