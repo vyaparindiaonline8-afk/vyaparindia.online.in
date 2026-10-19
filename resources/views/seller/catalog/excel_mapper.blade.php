@@ -486,6 +486,26 @@
                     </div>
                 </div>
 
+                <!-- 🔗 Batch Bar for Selected Cards -->
+                <div id="groupedCardsBatchBar" class="hidden bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 text-xs shadow-sm">
+                    <div class="flex items-center gap-2">
+                        <div class="h-7 w-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-code-merge"></i>
+                        </div>
+                        <span class="font-extrabold text-indigo-900" id="groupedCardsSelectedCountText">0 Cards Selected</span>
+                        <span class="text-gray-500 text-[11px] hidden sm:inline">(In cards ke sabhi sizes ko ek single card me jod sakte hain)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="openMergeSelectedCardsModal()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition active:scale-95">
+                            <i class="fa-solid fa-code-merge"></i>
+                            <span>🔗 Merge Selected Cards into 1</span>
+                        </button>
+                        <button type="button" onclick="clearGroupedCardSelection()" class="px-3 py-2 rounded-xl bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-200 transition">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+
                 <div id="groupedCardsGrid" class="space-y-4">
                     <!-- Populated via JS -->
                 </div>
@@ -1126,6 +1146,119 @@
                 </button>
             </div>
 
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 🔗 MERGE CARDS MODAL                       -->
+    <!-- ========================================== -->
+    <div id="mergeCardsModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] hidden flex items-center justify-center p-4" onclick="closeMergeCardsModal()">
+        <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-lg overflow-hidden animate-scale-up" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="p-5 border-b border-gray-100 bg-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-code-merge"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black">2 Cards Ko Ek Card Me Merge Karein</h3>
+                        <p class="text-[11px] text-gray-400">Alag huye sizes ko 1 single card me jodh dein</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeMergeCardsModal()" class="h-8 w-8 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-5 space-y-4">
+                <input type="hidden" id="mergeSourceCardId" value="">
+                <div class="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-3.5 space-y-1">
+                    <div class="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                        <i class="fa-solid fa-layer-group text-indigo-600"></i>
+                        <span id="mergeSourceCardTitle">Source Card</span>
+                    </div>
+                    <p class="text-[11px] text-indigo-700 font-medium" id="mergeSourceCardDetails">0 sizes</p>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-gray-800 flex items-center justify-between">
+                        <span>🎯 Destination Card (Is card me sabhi sizes jodh diye jayenge):</span>
+                    </label>
+                    <select id="mergeTargetCardSelect" class="w-full text-xs font-bold py-2.5 px-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-2xs">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-[11px] text-amber-800 space-y-1">
+                    <p class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-circle-info text-amber-600"></i> Merge hone ke baad:</p>
+                    <p>• Dono cards ke sabhi sizes ek hi card ke andar jud jayenge (jaise 3M + 5M ek sath).</p>
+                    <p>• Destination card ka Title aur Photo barqarar rahega.</p>
+                    <p>• Khali ho chuka duplicate card apne aap hat jayega.</p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+                <button type="button" onclick="closeMergeCardsModal()" class="px-4 py-2 rounded-xl bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-200">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmMergeCards()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition active:scale-95">
+                    <i class="fa-solid fa-code-merge"></i>
+                    <span>Merge All Sizes Now</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ➡️ MOVE VARIANT TO CARD MODAL              -->
+    <!-- ========================================== -->
+    <div id="moveVariantModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] hidden flex items-center justify-center p-4" onclick="closeMoveVariantModal()">
+        <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-md overflow-hidden animate-scale-up" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="p-5 border-b border-gray-100 bg-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black">Variant Ko Dusre Card Me Bhejein</h3>
+                        <p class="text-[11px] text-gray-400">Is specific size ko doosre card me transfer karein</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeMoveVariantModal()" class="h-8 w-8 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-5 space-y-4">
+                <input type="hidden" id="moveVariantSourceCardId" value="">
+                <input type="hidden" id="moveVariantTargetVariantId" value="">
+                <div class="bg-purple-50/70 border border-purple-100 rounded-2xl p-3 space-y-1">
+                    <div class="text-xs font-bold text-purple-900" id="moveVariantInfoText">Size: 7.5 Meter</div>
+                    <p class="text-[11px] text-purple-700 font-medium" id="moveVariantSourceCardText">Current Card: Yorker Tape</p>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-gray-800">🎯 Destination Card Chunein:</label>
+                    <select id="moveVariantTargetSelect" class="w-full text-xs font-bold py-2.5 px-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none shadow-2xs">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+                <button type="button" onclick="closeMoveVariantModal()" class="px-4 py-2 rounded-xl bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-200">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmMoveVariantToCard()" class="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs shadow-md shadow-purple-600/30 flex items-center gap-1.5 transition active:scale-95">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Transfer Variant</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -3314,6 +3447,10 @@
                                         <i class="fa-solid fa-plus text-indigo-600"></i>
                                         <span>Naya Card</span>
                                     </button>
+                                    <button type="button" onclick="openMoveVariantToCardModal(${c.card_id}, ${v.id})" class="h-6 px-2 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 text-[10px] font-bold border border-purple-200 flex items-center gap-1 transition" title="Is size ko kisi doosre card me transfer karein">
+                                        <i class="fa-solid fa-arrow-right-to-bracket text-purple-600"></i>
+                                        <span>Dusre Card</span>
+                                    </button>
                                     <button type="button" onclick="deleteVariantFromCard(${c.card_id}, ${v.id})" class="h-6 w-6 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition inline-flex items-center justify-center text-[10px]" title="Permanently delete this size"><i class="fa-solid fa-trash-can"></i></button>
                                 </div>
                             </td>
@@ -3326,6 +3463,21 @@
 
                 html += `
                     <div class="bg-white rounded-3xl border-2 border-indigo-100 p-5 shadow-sm hover:shadow-md transition space-y-4" id="grouped_card_box_${c.card_id}" data-category="${escapeHtml(cardCategory)}" data-search="${escapeHtml(cardSearch)}">
+                        <!-- Card Top Bar: Checkbox, Badge & Merge Card Action -->
+                        <div class="flex items-center justify-between pb-2.5 border-b border-gray-100 flex-wrap gap-2 bg-slate-50/60 -mx-5 -mt-5 p-4 rounded-t-3xl border-b border-indigo-50">
+                            <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                                <input type="checkbox" class="grouped-card-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" value="${c.card_id}" onchange="updateGroupedCardSelectionBar()" title="Select this card to merge">
+                                <span class="text-xs font-black text-gray-800">Card #${c.card_id}: ${escapeHtml(c.parent_name)}</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-100 text-indigo-700 font-bold border border-indigo-200">${c.variants.length} Sizes</span>
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="openMergeCardModal(${c.card_id})" class="px-3 py-1.5 rounded-xl bg-white hover:bg-indigo-600 hover:text-white text-indigo-700 font-extrabold text-[11px] border border-indigo-200 flex items-center gap-1.5 transition active:scale-95 shadow-2xs" title="Is card ke sabhi sizes ko kisi doosre card me merge karein">
+                                    <i class="fa-solid fa-code-merge text-indigo-500"></i>
+                                    <span>🔗 Merge With Another Card</span>
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-gray-100">
                             <div class="flex items-center gap-4 flex-1 min-w-[280px]">
                                 <!-- Product Photo Slot -->
@@ -3703,6 +3855,222 @@
             renderGroupedProductCards();
             saveToLocalStorage();
             autoSaveDraftToBackend();
+        }
+
+        // ==========================================
+        // 🔗 CARD MERGING & VARIANT TRANSFER LOGIC
+        // ==========================================
+        function updateGroupedCardSelectionBar() {
+            const checkedBoxes = document.querySelectorAll('.grouped-card-checkbox:checked');
+            const bar = document.getElementById('groupedCardsBatchBar');
+            const countText = document.getElementById('groupedCardsSelectedCountText');
+            if (!bar) return;
+
+            if (checkedBoxes.length >= 2) {
+                bar.classList.remove('hidden');
+                if (countText) countText.innerText = `${checkedBoxes.length} Cards Selected`;
+            } else {
+                bar.classList.add('hidden');
+            }
+        }
+
+        function clearGroupedCardSelection() {
+            document.querySelectorAll('.grouped-card-checkbox').forEach(cb => { cb.checked = false; });
+            const bar = document.getElementById('groupedCardsBatchBar');
+            if (bar) bar.classList.add('hidden');
+        }
+
+        function openMergeCardModal(sourceCardId) {
+            const srcCard = groupedProductCards.find(c => c.card_id === sourceCardId);
+            if (!srcCard) return;
+
+            const otherCards = groupedProductCards.filter(c => c.card_id !== sourceCardId);
+            if (otherCards.length === 0) {
+                alert('Merge karne ke liye kam se kam 2 cards hone zaroori hain.');
+                return;
+            }
+
+            const inputSrc = document.getElementById('mergeSourceCardId');
+            const titleEl = document.getElementById('mergeSourceCardTitle');
+            const detailsEl = document.getElementById('mergeSourceCardDetails');
+            const selectEl = document.getElementById('mergeTargetCardSelect');
+
+            if (inputSrc) inputSrc.value = sourceCardId;
+            if (titleEl) titleEl.innerText = `Card #${srcCard.card_id}: ${srcCard.parent_name}`;
+            if (detailsEl) {
+                const sizesStr = srcCard.variants.map(v => v.size || 'Standard').join(', ');
+                detailsEl.innerText = `Category: ${srcCard.category || 'General'} • ${srcCard.variants.length} Sizes: [${sizesStr}]`;
+            }
+
+            if (selectEl) {
+                selectEl.innerHTML = otherCards.map(c => {
+                    const sizes = c.variants.map(v => v.size || 'Standard').join(', ');
+                    return `<option value="${c.card_id}">Card #${c.card_id}: ${escapeHtml(c.parent_name)} (${escapeHtml(c.category || 'General')}) — [${sizes}]</option>`;
+                }).join('');
+            }
+
+            const modal = document.getElementById('mergeCardsModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeMergeCardsModal() {
+            const modal = document.getElementById('mergeCardsModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function openMergeSelectedCardsModal() {
+            const checkedBoxes = Array.from(document.querySelectorAll('.grouped-card-checkbox:checked'));
+            if (checkedBoxes.length < 2) {
+                alert('Kam se kam 2 cards ke checkbox tick karein jinhe ek karna hai.');
+                return;
+            }
+
+            const selectedIds = checkedBoxes.map(cb => parseInt(cb.value));
+            const firstId = selectedIds[0];
+            const firstCard = groupedProductCards.find(c => c.card_id === firstId);
+
+            const inputSrc = document.getElementById('mergeSourceCardId');
+            const titleEl = document.getElementById('mergeSourceCardTitle');
+            const detailsEl = document.getElementById('mergeSourceCardDetails');
+            const selectEl = document.getElementById('mergeTargetCardSelect');
+
+            if (inputSrc) inputSrc.value = selectedIds.join(',');
+            if (titleEl) titleEl.innerText = `${selectedIds.length} Selected Cards Ek Sath Merge Honge`;
+            if (detailsEl) {
+                detailsEl.innerText = `In sabhi ${selectedIds.length} cards ke sizes ko neeche chune gaye Destination Card me jodh diya jayega.`;
+            }
+
+            if (selectEl) {
+                // Populate with the checked cards so user chooses which one is the master
+                selectEl.innerHTML = selectedIds.map(id => {
+                    const c = groupedProductCards.find(card => card.card_id === id);
+                    if (!c) return '';
+                    const sizes = c.variants.map(v => v.size || 'Standard').join(', ');
+                    return `<option value="${c.card_id}">Card #${c.card_id}: ${escapeHtml(c.parent_name)} (Is card me merge karein) — [${sizes}]</option>`;
+                }).join('');
+            }
+
+            const modal = document.getElementById('mergeCardsModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function confirmMergeCards() {
+            const rawSrc = document.getElementById('mergeSourceCardId')?.value;
+            const targetCardId = parseInt(document.getElementById('mergeTargetCardSelect')?.value);
+
+            if (!rawSrc || isNaN(targetCardId)) {
+                alert('Target card chunein.');
+                return;
+            }
+
+            const targetCard = groupedProductCards.find(c => c.card_id === targetCardId);
+            if (!targetCard) {
+                alert('Destination card nahi mila.');
+                return;
+            }
+
+            let sourceIds = [];
+            if (rawSrc.includes(',')) {
+                sourceIds = rawSrc.split(',').map(s => parseInt(s.trim())).filter(id => id !== targetCardId);
+            } else {
+                sourceIds = [parseInt(rawSrc)].filter(id => id !== targetCardId);
+            }
+
+            let totalMovedVariants = 0;
+            sourceIds.forEach(sId => {
+                const sCard = groupedProductCards.find(c => c.card_id === sId);
+                if (sCard) {
+                    sCard.variants.forEach(v => {
+                        targetCard.variants.push(v);
+                        totalMovedVariants++;
+                    });
+                    // Preserve photo if target doesn't have one
+                    if (!targetCard.image_url && sCard.image_url) {
+                        targetCard.image_url = sCard.image_url;
+                        targetCard.asset_url = sCard.asset_url;
+                    }
+                }
+            });
+
+            // Remove merged source cards
+            groupedProductCards = groupedProductCards.filter(c => !sourceIds.includes(c.card_id));
+
+            clearGroupedCardSelection();
+            closeMergeCardsModal();
+            renderGroupedProductCards();
+            refreshCategoryFilterTabs();
+            saveToLocalStorage();
+            autoSaveDraftToBackend();
+
+            showToastNotification(`🎉 Success! ${totalMovedVariants} sizes ab "${targetCard.parent_name}" card me jud chuke hain!`);
+            alert(`🎉 Cards Merge Ho Gaye!\n\n• ${totalMovedVariants} sizes safalta-purvak "${targetCard.parent_name}" me jud gaye hain.\n• Purane alag-alag duplicate cards saaf ho gaye.`);
+        }
+
+        function openMoveVariantToCardModal(sourceCardId, variantId) {
+            const srcCard = groupedProductCards.find(c => c.card_id === sourceCardId);
+            if (!srcCard) return;
+            const v = srcCard.variants.find(item => item.id === variantId);
+            if (!v) return;
+
+            const otherCards = groupedProductCards.filter(c => c.card_id !== sourceCardId);
+            if (otherCards.length === 0) {
+                alert('Transfer karne ke liye kam se kam ek doosra card hona zaroori hai.');
+                return;
+            }
+
+            document.getElementById('moveVariantSourceCardId').value = sourceCardId;
+            document.getElementById('moveVariantTargetVariantId').value = variantId;
+
+            const infoEl = document.getElementById('moveVariantInfoText');
+            const cardEl = document.getElementById('moveVariantSourceCardText');
+            const selectEl = document.getElementById('moveVariantTargetSelect');
+
+            if (infoEl) infoEl.innerText = `Size: ${v.size || 'Standard'} • Code: ${v.product_code || '-'} • MRP: ₹${v.mrp}`;
+            if (cardEl) cardEl.innerText = `Abhi is card me hai: Card #${srcCard.card_id} (${srcCard.parent_name})`;
+
+            if (selectEl) {
+                selectEl.innerHTML = otherCards.map(c => {
+                    return `<option value="${c.card_id}">Card #${c.card_id}: ${escapeHtml(c.parent_name)} (${escapeHtml(c.category || 'General')})</option>`;
+                }).join('');
+            }
+
+            const modal = document.getElementById('moveVariantModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeMoveVariantModal() {
+            const modal = document.getElementById('moveVariantModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function confirmMoveVariantToCard() {
+            const sourceCardId = parseInt(document.getElementById('moveVariantSourceCardId')?.value);
+            const variantId = parseInt(document.getElementById('moveVariantTargetVariantId')?.value);
+            const targetCardId = parseInt(document.getElementById('moveVariantTargetSelect')?.value);
+
+            if (isNaN(sourceCardId) || isNaN(variantId) || isNaN(targetCardId)) return;
+
+            const srcCard = groupedProductCards.find(c => c.card_id === sourceCardId);
+            const tgtCard = groupedProductCards.find(c => c.card_id === targetCardId);
+            if (!srcCard || !tgtCard) return;
+
+            const vIdx = srcCard.variants.findIndex(item => item.id === variantId);
+            if (vIdx === -1) return;
+
+            const v = srcCard.variants.splice(vIdx, 1)[0];
+            tgtCard.variants.push(v);
+
+            if (srcCard.variants.length === 0) {
+                groupedProductCards = groupedProductCards.filter(c => c.card_id !== sourceCardId);
+            }
+
+            closeMoveVariantModal();
+            renderGroupedProductCards();
+            refreshCategoryFilterTabs();
+            saveToLocalStorage();
+            autoSaveDraftToBackend();
+
+            showToastNotification(`✨ Size "${v.size}" ko Card #${targetCardId} ("${tgtCard.parent_name}") me transfer kar diya gaya!`);
         }
 
         function getSmartAiDescriptionForProduct(parentTitle, category) {
