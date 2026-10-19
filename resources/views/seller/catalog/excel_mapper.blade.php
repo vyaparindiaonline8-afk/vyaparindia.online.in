@@ -293,7 +293,7 @@
                 <div class="overflow-x-auto pb-2 border-t border-gray-100 pt-2" id="onPagePhotoStripContainer">
                     <div class="flex items-center gap-3 min-w-max py-1" id="onPagePhotoGrid">
                         @forelse($galleryImages as $g)
-                            <div class="on-page-photo-card flex items-center gap-2.5 p-2 bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-400 rounded-2xl cursor-pointer transition shrink-0 group" onclick="handleOnPagePhotoClick('{{ $g['url'] }}', '{{ $g['asset_url'] }}')" data-name="{{ strtolower($g['name']) }}" data-folder="{{ strtolower($g['folder'] ?? 'general') }}" data-raw-folder="{{ $g['folder'] ?? 'General' }}">
+                            <div class="on-page-photo-card flex items-center gap-2.5 p-2 bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-400 rounded-2xl cursor-pointer transition shrink-0 group" onclick="handleOnPagePhotoClick('{{ $g['url'] }}', '{{ $g['asset_url'] }}')" data-name="{{ strtolower($g['name']) }}" data-folder="{{ strtolower($g['folder'] ?? 'general') }}" data-raw-folder="{{ $g['folder'] ?? 'General' }}" data-img-key="{{ strtolower(basename(parse_url($g['url'], PHP_URL_PATH))) }}">
                                 <div class="h-14 w-14 bg-white rounded-xl p-1 flex items-center justify-center overflow-hidden border border-gray-200 group-hover:scale-105 transition">
                                     <img src="{{ $g['asset_url'] }}" alt="{{ $g['name'] }}" class="max-h-full max-w-full object-contain">
                                 </div>
@@ -490,22 +490,24 @@
                     </div>
                 </div>
 
-                <!-- 🔗 Batch Bar for Selected Cards -->
-                <div id="groupedCardsBatchBar" class="hidden bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 text-xs shadow-sm">
-                    <div class="flex items-center gap-2">
-                        <div class="h-7 w-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs">
+                <!-- 🔗 Floating Bottom Batch Bar for Selected Cards (Always visible anywhere you scroll) -->
+                <div id="groupedCardsBatchBar" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[9990] bg-slate-900/95 backdrop-blur-md text-white border-2 border-indigo-500 rounded-3xl p-3.5 px-6 shadow-2xl flex items-center justify-between gap-5 text-xs max-w-xl w-[92vw]">
+                    <div class="flex items-center gap-3">
+                        <div class="h-9 w-9 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-sm shadow-md shadow-indigo-600/40">
                             <i class="fa-solid fa-code-merge"></i>
                         </div>
-                        <span class="font-extrabold text-indigo-900" id="groupedCardsSelectedCountText">0 Cards Selected</span>
-                        <span class="text-gray-500 text-[11px] hidden sm:inline">(In cards ke sabhi sizes ko ek single card me jod sakte hain)</span>
+                        <div>
+                            <span class="font-black text-sm text-white" id="groupedCardsSelectedCountText">2 Cards Selected</span>
+                            <p class="text-[11px] text-gray-300">In cards ko merge karke naya group banayein</p>
+                        </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button type="button" onclick="openMergeSelectedCardsModal()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition active:scale-95">
-                            <i class="fa-solid fa-code-merge"></i>
-                            <span>🔗 Merge Selected Cards into 1</span>
+                        <button type="button" onclick="openMergeSelectedCardsModal()" class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black text-xs shadow-lg shadow-indigo-500/40 flex items-center gap-2 transition active:scale-95 cursor-pointer">
+                            <i class="fa-solid fa-code-merge text-amber-300"></i>
+                            <span>🔗 Merge Selected Cards</span>
                         </button>
-                        <button type="button" onclick="clearGroupedCardSelection()" class="px-3 py-2 rounded-xl bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-200 transition">
-                            Cancel
+                        <button type="button" onclick="clearGroupedCardSelection()" class="h-9 w-9 rounded-2xl bg-white/10 hover:bg-white/20 text-gray-300 flex items-center justify-center text-xs transition" title="Cancel Selection">
+                            <i class="fa-solid fa-xmark"></i>
                         </button>
                     </div>
                 </div>
@@ -1157,7 +1159,7 @@
     <!-- 🔗 MERGE CARDS MODAL                       -->
     <!-- ========================================== -->
     <div id="mergeCardsModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] hidden flex items-center justify-center p-4" onclick="closeMergeCardsModal()">
-        <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-lg overflow-hidden animate-scale-up" onclick="event.stopPropagation()">
+        <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-xl overflow-hidden animate-scale-up" onclick="event.stopPropagation()">
             <!-- Header -->
             <div class="p-5 border-b border-gray-100 bg-slate-900 text-white flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -1165,8 +1167,8 @@
                         <i class="fa-solid fa-code-merge"></i>
                     </div>
                     <div>
-                        <h3 class="text-sm font-black">2 Cards Ko Ek Card Me Merge Karein</h3>
-                        <p class="text-[11px] text-gray-400">Alag huye sizes ko 1 single card me jodh dein</p>
+                        <h3 class="text-sm font-black" id="mergeModalHeaderTitle">Selected Cards Ko Merge Karein</h3>
+                        <p class="text-[11px] text-gray-400">In cards ke sizes ko ek sath jodh kar group banayein</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeMergeCardsModal()" class="h-8 w-8 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 flex items-center justify-center text-xs">
@@ -1175,41 +1177,77 @@
             </div>
 
             <!-- Body -->
-            <div class="p-5 space-y-4">
+            <div class="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
                 <input type="hidden" id="mergeSourceCardId" value="">
-                <div class="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-3.5 space-y-1">
-                    <div class="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
-                        <i class="fa-solid fa-layer-group text-indigo-600"></i>
-                        <span id="mergeSourceCardTitle">Source Card</span>
-                    </div>
-                    <p class="text-[11px] text-indigo-700 font-medium" id="mergeSourceCardDetails">0 sizes</p>
-                </div>
 
-                <div class="space-y-1.5">
-                    <label class="text-xs font-bold text-gray-800 flex items-center justify-between">
-                        <span>🎯 Destination Card (Is card me sabhi sizes jodh diye jayenge):</span>
+                <!-- 1. Cards Being Merged Previews -->
+                <div>
+                    <label class="block text-xs font-black text-gray-700 uppercase tracking-wider mb-2">
+                        📦 Chune Gaye Cards Jinhe Merge Kiya Ja Raha Hai:
                     </label>
-                    <select id="mergeTargetCardSelect" class="w-full text-xs font-bold py-2.5 px-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-2xs">
+                    <div id="mergeCardsPreviewContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-44 overflow-y-auto p-1 bg-slate-50 rounded-2xl border border-gray-200">
                         <!-- Populated dynamically -->
-                    </select>
+                    </div>
                 </div>
 
-                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-[11px] text-amber-800 space-y-1">
-                    <p class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-circle-info text-amber-600"></i> Merge hone ke baad:</p>
-                    <p>• Dono cards ke sabhi sizes ek hi card ke andar jud jayenge (jaise 3M + 5M ek sath).</p>
-                    <p>• Destination card ka Title aur Photo barqarar rahega.</p>
-                    <p>• Khali ho chuka duplicate card apne aap hat jayega.</p>
+                <!-- 2. Photo Matching & Conflict Status Box -->
+                <div id="mergePhotoStatusBox" class="rounded-2xl p-3.5 border text-xs space-y-2">
+                    <!-- Populated dynamically via checkMergePhotos() -->
+                </div>
+
+                <!-- 3. Target Mode: Naya Group Card vs Merge into Selected Card -->
+                <div class="space-y-3 pt-1">
+                    <label class="block text-xs font-black text-gray-700 uppercase tracking-wider">
+                        🎯 Merge Ka Tarika Chunein:
+                    </label>
+                    <div class="grid grid-cols-2 gap-2 bg-slate-100 p-1.5 rounded-2xl">
+                        <button type="button" onclick="setMergeTargetMode('new')" id="btnMergeModeNew" class="py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 bg-white text-indigo-900 shadow-xs border border-indigo-200">
+                            <i class="fa-solid fa-sparkles text-amber-500"></i>
+                            <span>✨ Naya Alag Group Card</span>
+                        </button>
+                        <button type="button" onclick="setMergeTargetMode('existing')" id="btnMergeModeExisting" class="py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-gray-600 hover:text-gray-900">
+                            <i class="fa-solid fa-bullseye text-indigo-600"></i>
+                            <span>🎯 Kisi 1 Card Me Jodein</span>
+                        </button>
+                    </div>
+
+                    <!-- Input for New Group Card -->
+                    <div id="mergeNewGroupSection" class="space-y-2 bg-indigo-50/50 p-3.5 rounded-2xl border border-indigo-100">
+                        <label class="block text-[11px] font-black text-indigo-950 uppercase">
+                            Naye Card Ka Title / Product Name:
+                        </label>
+                        <input type="text" id="mergeNewGroupTitleInput" class="w-full text-xs font-black p-2.5 rounded-xl border border-indigo-200 bg-white focus:border-indigo-600 focus:ring-1 focus:ring-indigo-500" placeholder="e.g. Yorker Measuring Tape (Auto Stop Series)">
+                        <p class="text-[11px] text-indigo-700">
+                            ✨ Is naye card ke andar sabhi chune gaye cards ke sizes jud jayenge aur purane alag-alag duplicate cards hat jayenge.
+                        </p>
+                    </div>
+
+                    <!-- Dropdown for Existing Card (ONLY from selected cards) -->
+                    <div id="mergeExistingGroupSection" class="hidden space-y-2 bg-slate-50 p-3.5 rounded-2xl border border-gray-200">
+                        <label class="block text-[11px] font-black text-gray-800 uppercase">
+                            Master Card (Baki sabhi cards ke sizes is card me jodein):
+                        </label>
+                        <select id="mergeTargetCardSelect" class="w-full text-xs font-bold py-2.5 px-3 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-indigo-500 shadow-2xs">
+                            <!-- Populated dynamically with ONLY the selected cards -->
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-[11px] text-slate-700 space-y-1">
+                    <p class="font-bold text-slate-900 flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-600"></i> Suraksha Note:</p>
+                    <p>• Merge hone ke baad sabhi sizes (jaise 3M + 5M) ek hi card ke andar matrix me dikhenge.</p>
+                    <p>• Purana koi doosra card affect nahi hoga — sirf wahi cards merge honge jo aapne tick kiye hain.</p>
                 </div>
             </div>
 
             <!-- Footer -->
             <div class="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
-                <button type="button" onclick="closeMergeCardsModal()" class="px-4 py-2 rounded-xl bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-200">
+                <button type="button" onclick="closeMergeCardsModal()" class="px-4 py-2.5 rounded-xl bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-200">
                     Cancel
                 </button>
-                <button type="button" onclick="confirmMergeCards()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition active:scale-95">
-                    <i class="fa-solid fa-code-merge"></i>
-                    <span>Merge All Sizes Now</span>
+                <button type="button" id="btnConfirmMergeCards" onclick="confirmMergeCards()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 flex items-center gap-2 transition active:scale-95 cursor-pointer">
+                    <i class="fa-solid fa-code-merge text-amber-300"></i>
+                    <span>Merge Selected Cards Now</span>
                 </button>
             </div>
         </div>
@@ -1528,7 +1566,7 @@
             <div class="flex-1 overflow-y-auto p-4">
                 <div class="grid grid-cols-3 gap-3" id="drawerImagesGrid">
                     @forelse($galleryImages as $g)
-                        <div class="drawer-img-card border border-gray-200 rounded-2xl p-2 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-400 cursor-pointer text-center group transition" onclick="selectDrawerImage('{{ $g['url'] }}', '{{ $g['asset_url'] }}')" data-name="{{ strtolower($g['name']) }}" data-folder="{{ strtolower($g['folder'] ?? 'general') }}" data-raw-folder="{{ $g['folder'] ?? 'General' }}">
+                        <div class="drawer-img-card border border-gray-200 rounded-2xl p-2 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-400 cursor-pointer text-center group transition" onclick="selectDrawerImage('{{ $g['url'] }}', '{{ $g['asset_url'] }}')" data-name="{{ strtolower($g['name']) }}" data-folder="{{ strtolower($g['folder'] ?? 'general') }}" data-raw-folder="{{ $g['folder'] ?? 'General' }}" data-img-key="{{ strtolower(basename(parse_url($g['url'], PHP_URL_PATH))) }}">
                             <div class="h-20 w-full bg-white rounded-xl p-1 mb-1.5 flex items-center justify-center overflow-hidden border border-gray-100 group-hover:scale-105 transition">
                                 <img src="{{ $g['asset_url'] }}" alt="{{ $g['name'] }}" class="max-h-full max-w-full object-contain">
                             </div>
@@ -4039,41 +4077,259 @@
             }
         }
 
+        let mergeCurrentMode = 'new';
+        let mergeActiveCards = [];
+        let mergeSelectedPhotoUrl = '';
+        let mergeSelectedAssetUrl = '';
+
         function clearGroupedCardSelection() {
             document.querySelectorAll('.grouped-card-checkbox').forEach(cb => { cb.checked = false; });
             const bar = document.getElementById('groupedCardsBatchBar');
             if (bar) bar.classList.add('hidden');
+            mergeActiveCards = [];
         }
 
-        function openMergeCardModal(sourceCardId) {
-            const srcCard = groupedProductCards.find(c => c.card_id === sourceCardId);
-            if (!srcCard) return;
+        function setMergeTargetMode(mode) {
+            mergeCurrentMode = mode;
+            const btnNew = document.getElementById('btnMergeModeNew');
+            const btnExisting = document.getElementById('btnMergeModeExisting');
+            const secNew = document.getElementById('mergeNewGroupSection');
+            const secExisting = document.getElementById('mergeExistingGroupSection');
 
-            const otherCards = groupedProductCards.filter(c => c.card_id !== sourceCardId);
-            if (otherCards.length === 0) {
-                alert('Merge karne ke liye kam se kam 2 cards hone zaroori hain.');
-                return;
+            if (mode === 'new') {
+                if (btnNew) {
+                    btnNew.className = 'py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 bg-white text-indigo-900 shadow-xs border border-indigo-200';
+                }
+                if (btnExisting) {
+                    btnExisting.className = 'py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-gray-600 hover:text-gray-900';
+                }
+                if (secNew) secNew.classList.remove('hidden');
+                if (secExisting) secExisting.classList.add('hidden');
+            } else {
+                if (btnNew) {
+                    btnNew.className = 'py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-gray-600 hover:text-gray-900';
+                }
+                if (btnExisting) {
+                    btnExisting.className = 'py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 bg-white text-indigo-900 shadow-xs border border-indigo-200';
+                }
+                if (secNew) secNew.classList.add('hidden');
+                if (secExisting) secExisting.classList.remove('hidden');
             }
+        }
+
+        function suggestMergedCardTitle(cards) {
+            if (!cards || cards.length === 0) return '';
+            if (cards.length === 1) return cards[0].parent_name;
+
+            // Strip common trailing sizes like '3 Mtr', '5 Mtr', '25mm', '1 inch', '(3M)'
+            const cleanTitles = cards.map(c => {
+                return (c.parent_name || '')
+                    .replace(/\b\d+(\.\d+)?\s*(mtr|meter|mtrs|m|mm|cm|inch|in|"|'|ft|feet)\b/gi, '')
+                    .replace(/\(\s*\)/g, '')
+                    .trim();
+            });
+
+            const firstClean = cleanTitles[0];
+            const allSame = cleanTitles.every(t => t.toLowerCase() === firstClean.toLowerCase());
+            if (allSame && firstClean.length >= 3) {
+                return firstClean;
+            }
+
+            // Look for common words prefix
+            const words0 = (cards[0].parent_name || '').split(/\s+/);
+            const commonWords = [];
+            for (const w of words0) {
+                if (w.length <= 1) continue;
+                if (cards.every(c => (c.parent_name || '').toLowerCase().includes(w.toLowerCase()))) {
+                    commonWords.push(w);
+                }
+            }
+            if (commonWords.length >= 2) {
+                return commonWords.join(' ');
+            }
+
+            return cards[0].parent_name || 'Merged Product Group';
+        }
+
+        function onMergePhotoRadioChange(radio) {
+            if (radio && radio.checked) {
+                mergeSelectedPhotoUrl = radio.value;
+                mergeSelectedAssetUrl = radio.getAttribute('data-asset') || radio.value;
+            }
+        }
+
+        function validateMergePhotoStrictness() {
+            const strictCb = document.getElementById('strictPhotoMatchCheckbox');
+            const errMsg = document.getElementById('strictPhotoErrorMsg');
+            const btnConfirm = document.getElementById('btnConfirmMergeCards');
+
+            if (strictCb && strictCb.checked) {
+                const photos = new Set(mergeActiveCards.map(c => c.image_url || c.asset_url).filter(Boolean));
+                if (photos.size > 1) {
+                    if (errMsg) errMsg.classList.remove('hidden');
+                    if (btnConfirm) {
+                        btnConfirm.disabled = true;
+                        btnConfirm.classList.add('opacity-50', 'cursor-not-allowed');
+                    }
+                    return false;
+                }
+            }
+
+            if (errMsg) errMsg.classList.add('hidden');
+            if (btnConfirm) {
+                btnConfirm.disabled = false;
+                btnConfirm.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            return true;
+        }
+
+        function setupMergeModalWithCards(selectedCards) {
+            if (!selectedCards || selectedCards.length < 2) return;
+            mergeActiveCards = selectedCards;
 
             const inputSrc = document.getElementById('mergeSourceCardId');
-            const titleEl = document.getElementById('mergeSourceCardTitle');
-            const detailsEl = document.getElementById('mergeSourceCardDetails');
-            const selectEl = document.getElementById('mergeTargetCardSelect');
+            if (inputSrc) inputSrc.value = selectedCards.map(c => c.card_id).join(',');
 
-            if (inputSrc) inputSrc.value = sourceCardId;
-            if (titleEl) titleEl.innerText = `Card #${srcCard.card_id}: ${srcCard.parent_name}`;
-            if (detailsEl) {
-                const sizesStr = srcCard.variants.map(v => v.size || 'Standard').join(', ');
-                detailsEl.innerText = `Category: ${srcCard.category || 'General'} • ${srcCard.variants.length} Sizes: [${sizesStr}]`;
-            }
+            // 1. Render Cards Preview Container
+            const previewContainer = document.getElementById('mergeCardsPreviewContainer');
+            if (previewContainer) {
+                previewContainer.innerHTML = selectedCards.map(c => {
+                    const photoSrc = c.asset_url || c.image_url || '';
+                    const photoHtml = photoSrc 
+                        ? `<img src="${photoSrc}" class="w-10 h-10 object-contain rounded-lg border border-gray-200 bg-white shrink-0" onerror="this.onerror=null;this.src='/images/placeholder.png';">`
+                        : `<div class="w-10 h-10 rounded-lg bg-gray-100 border border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-xs shrink-0"><i class="fa-regular fa-image"></i></div>`;
+                    const sizesStr = (c.variants || []).map(v => v.size || 'Std').join(', ');
 
-            if (selectEl) {
-                selectEl.innerHTML = otherCards.map(c => {
-                    const sizes = c.variants.map(v => v.size || 'Standard').join(', ');
-                    return `<option value="${c.card_id}">Card #${c.card_id}: ${escapeHtml(c.parent_name)} (${escapeHtml(c.category || 'General')}) — [${sizes}]</option>`;
+                    return `
+                        <div class="flex items-center gap-2.5 p-2 bg-white rounded-xl border border-gray-200 shadow-2xs">
+                            ${photoHtml}
+                            <div class="min-w-0 flex-1">
+                                <div class="text-[11px] font-black text-gray-900 truncate">Card #${c.card_id}: ${escapeHtml(c.parent_name)}</div>
+                                <div class="text-[10px] text-indigo-600 font-bold truncate">${(c.variants || []).length} Sizes: [${escapeHtml(sizesStr)}]</div>
+                            </div>
+                        </div>
+                    `;
                 }).join('');
             }
 
+            // 2. Photo Matching Analysis
+            const photosMap = new Map();
+            selectedCards.forEach(c => {
+                const p = c.image_url || c.asset_url || '';
+                if (p) {
+                    if (!photosMap.has(p)) {
+                        photosMap.set(p, {
+                            url: p,
+                            asset_url: c.asset_url || p,
+                            cardIds: [c.card_id]
+                        });
+                    } else {
+                        photosMap.get(p).cardIds.push(c.card_id);
+                    }
+                }
+            });
+
+            const distinctPhotos = Array.from(photosMap.values());
+            const statusBox = document.getElementById('mergePhotoStatusBox');
+
+            if (distinctPhotos.length > 0) {
+                mergeSelectedPhotoUrl = distinctPhotos[0].url;
+                mergeSelectedAssetUrl = distinctPhotos[0].asset_url;
+            } else {
+                mergeSelectedPhotoUrl = '';
+                mergeSelectedAssetUrl = '';
+            }
+
+            if (statusBox) {
+                if (distinctPhotos.length === 0) {
+                    statusBox.className = 'rounded-2xl p-3 border text-xs space-y-1 bg-amber-50 border-amber-200 text-amber-900';
+                    statusBox.innerHTML = `
+                        <div class="flex items-center gap-2 font-black text-amber-800">
+                            <i class="fa-solid fa-circle-info text-amber-600"></i>
+                            <span>Photo Missing: Kisi bhi card me abhi photo nahi hai</span>
+                        </div>
+                        <p class="text-[11px] text-amber-700">Merge hone ke baad aap Photo Bank se photo assign kar sakte hain.</p>
+                    `;
+                } else if (distinctPhotos.length === 1) {
+                    const matchedPhoto = distinctPhotos[0];
+                    const isAllMatch = matchedPhoto.cardIds.length === selectedCards.length;
+                    statusBox.className = 'rounded-2xl p-3 border text-xs space-y-1.5 bg-emerald-50 border-emerald-200 text-emerald-900';
+                    statusBox.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2 font-black text-emerald-800">
+                                <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+                                <span>${isAllMatch ? '✅ Perfect Photo Match!' : '✅ Photo Available!'}</span>
+                            </div>
+                            <span class="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-300">Safe to Merge</span>
+                        </div>
+                        <div class="flex items-center gap-2.5 pt-1">
+                            <img src="${matchedPhoto.asset_url || matchedPhoto.url}" class="w-11 h-11 object-contain rounded-xl border border-emerald-300 bg-white" onerror="this.onerror=null;this.src='/images/placeholder.png';">
+                            <div class="text-[11px] text-emerald-800 font-medium">
+                                ${isAllMatch ? 'Sabhi chune gaye cards me same photo lagi hui hai.' : `Card #${matchedPhoto.cardIds.join(', #')} ki photo is naye card par set rahegi.`}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    statusBox.className = 'rounded-2xl p-3 border text-xs space-y-2.5 bg-rose-50 border-rose-200 text-rose-900';
+                    let photoOptionsHtml = distinctPhotos.map((pObj, idx) => {
+                        const isChecked = idx === 0 ? 'checked' : '';
+                        return `
+                            <label class="flex items-center gap-2.5 p-2 rounded-xl bg-white border border-rose-200 hover:border-indigo-400 cursor-pointer transition select-none">
+                                <input type="radio" name="mergePhotoPick" value="${escapeHtml(pObj.url)}" data-asset="${escapeHtml(pObj.asset_url)}" ${isChecked} onchange="onMergePhotoRadioChange(this)" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500">
+                                <img src="${pObj.asset_url || pObj.url}" class="w-10 h-10 object-contain rounded-lg border border-gray-200 bg-white" onerror="this.onerror=null;this.src='/images/placeholder.png';">
+                                <div class="min-w-0 flex-1">
+                                    <span class="text-[11px] font-black text-gray-900">Card #${pObj.cardIds.join(', #')} ki Photo</span>
+                                    <p class="text-[10px] text-gray-500 truncate">${escapeHtml(pObj.url)}</p>
+                                </div>
+                            </label>
+                        `;
+                    }).join('');
+
+                    statusBox.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2 font-black text-rose-800">
+                                <i class="fa-solid fa-triangle-exclamation text-rose-600 text-sm"></i>
+                                <span>Alag-Alag Photos Detected (${distinctPhotos.length} alag photos)!</span>
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-rose-800">Chunein kaunsi photo naye card par rakhni hai:</p>
+                        <div class="space-y-1.5 max-h-36 overflow-y-auto">
+                            ${photoOptionsHtml}
+                        </div>
+                        <div class="pt-2 border-t border-rose-200 flex items-center justify-between">
+                            <label class="flex items-center gap-2 text-[11px] font-black text-rose-900 cursor-pointer select-none">
+                                <input type="checkbox" id="strictPhotoMatchCheckbox" onchange="validateMergePhotoStrictness()" checked class="h-4 w-4 rounded border-rose-300 text-rose-600 focus:ring-rose-500">
+                                <span>Sirf same photo hone par hi merge allow karein (Strict Check)</span>
+                            </label>
+                        </div>
+                        <p id="strictPhotoErrorMsg" class="text-[11px] font-bold text-rose-600 flex items-center gap-1.5">
+                            <i class="fa-solid fa-ban"></i>
+                            Photo alag hone ke karan merge roka gaya hai. Same photo wale cards chunein ya Strict Check uncheck karein.
+                        </p>
+                    `;
+                }
+            }
+
+            // 3. Pre-fill Title for New Group Mode
+            const titleInput = document.getElementById('mergeNewGroupTitleInput');
+            if (titleInput) {
+                titleInput.value = suggestMergedCardTitle(selectedCards);
+            }
+
+            // 4. Populate Existing Target Dropdown with ONLY selected cards
+            const selectEl = document.getElementById('mergeTargetCardSelect');
+            if (selectEl) {
+                selectEl.innerHTML = selectedCards.map(c => {
+                    const sizes = (c.variants || []).map(v => v.size || 'Standard').join(', ');
+                    return `<option value="${c.card_id}">Card #${c.card_id}: ${escapeHtml(c.parent_name)} (${(c.variants || []).length} Sizes: [${escapeHtml(sizes)}])</option>`;
+                }).join('');
+            }
+
+            // Set default mode to 'new'
+            setMergeTargetMode('new');
+            validateMergePhotoStrictness();
+
+            // Show modal
             const modal = document.getElementById('mergeCardsModal');
             if (modal) modal.classList.remove('hidden');
         }
@@ -4091,84 +4347,147 @@
             }
 
             const selectedIds = checkedBoxes.map(cb => parseInt(cb.value));
-            const firstId = selectedIds[0];
-            const firstCard = groupedProductCards.find(c => c.card_id === firstId);
+            const selectedCards = selectedIds.map(id => groupedProductCards.find(c => c.card_id === id)).filter(Boolean);
 
-            const inputSrc = document.getElementById('mergeSourceCardId');
-            const titleEl = document.getElementById('mergeSourceCardTitle');
-            const detailsEl = document.getElementById('mergeSourceCardDetails');
-            const selectEl = document.getElementById('mergeTargetCardSelect');
-
-            if (inputSrc) inputSrc.value = selectedIds.join(',');
-            if (titleEl) titleEl.innerText = `${selectedIds.length} Selected Cards Ek Sath Merge Honge`;
-            if (detailsEl) {
-                detailsEl.innerText = `In sabhi ${selectedIds.length} cards ke sizes ko neeche chune gaye Destination Card me jodh diya jayega.`;
+            if (selectedCards.length < 2) {
+                alert('Chune gaye cards nahi mile.');
+                return;
             }
 
-            if (selectEl) {
-                // Populate with the checked cards so user chooses which one is the master
-                selectEl.innerHTML = selectedIds.map(id => {
-                    const c = groupedProductCards.find(card => card.card_id === id);
-                    if (!c) return '';
-                    const sizes = c.variants.map(v => v.size || 'Standard').join(', ');
-                    return `<option value="${c.card_id}">Card #${c.card_id}: ${escapeHtml(c.parent_name)} (Is card me merge karein) — [${sizes}]</option>`;
-                }).join('');
+            setupMergeModalWithCards(selectedCards);
+        }
+
+        function openMergeCardModal(sourceCardId) {
+            const srcCard = groupedProductCards.find(c => c.card_id === sourceCardId);
+            if (!srcCard) return;
+
+            // Check if other cards are already selected via checkboxes
+            const checkedBoxes = Array.from(document.querySelectorAll('.grouped-card-checkbox:checked'));
+            const checkedIds = checkedBoxes.map(cb => parseInt(cb.value));
+
+            // Ensure sourceCardId is included in the selection
+            if (!checkedIds.includes(sourceCardId)) {
+                checkedIds.push(sourceCardId);
+                const targetCb = document.querySelector(`.grouped-card-checkbox[value="${sourceCardId}"]`);
+                if (targetCb) targetCb.checked = true;
             }
 
-            const modal = document.getElementById('mergeCardsModal');
-            if (modal) modal.classList.remove('hidden');
+            // If at least 2 cards are selected now, open merge modal for them
+            if (checkedIds.length >= 2) {
+                const selectedCards = checkedIds.map(id => groupedProductCards.find(c => c.card_id === id)).filter(Boolean);
+                setupMergeModalWithCards(selectedCards);
+                updateGroupedCardSelectionBar();
+                return;
+            }
+
+            // If only 1 card is selected so far, guide user to pick the 2nd card
+            updateGroupedCardSelectionBar();
+            showToastNotification(`Card #${sourceCardId} tick ho gaya! Ab doosre card ka checkbox tick karein.`);
+            alert(`Card #${sourceCardId} ("${srcCard.parent_name}") select ho gaya hai.\n\nAb doosre card ka checkbox tick karein jise iske sath jodna hai. Screen ke bottom par floating "🔗 Merge Selected Cards" button aa jayega!`);
         }
 
         function confirmMergeCards() {
-            const rawSrc = document.getElementById('mergeSourceCardId')?.value;
-            const targetCardId = parseInt(document.getElementById('mergeTargetCardSelect')?.value);
-
-            if (!rawSrc || isNaN(targetCardId)) {
-                alert('Target card chunein.');
+            if (!mergeActiveCards || mergeActiveCards.length < 2) {
+                alert('Merge karne ke liye kam se kam 2 cards hone zaroori hain.');
                 return;
             }
 
-            const targetCard = groupedProductCards.find(c => c.card_id === targetCardId);
-            if (!targetCard) {
-                alert('Destination card nahi mila.');
+            // Enforce photo strictness if enabled
+            if (!validateMergePhotoStrictness()) {
+                alert('Photo Conflict: Alag-alag photos wale cards merge nahi ho sakte kyonki "Strict Check" chalu hai. Kripya same photo wale cards chunein ya Strict Check box uncheck karein.');
                 return;
             }
 
-            let sourceIds = [];
-            if (rawSrc.includes(',')) {
-                sourceIds = rawSrc.split(',').map(s => parseInt(s.trim())).filter(id => id !== targetCardId);
-            } else {
-                sourceIds = [parseInt(rawSrc)].filter(id => id !== targetCardId);
-            }
+            const selectedIds = mergeActiveCards.map(c => c.card_id);
 
-            let totalMovedVariants = 0;
-            sourceIds.forEach(sId => {
-                const sCard = groupedProductCards.find(c => c.card_id === sId);
-                if (sCard) {
-                    sCard.variants.forEach(v => {
-                        targetCard.variants.push(v);
-                        totalMovedVariants++;
+            if (mergeCurrentMode === 'new') {
+                // ✨ CREATE BRAND NEW GROUP CARD (Prevents mixing into old cards)
+                const newTitle = (document.getElementById('mergeNewGroupTitleInput')?.value || '').trim() || mergeActiveCards[0].parent_name;
+                
+                // Collect all variants from all selected cards
+                const allVariants = [];
+                let totalMoved = 0;
+                mergeActiveCards.forEach(c => {
+                    (c.variants || []).forEach(v => {
+                        allVariants.push({ ...v });
+                        totalMoved++;
                     });
-                    // Preserve photo if target doesn't have one
-                    if (!targetCard.image_url && sCard.image_url) {
-                        targetCard.image_url = sCard.image_url;
-                        targetCard.asset_url = sCard.asset_url;
-                    }
+                });
+
+                // Determine photo for the new card
+                const finalImg = mergeSelectedPhotoUrl || '';
+                const finalAsset = mergeSelectedAssetUrl || (finalImg ? (finalImg.startsWith('http') ? finalImg : ('/' + finalImg.replace(/^\//, ''))) : '');
+
+                // Determine base metadata from first card
+                const baseCard = mergeActiveCards[0];
+                const newCard = {
+                    card_id: groupedCardNextId++,
+                    parent_name: newTitle,
+                    category: baseCard.category || 'General Hardware',
+                    description: baseCard.description || '',
+                    image_url: finalImg,
+                    asset_url: finalAsset,
+                    variants: allVariants
+                };
+
+                // Remove the merged source cards and insert the new group card at the top
+                groupedProductCards = groupedProductCards.filter(c => !selectedIds.includes(c.card_id));
+                groupedProductCards.unshift(newCard);
+
+                clearGroupedCardSelection();
+                closeMergeCardsModal();
+                renderGroupedProductCards();
+                refreshCategoryFilterTabs();
+                saveToLocalStorage();
+                autoSaveDraftToBackend();
+
+                showToastNotification(`🎉 Naya Group Card Ban Gaya! ${totalMoved} sizes ab "${newTitle}" card me jud gaye.`);
+                alert(`🎉 Naya Group Card Ban Gaya!\n\n• Card #${newCard.card_id}: "${newTitle}" safalta-purvak ban gaya hai.\n• Isme kul ${allVariants.length} sizes jud chuke hain.\n• Purane alag-alag ${selectedIds.length} cards saaf ho gaye.`);
+
+            } else {
+                // 🎯 MERGE INTO ONE OF THE SELECTED MASTER CARDS
+                const targetCardId = parseInt(document.getElementById('mergeTargetCardSelect')?.value);
+                if (isNaN(targetCardId)) {
+                    alert('Master Destination Card chunein.');
+                    return;
                 }
-            });
 
-            // Remove merged source cards
-            groupedProductCards = groupedProductCards.filter(c => !sourceIds.includes(c.card_id));
+                const targetCard = groupedProductCards.find(c => c.card_id === targetCardId);
+                if (!targetCard) {
+                    alert('Destination card nahi mila.');
+                    return;
+                }
 
-            clearGroupedCardSelection();
-            closeMergeCardsModal();
-            renderGroupedProductCards();
-            refreshCategoryFilterTabs();
-            saveToLocalStorage();
-            autoSaveDraftToBackend();
+                const sourceCards = mergeActiveCards.filter(c => c.card_id !== targetCardId);
+                const sourceIds = sourceCards.map(c => c.card_id);
+                let totalMoved = 0;
 
-            showToastNotification(`🎉 Success! ${totalMovedVariants} sizes ab "${targetCard.parent_name}" card me jud chuke hain!`);
-            alert(`🎉 Cards Merge Ho Gaye!\n\n• ${totalMovedVariants} sizes safalta-purvak "${targetCard.parent_name}" me jud gaye hain.\n• Purane alag-alag duplicate cards saaf ho gaye.`);
+                sourceCards.forEach(sCard => {
+                    (sCard.variants || []).forEach(v => {
+                        targetCard.variants.push({ ...v });
+                        totalMoved++;
+                    });
+                });
+
+                // If user selected a specific photo, apply it
+                if (mergeSelectedPhotoUrl) {
+                    targetCard.image_url = mergeSelectedPhotoUrl;
+                    targetCard.asset_url = mergeSelectedAssetUrl;
+                }
+
+                // Remove only the merged source cards
+                groupedProductCards = groupedProductCards.filter(c => !sourceIds.includes(c.card_id));
+
+                clearGroupedCardSelection();
+                closeMergeCardsModal();
+                renderGroupedProductCards();
+                refreshCategoryFilterTabs();
+                saveToLocalStorage();
+                autoSaveDraftToBackend();
+
+                showToastNotification(`🎉 Success! ${totalMoved} sizes ab Card #${targetCard.card_id} ("${targetCard.parent_name}") me jud gaye.`);
+                alert(`🎉 Cards Merge Ho Gaye!\n\n• ${totalMoved} sizes safalta-purvak Card #${targetCard.card_id} ("${targetCard.parent_name}") me jud gaye hain.\n• Purane alag-alag duplicate cards saaf ho gaye.`);
+            }
         }
 
         function openMoveVariantToCardModal(sourceCardId, variantId) {
@@ -5363,6 +5682,47 @@
             return (str || '').toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
 
+        function getImageKey(url) {
+            if (!url) return '';
+            try {
+                const clean = url.split('?')[0].replace(/^https?:\/\/[^\/]+/i, '').replace(/^\/+/, '');
+                const parts = clean.split('/');
+                return (parts[parts.length - 1] || clean).toLowerCase().trim();
+            } catch(e) {
+                return (url || '').toLowerCase().trim();
+            }
+        }
+
+        function cleanupDuplicatePhotosFromDom() {
+            const seenDrawer = new Set();
+            document.querySelectorAll('#drawerImagesGrid .drawer-img-card').forEach(card => {
+                const key = card.getAttribute('data-img-key') || getImageKey(card.querySelector('img')?.getAttribute('src') || '');
+                if (!key || seenDrawer.has(key)) {
+                    card.remove();
+                } else {
+                    seenDrawer.add(key);
+                }
+            });
+
+            const seenTray = new Set();
+            document.querySelectorAll('#onPagePhotoGrid .on-page-photo-card').forEach(card => {
+                const key = card.getAttribute('data-img-key') || getImageKey(card.querySelector('img')?.getAttribute('src') || '');
+                if (!key || seenTray.has(key)) {
+                    card.remove();
+                } else {
+                    seenTray.add(key);
+                }
+            });
+
+            const totalDrawer = document.querySelectorAll('.drawer-img-card').length;
+            const countEl = document.getElementById('drawerImagesCount');
+            if (countEl) countEl.innerText = `${totalDrawer} Photos`;
+
+            const onPageCount = document.querySelectorAll('.on-page-photo-card').length;
+            const onPageCountEl = document.getElementById('onPagePhotoCount');
+            if (onPageCountEl) onPageCountEl.innerText = `${onPageCount} Photos`;
+        }
+
         function renderPhotosIntoUi(images) {
             if (!Array.isArray(images) || images.length === 0) return;
 
@@ -5374,17 +5734,40 @@
             if (emptyPrompt) emptyPrompt.remove();
             if (onPageLoading) onPageLoading.remove();
 
+            const existingDrawerKeys = new Set();
+            if (grid) {
+                grid.querySelectorAll('.drawer-img-card').forEach(el => {
+                    const k = el.getAttribute('data-img-key') || getImageKey(el.querySelector('img')?.getAttribute('src'));
+                    if (k) existingDrawerKeys.add(k);
+                });
+            }
+
+            const existingTrayKeys = new Set();
+            if (onPageGrid) {
+                onPageGrid.querySelectorAll('.on-page-photo-card').forEach(el => {
+                    const k = el.getAttribute('data-img-key') || getImageKey(el.querySelector('img')?.getAttribute('src'));
+                    if (k) existingTrayKeys.add(k);
+                });
+            }
+
             images.forEach(img => {
-                const imgUrl = img.url || img.asset_url;
-                const assetUrl = img.asset_url || img.url;
+                const imgUrl = img.url || img.asset_url || '';
+                const assetUrl = img.asset_url || img.url || '';
                 const name = img.name || 'Catalog Item';
                 const source = img.source === 'plasto_master' ? 'Master' : 'Crop';
+                const folder = img.folder || img.category || 'General';
+                const key = getImageKey(imgUrl);
+                if (!key) return;
 
                 // Check if already in drawer
-                if (grid && !grid.querySelector(`.drawer-img-card[onclick*="${imgUrl}"]`)) {
+                if (grid && !existingDrawerKeys.has(key)) {
+                    existingDrawerKeys.add(key);
                     const card = document.createElement('div');
                     card.className = "drawer-img-card border border-gray-200 rounded-2xl p-2 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-400 cursor-pointer text-center group transition";
                     card.setAttribute('data-name', name.toLowerCase());
+                    card.setAttribute('data-folder', folder.toLowerCase());
+                    card.setAttribute('data-raw-folder', folder);
+                    card.setAttribute('data-img-key', key);
                     card.onclick = () => selectDrawerImage(imgUrl, assetUrl);
                     card.innerHTML = `
                         <div class="h-20 w-full bg-white rounded-xl p-1 mb-1.5 flex items-center justify-center overflow-hidden border border-gray-100 group-hover:scale-105 transition">
@@ -5392,15 +5775,20 @@
                         </div>
                         <h5 class="text-[11px] font-bold text-gray-800 truncate" title="${escapeHtml(name)}">${escapeHtml(name)}</h5>
                         <span class="text-[9px] text-indigo-600 font-semibold">${source}</span>
+                        <span class="text-[8px] text-gray-500 font-bold truncate block">📁 ${escapeHtml(folder)}</span>
                     `;
                     grid.appendChild(card);
                 }
 
                 // Check if already in on-page tray
-                if (onPageGrid && !onPageGrid.querySelector(`.on-page-photo-card[onclick*="${imgUrl}"]`)) {
+                if (onPageGrid && !existingTrayKeys.has(key)) {
+                    existingTrayKeys.add(key);
                     const trayCard = document.createElement('div');
                     trayCard.className = "on-page-photo-card flex items-center gap-2.5 p-2 bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-400 rounded-2xl cursor-pointer transition shrink-0 group";
                     trayCard.setAttribute('data-name', name.toLowerCase());
+                    trayCard.setAttribute('data-folder', folder.toLowerCase());
+                    trayCard.setAttribute('data-raw-folder', folder);
+                    trayCard.setAttribute('data-img-key', key);
                     trayCard.onclick = () => handleOnPagePhotoClick(imgUrl, assetUrl);
                     trayCard.innerHTML = `
                         <div class="h-14 w-14 bg-white rounded-xl p-1 flex items-center justify-center overflow-hidden border border-gray-200 group-hover:scale-105 transition">
@@ -5409,6 +5797,7 @@
                         <div class="max-w-[120px]">
                             <h5 class="text-[11px] font-bold text-gray-800 truncate" title="${escapeHtml(name)}">${escapeHtml(name)}</h5>
                             <span class="text-[9px] text-indigo-600 font-semibold block">${source}</span>
+                            <span class="text-[8px] text-gray-500 font-bold truncate block">📁 ${escapeHtml(folder)}</span>
                             <span class="text-[9px] text-emerald-600 font-bold group-hover:underline">Attach &rarr;</span>
                         </div>
                     `;
@@ -5416,13 +5805,7 @@
                 }
             });
 
-            const totalDrawer = document.querySelectorAll('.drawer-img-card').length;
-            const countEl = document.getElementById('drawerImagesCount');
-            if (countEl) countEl.innerText = `${totalDrawer} Photos`;
-
-            const onPageCount = document.querySelectorAll('.on-page-photo-card').length;
-            const onPageCountEl = document.getElementById('onPagePhotoCount');
-            if (onPageCountEl) onPageCountEl.innerText = `${onPageCount} Photos`;
+            cleanupDuplicatePhotosFromDom();
         }
 
         function loadGalleryImagesAjax() {
@@ -5441,6 +5824,7 @@
         // Initialize when DOM is ready
         window.addEventListener('DOMContentLoaded', () => {
             initDynamicSheet();
+            cleanupDuplicatePhotosFromDom();
             loadGalleryImagesAjax();
 
             const urlParams = new URLSearchParams(window.location.search);

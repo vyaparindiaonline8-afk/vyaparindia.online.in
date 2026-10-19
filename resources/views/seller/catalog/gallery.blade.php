@@ -174,7 +174,7 @@
         <!-- Images Grid -->
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="galleryGridContainer">
             @forelse($images as $img)
-                <div class="image-card group relative bg-white rounded-2xl border border-gray-200 p-2 shadow-xs hover:shadow-lg transition-all duration-200 flex flex-col justify-between cursor-pointer select-none" id="card_{{ $img['id'] }}" onclick="toggleCardSelection('{{ $img['id'] }}', event)" data-name="{{ strtolower($img['name']) }}" data-folder="{{ strtolower($img['folder'] ?? 'general') }}" data-raw-folder="{{ $img['folder'] ?? 'General' }}" data-source="{{ $img['source'] ?? '' }}" data-url="{{ $img['url'] }}">
+                <div class="image-card group relative bg-white rounded-2xl border border-gray-200 p-2 shadow-xs hover:shadow-lg transition-all duration-200 flex flex-col justify-between cursor-pointer select-none" id="card_{{ $img['id'] }}" onclick="toggleCardSelection('{{ $img['id'] }}', event)" data-name="{{ strtolower($img['name']) }}" data-folder="{{ strtolower($img['folder'] ?? 'general') }}" data-raw-folder="{{ $img['folder'] ?? 'General' }}" data-source="{{ $img['source'] ?? '' }}" data-url="{{ $img['url'] }}" data-img-key="{{ strtolower(basename(parse_url($img['url'], PHP_URL_PATH))) }}">
                     
                     <!-- Selection Checkbox -->
                     <div class="absolute top-3 left-3 z-10">
@@ -798,6 +798,20 @@
                 reader.readAsDataURL(f);
             }
         }
+
+        // Automatic deduplication check on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const seenKeys = new Set();
+            document.querySelectorAll('#galleryGridContainer .image-card').forEach(card => {
+                const key = card.getAttribute('data-img-key') || card.getAttribute('data-url');
+                if (!key || seenKeys.has(key)) {
+                    card.remove();
+                } else {
+                    seenKeys.add(key);
+                }
+            });
+            updateSelectedCount();
+        });
     </script>
 </body>
 </html>
