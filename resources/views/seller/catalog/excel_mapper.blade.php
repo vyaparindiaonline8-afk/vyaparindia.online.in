@@ -474,10 +474,14 @@
                             <p class="text-[11px] text-gray-500">6-8 sizes ko jodkar banaye gaye cards. Live store par customer in sabhi sizes ke aage quantity dalker order karega.</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button type="button" onclick="aiFixAllCardDescriptions()" id="btnAiFixDescriptions" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs shadow-md hover:shadow-lg flex items-center gap-2 transition active:scale-95" title="Bina names ya codes badle sirf descriptions ko AI se har product ke sahi hisab se set karein">
+                            <i class="fa-solid fa-wand-magic-sparkles text-yellow-300"></i>
+                            <span>🪄 AI Fix Descriptions Only</span>
+                        </button>
                         <button type="button" onclick="autoFixAllExistingCards()" id="btnAutoFixAllCards" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-indigo-600 hover:from-amber-600 hover:to-indigo-700 text-white font-black text-xs shadow-md hover:shadow-lg flex items-center gap-2 transition active:scale-95" title="Bina manual mehnat ke sare cards ke Descriptions, Tape Sizes (3M x 16mm, 5M x 19mm) aur Series Names auto-fix karein">
                             <i class="fa-solid fa-wand-magic-sparkles text-yellow-200"></i>
-                            <span>✨ 1-Click Auto-Fix All Cards (No Manual Work)</span>
+                            <span>✨ 1-Click Auto-Fix All Cards</span>
                         </button>
                     </div>
                 </div>
@@ -1036,6 +1040,42 @@
                                 <!-- Populated dynamically -->
                             </select>
                             <p class="text-[9px] text-gray-500">Pipes, Paints, Electrical, Ply etc.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: PRODUCT DETAILS & IMAGE (OPTIONAL) -->
+                <div class="space-y-2 pt-2 border-t border-gray-100">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-purple-100 text-purple-900 border border-purple-300">
+                            🟣 OPTIONAL: DESCRIPTION & IMAGE URL (Preserve Links on Re-upload)
+                        </span>
+                        <span class="text-xs text-purple-700 font-medium">Export ki gayi sheet wapas upload karte waqt photo links aur details safe rahenge</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <!-- 13. Description -->
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-gray-200 space-y-1">
+                            <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                                <span>📝 Description / Specs:</span>
+                                <span class="text-[10px] text-gray-500 font-bold">(Optional)</span>
+                            </label>
+                            <select id="mapColDesc" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-1.5 px-2 rounded-xl border border-gray-300 bg-white focus:ring-1 focus:ring-purple-500 focus:outline-none">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <p class="text-[9px] text-gray-500">Product specifications, series, details</p>
+                        </div>
+
+                        <!-- 14. Image URL -->
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-indigo-300 space-y-1">
+                            <label class="text-xs font-black text-gray-900 flex items-center justify-between">
+                                <span>🖼️ Image URL / Photo Link:</span>
+                                <span class="text-[10px] text-indigo-700 font-bold">(Optional)</span>
+                            </label>
+                            <select id="mapColImage" onchange="updateMappingPreview()" class="w-full text-xs font-bold py-1.5 px-2 rounded-xl border border-indigo-400 bg-white focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <p class="text-[9px] text-gray-500">Cloudinary / Web Image URL</p>
                         </div>
                     </div>
                 </div>
@@ -2549,11 +2589,12 @@
             const headerRow = uploadedExcelRawRows[headerRowIdx] || [];
             const sampleDataRow = uploadedExcelRawRows[headerRowIdx + 1] || [];
 
-            // All 13 Column Selectors
+            // All 15 Column Selectors
             const colSelects = [
                 'mapColName', 'mapColMrp', 'mapColRetail',
                 'mapColSize', 'mapColCode', 'mapColHsn', 'mapColPack1', 'mapColPack2',
-                'mapColCost', 'mapColCost2', 'mapColCost3', 'mapColStock', 'mapColCategory'
+                'mapColCost', 'mapColCost2', 'mapColCost3', 'mapColStock', 'mapColCategory',
+                'mapColDesc', 'mapColImage'
             ];
             const colLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -2589,7 +2630,9 @@
                 cost3: -1,
                 retail: -1,
                 stock: -1,
-                category: -1
+                category: -1,
+                desc: -1,
+                image: -1
             };
 
             headerRow.forEach((col, idx) => {
@@ -2597,8 +2640,12 @@
                 const isSrNo = (c === 's.no' || c === 's.no.' || c === 'sr.no' || c === 'sr.no.' || c === 'sr no' || c === 'sl.no' || c === 'sl no' || c === 'no' || c === '#' || c === 'sn' || c === 's no');
                 if (isSrNo) return; // Prevent serial numbers (1, 2) from becoming MRP, code or name!
 
+                // Image URL
+                if (selectedCols.image === -1 && (c.includes('image') || c.includes('photo') || c.includes('pic') || c.includes('img') || c.includes('url') || c.includes('link'))) {
+                    selectedCols.image = idx;
+                }
                 // Product Code / SKU
-                if (selectedCols.code === -1 && (c.includes('item code') || c.includes('product code') || c.includes('item_code') || c.includes('sku') || c.includes('cat no') || c.includes('cat.no') || c.includes('art no') || c.includes('art.no') || c === 'code' || c === 'part no')) {
+                else if (selectedCols.code === -1 && (c.includes('item code') || c.includes('product code') || c.includes('item_code') || c.includes('sku') || c.includes('cat no') || c.includes('cat.no') || c.includes('art no') || c.includes('art.no') || c === 'code' || c === 'part no')) {
                     selectedCols.code = idx;
                 }
                 // HSN / SAC Code
@@ -2606,8 +2653,12 @@
                     selectedCols.hsn = idx;
                 }
                 // Product Name
-                else if (selectedCols.name === -1 && (c.includes('particular') || c.includes('item name') || c.includes('product name') || c.includes('description') || c.includes('desc') || c === 'item' || c === 'product' || c.includes('material'))) {
+                else if (selectedCols.name === -1 && (c.includes('particular') || c.includes('item name') || c.includes('product name') || c === 'item' || c === 'product' || c.includes('material'))) {
                     selectedCols.name = idx;
+                }
+                // Description (if not already picked as product name)
+                else if (selectedCols.desc === -1 && (c.includes('description') || c.includes('desc') || c.includes('specs') || c.includes('details'))) {
+                    selectedCols.desc = idx;
                 }
                 // Size / Dimension
                 else if (selectedCols.size === -1 && (c.includes('size') || c.includes('dimension') || c.includes('dim') || c.includes('dia') || c.includes('inch') || c.includes('mm'))) {
@@ -2678,6 +2729,8 @@
             if (selectedCols.cost3 !== -1) document.getElementById('mapColCost3').value = selectedCols.cost3;
             if (selectedCols.stock !== -1) document.getElementById('mapColStock').value = selectedCols.stock;
             if (selectedCols.category !== -1) document.getElementById('mapColCategory').value = selectedCols.category;
+            if (selectedCols.desc !== -1 && document.getElementById('mapColDesc')) document.getElementById('mapColDesc').value = selectedCols.desc;
+            if (selectedCols.image !== -1 && document.getElementById('mapColImage')) document.getElementById('mapColImage').value = selectedCols.image;
 
             updateMappingPreview();
             modal.classList.remove('hidden');
@@ -2797,6 +2850,8 @@
             const cost3Idx = parseInt(document.getElementById('mapColCost3')?.value ?? -1);
             const stockIdx = parseInt(document.getElementById('mapColStock')?.value ?? -1);
             const catIdx = parseInt(document.getElementById('mapColCategory')?.value ?? -1);
+            const descIdx = parseInt(document.getElementById('mapColDesc')?.value ?? -1);
+            const imageIdx = parseInt(document.getElementById('mapColImage')?.value ?? -1);
             const startRow = Math.max(0, parseInt(document.getElementById('mapDataStartRow')?.value || 2) - 1);
 
             if (isNaN(nameIdx) || nameIdx === -1) {
@@ -2818,6 +2873,8 @@
 
                 const rawCode = (codeIdx !== -1 && row[codeIdx] !== undefined) ? String(row[codeIdx]).trim() : '';
                 const rawHsn = (hsnIdx !== -1 && row[hsnIdx] !== undefined && String(row[hsnIdx]).trim() !== '') ? String(row[hsnIdx]).trim() : '39174000';
+                const rawDesc = (descIdx !== -1 && row[descIdx] !== undefined) ? String(row[descIdx]).trim() : '';
+                const rawImage = (imageIdx !== -1 && row[imageIdx] !== undefined) ? String(row[imageIdx]).trim() : '';
 
                 let rawSize = (sizeIdx !== -1 && row[sizeIdx] !== undefined) ? String(row[sizeIdx]).trim() : '';
                 if (!rawSize) {
@@ -2873,6 +2930,7 @@
                     product_code: rawCode,
                     hsn_code: rawHsn,
                     product_name: rawName,
+                    description: rawDesc,
                     size: rawSize,
                     packing_1: rawPack1,
                     packing_2: rawPack2,
@@ -2884,8 +2942,8 @@
                     cost_price_3: rawCost3,
                     retail_price: rawRetail,
                     stock: rawStock,
-                    image_url: '',
-                    asset_url: ''
+                    image_url: rawImage,
+                    asset_url: rawImage
                 });
             }
 
@@ -3293,11 +3351,15 @@
                                         <input type="text" value="${escapeHtml(c.parent_name)}" oninput="updateGroupedCardField(${c.card_id}, 'parent_name', this.value)" class="w-full text-sm font-black text-gray-900 border border-gray-200 hover:border-indigo-300 focus:border-indigo-600 focus:bg-white rounded-xl px-3 py-1.5 transition bg-slate-50/70" placeholder="e.g. Yorker Measuring Tape / UPVC 90° Elbow">
                                     </div>
                                     <div>
-                                        <label class="block text-[10px] font-bold text-indigo-700 uppercase tracking-wider mb-0.5 flex items-center justify-between">
-                                            <span class="flex items-center gap-1"><i class="fa-solid fa-align-left text-indigo-500"></i> Product Description / Specifications / Series:</span>
-                                            <span class="text-[9px] font-normal text-gray-400">Card & Website par customer ko dikhega</span>
-                                        </label>
-                                        <textarea rows="2" oninput="updateGroupedCardField(${c.card_id}, 'description', this.value)" class="w-full text-xs text-gray-800 border border-indigo-100 hover:border-indigo-300 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-500 rounded-xl p-2.5 bg-indigo-50/20 focus:bg-white transition resize-y" placeholder="e.g. Heavy Duty Auto Stop Steel Tape / Schedule 40 ISI standard high pressure fitting...">${escapeHtml(c.description || '')}</textarea>
+                                        <div class="flex items-center justify-between mb-0.5">
+                                            <label class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider flex items-center gap-1">
+                                                <i class="fa-solid fa-align-left text-indigo-500"></i> Product Description / Specifications / Series:
+                                            </label>
+                                            <button type="button" onclick="aiGenerateSingleCardDesc(${c.card_id})" class="text-[10px] text-indigo-700 hover:text-indigo-900 font-extrabold flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-0.5 rounded-lg transition active:scale-95" title="Is product family ke hisab se AI description generate karein">
+                                                <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> <span>AI Generate</span>
+                                            </button>
+                                        </div>
+                                        <textarea rows="2" id="card_desc_input_${c.card_id}" oninput="updateGroupedCardField(${c.card_id}, 'description', this.value)" class="w-full text-xs text-gray-800 border border-indigo-100 hover:border-indigo-300 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-500 rounded-xl p-2.5 bg-indigo-50/20 focus:bg-white transition resize-y" placeholder="e.g. Heavy Duty Auto Stop Steel Tape / Schedule 40 ISI standard high pressure fitting...">${escapeHtml(c.description || '')}</textarea>
                                     </div>
                                 </div>
                             </div>
@@ -3643,6 +3705,122 @@
             autoSaveDraftToBackend();
         }
 
+        function getSmartAiDescriptionForProduct(parentTitle, category) {
+            const title = (parentTitle || '').toUpperCase();
+            const cat = (category || '').toUpperCase();
+
+            // 1. Measuring Tapes (Hardware & Tools) - STRICT check so plumbing never matches
+            const isTape = /TAPE|MEASURING/i.test(title);
+            if (isTape) {
+                if (title.includes('AUTO') || title.includes('AS-')) return 'Heavy Duty Steel Strip Measuring Tape with Auto-Stop mechanism, shockproof rubber casing, ISI grade.';
+                if (title.includes('NEO') || title.includes('NL-')) return 'Self-Locking Heavy Duty Measuring Tape with smooth recoil and dual metric/inch markings.';
+                if (title.includes('PRO') || title.includes('PR-')) return 'Yorker Professional Heavy Duty Tape with high tensile steel blade and impact resistant body.';
+                if (title.includes('PERFECT') || title.includes('PF-')) return 'Yorker Perfect Series compact measuring tape with belt clip and ergonomic grip.';
+                if (title.includes('JUPITER') || title.includes('JP-')) return 'Jupiter Series Heavy Duty Measuring Tape with smooth blade payout and belt clip.';
+                if (title.includes('BLACK') || title.includes('BW-')) return 'Black & White Contractor Grade high contrast measuring tape.';
+                if (title.includes('FIRST CHOICE') || title.includes('FC-')) return 'First Choice Contractor Grade Measuring Tape with heavy duty spring mechanism.';
+                return 'Yorker Heavy Duty Measuring Tape with high tensile steel blade, durable compact case and belt clip.';
+            }
+
+            // 2. SWR Drainage & Soil Fittings
+            if (title.includes('SWR') || cat.includes('SWR') || title.includes('TRAP') || title.includes('DRAIN')) {
+                if (title.includes('TRAP')) return 'SWR Drainage Nahani / P-Trap with deep water seal to prevent foul sewer gases and pests conforming to IS:14735.';
+                if (title.includes('BEND') || title.includes('ELBOW')) return 'SWR 87.5° / 45° Drainage Bend with leak-proof rubber ring / solvent socket for soil and waste discharge.';
+                if (title.includes('TEE') || title.includes('Y-TEE')) return 'SWR Single / Double Tee with inspection door cap for easy maintenance as per IS:14735.';
+                if (title.includes('PIPE')) return 'SWR Ringfit / Selfit Soil, Waste & Rainwater Pipe manufactured with high-impact UV stabilized PVC as per IS:14735.';
+                return 'SWR Soil, Waste & Rainwater drainage fitting with precision leak-proof socket as per IS:14735 standards.';
+            }
+
+            // 3. CPVC High Temp Hot & Cold Water Fittings
+            if (title.includes('CPVC') || cat.includes('CPVC')) {
+                if (title.includes('BRASS') || title.includes('MTA') || title.includes('FTA')) return 'CPVC Brass Threaded Fitting with heavy duty brass insert for secure, leak-proof tap and shower connection as per ASTM D2846.';
+                if (title.includes('ELBOW') || title.includes('BEND')) return 'CPVC High Temperature & Pressure 90° Socket Elbow for hot and cold potable water plumbing as per ASTM D2846 (SDR 11).';
+                if (title.includes('TEE')) return 'CPVC Equal / Reducing Tee fitting engineered for hot and cold pressurized water distribution as per ASTM D2846.';
+                if (title.includes('PIPE')) return 'CPVC Copper Tube Size (CTS) High Pressure Water Pipe conforming to ASTM D2846 (SDR 11 Class 1) for hot & cold lines.';
+                if (title.includes('UNION') || title.includes('VALVE')) return 'CPVC Precision Molded Valve / Union for reliable flow control and easy line maintenance.';
+                return 'CPVC High Temperature & Pressure Fitting manufactured as per ASTM D2846 (SDR 11 Class 1) for potable hot and cold water distribution.';
+            }
+
+            // 4. UPVC Pressure Fittings & Pipes
+            if (title.includes('UPVC') || cat.includes('UPVC') || cat.includes('PIPE') || title.includes('PIPE') || title.includes('ELBOW') || title.includes('TEE') || title.includes('SOCKET') || title.includes('COUPLER') || title.includes('MTA') || title.includes('FTA') || title.includes('UNION')) {
+                if (title.includes('PIPE')) return 'Heavy Duty UPVC Lead-Free Pressure Pipe conforming to ASTM D1785 / Schedule 40 ISI standard for reliable potable water distribution.';
+                if (title.includes('ELBOW') || title.includes('BEND')) return 'UPVC 90° / 45° Precision Socket Elbow for smooth high-pressure directional flow as per ASTM D2466 / Schedule 40.';
+                if (title.includes('TEE')) return 'UPVC Equal / Reducing Socket Tee for balanced branch water distribution conforming to ASTM D2466 industrial grade.';
+                if (title.includes('MTA') || title.includes('FTA') || title.includes('ADAPTOR')) return 'UPVC Threaded Adaptor with precision molded threads for leak-proof pipe to fixture connection.';
+                if (title.includes('UNION')) return 'UPVC Socket Union for easy line disconnection, servicing and repair without pipe cutting.';
+                if (title.includes('COUPLER') || title.includes('SOCKET')) return 'UPVC Straight Coupler / Socket with precision tight tolerance for jointing pressure pipes.';
+                return 'Heavy Duty UPVC Lead-Free Pressure Pipe Fitting manufactured as per ASTM D2466 / Schedule 40 ISI standard.';
+            }
+
+            // 5. Solvents & Adhesive
+            if (title.includes('SOLVENT') || title.includes('CEMENT') || cat.includes('SOLVENT') || title.includes('ADHESIVE')) {
+                return 'Heavy Duty Fast Setting Solvent Cement for leak-proof high pressure bonding of PVC / CPVC / SWR piping systems.';
+            }
+
+            // 6. Hardware & Tools
+            if (cat.includes('HARDWARE') || cat.includes('TOOL')) {
+                return `Industrial Grade Heavy Duty ${parentTitle} engineered for contractor use, high durability, and precision fit.`;
+            }
+
+            // 7. Paints & Coatings
+            if (cat.includes('PAINT') || title.includes('PAINT') || title.includes('DISTEMPER') || title.includes('EMULSION') || title.includes('PRIMER')) {
+                return `High Performance ${parentTitle} with superior coverage, smooth finish, and weather-resistant durability.`;
+            }
+
+            // Fallback default
+            return `Premium Quality ${parentTitle} engineered with high-grade durable materials conforming to standard industrial specifications.`;
+        }
+
+        function aiGenerateSingleCardDesc(cardId) {
+            const card = groupedProductCards.find(c => c.card_id === cardId);
+            if (!card) return;
+
+            const smartDesc = getSmartAiDescriptionForProduct(card.parent_name, card.category);
+            card.description = smartDesc;
+            if (Array.isArray(card.variants)) {
+                card.variants.forEach(v => { v.description = smartDesc; });
+            }
+
+            const inputEl = document.getElementById(`card_desc_input_${cardId}`);
+            if (inputEl) inputEl.value = smartDesc;
+
+            saveToLocalStorage();
+            autoSaveDraftToBackend();
+            showToastNotification(`✨ "${card.parent_name}" ke liye AI Description set ho gaya!`);
+        }
+
+        function aiFixAllCardDescriptions() {
+            if (!groupedProductCards || groupedProductCards.length === 0) {
+                alert('Pehle cards banayein ya auto-distribute karein.');
+                return;
+            }
+
+            let fixedCount = 0;
+            groupedProductCards.forEach(card => {
+                const smartDesc = getSmartAiDescriptionForProduct(card.parent_name, card.category);
+                card.description = smartDesc;
+                if (Array.isArray(card.variants)) {
+                    card.variants.forEach(v => { v.description = smartDesc; });
+                }
+                fixedCount++;
+            });
+
+            // Also update any dynamicRows if present
+            if (Array.isArray(dynamicRows)) {
+                dynamicRows.forEach(r => {
+                    r.description = getSmartAiDescriptionForProduct(r.product_name, r.group_type || r.category);
+                });
+            }
+
+            saveToLocalStorage();
+            autoSaveDraftToBackend();
+            renderGroupedProductCards();
+            renderDynamicRows();
+
+            alert(`🎉 Success!\n\n• Sabhi ${fixedCount} Cards ke Descriptions AI se unke sahi Product Family (UPVC, CPVC, SWR, Tape) ke hisab se set ho gaye hain!\n• Product Titles, Codes aur Rates BILKUL SAFE hain (koi change nahi kiya gaya).`);
+            showToastNotification(`🎉 Sabhi ${fixedCount} Cards ke Descriptions AI se fix ho gaye!`);
+        }
+
         async function autoFixAllExistingCards() {
             const btn = document.getElementById('btnAutoFixAllCards');
             const origHtml = btn ? btn.innerHTML : '';
@@ -3676,53 +3854,48 @@
                     '40': '1-1/2"', '50': '2"', '65': '2-1/2"', '80': '3"', '100': '4"'
                 };
 
-                // 1. Process all Grouped Product Cards
+                // 1. Process all Grouped Product Cards safely
                 if (Array.isArray(groupedProductCards)) {
                     groupedProductCards.forEach(card => {
                         let cardModified = false;
-                        const cardText = `${card.parent_name || ''} ${card.category || ''} ${card.variants ? card.variants.map(v => v.product_code || '').join(' ') : ''}`.toUpperCase();
+                        const parentUp = (card.parent_name || '').toUpperCase();
+                        const catUp = (card.category || '').toUpperCase();
+                        const cardText = `${parentUp} ${catUp} ${card.variants ? card.variants.map(v => v.product_code || '').join(' ') : ''}`.toUpperCase();
 
-                        // Detect if tape card
+                        // SAFE Plumbing Check: NEVER treat plumbing as Tape!
+                        const isPlumbing = /UPVC|CPVC|SWR|PIPE|ELBOW|TEE|SOCKET|MTA|FTA|TRAP|DRAIN|COUPLER|UNION|NIPPLE|BUSH|BEND|PLASTO/i.test(parentUp) || /PIPE|UPVC|CPVC|SWR|PLUMBING/i.test(catUp);
+
                         let isTape = false;
                         let matchedSeries = null;
 
-                        for (const [codeKey, sObj] of Object.entries(tapeSeriesMap)) {
-                            const upperKey = codeKey.toUpperCase();
-                            if (cardText.includes(upperKey + '-3016') || cardText.includes(upperKey + '-5019') || cardText.includes(sObj.series.toUpperCase()) || new RegExp(`\\b${upperKey}[-_\\s\\d]`, 'i').test(cardText)) {
-                                isTape = true;
-                                matchedSeries = sObj;
-                                break;
+                        if (!isPlumbing && (/TAPE|MEASURING/i.test(parentUp) || (catUp === 'HARDWARE & TOOLS' && /TAPE/i.test(cardText)))) {
+                            isTape = true;
+                            for (const [codeKey, sObj] of Object.entries(tapeSeriesMap)) {
+                                const upperKey = codeKey.toUpperCase();
+                                if (cardText.includes(upperKey + '-3016') || cardText.includes(upperKey + '-5019') || cardText.includes(sObj.series.toUpperCase())) {
+                                    matchedSeries = sObj;
+                                    break;
+                                }
                             }
                         }
 
-                        if (!isTape && (cardText.includes('TAPE') || cardText.includes('YORKER') || cardText.includes('3016') || cardText.includes('5019'))) {
-                            isTape = true;
-                            matchedSeries = { series: 'Measuring Tape', desc: 'Heavy Duty Measuring Tape with high tensile steel blade and shockproof rubber casing.' };
-                        }
-
                         if (isTape) {
-                            // Fix Category
                             if (card.category !== 'Hardware & Tools') {
                                 card.category = 'Hardware & Tools';
                                 cardModified = true;
                             }
 
-                            // Fix Parent Title if too generic or has code
                             if (matchedSeries) {
                                 const currentTitle = card.parent_name || '';
-                                if (!currentTitle.includes(matchedSeries.series) || currentTitle.includes('-3016') || currentTitle.includes('-5019') || currentTitle.toLowerCase().includes('plasto')) {
+                                if (!currentTitle.includes(matchedSeries.series) || currentTitle.includes('-3016') || currentTitle.includes('-5019')) {
                                     card.parent_name = `Yorker Measuring Tape (${matchedSeries.series})`;
                                     cardModified = true;
                                 }
                             }
 
-                            // Fix Description if empty or generic
-                            if (!card.description || card.description.trim().length < 15 || card.description.toLowerCase().includes('high grade') || card.description.toLowerCase().includes('manufactured to industrial specifications')) {
-                                card.description = matchedSeries ? matchedSeries.desc : 'Heavy Duty Measuring Tape with high tensile steel blade and shockproof rubber casing.';
-                                cardModified = true;
-                            }
+                            card.description = matchedSeries ? matchedSeries.desc : 'Heavy Duty Measuring Tape with high tensile steel blade and shockproof rubber casing.';
+                            cardModified = true;
 
-                            // Fix Variants sizes
                             if (Array.isArray(card.variants)) {
                                 card.variants.forEach(v => {
                                     const code = (v.product_code || '').toUpperCase();
@@ -3742,25 +3915,15 @@
                                         fixedVariantsCount++;
                                         cardModified = true;
                                     }
-                                    if (!v.description || v.description.trim().length < 10) {
-                                        v.description = card.description;
-                                    }
+                                    v.description = card.description;
                                 });
                             }
                         } else {
-                            // Plumbing cards: enrich description & variant sizes
-                            const nameUp = (card.parent_name || '').toUpperCase();
-                            if (!card.description || card.description.trim().length < 15 || card.description.toLowerCase().includes('manufactured to industrial specifications')) {
-                                if (nameUp.includes('CPVC')) {
-                                    card.description = 'CPVC High Temperature & Pressure Fitting manufactured as per ASTM D2846 (SDR 11 Class 1).';
-                                    cardModified = true;
-                                } else if (nameUp.includes('SWR') || nameUp.includes('TRAP')) {
-                                    card.description = 'SWR Soil, Waste & Rainwater drainage fitting with precision leak-proof socket as per IS:14735.';
-                                    cardModified = true;
-                                } else if (nameUp.includes('UPVC')) {
-                                    card.description = 'Heavy Duty UPVC Lead-Free Pressure Pipe Fitting manufactured as per ASTM D2466 / Schedule 40 ISI standard.';
-                                    cardModified = true;
-                                }
+                            // Smart category & description enrichment without corrupting titles
+                            const smartDesc = getSmartAiDescriptionForProduct(card.parent_name, card.category);
+                            if (!card.description || card.description.includes('Measuring Tape') || card.description.length < 15) {
+                                card.description = smartDesc;
+                                cardModified = true;
                             }
 
                             if (Array.isArray(card.variants)) {
@@ -3776,8 +3939,8 @@
                                             cardModified = true;
                                         }
                                     }
-                                    if (!v.description) {
-                                        v.description = card.description || '';
+                                    if (!v.description || v.description.includes('Measuring Tape')) {
+                                        v.description = card.description || smartDesc;
                                     }
                                 });
                             }
@@ -3786,7 +3949,6 @@
                         if (cardModified) {
                             fixedCardsCount++;
                         }
-                    });
                 }
 
                 // 2. Also heal any pending dynamicRows
@@ -4495,7 +4657,26 @@
 
         function exportDynamicToCsv() {
             if (dynamicRows.length === 0 && groupedProductCards.length === 0) {
-                alert('Export karne ke liye koi rows nahi hain.');
+                alert('Export karne ke liye koi rows ya cards nahi hain.');
+                return;
+            }
+
+            let targetCards = groupedProductCards;
+            let targetRows = dynamicRows;
+            let catSuffix = '';
+
+            if (typeof activeCategory !== 'undefined' && activeCategory && activeCategory !== 'ALL') {
+                const doFilter = confirm(`Aap abhi "${activeCategory}" category filter me hain.\n\n• [OK] dabayein: Sirf "${activeCategory}" ke cards aur items export karne ke liye\n• [Cancel] dabayein: Sabhi categories ka complete catalog export karne ke liye`);
+                if (doFilter) {
+                    const normCat = activeCategory.trim().toLowerCase();
+                    targetCards = groupedProductCards.filter(c => (c.category || '').trim().toLowerCase() === normCat);
+                    targetRows = dynamicRows.filter(r => (r.group_type || r.category || 'General Hardware').trim().toLowerCase() === normCat);
+                    catSuffix = `_${activeCategory.trim().replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+                }
+            }
+
+            if (targetCards.length === 0 && targetRows.length === 0) {
+                alert(`Chuni hui category ("${activeCategory}") me export karne ke liye koi cards ya rows nahi hain.`);
                 return;
             }
 
@@ -4503,11 +4684,11 @@
             let csv = "Category,Product Code,HSN Code,Product Name,Description,Size/Dimension,Packing 1 (Box),Packing 2 (Carton),MRP,Purchase Cost 1,Cost Price 2,Cost Price 3,Selling Price,Stock,Image URL\n";
 
             // Add grouped cards
-            groupedProductCards.forEach(c => {
+            targetCards.forEach(c => {
                 const escapeCsv = (str) => `"${(str || '').toString().replace(/"/g, '""')}"`;
                 c.variants.forEach(v => {
                     csv += [
-                        escapeCsv(c.category),
+                        escapeCsv(c.category || 'General Hardware'),
                         escapeCsv(v.product_code || ''),
                         escapeCsv(v.hsn_code || '39174000'),
                         escapeCsv(c.parent_name),
@@ -4521,16 +4702,16 @@
                         v.cost_price_3 || 0,
                         v.retail_price,
                         (v.stock !== undefined && v.stock !== null) ? v.stock : 0,
-                        escapeCsv(c.image_url)
+                        escapeCsv(c.image_url || c.asset_url || '')
                     ].join(',') + "\n";
                 });
             });
 
             // Add flat rows
-            dynamicRows.forEach(r => {
+            targetRows.forEach(r => {
                 const escapeCsv = (str) => `"${(str || '').toString().replace(/"/g, '""')}"`;
                 csv += [
-                    escapeCsv(r.group_type),
+                    escapeCsv(r.group_type || r.category || 'General Hardware'),
                     escapeCsv(r.product_code || ''),
                     escapeCsv(r.hsn_code || '39174000'),
                     escapeCsv(r.product_name),
@@ -4544,17 +4725,18 @@
                     r.cost_price_3 || 0,
                     r.retail_price,
                     (r.stock !== undefined && r.stock !== null) ? r.stock : 0,
-                    escapeCsv(r.image_url)
+                    escapeCsv(r.image_url || r.asset_url || '')
                 ].join(',') + "\n";
             });
 
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.setAttribute('download', `${sheetName}.csv`);
+            link.setAttribute('download', `${sheetName}${catSuffix}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            showToastNotification(`📥 Catalog sheet "${sheetName}${catSuffix}.csv" download ho gayi hai!`);
         }
 
         function saveDynamicSheetToBackend() {
