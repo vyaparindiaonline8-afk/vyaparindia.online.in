@@ -48,6 +48,10 @@
                             <span>🔄 लाइव कार्ड्स लोड करें (Master Sync)</span>
                         </button>
                     </form>
+                    <button type="button" onclick="restoreDraftCardsAndRows()" class="px-3.5 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-black text-xs border border-indigo-200 flex items-center gap-1.5 transition active:scale-95 shadow-2xs" title="Browser refresh hone par cards aur list wapas restore karein">
+                        <i class="fa-solid fa-rotate-left text-indigo-600"></i>
+                        <span>🔄 Restore Draft</span>
+                    </button>
                     <button type="button" onclick="toggleDynamicMode(true)" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95">
                         <i class="fa-solid fa-file-excel"></i>
                         <span>+ Import New Excel</span>
@@ -1638,6 +1642,13 @@
                     counts[c] = (counts[c] || 0) + 1;
                     total++;
                 });
+                // Also ensure categories from groupedProductCards exist in tabs even if all rows are already mapped into cards!
+                groupedProductCards.forEach(card => {
+                    const c = (card.category || card.group_type || 'General Hardware').trim();
+                    if (counts[c] === undefined) {
+                        counts[c] = 0;
+                    }
+                });
             } else {
                 document.querySelectorAll('.table-row-item').forEach(tr => {
                     const c = (tr.getAttribute('data-category') || 'General Hardware').trim();
@@ -1693,11 +1704,13 @@
                         dotColor = 'text-emerald-500';
                     }
 
+                    const badgeContent = count > 0 ? count : '✓ Cards';
+
                     html += `
                         <button type="button" onclick="filterByCategory('${escapeHtml(catName)}')" data-cat-key="${escapeHtml(catName)}" class="cat-pill px-4 py-2 rounded-2xl text-xs font-extrabold ${isActive ? activeColor : 'bg-white hover:bg-slate-50 text-gray-700 border border-gray-200 shadow-xs'} flex items-center gap-2 transition whitespace-nowrap active:scale-95">
                             <i class="fa-solid ${icon} text-[11px] ${isActive ? 'text-white' : dotColor}"></i>
                             <span>${escapeHtml(catName)}</span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-800'} font-mono font-bold">${count}</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] ${isActive ? 'bg-white/20 text-white' : (count > 0 ? 'bg-slate-100 text-slate-800' : 'bg-emerald-100 text-emerald-800')} font-mono font-bold">${badgeContent}</span>
                         </button>
                     `;
                 }
@@ -2131,11 +2144,23 @@
 
         function saveToLocalStorage() {
             try {
-                localStorage.setItem('vyapar_grouped_cards', JSON.stringify(groupedProductCards));
-                localStorage.setItem('vyapar_dynamic_rows', JSON.stringify(dynamicRows));
+                if (Array.isArray(groupedProductCards) && groupedProductCards.length > 0) {
+                    localStorage.setItem('vyapar_grouped_cards', JSON.stringify(groupedProductCards));
+                    localStorage.setItem('vyapar_grouped_cards_backup', JSON.stringify(groupedProductCards));
+                } else if (Array.isArray(groupedProductCards)) {
+                    localStorage.setItem('vyapar_grouped_cards', JSON.stringify(groupedProductCards));
+                }
+                if (Array.isArray(dynamicRows) && dynamicRows.length > 0) {
+                    localStorage.setItem('vyapar_dynamic_rows', JSON.stringify(dynamicRows));
+                    localStorage.setItem('vyapar_dynamic_rows_backup', JSON.stringify(dynamicRows));
+                } else if (Array.isArray(dynamicRows)) {
+                    localStorage.setItem('vyapar_dynamic_rows', JSON.stringify(dynamicRows));
+                }
                 localStorage.setItem('vyapar_grouped_next_id', String(groupedCardNextId));
                 localStorage.setItem('vyapar_dynamic_next_id', String(dynamicRowNextId));
-            } catch (e) {}
+            } catch (e) {
+                console.warn('saveToLocalStorage warning:', e);
+            }
         }
 
         function hydrateFromJobProducts(jobProds) {
@@ -2254,30 +2279,58 @@
 
         function loadFromLocalStorage() {
             try {
-                const storedCards = localStorage.getItem('vyapar_grouped_cards');
-                const storedRows = localStorage.getItem('vyapar_dynamic_rows');
+                let storedCards = localStorage.getItem('vyapar_grouped_cards');
+                let storedRows = localStorage.getItem('vyapar_dynamic_rows');
+
+                // Fallback to backup keys if primary keys are missing or empty
+                if (!storedCards || storedCards === '[]') {
+                    const backupCards = localStorage.getItem('vyapar_grouped_cards_backup');
+                    if (backupCards && backupCards !== '[]') {
+                        storedCards = backupCards;
+                    }
+                }
+                if (!storedRows || storedRows === '[]') {
+                    const backupRows = localStorage.getItem('vyapar_dynamic_rows_backup');
+                    if (backupRows && backupRows !== '[]') {
+                        storedRows = backupRows;
+                    }
+                }
+
                 let hasLoaded = false;
                 if (storedCards) {
-                    const parsedCards = JSON.parse(storedCards);
-                    if (Array.isArray(parsedCards) && parsedCards.length > 0) {
-                        groupedProductCards = parsedCards;
-                        groupedCardNextId = parseInt(localStorage.getItem('vyapar_grouped_next_id') || '100');
-                        hasLoaded = true;
+                    try {
+                        const parsedCards = JSON.parse(storedCards);
+                        if (Array.isArray(parsedCards) && parsedCards.length > 0) {
+                            groupedProductCards = parsedCards;
+                            groupedCardNextId = parseInt(localStorage.getItem('vyapar_grouped_next_id') || '100');
+                            hasLoaded = true;
+                        }
+                    } catch (e) {
+                        console.warn('Error parsing stored cards:', e);
                     }
                 }
                 if (storedRows) {
-                    const parsedRows = JSON.parse(storedRows);
-                    if (Array.isArray(parsedRows) && parsedRows.length > 0) {
-                        dynamicRows = parsedRows;
-                        dynamicRowNextId = parseInt(localStorage.getItem('vyapar_dynamic_next_id') || '1000');
-                        hasLoaded = true;
+                    try {
+                        const parsedRows = JSON.parse(storedRows);
+                        if (Array.isArray(parsedRows) && parsedRows.length > 0) {
+                            dynamicRows = parsedRows;
+                            dynamicRowNextId = parseInt(localStorage.getItem('vyapar_dynamic_next_id') || '1000');
+                            hasLoaded = true;
+                        }
+                    } catch (e) {
+                        console.warn('Error parsing stored rows:', e);
                     }
                 }
                 if (hasLoaded && typeof deduplicateDynamicRowsAgainstCards === 'function') {
-                    deduplicateDynamicRowsAgainstCards();
+                    try {
+                        deduplicateDynamicRowsAgainstCards();
+                    } catch (err) {
+                        console.warn('deduplicateDynamicRowsAgainstCards caught:', err);
+                    }
                 }
                 return hasLoaded;
             } catch (e) {
+                console.error('loadFromLocalStorage error:', e);
                 return false;
             }
         }
@@ -2581,30 +2634,18 @@
                 return;
             }
 
+            // Clean source=pdf_lines from URL immediately so subsequent F5/Refresh doesn't reset or re-import
+            if (isFromPdf && window.history && window.history.replaceState) {
+                try {
+                    const cleanUrl = window.location.pathname + (window.location.search.replace(/[?&]source=pdf_lines(&|$)/, '$1').replace(/[?&]$/, ''));
+                    window.history.replaceState({}, document.title, cleanUrl || window.location.pathname);
+                } catch (e) {}
+            }
+
             // ALWAYS restore existing saved cards & rows from localStorage first!
             loadFromLocalStorage();
 
-            const rawStored = localStorage.getItem('vyapar_custom_excel_lines');
-
-            // 1. TOP PRIORITY: If coming from PDF Studio with source=pdf_lines, import fresh PDF lines!
-            if (isFromPdf && rawStored) {
-                try {
-                    const parsed = JSON.parse(rawStored);
-                    if (loadPdfExtractedDataIntoDynamicRows(parsed)) {
-                        // Clean the URL query param immediately so F5/Refresh doesn't reset or re-import
-                        if (window.history && window.history.replaceState) {
-                            const cleanUrl = window.location.pathname + (window.location.search.replace(/[?&]source=pdf_lines(&|$)/, '$1').replace(/[?&]$/, ''));
-                            window.history.replaceState({}, document.title, cleanUrl || window.location.pathname);
-                        }
-                        toggleDynamicMode(true);
-                        return;
-                    }
-                } catch (e) {
-                    console.error('Error loading PDF custom lines:', e);
-                }
-            }
-
-            // 2. PRIORITY 2: If we have existing saved dynamic spreadsheet rows or grouped cards in localStorage
+            // 1. TOP PRIORITY: If we have existing saved dynamic spreadsheet rows or grouped cards in localStorage, PRESERVE THEM!
             if (groupedProductCards.length > 0 || dynamicRows.length > 0) {
                 renderDynamicRows();
                 renderGroupedProductCards();
@@ -2613,7 +2654,9 @@
                 return;
             }
 
-            // 3. PRIORITY 3: If vyapar_custom_excel_lines is in storage even without query param
+            const rawStored = localStorage.getItem('vyapar_custom_excel_lines');
+
+            // 2. PRIORITY 2: If workspace was empty and we have raw PDF lines from PDF Studio, load them!
             if (rawStored) {
                 try {
                     const parsed = JSON.parse(rawStored);
@@ -2621,10 +2664,12 @@
                         toggleDynamicMode(true);
                         return;
                     }
-                } catch (e) {}
+                } catch (e) {
+                    console.error('Error loading PDF custom lines:', e);
+                }
             }
 
-            // 4. PRIORITY 4: Hydrate from server database job if available
+            // 3. PRIORITY 3: Hydrate from server database job if available
             if (serverJobProducts && serverJobProducts.length > 0) {
                 if (hydrateFromJobProducts(serverJobProducts)) {
                     renderDynamicRows();
@@ -2634,12 +2679,120 @@
                 }
             }
 
-            // 5. Default Fallback: Clean empty workspace! Never load fake UPVC sample rows!
+            // 4. Default Fallback: Clean empty workspace!
             dynamicRows = [];
             groupedProductCards = [];
             renderDynamicRows();
             renderGroupedProductCards();
             refreshCategoryFilterTabs();
+        }
+
+        // 🔄 1-Click Recovery function to restore any lost cards or draft
+        function restoreDraftCardsAndRows() {
+            let restoredCards = 0;
+            let restoredRows = 0;
+
+            // 1. Try local storage primary
+            try {
+                const sCards = localStorage.getItem('vyapar_grouped_cards');
+                if (sCards) {
+                    const p = JSON.parse(sCards);
+                    if (Array.isArray(p) && p.length > 0) {
+                        groupedProductCards = p;
+                        restoredCards = p.length;
+                    }
+                }
+            } catch (e) {}
+
+            // 2. Try local storage backup if primary was empty
+            if (restoredCards === 0) {
+                try {
+                    const bCards = localStorage.getItem('vyapar_grouped_cards_backup');
+                    if (bCards) {
+                        const p = JSON.parse(bCards);
+                        if (Array.isArray(p) && p.length > 0) {
+                            groupedProductCards = p;
+                            restoredCards = p.length;
+                            localStorage.setItem('vyapar_grouped_cards', bCards);
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            // 3. Dynamic rows primary
+            try {
+                const sRows = localStorage.getItem('vyapar_dynamic_rows');
+                if (sRows) {
+                    const p = JSON.parse(sRows);
+                    if (Array.isArray(p) && p.length > 0) {
+                        dynamicRows = p;
+                        restoredRows = p.length;
+                    }
+                }
+            } catch (e) {}
+
+            // 4. Dynamic rows backup if empty
+            if (restoredRows === 0) {
+                try {
+                    const bRows = localStorage.getItem('vyapar_dynamic_rows_backup');
+                    if (bRows) {
+                        const p = JSON.parse(bRows);
+                        if (Array.isArray(p) && p.length > 0) {
+                            dynamicRows = p;
+                            restoredRows = p.length;
+                            localStorage.setItem('vyapar_dynamic_rows', bRows);
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            // 5. If still no rows and no cards, try raw PDF lines!
+            if (restoredCards === 0 && restoredRows === 0) {
+                const rawStored = localStorage.getItem('vyapar_custom_excel_lines');
+                if (rawStored) {
+                    try {
+                        const parsed = JSON.parse(rawStored);
+                        if (loadPdfExtractedDataIntoDynamicRows(parsed)) {
+                            showToastNotification(`🎉 PDF lines se ${dynamicRows.length} items restore ho gaye!`);
+                            return;
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            if (restoredCards > 0 || restoredRows > 0) {
+                renderDynamicRows();
+                renderGroupedProductCards();
+                refreshCategoryFilterTabs();
+                toggleDynamicMode(true);
+                saveToLocalStorage();
+                showToastNotification(`🎉 Shabaash! ${restoredCards} Cards aur ${restoredRows} Pending Rows restore ho gaye!`);
+                alert(`🎉 Workspace Restored!\n\n• ${restoredCards} Cards safalta-purvak restore ho gaye hain!\n• ${restoredRows} Pending items table me wapas aa gaye hain.`);
+            } else {
+                alert('Storage me koi purana draft nahi mila. Kripya "+ Import New Excel" dabayein ya PDF Studio se dubara "Open in Excel Mapper" dabayein.');
+            }
+        }
+
+        function reExtractFromPdfLines() {
+            const rawStored = localStorage.getItem('vyapar_custom_excel_lines');
+            if (!rawStored) {
+                alert('PDF Studio ka koi data browser me nahi mila. Kripya PDF Studio me jakar dubara "Open in Excel Multi-Row Mapper" dabayein.');
+                return;
+            }
+            try {
+                const parsed = JSON.parse(rawStored);
+                if (loadPdfExtractedDataIntoDynamicRows(parsed)) {
+                    renderDynamicRows();
+                    renderGroupedProductCards();
+                    refreshCategoryFilterTabs();
+                    toggleDynamicMode(true);
+                    saveToLocalStorage();
+                    showToastNotification(`🎉 PDF se ${dynamicRows.length} items reload ho gaye!`);
+                    alert(`🎉 PDF Extracted Data Reloaded!\n\n${dynamicRows.length} items table me load ho gaye hain.`);
+                }
+            } catch (e) {
+                alert('PDF data reload karne me truti hui.');
+            }
         }
 
         function handleExcelDroppedFile(file) {
@@ -3126,8 +3279,10 @@
         function extractBaseFamilyName(fullName, currentSize) {
             let str = (fullName || '').trim();
             if (currentSize && currentSize.toLowerCase() !== 'standard') {
-                const escaped = currentSize.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                str = str.replace(new RegExp('\\b' + escaped + '\\b', 'gi'), ' ');
+                try {
+                    const escaped = currentSize.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    str = str.replace(new RegExp(escaped, 'gi'), ' ');
+                } catch (e) {}
             }
             // Standardize schedules: e.g. 40SCH -> 40 SCH, 80SCH -> 80 SCH
             str = str.replace(/(\d+)\s*SCH\b/gi, '$1 SCH');
@@ -3150,44 +3305,48 @@
         }
 
         function isRowAlreadyMappedInCards(r) {
-            if (!groupedProductCards || groupedProductCards.length === 0) return false;
-            const rId = r.id;
-            const rCode = (r.product_code || '').trim().toLowerCase();
-            const rFamily = (typeof extractBaseFamilyName === 'function' ? extractBaseFamilyName(r.product_name, r.size) : (r.product_name || '')).trim().toLowerCase();
-            const rName = (r.product_name || '').trim().toLowerCase();
-            const rSize = (r.size || 'Standard').trim().toLowerCase();
-            const rCat = (r.group_type || r.category || '').trim().toLowerCase();
+            if (!groupedProductCards || groupedProductCards.length === 0 || !r) return false;
+            try {
+                const rId = r.id;
+                const rCode = (r.product_code || '').trim().toLowerCase();
+                const rFamily = (typeof extractBaseFamilyName === 'function' ? extractBaseFamilyName(r.product_name, r.size) : (r.product_name || '')).trim().toLowerCase();
+                const rName = (r.product_name || '').trim().toLowerCase();
+                const rSize = (r.size || 'Standard').trim().toLowerCase();
+                const rCat = (r.group_type || r.category || '').trim().toLowerCase();
 
-            const rFamilyNorm = rFamily.replace(/[^a-z0-9]/g, '');
-            const rNameNorm = rName.replace(/[^a-z0-9]/g, '');
-            const rSizeNorm = rSize.replace(/[^a-z0-9]/g, '');
+                const rFamilyNorm = rFamily.replace(/[^a-z0-9]/g, '');
+                const rNameNorm = rName.replace(/[^a-z0-9]/g, '');
+                const rSizeNorm = rSize.replace(/[^a-z0-9]/g, '');
 
-            for (const card of groupedProductCards) {
-                const cardCat = (card.category || '').trim().toLowerCase();
-                const cardParent = (card.parent_name || '').trim().toLowerCase();
-                const cardParentNorm = cardParent.replace(/[^a-z0-9]/g, '');
-                const catMatches = (!rCat || !cardCat || rCat === cardCat || rCat.includes(cardCat) || cardCat.includes(rCat));
+                for (const card of groupedProductCards) {
+                    const cardCat = (card.category || '').trim().toLowerCase();
+                    const cardParent = (card.parent_name || '').trim().toLowerCase();
+                    const cardParentNorm = cardParent.replace(/[^a-z0-9]/g, '');
+                    const catMatches = (!rCat || !cardCat || rCat === cardCat || rCat.includes(cardCat) || cardCat.includes(rCat));
 
-                for (const v of (card.variants || [])) {
-                    // Check 1: direct variant id match
-                    if (rId && v.id && rId === v.id) return true;
+                    for (const v of (card.variants || [])) {
+                        // Check 1: direct variant id match
+                        if (rId && v.id && rId === v.id) return true;
 
-                    // Check 2: exact SKU code match if not placeholder
-                    if (rCode && !rCode.startsWith('itm-') && (v.product_code || '').trim().toLowerCase() === rCode) {
-                        return true;
-                    }
+                        // Check 2: exact SKU code match if not placeholder
+                        if (rCode && !rCode.startsWith('itm-') && (v.product_code || '').trim().toLowerCase() === rCode) {
+                            return true;
+                        }
 
-                    // Check 3: Family/Name + Size match in same category
-                    if (catMatches) {
-                        const vSize = (v.size || 'Standard').trim().toLowerCase();
-                        const vSizeNorm = vSize.replace(/[^a-z0-9]/g, '');
-                        if (vSizeNorm === rSizeNorm && rSizeNorm !== '') {
-                            if (cardParentNorm === rFamilyNorm || cardParentNorm === rNameNorm) {
-                                return true;
+                        // Check 3: Family/Name + Size match in same category
+                        if (catMatches) {
+                            const vSize = (v.size || 'Standard').trim().toLowerCase();
+                            const vSizeNorm = vSize.replace(/[^a-z0-9]/g, '');
+                            if (vSizeNorm === rSizeNorm && rSizeNorm !== '') {
+                                if (cardParentNorm === rFamilyNorm || cardParentNorm === rNameNorm) {
+                                    return true;
+                                }
                             }
                         }
                     }
                 }
+            } catch (err) {
+                console.warn('isRowAlreadyMappedInCards caught:', err);
             }
             return false;
         }
@@ -3394,9 +3553,15 @@
 
             if (groupedProductCards.length === 0) {
                 grid.innerHTML = `
-                    <div class="p-6 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 text-gray-400 text-xs">
-                        <i class="fa-solid fa-layer-group text-lg mb-1"></i>
-                        <p>Abhi tak koi grouped card nahi banaya gaya. Upar table me se 6-8 sizes select karke <b>"Group (6-8) Rows into 1 Card"</b> dabayein.</p>
+                    <div class="p-6 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 text-gray-500 text-xs space-y-2">
+                        <i class="fa-solid fa-layer-group text-lg text-gray-400"></i>
+                        <p>Abhi tak koi grouped card nahi dikh raha hai. Upar table me se 6-8 sizes select karke <b>"Group (6-8) Rows into 1 Card"</b> dabayein ya Auto-Distribute karein.</p>
+                        <div>
+                            <button type="button" onclick="restoreDraftCardsAndRows()" class="mt-1 px-3.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold text-xs border border-indigo-200 inline-flex items-center gap-1.5 transition active:scale-95 shadow-2xs">
+                                <i class="fa-solid fa-rotate-left text-indigo-600"></i>
+                                <span>🔄 Restore Previous Cards & Draft</span>
+                            </button>
+                        </div>
                     </div>
                 `;
                 return;
@@ -4781,27 +4946,57 @@
 
             if (dynamicRows.length === 0) {
                 if (badge) badge.innerText = `0 Rows`;
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="13" class="p-10 text-center">
-                            <div class="max-w-md mx-auto space-y-3">
-                                <div class="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl mx-auto shadow-inner">
-                                    <i class="fa-solid fa-circle-check"></i>
+                if (groupedProductCards.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="13" class="p-10 text-center">
+                                <div class="max-w-lg mx-auto bg-amber-50/70 border-2 border-dashed border-amber-300 rounded-3xl p-6 space-y-3.5 shadow-sm">
+                                    <div class="h-12 w-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl mx-auto shadow-xs">
+                                        <i class="fa-solid fa-clock-rotate-left"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-sm font-black text-gray-900">Workspace me Cards ya Rows load nahi hue?</h4>
+                                        <p class="text-xs text-gray-600 mt-1">
+                                            Browser refresh hone par ya naye tab me kholne par data yahan se 1-click me turant restore karein:
+                                        </p>
+                                    </div>
+                                    <div class="pt-2 flex items-center justify-center gap-2.5 flex-wrap">
+                                        <button type="button" onclick="restoreDraftCardsAndRows()" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 flex items-center gap-2 transition active:scale-95">
+                                            <i class="fa-solid fa-rotate-left"></i>
+                                            <span>🔄 Restore Last Saved Cards & List</span>
+                                        </button>
+                                        <button type="button" onclick="reExtractFromPdfLines()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95">
+                                            <i class="fa-solid fa-file-pdf"></i>
+                                            <span>📄 Reload from PDF Lines</span>
+                                        </button>
+                                    </div>
                                 </div>
-                                <h4 class="text-sm font-black text-gray-900">Sabhi Items ke Cards Ban Chuke Hain!</h4>
-                                <p class="text-xs text-gray-500">
-                                    Aapki spreadsheet ke sabhi items successfully Product Cards me save ho gaye hain. Koi pending unmapped row bachi nahi hai!
-                                </p>
-                                <div class="pt-2 flex items-center justify-center gap-3">
-                                    <button type="button" onclick="document.getElementById('groupedCardsSection')?.scrollIntoView({behavior:'smooth'})" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-600/20 flex items-center gap-2">
-                                        <i class="fa-solid fa-layer-group"></i>
-                                        <span>View Grouped Cards (${groupedProductCards.length})</span>
-                                    </button>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="13" class="p-10 text-center">
+                                <div class="max-w-md mx-auto space-y-3">
+                                    <div class="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl mx-auto shadow-inner">
+                                        <i class="fa-solid fa-circle-check"></i>
+                                    </div>
+                                    <h4 class="text-sm font-black text-gray-900">Sabhi Items ke Cards Ban Chuke Hain!</h4>
+                                    <p class="text-xs text-gray-500">
+                                        Aapki spreadsheet ke sabhi items successfully Product Cards me save ho gaye hain. Koi pending unmapped row bachi nahi hai!
+                                    </p>
+                                    <div class="pt-2 flex items-center justify-center gap-3">
+                                        <button type="button" onclick="document.getElementById('groupedCardsSection')?.scrollIntoView({behavior:'smooth'})" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-600/20 flex items-center gap-2">
+                                            <i class="fa-solid fa-layer-group"></i>
+                                            <span>View Grouped Cards (${groupedProductCards.length})</span>
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                    </tr>
-                `;
+                            </td>
+                        </tr>
+                    `;
+                }
                 return;
             }
 
