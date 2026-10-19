@@ -4482,6 +4482,7 @@
                         if (cardModified) {
                             fixedCardsCount++;
                         }
+                    });
                 }
 
                 // 2. Also heal any pending dynamicRows
