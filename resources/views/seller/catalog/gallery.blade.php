@@ -113,13 +113,13 @@
                 </button>
                 @foreach($folders as $fName => $fCount)
                     <div class="inline-flex items-center rounded-xl bg-gray-100 hover:bg-gray-200 transition group/fchip">
-                        <button type="button" onclick="filterGalleryByFolder('{{ addslashes($fName) }}')" id="tabFolder_{{ md5($fName) }}" class="folder-chip-btn px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap text-gray-700">
+                        <button type="button" onclick="filterGalleryByFolder({{ json_encode($fName) }})" data-folder-name="{{ $fName }}" id="tabFolder_{{ md5($fName) }}" class="folder-chip-btn px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap text-gray-700">
                             <i class="fa-solid fa-folder text-indigo-500"></i>
                             <span>{{ $fName }}</span>
                             <span class="px-1.5 py-0.2 bg-gray-200 rounded-md text-[10px] text-gray-800 font-bold">{{ $fCount }}</span>
                         </button>
-                        @if(strtolower($fName) !== 'general')
-                            <button type="button" onclick="confirmDeleteFolder('{{ addslashes($fName) }}', {{ $fCount }})" class="pr-2.5 pl-1 py-1.5 text-gray-400 hover:text-rose-600 transition cursor-pointer" title="Delete folder '{{ $fName }}'">
+                        @if(strtolower(trim($fName)) !== 'general')
+                            <button type="button" onclick="confirmDeleteFolder({{ json_encode($fName) }}, {{ $fCount }})" class="pr-2.5 pl-1 py-1.5 text-gray-400 hover:text-rose-600 transition cursor-pointer" title="Delete folder '{{ $fName }}'">
                                 <i class="fa-solid fa-xmark text-xs"></i>
                             </button>
                         @endif
@@ -186,14 +186,17 @@
                         <img src="{{ $img['asset_url'] }}" alt="{{ $img['name'] }}" class="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-200" loading="lazy">
                         
                         <!-- Overlay Action Bar -->
-                        <div class="overlay-actions opacity-0 group-hover:opacity-100 absolute inset-0 bg-black/40 backdrop-blur-[2px] rounded-xl flex items-center justify-center gap-2 transition-opacity duration-200" onclick="event.stopPropagation()">
-                            <button type="button" onclick="event.stopPropagation(); openPreviewModal('{{ $img['asset_url'] }}', '{{ addslashes($img['name']) }}')" class="h-8 w-8 rounded-lg bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center text-xs shadow-md transition" title="Preview Full Image">
+                        <div class="overlay-actions opacity-0 group-hover:opacity-100 absolute inset-0 bg-black/40 backdrop-blur-[2px] rounded-xl flex items-center justify-center gap-1.5 transition-opacity duration-200" onclick="event.stopPropagation()">
+                            <button type="button" onclick="event.stopPropagation(); openPreviewModal('{{ $img['asset_url'] }}', {{ json_encode($img['name']) }})" class="h-8 w-8 rounded-lg bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center text-xs shadow-md transition" title="Preview Full Image">
                                 <i class="fa-solid fa-expand"></i>
+                            </button>
+                            <button type="button" onclick="event.stopPropagation(); quickMoveSingleImage({{ json_encode($img['url']) }}, {{ json_encode($img['folder'] ?? 'General') }}, {{ json_encode($img['name']) }})" class="h-8 w-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center text-xs shadow-md transition" title="Folder / Category Badlein">
+                                <i class="fa-solid fa-folder-arrow-up"></i>
                             </button>
                             <a href="{{ $img['asset_url'] }}" download="{{ $img['filename'] }}" onclick="event.stopPropagation()" class="h-8 w-8 rounded-lg bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center text-xs shadow-md transition" title="Download">
                                 <i class="fa-solid fa-download"></i>
                             </a>
-                            <button type="button" onclick="event.stopPropagation(); deleteSingleImage('{{ $img['url'] }}', '{{ $img['id'] }}', '{{ addslashes($img['name']) }}')" class="h-8 w-8 rounded-lg bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center text-xs shadow-md transition" title="Delete Image">
+                            <button type="button" onclick="event.stopPropagation(); deleteSingleImage({{ json_encode($img['url']) }}, '{{ $img['id'] }}', {{ json_encode($img['name']) }}, {{ json_encode($img['folder'] ?? 'General') }})" class="h-8 w-8 rounded-lg bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center text-xs shadow-md transition" title="Remove or Delete">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </div>
@@ -404,13 +407,16 @@
 
         function filterGalleryByFolder(folder) {
             activeFolder = folder;
+            const targetFolder = (folder || 'ALL').toLowerCase().trim();
+
             document.querySelectorAll('.folder-chip-btn').forEach(btn => {
-                btn.className = "folder-chip-btn px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap bg-gray-100 hover:bg-gray-200 text-gray-700";
+                const btnFolder = (btn.getAttribute('data-folder-name') || '').toLowerCase().trim();
+                if ((targetFolder === 'all' && btn.id === 'tabFolder_ALL') || (btnFolder && btnFolder === targetFolder)) {
+                    btn.className = "folder-chip-btn px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 whitespace-nowrap bg-indigo-600 text-white shadow-xs";
+                } else {
+                    btn.className = "folder-chip-btn px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap bg-gray-100 hover:bg-gray-200 text-gray-700";
+                }
             });
-            const activeTab = (folder === 'ALL') ? document.getElementById('tabFolder_ALL') : document.querySelector(`.folder-chip-btn[onclick*="${folder}"]`);
-            if (activeTab) {
-                activeTab.className = "folder-chip-btn px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 whitespace-nowrap bg-indigo-600 text-white shadow-xs";
-            }
             applyAllGalleryFilters();
         }
 
@@ -431,13 +437,15 @@
 
         function applyAllGalleryFilters() {
             const query = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+            const targetFolder = (activeFolder || 'ALL').toLowerCase().trim();
             let visible = 0;
+
             document.querySelectorAll('.image-card').forEach(card => {
                 const name = (card.getAttribute('data-name') || '').toLowerCase();
-                const folder = card.getAttribute('data-raw-folder') || 'General';
+                const folder = (card.getAttribute('data-raw-folder') || 'General').toLowerCase().trim();
                 const source = card.getAttribute('data-source') || '';
 
-                const matchFolder = (activeFolder === 'ALL' || folder.toLowerCase() === activeFolder.toLowerCase());
+                const matchFolder = (targetFolder === 'all' || folder === targetFolder);
                 const matchSource = (activeSource === 'all' || source === activeSource);
                 const matchQuery = (!query || name.includes(query));
 
@@ -638,8 +646,68 @@
             });
         }
 
-        function deleteSingleImage(url, id, name) {
-            if (!confirm(`Are you sure you want to permanently delete "${name}"?`)) return;
+        function quickMoveSingleImage(url, currentFolder, name) {
+            const availableFolders = @json(array_keys($folders));
+            const folderListStr = availableFolders.join(', ');
+            const targetFolder = prompt(`"${name}" ke liye naya Folder / Category dalein ya chunein:\n\nAvailable: ${folderListStr}\n\n(Tip: 'General' likhne se yeh kisi specific category me nahi rahega)`, currentFolder);
+            if (!targetFolder || targetFolder.trim() === '' || targetFolder.trim().toLowerCase() === currentFolder.toLowerCase()) {
+                return;
+            }
+
+            fetch("{{ route('seller.catalog.gallery.assign_folder') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": csrfToken,
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify({
+                    image_urls: [url],
+                    folder_name: targetFolder.trim()
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message || `Photo successfully '${targetFolder.trim()}' folder me move ho gayi!`);
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Error moving image.');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Network error while moving image.');
+            });
+        }
+
+        function deleteSingleImage(url, id, name, currentFolder) {
+            const isSpecificFolder = currentFolder && currentFolder.toLowerCase().trim() !== 'general' && currentFolder.toLowerCase().trim() !== 'all';
+
+            if (isSpecificFolder) {
+                const choice = confirm(`"${name}" ko hatane ke 2 vikalp hain:\n\n• [OK] dabayein: Sirf is "${currentFolder}" category se hatakar "General" me bhej dega (Real image Cloudinary aur server par surakshit rahegi).\n\n• [Cancel] dabayein: Photo ko Cloudinary aur pure store se PERMANENTLY DELETE karne ke option par jane ke liye.`);
+                if (choice) {
+                    // Safe move to General
+                    fetch("{{ route('seller.catalog.gallery.assign_folder') }}", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": csrfToken, "Accept": "application/json" },
+                        body: JSON.stringify({ image_urls: [url], folder_name: 'General' })
+                    }).then(res => res.json()).then(data => {
+                        alert(`Photo "${currentFolder}" se hatkar "General" me chali gayi hai.`);
+                        window.location.reload();
+                    });
+                    return;
+                }
+
+                // If user pressed Cancel, verify if they genuinely want permanent destruction
+                if (!confirm(`⚠️ WARNING: Kya aap "${name}" ko Cloudinary aur pure server se PERMANENTLY DELETE karna chahte hain? Isse yeh photo HAR JAGAH se gayab ho jayegi!`)) {
+                    return;
+                }
+            } else {
+                if (!confirm(`⚠️ WARNING: Kya aap "${name}" ko Cloudinary aur pure server se PERMANENTLY DELETE karna chahte hain? Isse yeh photo HAR JAGAH se gayab ho jayegi!`)) {
+                    return;
+                }
+            }
 
             fetch("{{ route('seller.catalog.gallery.delete') }}", {
                 method: "POST",

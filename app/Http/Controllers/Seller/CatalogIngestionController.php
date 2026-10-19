@@ -1336,6 +1336,12 @@ class CatalogIngestionController extends Controller
             }
 
             $folder = self::detectFolderForImage($img['name'] ?? '', $explicit);
+
+            $deletedFolders = \Illuminate\Support\Facades\Cache::get("deleted_gallery_folders_{$userId}", []);
+            if (!empty($deletedFolders) && isset($deletedFolders[strtolower(trim($folder))])) {
+                $folder = 'General';
+            }
+
             $img['folder'] = $folder;
             $img['category'] = $folder;
             $img['image'] = $img['asset_url'] ?? ($img['url'] ?? '');
@@ -1769,10 +1775,11 @@ class CatalogIngestionController extends Controller
         ]);
 
         $userId = Auth::id() ?: 1;
-        $folderName = trim($request->input('folder_name'));
+        $rawFolder = trim($request->input('folder_name'));
+        $folderName = trim(html_entity_decode($rawFolder, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
         $action = $request->input('action', 'move_to_general');
 
-        if (in_array(strtolower($folderName), ['general', 'all'])) {
+        if (in_array(strtolower($folderName), ['general', 'all']) || in_array(strtolower($rawFolder), ['general', 'all'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'General folder ko delete nahi kiya ja sakta.',
@@ -1781,7 +1788,10 @@ class CatalogIngestionController extends Controller
 
         if ($action === 'delete_images') {
             $medias = \App\Models\SellerMedia::where('user_id', $userId)
-                ->where('category_type', $folderName)
+                ->where(function($q) use ($rawFolder, $folderName) {
+                    $q->whereRaw('LOWER(TRIM(category_type)) = ?', [strtolower($rawFolder)])
+                      ->orWhereRaw('LOWER(TRIM(category_type)) = ?', [strtolower($folderName)]);
+                })
                 ->get();
 
             $deletedList = \Illuminate\Support\Facades\Cache::get('vyapar_deleted_image_urls', []);
@@ -1803,10 +1813,19 @@ class CatalogIngestionController extends Controller
             $msg = "Folder '{$folderName}' aur uske saare photos delete kar diye gaye hain!";
         } else {
             \App\Models\SellerMedia::where('user_id', $userId)
-                ->where('category_type', $folderName)
+                ->where(function($q) use ($rawFolder, $folderName) {
+                    $q->whereRaw('LOWER(TRIM(category_type)) = ?', [strtolower($rawFolder)])
+                      ->orWhereRaw('LOWER(TRIM(category_type)) = ?', [strtolower($folderName)]);
+                })
                 ->update(['category_type' => 'General']);
             $msg = "Folder '{$folderName}' delete ho gaya aur photos 'General' me move ho gaye hain!";
         }
+
+        // Blacklist deleted folder permanently so it never shows up as empty ghost folder
+        $deletedFolders = \Illuminate\Support\Facades\Cache::get("deleted_gallery_folders_{$userId}", []);
+        $deletedFolders[strtolower(trim($rawFolder))] = true;
+        $deletedFolders[strtolower(trim($folderName))] = true;
+        \Illuminate\Support\Facades\Cache::put("deleted_gallery_folders_{$userId}", $deletedFolders, now()->addYears(1));
 
         \Illuminate\Support\Facades\Cache::forget('cloudinary_resources_vyaparindia');
 
