@@ -1309,16 +1309,32 @@ class CatalogIngestionController extends Controller
                 ->toArray();
         } catch (\Throwable $e) {}
 
-        $deletedList = \Illuminate\Support\Facades\Cache::get('vyapar_deleted_image_urls', []);
-
         $finalImages = [];
+        $uniqueKeys = [];
         foreach ($images as $img) {
             $u = $img['url'] ?? '';
             $uClean = ltrim($u, '/');
-            if (isset($deletedList[$u]) || isset($deletedList[$uClean])) {
+            if (empty($u) || isset($deletedList[$u]) || isset($deletedList[$uClean])) {
                 continue;
             }
+
+            // Normalization key: base filename (prevents identical crops appearing in multiple folders)
+            $baseFn = strtolower(basename(parse_url($u, PHP_URL_PATH)));
+            if (isset($uniqueKeys[$baseFn])) {
+                continue;
+            }
+            $uniqueKeys[$baseFn] = true;
+
             $explicit = $customFolders[$u] ?? ($customFolders[$uClean] ?? ($img['category'] ?? null));
+            if (!$explicit) {
+                foreach ($customFolders as $cfPath => $cfFolder) {
+                    if (strtolower(basename(parse_url($cfPath, PHP_URL_PATH))) === $baseFn) {
+                        $explicit = $cfFolder;
+                        break;
+                    }
+                }
+            }
+
             $folder = self::detectFolderForImage($img['name'] ?? '', $explicit);
             $img['folder'] = $folder;
             $img['category'] = $folder;
@@ -1513,11 +1529,14 @@ class CatalogIngestionController extends Controller
 
         foreach ($urls as $url) {
             $cleanUrl = ltrim($url, '/');
+            $baseFn = strtolower(basename(parse_url($url, PHP_URL_PATH)));
+
             $media = \App\Models\SellerMedia::where('user_id', $userId)
-                ->where(function($q) use ($url, $cleanUrl) {
+                ->where(function($q) use ($url, $cleanUrl, $baseFn) {
                     $q->where('file_path', $url)
                       ->orWhere('file_path', $cleanUrl)
-                      ->orWhere('file_path', '/' . $cleanUrl);
+                      ->orWhere('file_path', '/' . $cleanUrl)
+                      ->orWhere('file_path', 'LIKE', '%' . $baseFn);
                 })->first();
 
             if ($media) {
@@ -1525,8 +1544,13 @@ class CatalogIngestionController extends Controller
                     $alreadyCount++;
                     continue;
                 }
-                $media->category_type = $folderName;
-                $media->save();
+                \App\Models\SellerMedia::where('user_id', $userId)
+                    ->where(function($q) use ($url, $cleanUrl, $baseFn) {
+                        $q->where('file_path', $url)
+                          ->orWhere('file_path', $cleanUrl)
+                          ->orWhere('file_path', '/' . $cleanUrl)
+                          ->orWhere('file_path', 'LIKE', '%' . $baseFn);
+                    })->update(['category_type' => $folderName]);
                 $movedCount++;
             } else {
                 $currentFolder = $this->detectFolderForImage(basename($url), null);
