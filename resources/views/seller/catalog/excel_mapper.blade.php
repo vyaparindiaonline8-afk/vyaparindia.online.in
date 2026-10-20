@@ -1725,6 +1725,14 @@
                                 <input type="checkbox" class="sheet-size-cb rounded text-purple-500 focus:ring-purple-400 h-3.5 w-3.5" value="6 x 3" checked onchange="recalculateRawFormulaRates()">
                                 <span>6 x 3 (18 sqft)</span>
                             </label>
+                            
+                            <!-- Container for dynamically added custom size pills -->
+                            <span id="customSheetSizePillsContainer" class="flex items-center gap-1.5"></span>
+
+                            <button type="button" onclick="promptAddCustomSheetSize()" class="px-2 py-0.5 rounded-lg bg-purple-900/60 hover:bg-purple-800 text-purple-200 border border-purple-500/50 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Apni marzi ka naya size jodein (jaise 8x3, 9x4, 10x4)">
+                                <i class="fa-solid fa-plus text-[9px]"></i>
+                                <span>+ Custom Size</span>
+                            </button>
                         </div>
 
                         <!-- Presets -->
@@ -5905,6 +5913,43 @@ With Pattam - 30% extra
             alertBox.classList.remove('hidden');
         }
 
+        let customSheetSizes = [];
+
+        function promptAddCustomSheetSize() {
+            const label = prompt('Naya Sheet Size likhein (jaise "8 x 3" ya "9 x 4"):', '8 x 3');
+            if (!label || !label.trim()) return;
+            
+            const areaStr = prompt(`"${label.trim()}" ka total Area (Sq. Ft.) kitna hai? (e.g. 8x3 ke liye 24 sqft):`, '24');
+            const area = parseFloat(areaStr);
+            if (!area || isNaN(area) || area <= 0) {
+                alert('Valid area sqft me likhein.');
+                return;
+            }
+
+            customSheetSizes.push({ label: label.trim(), area: area, active: true });
+            renderCustomSheetSizePills();
+            recalculateRawFormulaRates();
+            showToastNotification(`🎉 Naya size "${label.trim()} (${area} sqft)" add ho gaya!`);
+        }
+
+        function renderCustomSheetSizePills() {
+            const container = document.getElementById('customSheetSizePillsContainer');
+            if (!container) return;
+            container.innerHTML = customSheetSizes.map((cs, idx) => `
+                <label class="px-2 py-0.5 rounded-lg bg-purple-950/90 hover:bg-purple-900 border border-purple-500/60 text-purple-200 text-[11px] font-bold cursor-pointer flex items-center gap-1.5 transition select-none">
+                    <input type="checkbox" class="sheet-size-cb rounded text-purple-500 focus:ring-purple-400 h-3.5 w-3.5" value="${escapeHtml(cs.label)}" ${cs.active ? 'checked' : ''} onchange="toggleCustomSheetSize(${idx}, this.checked)">
+                    <span>${escapeHtml(cs.label)} (${cs.area} sqft)</span>
+                </label>
+            `).join('');
+        }
+
+        function toggleCustomSheetSize(idx, isChecked) {
+            if (customSheetSizes[idx]) {
+                customSheetSizes[idx].active = isChecked;
+                recalculateRawFormulaRates();
+            }
+        }
+
         function toggleSheetSizesConfigUI() {
             const isChecked = document.getElementById('formulaExpandSheetSizes')?.checked ?? false;
             const configRow = document.getElementById('formulaSheetSizesConfigRow');
@@ -5978,6 +6023,11 @@ With Pattam - 30% extra
                 '7 x 3': 21,
                 '6 x 3': 18
             };
+            customSheetSizes.forEach(cs => {
+                if (cs.active) {
+                    activeSizesMap[cs.label] = cs.area;
+                }
+            });
 
             const selectedSizeLabels = Array.from(document.querySelectorAll('.sheet-size-cb:checked')).map(cb => cb.value);
 
@@ -6099,15 +6149,29 @@ With Pattam - 30% extra
                     <tr class="hover:bg-slate-50 transition">
                         <td class="p-2 text-center text-gray-400 font-mono text-[10px]">${i + 1}</td>
                         <td class="p-2"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700">${escapeHtml(row.category)}</span></td>
-                        <td class="p-2 font-bold text-gray-900 truncate max-w-[200px]" title="${escapeHtml(row.product_name)}">${escapeHtml(row.product_name)}</td>
-                        <td class="p-2 font-mono font-bold text-purple-900">${escapeHtml(row.variant)}</td>
+                        <td class="p-2 min-w-[170px]">
+                            <input type="text" value="${escapeHtml(row.product_name)}" oninput="updateRawPreviewItemField(${i}, 'product_name', this.value)" class="w-full font-bold text-gray-900 bg-transparent border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded px-1 py-0.5 transition text-xs" title="Edit Product Name">
+                        </td>
+                        <td class="p-2 min-w-[160px]">
+                            <input type="text" value="${escapeHtml(row.variant)}" oninput="updateRawPreviewItemField(${i}, 'variant', this.value)" class="w-full font-mono font-bold text-purple-900 bg-transparent border border-transparent hover:border-purple-300 focus:border-purple-600 focus:bg-white rounded px-1 py-0.5 transition text-xs" title="Edit Size / Thickness / Dimensions">
+                        </td>
                         <td class="p-2 font-mono text-[10px] text-gray-500 font-bold uppercase">${escapeHtml(row.unit)}</td>
-                        <td class="p-2 font-mono text-gray-600">₹${row.base_rate.toFixed(2)}</td>
-                        <td class="p-2 font-mono font-bold text-amber-700 bg-amber-50/40">₹${row.landing_cost.toFixed(2)}</td>
-                        <td class="p-2 font-mono font-black text-emerald-700 bg-emerald-50/40">₹${row.rate_a.toFixed(2)}</td>
+                        <td class="p-2 font-mono">
+                            <div class="flex items-center">
+                                <span class="text-gray-400 text-xs mr-0.5">₹</span>
+                                <input type="number" step="0.25" value="${row.base_rate}" oninput="updateRawPreviewItemRate(${i}, parseFloat(this.value) || 0)" class="w-16 font-mono text-gray-800 bg-transparent border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded p-1 transition text-xs" title="Edit Base Rate">
+                            </div>
+                        </td>
+                        <td class="p-2 font-mono font-bold text-amber-700 bg-amber-50/40" id="landing_cell_${i}">₹${row.landing_cost.toFixed(2)}</td>
+                        <td class="p-2 font-mono bg-emerald-50/40">
+                            <div class="flex items-center">
+                                <span class="text-gray-400 text-xs mr-0.5">₹</span>
+                                <input type="number" step="0.25" value="${row.rate_a}" oninput="updateRawPreviewItemField(${i}, 'rate_a', parseFloat(this.value) || 0)" class="w-16 font-mono font-black text-emerald-700 bg-transparent border border-transparent hover:border-emerald-300 focus:border-emerald-600 focus:bg-white rounded p-1 transition text-xs" title="Edit Selling Rate A">
+                            </div>
+                        </td>
                         <td class="p-2 font-mono font-bold text-cyan-700">₹${row.rate_b.toFixed(2)}</td>
                         <td class="p-2 font-mono font-bold text-indigo-700">₹${row.rate_c.toFixed(2)}</td>
-                        <td class="p-2 text-[10px] text-gray-500 truncate max-w-[150px]" title="${escapeHtml(row.notes || '-')}">${escapeHtml(row.notes || '-')}</td>
+                        <td class="p-2 text-[10px] text-gray-500 truncate max-w-[140px]" title="${escapeHtml(row.notes || '-')}">${escapeHtml(row.notes || '-')}</td>
                         <td class="p-2 text-center">
                             <button type="button" onclick="deleteRawPricePreviewRow(${i})" class="h-6 w-6 rounded-lg bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 flex items-center justify-center text-xs transition" title="Remove line">
                                 <i class="fa-solid fa-xmark"></i>
@@ -6118,6 +6182,33 @@ With Pattam - 30% extra
             });
 
             tbody.innerHTML = html;
+        }
+
+        function updateRawPreviewItemField(idx, field, value) {
+            if (rawPriceCalculatedItems[idx]) {
+                rawPriceCalculatedItems[idx][field] = value;
+            }
+        }
+
+        function updateRawPreviewItemRate(idx, newBaseRate) {
+            if (!rawPriceCalculatedItems[idx]) return;
+            const row = rawPriceCalculatedItems[idx];
+            row.base_rate = newBaseRate;
+            
+            const lessPct = parseFloat(document.getElementById('formulaLessPercent')?.value) || 0;
+            const freight = parseFloat(document.getElementById('formulaFreightPerUnit')?.value) || 0;
+            const rateAMode = document.getElementById('formulaRateAMode')?.value || 'percent';
+            const rateAVal = parseFloat(document.getElementById('formulaRateAValue')?.value) || 0;
+
+            const afterLess = newBaseRate * (1 - (lessPct / 100));
+            const landing = Math.round((afterLess + freight) * 100) / 100;
+            let rA = (rateAMode === 'percent') ? (landing * (1 + (rateAVal / 100))) : (landing + rateAVal);
+
+            row.landing_cost = landing;
+            row.rate_a = Math.round(rA * 100) / 100;
+            
+            const landingCell = document.getElementById(`landing_cell_${idx}`);
+            if (landingCell) landingCell.innerText = `₹${landing.toFixed(2)}`;
         }
 
         function deleteRawPricePreviewRow(idx) {
