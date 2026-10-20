@@ -1829,9 +1829,9 @@
                         <i class="fa-solid fa-table-list"></i>
                         <span>+ Add to Spreadsheet Rows</span>
                     </button>
-                    <button type="button" onclick="insertRawPriceRowsAndAutoGroupCards()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer" title="Direct 6-8 sizes ke Grouped Product Cards banao bina alag se group kiye">
+                    <button type="button" onclick="insertRawPriceRowsAndAutoGroupCards()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer" title="Agar card pehle se bana hai to rates update ho jayenge, nahi bana to naya card create ho jayega!">
                         <i class="fa-solid fa-layer-group"></i>
-                        <span>🎴 Direct Create Product Cards</span>
+                        <span>🎴 Direct Create / Update Cards</span>
                     </button>
                 </div>
             </div>
@@ -3769,6 +3769,7 @@
             });
 
             let newCardsCreated = 0;
+            let existingCardsUpdated = 0;
             familyMap.forEach((rowsInFamily, familyName) => {
                 const firstRow = rowsInFamily[0];
                 const assignedImg = rowsInFamily.find(r => r.image_url)?.image_url || '';
@@ -3776,32 +3777,77 @@
                 const rowWithDesc = rowsInFamily.find(r => r.description && r.description.trim().length > 0);
                 const assignedDesc = rowWithDesc ? rowWithDesc.description.trim() : '';
 
-                const newCard = {
-                    card_id: groupedCardNextId++,
-                    parent_name: familyName,
-                    category: firstRow.category || firstRow.group_type || (isScoped ? activeCategory : 'General Hardware'),
-                    description: assignedDesc,
-                    image_url: assignedImg,
-                    asset_url: assignedAsset,
-                    variants: rowsInFamily.map(r => ({
-                        id: r.id,
-                        product_code: r.product_code || '',
-                        hsn_code: r.hsn_code || '39174000',
-                        size: r.size || 'Standard',
-                        description: r.description || '',
-                        packing_1: r.packing_1 || '',
-                        packing_2: r.packing_2 || '',
-                        mrp: r.mrp,
-                        purchase_cost: r.purchase_cost,
-                        cost_price_2: r.cost_price_2 || 0,
-                        cost_price_3: r.cost_price_3 || 0,
-                        retail_price: r.retail_price,
-                        stock: (r.stock !== undefined && r.stock !== null && r.stock !== '') ? parseInt(r.stock) : 0
-                    }))
-                };
+                // Check if card with this product name already exists!
+                const existingCard = groupedProductCards.find(c => 
+                    (c.parent_name || '').trim().toLowerCase() === familyName.trim().toLowerCase() ||
+                    extractBaseFamilyName(c.parent_name || '').toLowerCase() === familyName.toLowerCase()
+                );
 
-                groupedProductCards.push(newCard);
-                newCardsCreated++;
+                if (existingCard) {
+                    // 🔄 UPDATE EXISTING CARD RATES (Zero Duplication!)
+                    rowsInFamily.forEach(r => {
+                        const existingVar = existingCard.variants.find(v => 
+                            (v.size || '').trim().toLowerCase() === (r.size || '').trim().toLowerCase()
+                        );
+                        if (existingVar) {
+                            existingVar.mrp = r.mrp;
+                            existingVar.purchase_cost = r.purchase_cost;
+                            existingVar.retail_price = r.retail_price;
+                            if (r.cost_price_2) existingVar.cost_price_2 = r.cost_price_2;
+                            if (r.cost_price_3) existingVar.cost_price_3 = r.cost_price_3;
+                            if (r.description) existingVar.description = r.description;
+                        } else {
+                            existingCard.variants.push({
+                                id: r.id,
+                                product_code: r.product_code || '',
+                                hsn_code: r.hsn_code || '39174000',
+                                size: r.size || 'Standard',
+                                description: r.description || '',
+                                packing_1: r.packing_1 || '',
+                                packing_2: r.packing_2 || '',
+                                mrp: r.mrp,
+                                purchase_cost: r.purchase_cost,
+                                cost_price_2: r.cost_price_2 || 0,
+                                cost_price_3: r.cost_price_3 || 0,
+                                retail_price: r.retail_price,
+                                stock: (r.stock !== undefined && r.stock !== null && r.stock !== '') ? parseInt(r.stock) : 0
+                            });
+                        }
+                    });
+                    if (!existingCard.image_url && assignedImg) {
+                        existingCard.image_url = assignedImg;
+                        existingCard.asset_url = assignedAsset;
+                    }
+                    existingCardsUpdated++;
+                } else {
+                    // 🆕 CREATE NEW CARD
+                    const newCard = {
+                        card_id: groupedCardNextId++,
+                        parent_name: familyName,
+                        category: firstRow.category || firstRow.group_type || (isScoped ? activeCategory : 'General Hardware'),
+                        description: assignedDesc,
+                        image_url: assignedImg,
+                        asset_url: assignedAsset,
+                        variants: rowsInFamily.map(r => ({
+                            id: r.id,
+                            product_code: r.product_code || '',
+                            hsn_code: r.hsn_code || '39174000',
+                            size: r.size || 'Standard',
+                            description: r.description || '',
+                            packing_1: r.packing_1 || '',
+                            packing_2: r.packing_2 || '',
+                            mrp: r.mrp,
+                            purchase_cost: r.purchase_cost,
+                            cost_price_2: r.cost_price_2 || 0,
+                            cost_price_3: r.cost_price_3 || 0,
+                            retail_price: r.retail_price,
+                            stock: (r.stock !== undefined && r.stock !== null && r.stock !== '') ? parseInt(r.stock) : 0
+                        }))
+                    };
+
+                    groupedProductCards.push(newCard);
+                    newCardsCreated++;
+                }
             });
 
             // Remove only the distributed rows from dynamicRows!
@@ -3815,7 +3861,7 @@
             saveToLocalStorage();
             autoSaveDraftToBackend();
 
-            showToastNotification(`🚀 Zabardast! ${targetRows.length} items ${familyMap.size} alag-alag Cards me distribute ho gaye hain aur pending list se hat gaye!`);
+            showToastNotification(`🚀 Zabardast! ${newCardsCreated} naye cards create hue aur ${existingCardsUpdated} existing cards ke rates naye bhav ke sath update ho gaye!`);
 
             // Scroll down to cards section smoothly
             setTimeout(() => {
