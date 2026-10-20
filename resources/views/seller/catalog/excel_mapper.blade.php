@@ -445,6 +445,7 @@
                                 <th class="p-3 w-12">Photo</th>
                                 <th class="p-3 w-24">Category</th>
                                 <th class="p-3 min-w-[200px]">Product / Item Name</th>
+                                <th class="p-3 w-24">Model No</th>
                                 <th class="p-3 w-28">Item Code</th>
                                 <th class="p-3 w-24">HSN Code</th>
                                 <th class="p-3 w-24">Size</th>
@@ -2536,25 +2537,25 @@
 
             if (structuredRows && structuredRows.length > 0) {
                 structuredRows.forEach((r, idx) => {
-                    const name = (r.name || r.product_name || `Item ${idx + 1}`).trim();
-                    const size = (r.size && r.size !== '-') ? r.size.trim() : 'Standard';
+                    const name = (r.name || r.product_name || `Product ${idx + 1}`).trim();
+                    const size = (r.size && r.size !== '-') ? r.size.trim() : '';
                     const modelNo = (r.model_no && r.model_no !== '-') ? r.model_no.trim() : '';
                     const itemCode = (r.item_code && r.item_code !== '-') ? r.item_code.trim() : '';
-                    const sku = itemCode || (r.sku && r.sku !== '-' ? r.sku.trim() : (modelNo ? `MOD-${modelNo}` : `ITM-${100 + idx}`));
-                    const mrp = parseFloat(r.mrp) || (100 + (idx * 20));
-                    const cost = Math.round(mrp * 0.65);
-                    const retail = Math.round(mrp * 0.88);
+                    const sku = itemCode || (r.sku && r.sku !== '-' ? r.sku.trim() : '');
+                    const mrp = isNaN(parseFloat(r.mrp)) ? 0 : parseFloat(r.mrp);
+                    const price = isNaN(parseFloat(r.price)) ? mrp : parseFloat(r.price);
                     const category = (r.category && r.category !== '-') ? r.category.trim() : targetCategory;
                     const pack1 = (r.packing_1 && r.packing_1 !== '-') ? r.packing_1.trim() : (r.unit || '');
                     const pack2 = (r.packing_2 && r.packing_2 !== '-') ? r.packing_2.trim() : '';
                     const desc = (r.description && r.description !== '-') ? r.description.trim() : (r.specifications || '');
+                    const hsn = (r.hsn_code && r.hsn_code !== '-') ? r.hsn_code.trim() : '';
 
                     dynamicRows.push({
                         id: dynamicRowNextId++,
                         product_code: sku,
                         model_no: modelNo,
                         item_code: itemCode,
-                        hsn_code: '39174000',
+                        hsn_code: hsn,
                         product_name: name,
                         description: desc,
                         size: size,
@@ -2565,11 +2566,11 @@
                         group_type: category,
                         category: category,
                         mrp: mrp,
-                        purchase_cost: cost,
+                        purchase_cost: 0,
                         cost_price_2: 0,
                         cost_price_3: 0,
-                        retail_price: retail,
-                        stock: 100,
+                        retail_price: price,
+                        stock: 0,
                         image_url: preselectedImg || '',
                         asset_url: preselectedImg ? ('/' + preselectedImg.replace(/^\//, '')) : ''
                     });
@@ -2593,26 +2594,27 @@
                     else if (/AGRI|SOLVENT/i.test(combined)) category = 'Agri & Solvents';
                     else if (/UPVC/i.test(combined)) category = 'UPVC';
 
-                    const cost = Math.round(parsed.mrp * 0.65);
-                    const retail = Math.round(parsed.mrp * 0.88);
+                    const mrp = parsed.mrp > 0 ? parsed.mrp : 0;
 
                     dynamicRows.push({
                         id: dynamicRowNextId++,
-                        product_code: parsed.sku || `ITM-${100 + idx}`,
-                        hsn_code: '39174000',
+                        product_code: parsed.sku || '',
+                        model_no: '',
+                        item_code: parsed.sku || '',
+                        hsn_code: '',
                         product_name: parsed.name,
                         description: parsed.description || '',
-                        size: parsed.size,
-                        packing_1: parsed.pack1,
-                        packing_2: parsed.pack2,
+                        size: parsed.size || '',
+                        packing_1: parsed.pack1 || '',
+                        packing_2: parsed.pack2 || '',
                         group_type: category,
                         category: category,
-                        mrp: parsed.mrp,
-                        purchase_cost: cost,
+                        mrp: mrp,
+                        purchase_cost: 0,
                         cost_price_2: 0,
                         cost_price_3: 0,
-                        retail_price: retail,
-                        stock: 100,
+                        retail_price: mrp,
+                        stock: 0,
                         image_url: preselectedImg || '',
                         asset_url: preselectedImg ? ('/' + preselectedImg.replace(/^\//, '')) : ''
                     });
@@ -5372,7 +5374,10 @@
                             <input type="text" value="${escapeHtml(r.description || '')}" oninput="updateDynamicRowField(${r.id}, 'description', this.value)" class="w-full text-[10px] text-gray-500 border border-transparent hover:border-gray-300 focus:border-indigo-500 focus:bg-white rounded px-1 py-0.5 transition bg-transparent mt-0.5" placeholder="Specs / Series / Desc" title="Product Description / Series">
                         </td>
                         <td class="p-3">
-                            <input type="text" value="${escapeHtml(r.product_code || '')}" placeholder="Item Code" oninput="updateDynamicRowField(${r.id}, 'product_code', this.value)" class="w-24 text-[11px] font-mono text-gray-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" title="Product / Item Code (SKU)">
+                            <input type="text" value="${escapeHtml(r.model_no || '')}" placeholder="Model No" oninput="updateDynamicRowField(${r.id}, 'model_no', this.value)" class="w-20 text-[11px] font-mono font-bold text-purple-700 border border-transparent hover:border-gray-300 focus:border-purple-600 focus:bg-white rounded-lg p-1 transition bg-transparent" title="Model No (Printed on PDF)">
+                        </td>
+                        <td class="p-3">
+                            <input type="text" value="${escapeHtml(r.item_code || r.product_code || '')}" placeholder="Item Code" oninput="updateDynamicRowField(${r.id}, 'product_code', this.value); updateDynamicRowField(${r.id}, 'item_code', this.value);" class="w-24 text-[11px] font-mono text-gray-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" title="Product / Item Code (SKU)">
                         </td>
                         <td class="p-3">
                             <input type="text" value="${escapeHtml(r.hsn_code || '39174000')}" placeholder="39174000" oninput="updateDynamicRowField(${r.id}, 'hsn_code', this.value)" class="w-20 text-[11px] font-mono text-indigo-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" title="HSN / SAC Code (Default: 39174000)">
@@ -5558,7 +5563,7 @@
             }
 
             const sheetName = (document.getElementById('dynamicSheetName')?.value || 'catalog').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-            let csv = "Category,Product Code,HSN Code,Product Name,Description,Size/Dimension,Packing 1 (Box),Packing 2 (Carton),MRP,Purchase Cost 1,Cost Price 2,Cost Price 3,Selling Price,Stock,Image URL\n";
+            let csv = "Category,Product Name,Model No,Item Code,HSN Code,Description,Size/Dimension,Packing 1,Packing 2,MRP,Purchase Cost,Cost Price 2,Cost Price 3,Selling Price,Stock,Image URL\n";
 
             // Add grouped cards
             targetCards.forEach(c => {
@@ -5566,18 +5571,19 @@
                 c.variants.forEach(v => {
                     csv += [
                         escapeCsv(c.category || 'General Hardware'),
-                        escapeCsv(v.product_code || ''),
-                        escapeCsv(v.hsn_code || '39174000'),
                         escapeCsv(c.parent_name),
+                        escapeCsv(v.model_no || c.model_no || ''),
+                        escapeCsv(v.item_code || v.product_code || ''),
+                        escapeCsv(v.hsn_code || ''),
                         escapeCsv(c.description || v.description || ''),
-                        escapeCsv(v.size || 'Standard'),
+                        escapeCsv(v.size || ''),
                         escapeCsv(v.packing_1 || ''),
                         escapeCsv(v.packing_2 || ''),
-                        v.mrp,
-                        v.purchase_cost,
+                        v.mrp || 0,
+                        v.purchase_cost || 0,
                         v.cost_price_2 || 0,
                         v.cost_price_3 || 0,
-                        v.retail_price,
+                        v.retail_price || 0,
                         (v.stock !== undefined && v.stock !== null) ? v.stock : 0,
                         escapeCsv(c.image_url || c.asset_url || '')
                     ].join(',') + "\n";
@@ -5589,18 +5595,19 @@
                 const escapeCsv = (str) => `"${(str || '').toString().replace(/"/g, '""')}"`;
                 csv += [
                     escapeCsv(r.group_type || r.category || 'General Hardware'),
-                    escapeCsv(r.product_code || ''),
-                    escapeCsv(r.hsn_code || '39174000'),
                     escapeCsv(r.product_name),
+                    escapeCsv(r.model_no || ''),
+                    escapeCsv(r.item_code || r.product_code || ''),
+                    escapeCsv(r.hsn_code || ''),
                     escapeCsv(r.description || ''),
-                    escapeCsv(r.size || 'Standard'),
+                    escapeCsv(r.size || ''),
                     escapeCsv(r.packing_1 || ''),
                     escapeCsv(r.packing_2 || ''),
-                    r.mrp,
-                    r.purchase_cost,
+                    r.mrp || 0,
+                    r.purchase_cost || 0,
                     r.cost_price_2 || 0,
                     r.cost_price_3 || 0,
-                    r.retail_price,
+                    r.retail_price || 0,
                     (r.stock !== undefined && r.stock !== null) ? r.stock : 0,
                     escapeCsv(r.image_url || r.asset_url || '')
                 ].join(',') + "\n";
