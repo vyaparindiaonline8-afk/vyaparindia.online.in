@@ -676,6 +676,8 @@
                             <thead class="bg-gray-100 text-[10px] font-black text-gray-600 uppercase border-b border-gray-200">
                                 <tr>
                                     <th class="p-2">Product Name</th>
+                                    <th class="p-2">Model No</th>
+                                    <th class="p-2">Item Code</th>
                                     <th class="p-2">Size</th>
                                     <th class="p-2">MRP</th>
                                     <th class="p-2">Category</th>
@@ -2676,8 +2678,18 @@
         }
 
         function runAiPageTableExtraction() {
-            if (!currentPageTextContent || currentPageTextContent.trim().length === 0) {
-                alert(`Page ${currentPdfPage} par koi readable text nahi mila ya yeh page scanned image hai.`);
+            const canvas = document.getElementById('pdfCanvas');
+            let pageImage = null;
+            if (canvas && canvas.width > 50 && canvas.height > 50) {
+                try {
+                    pageImage = canvas.toDataURL('image/jpeg', 0.85);
+                } catch (e) {
+                    console.warn('Canvas capture warning:', e);
+                }
+            }
+
+            if (!pageImage && (!currentPageTextContent || currentPageTextContent.trim().length === 0)) {
+                alert(`Page ${currentPdfPage} par koi readable text ya image nahi mili.`);
                 return;
             }
 
@@ -2707,6 +2719,7 @@
                 body: JSON.stringify({
                     page: currentPdfPage,
                     page_text: textPayload,
+                    page_image: pageImage,
                     api_key: apiKey
                 })
             })
@@ -2750,7 +2763,9 @@
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-violet-50/50";
                 tr.innerHTML = `
-                    <td class="p-2 font-bold text-gray-900 break-words">${escapeHtml(r.name || '-')}</td>
+                    <td class="p-2 font-bold text-gray-900 break-words">${escapeHtml(r.name || r.product_name || '-')}</td>
+                    <td class="p-2 font-mono text-purple-700 font-bold">${escapeHtml(r.model_no || '-')}</td>
+                    <td class="p-2 font-mono text-blue-700 font-bold">${escapeHtml(r.item_code || r.sku || '-')}</td>
                     <td class="p-2 text-indigo-700 font-semibold">${escapeHtml(r.size || '-')}</td>
                     <td class="p-2 text-emerald-700 font-black font-mono">${r.mrp ? '₹' + escapeHtml(String(r.mrp)) : '-'}</td>
                     <td class="p-2 text-gray-500">${escapeHtml(r.category || '-')}</td>
@@ -2767,10 +2782,12 @@
 
             // Convert structured rows into clean formatted lines for Excel Mapper dynamic hydration
             const lines = currentAiExtractedRows.map(r => {
-                const parts = [r.name];
+                const parts = [r.name || r.product_name];
+                if (r.model_no && r.model_no !== '-') parts.push(`Model: ${r.model_no}`);
+                if (r.item_code && r.item_code !== '-') parts.push(`Code: ${r.item_code}`);
+                else if (r.sku && r.sku !== '-') parts.push(`Code: ${r.sku}`);
                 if (r.size && r.size !== '-') parts.push(r.size);
                 if (r.mrp && r.mrp !== '-') parts.push(`MRP ₹${r.mrp}`);
-                if (r.sku && r.sku !== '-') parts.push(`Code: ${r.sku}`);
                 return parts.join(' - ');
             });
 
@@ -2809,19 +2826,23 @@
 
             const formattedRows = currentAiExtractedRows.map((r, idx) => {
                 const mrp = parseFloat(r.mrp) || 100;
+                const modelNo = (r.model_no && r.model_no !== '-') ? r.model_no : '';
+                const itemCode = (r.item_code && r.item_code !== '-') ? r.item_code : '';
+                const sku = itemCode || (r.sku && r.sku !== '-' ? r.sku : (modelNo ? `MOD-${modelNo}` : `ITM-${100 + idx}`));
                 return {
-                    product_name: r.name || `Item ${idx + 1}`,
+                    product_name: r.name || r.product_name || `Item ${idx + 1}`,
+                    model_no: modelNo,
+                    product_code: sku,
                     category: (r.category && r.category !== '-') ? r.category : defaultCat,
                     group_type: (r.category && r.category !== '-') ? r.category : defaultCat,
                     size: (r.size && r.size !== '-') ? r.size : 'Standard',
-                    packing_1: r.packing_1 || r.pack1 || '',
-                    packing_2: r.packing_2 || r.pack2 || '',
+                    packing_1: r.packing_1 || r.unit || '',
+                    packing_2: r.packing_2 || '',
                     mrp: mrp,
                     purchase_cost: Math.round(mrp * 0.65),
                     retail_price: Math.round(mrp * 0.88),
                     cost_price_2: 0,
                     cost_price_3: 0,
-                    product_code: (r.sku && r.sku !== '-') ? r.sku : `ITM-${100 + idx}`,
                     hsn_code: '39174000',
                     stock: 100
                 };

@@ -2458,12 +2458,6 @@
                 }
             }
 
-            // Check measuring tape SKU model codes (3016 -> 3m x 16mm, 5019 -> 5m x 19mm, 1025 -> 10m x 25mm)
-            if (!size && sku) {
-                if (/3016/.test(sku)) size = '3 Meter x 16mm';
-                else if (/5019/.test(sku)) size = '5 Meter x 19mm';
-                else if (/1025/.test(sku)) size = '10 Meter x 25mm';
-            }
 
             // 5. Detect packing numbers
             let pack1 = '';
@@ -2543,29 +2537,29 @@
             if (structuredRows && structuredRows.length > 0) {
                 structuredRows.forEach((r, idx) => {
                     const name = (r.name || r.product_name || `Item ${idx + 1}`).trim();
-                    let size = (r.size && r.size !== '-') ? r.size.trim() : '';
-                    const sku = (r.sku && r.sku !== '-') ? r.sku.trim() : `ITM-${100 + idx}`;
-                    if (!size || size === 'Standard') {
-                        if (/3016/.test(sku)) size = '3 Meter x 16mm';
-                        else if (/5019/.test(sku)) size = '5 Meter x 19mm';
-                        else if (/1025/.test(sku)) size = '10 Meter x 25mm';
-                        else size = size || 'Standard';
-                    }
+                    const size = (r.size && r.size !== '-') ? r.size.trim() : 'Standard';
+                    const modelNo = (r.model_no && r.model_no !== '-') ? r.model_no.trim() : '';
+                    const itemCode = (r.item_code && r.item_code !== '-') ? r.item_code.trim() : '';
+                    const sku = itemCode || (r.sku && r.sku !== '-' ? r.sku.trim() : (modelNo ? `MOD-${modelNo}` : `ITM-${100 + idx}`));
                     const mrp = parseFloat(r.mrp) || (100 + (idx * 20));
                     const cost = Math.round(mrp * 0.65);
                     const retail = Math.round(mrp * 0.88);
                     const category = (r.category && r.category !== '-') ? r.category.trim() : targetCategory;
-                    const pack1 = (r.packing_1 && r.packing_1 !== '-') ? r.packing_1.trim() : (r.pack1 || '');
-                    const pack2 = (r.packing_2 && r.packing_2 !== '-') ? r.packing_2.trim() : (r.pack2 || '');
-                    const desc = (r.description && r.description !== '-') ? r.description.trim() : '';
+                    const pack1 = (r.packing_1 && r.packing_1 !== '-') ? r.packing_1.trim() : (r.unit || '');
+                    const pack2 = (r.packing_2 && r.packing_2 !== '-') ? r.packing_2.trim() : '';
+                    const desc = (r.description && r.description !== '-') ? r.description.trim() : (r.specifications || '');
 
                     dynamicRows.push({
                         id: dynamicRowNextId++,
                         product_code: sku,
+                        model_no: modelNo,
+                        item_code: itemCode,
                         hsn_code: '39174000',
                         product_name: name,
                         description: desc,
                         size: size,
+                        color: r.color || '',
+                        unit: r.unit || '',
                         packing_1: pack1,
                         packing_2: pack2,
                         group_type: category,

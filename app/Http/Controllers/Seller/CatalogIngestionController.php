@@ -2181,7 +2181,8 @@ CRITICAL INSTRUCTIONS FOR UNIVERSAL CATALOG ROW, SPECS & PRICE MATCHING:
     {
         $request->validate([
             'page' => 'required|integer',
-            'page_text' => 'required|string',
+            'page_text' => 'nullable|string',
+            'page_image' => 'nullable|string',
             'api_key' => 'nullable|string',
         ]);
 
@@ -2195,73 +2196,150 @@ CRITICAL INSTRUCTIONS FOR UNIVERSAL CATALOG ROW, SPECS & PRICE MATCHING:
             : (env('GEMINI_API_KEY') ?: env('GEMINI_KEY') ?: ($userKey ?: null));
 
         $page = $request->input('page');
-        $pageText = substr($request->input('page_text'), 0, 15000);
+        $pageText = substr($request->input('page_text') ?? '', 0, 20000);
+        $pageImage = $request->input('page_image'); // Base64 data URL
 
-        $prompt = "You are an expert product catalog digitizer for wholesale B2B catalogs across all sectors (Hardware, Hand Tools, Measuring Tapes, Blades, Plumbing, Sanitary, Electricals, FMCG, Paints, Agriculture).
-Convert the following text from ONLY Page {$page} into a structured JSON array of table rows.
+        $prompt = "You are a precise data-extraction engine. You will be shown ONE page of a product catalogue/price list (image or text). Extract every product on this page into JSON. Accuracy matters more than completeness: never guess.
 
-Each item in the JSON array must be an object with these exact keys:
-- \"name\": Clean Product Item Name WITHOUT size or price attached (e.g. \"Yorker Measuring Tape\", \"UPVC 90° Elbow\", \"Cutting Blade\").
-- \"description\": Product Description, Series Name, or Specifications (e.g. \"Auto Stop Series\", \"Pro Model Heavy Duty\", \"Steel Strip\", \"Schedule 40 Heavy\", \"ISI Marked\", \"-\"). NEVER ignore descriptions or series!
-- \"size\": Dimension or variant size (e.g. \"3m x 16mm\", \"5m x 19mm\", \"20mm\", \"25mm (1 inch)\", \"32mm x 1/2\\\"\", \"-\"). DO NOT default to 'Standard' if dimensions or model codes indicate size.
-- \"packing_1\": Box or inner pack quantity if present (e.g. \"100\" or \"-\").
-- \"packing_2\": Bag or master carton pack quantity if present (e.g. \"800\" or \"-\").
-- \"mrp\": Numeric MRP or Price (e.g. 45.00 or 120.50). Numbers only, no currency symbols.
-- \"sku\": Item Code, Cat No, or Art No if visible (e.g. \"YK-3016\", \"PR-5019\", \"UP-101\" or \"-\").
-- \"category\": Category classification (e.g. \"Hardware & Tools\", \"UPVC Fittings\", \"CPVC Fittings\", \"Pipes\", \"Hardware\").
+STEP 1: Understand the page layout first.
+Look at the page and identify:
+- Is it a table, a grid of product cards, or a plain list?
+- What are the exact column headings or labels printed on the page (copy them exactly as printed)?
+- Any page-level info that applies to all products (company/brand name, category, series name, GST %, \"all prices in INR\", unit like pcs/box). 
+Put this in \"layout\".
 
-CRITICAL RULES FOR CATALOG LAYOUTS:
-1. In product catalogs, an item heading usually appears once above a table of 5 to 15 size rows. You MUST assign this full product name into the \"name\" field for EVERY corresponding size row.
-2. DO NOT mix sizes, packaging numbers, or prices into the \"name\" field. The \"name\" must be clean. Always put model/series/specs into \"description\".
-3. ACCURATE SIZES: For measuring tapes (e.g., Yorker codes 3016 -> 3m x 16mm, 5019 -> 5m x 19mm), extract tape dimensions. NEVER hallucinate pipe sizes (like 1/2 inch) for measuring tapes, blades, or hand tools!
-4. Ignore noise words, headers, and footnotes like \"Available in:\", \"Price List\", \"Terms & Conditions\", \"Page X of Y\".
-5. Return ONLY the raw valid JSON array starting with [ and ending with ]. No explanation, no conversational text, no markdown codeblocks.
-6. CRITICAL PRICE INTEGRITY: Each size variant's price/MRP is located STRICTLY on that exact same horizontal line in the text. NEVER mix or borrow an MRP from lower down the page or from a different table to assign to an item at the top. If a row has no visible price, set \"mrp\": 0. Never guess prices.
+STEP 2: Extract products.
+Rules:
+1. One row in the table or one product card = one object in \"products\". If one product has multiple variants (sizes, colors, wattages) each with its own code or price, make a SEPARATE object for each variant and repeat the common product_name.
+2. Copy text EXACTLY as printed: same spelling, same hyphens, same capital letters, same digits. Do not correct, translate, or reformat codes.
+3. Field meaning:
+   - model_no: only if the page labels it \"Model\", \"Model No\", \"Design No\", \"Type\".
+   - item_code: only if labeled \"Code\", \"Item Code\", \"SKU\", \"Cat No\", \"Part No\".
+   - If the page has only ONE kind of code and the label is unclear, put it in item_code and leave model_no null.
+   - NEVER put the same value in both model_no and item_code. NEVER swap them.
+4. If a value is not visibly printed for that product, use null. Do not infer, calculate, or copy from neighbouring rows.
+5. Merged or blank cells: if a cell spans multiple rows (e.g., a category or product name), apply that value to all rows it spans.
+6. Prices: numbers only, no currency symbol or commas (e.g., \"₹1,250\" becomes 1250). Keep MRP and selling/dealer price separate according to column labels. If unsure which is which, put it in \"price\" and add a note.
+7. Ignore headers, footers, page numbers, phone numbers, addresses, logos, and advertisements. They are not products.
+8. Read row by row, left to right, top to bottom. Do not skip rows. Do not repeat rows. Do not invent rows to fill space.
+9. If text is blurry or unreadable, set that field to null and add a note. Do not guess characters.
 
-PAGE {$page} TEXT CONTENT:
-\"\"\"
-{$pageText}
-\"\"\"";
+OUTPUT: Return ONLY valid JSON, no markdown, no explanation, in exactly this shape:
+
+{
+  \"layout\": {
+    \"type\": \"table | cards | list\",
+    \"column_labels_found\": [\"...\"],
+    \"brand\": null,
+    \"category\": null,
+    \"common_notes\": null
+  },
+  \"products\": [
+    {
+      \"row_no\": 1,
+      \"product_name\": null,
+      \"model_no\": null,
+      \"item_code\": null,
+      \"size\": null,
+      \"color\": null,
+      \"specifications\": null,
+      \"unit\": null,
+      \"mrp\": null,
+      \"price\": null,
+      \"gst_percent\": null,
+      \"description\": null,
+      \"notes\": null
+    }
+  ],
+  \"total_products_on_page\": 0
+}
+
+Before answering, count the products on the page and make sure \"total_products_on_page\" equals the length of \"products\".";
 
         $reply = null;
         $provider = null;
 
-        // Try OpenAI
+        // 1. Try OpenAI (Supports Vision if page_image is present)
         if ($openAiKey && (str_starts_with($openAiKey, 'sk-') || !$geminiKey)) {
             try {
+                $userMessages = [];
+                if ($pageImage && str_starts_with($pageImage, 'data:image')) {
+                    $userMessages = [
+                        [
+                            'type' => 'text',
+                            'text' => $prompt . "\n\nPAGE {$page} EXTRACTED TEXT (Reference):\n\"\"\"\n{$pageText}\n\"\"\""
+                        ],
+                        [
+                            'type' => 'image_url',
+                            'image_url' => [
+                                'url' => $pageImage,
+                                'detail' => 'high'
+                            ]
+                        ]
+                    ];
+                } else {
+                    $userMessages = $prompt . "\n\nPAGE {$page} TEXT CONTENT:\n\"\"\"\n{$pageText}\n\"\"\"";
+                }
+
                 $response = Http::withToken($openAiKey)
-                    ->timeout(35)
+                    ->timeout(45)
                     ->post('https://api.openai.com/v1/chat/completions', [
                         'model' => 'gpt-4o-mini',
                         'messages' => [
-                            ['role' => 'system', 'content' => 'You are an accurate catalog extraction engine that outputs only valid JSON arrays.'],
-                            ['role' => 'user', 'content' => $prompt],
+                            ['role' => 'system', 'content' => 'You are a precise data-extraction engine that outputs ONLY valid JSON.'],
+                            ['role' => 'user', 'content' => $userMessages],
                         ],
-                        'temperature' => 0.1,
+                        'temperature' => 0.0,
                     ]);
 
                 if ($response->successful()) {
                     $reply = $response->json('choices.0.message.content');
-                    $provider = 'OpenAI (GPT-4o mini)';
+                    $provider = 'OpenAI (GPT-4o mini' . ($pageImage ? ' Vision' : '') . ')';
                 }
             } catch (\Throwable $e) {
                 Log::warning('AI Table extract OpenAI error: ' . $e->getMessage());
             }
         }
 
-        // Try Gemini if no reply yet
+        // 2. Try Gemini if no reply yet (Supports Vision if page_image is present)
         if (!$reply && $geminiKey) {
             try {
-                $response = Http::timeout(35)
+                $parts = [];
+                if ($pageImage && str_starts_with($pageImage, 'data:image')) {
+                    $imgParts = explode(',', $pageImage, 2);
+                    $base64Only = $imgParts[1] ?? $pageImage;
+                    $mime = 'image/jpeg';
+                    if (str_contains($imgParts[0], 'image/png')) $mime = 'image/png';
+
+                    $parts = [
+                        ['text' => $prompt . "\n\nPAGE {$page} EXTRACTED TEXT (Reference):\n\"\"\"\n{$pageText}\n\"\"\""],
+                        [
+                            'inline_data' => [
+                                'mime_type' => $mime,
+                                'data' => $base64Only
+                            ]
+                        ]
+                    ];
+                } else {
+                    $parts = [
+                        ['text' => $prompt . "\n\nPAGE {$page} TEXT CONTENT:\n\"\"\"\n{$pageText}\n\"\"\""]
+                    ];
+                }
+
+                $response = Http::timeout(45)
                     ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$geminiKey}", [
                         'contents' => [
-                            ['parts' => [['text' => $prompt]]]
+                            ['parts' => $parts]
+                        ],
+                        'generationConfig' => [
+                            'temperature' => 0.0,
+                            'responseMimeType' => 'application/json'
                         ]
                     ]);
 
                 if ($response->successful()) {
                     $reply = $response->json('candidates.0.content.parts.0.text');
-                    $provider = 'Google Gemini 1.5 Flash';
+                    $provider = 'Google Gemini 1.5 Flash' . ($pageImage ? ' Vision' : '');
                 }
             } catch (\Throwable $e) {
                 Log::warning('AI Table extract Gemini error: ' . $e->getMessage());
@@ -2281,27 +2359,82 @@ PAGE {$page} TEXT CONTENT:
         $cleanJson = preg_replace('/\s*```$/i', '', $cleanJson);
         $cleanJson = trim($cleanJson);
 
-        $parsedRows = json_decode($cleanJson, true);
-        if (!is_array($parsedRows)) {
-            // Fallback: regex match json array
-            if (preg_match('/\[.*\]/s', $cleanJson, $matches)) {
-                $parsedRows = json_decode($matches[0], true);
+        $parsed = json_decode($cleanJson, true);
+        if (!is_array($parsed)) {
+            // Fallback: regex match json object or array
+            if (preg_match('/\{[\s\S]*\}/', $cleanJson, $matches)) {
+                $parsed = json_decode($matches[0], true);
+            } elseif (preg_match('/\[[\s\S]*\]/', $cleanJson, $matches)) {
+                $parsed = json_decode($matches[0], true);
             }
         }
 
-        if (!is_array($parsedRows) || empty($parsedRows)) {
+        if (!is_array($parsed)) {
             return response()->json([
                 'success' => false,
-                'message' => 'AI is page se structured table extract nahi kar paya. Aap "Extract Text Lines" (Free Native) ka use karke lines select kar sakte hain.',
+                'message' => 'AI is page se structured table extract nahi kar paya.',
                 'raw_reply' => $reply,
             ], 422);
+        }
+
+        // Extract layout and products array
+        $layout = $parsed['layout'] ?? [];
+        $rawProducts = $parsed['products'] ?? (isset($parsed[0]) ? $parsed : []);
+
+        if (!is_array($rawProducts) || empty($rawProducts)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Is page par koi product rows detect nahi huin.',
+                'raw_reply' => $reply,
+            ], 422);
+        }
+
+        // Normalize rows strictly preserving separate model_no and item_code
+        $normalizedRows = [];
+        foreach ($rawProducts as $idx => $p) {
+            $pName = trim($p['product_name'] ?? ($p['name'] ?? ''));
+            if (!$pName) {
+                $pName = "Product " . ($idx + 1);
+            }
+
+            $modelNo = !empty($p['model_no']) ? trim($p['model_no']) : null;
+            $itemCode = !empty($p['item_code']) ? trim($p['item_code']) : (!empty($p['sku']) ? trim($p['sku']) : null);
+
+            // Rule 3: If only one code exists, ensure it is in item_code / sku, never swap
+            $sku = $itemCode ?: ($modelNo ?: '');
+
+            $mrp = is_numeric($p['mrp'] ?? null) ? (float)$p['mrp'] : (is_numeric($p['price'] ?? null) ? (float)$p['price'] : 0);
+            $price = is_numeric($p['price'] ?? null) ? (float)$p['price'] : $mrp;
+
+            $normalizedRows[] = [
+                'row_no' => $p['row_no'] ?? ($idx + 1),
+                'name' => $pName,
+                'product_name' => $pName,
+                'model_no' => $modelNo,
+                'item_code' => $itemCode,
+                'sku' => $sku,
+                'size' => !empty($p['size']) ? trim($p['size']) : 'Standard',
+                'color' => !empty($p['color']) ? trim($p['color']) : '',
+                'description' => !empty($p['description']) ? trim($p['description']) : (!empty($p['specifications']) ? trim($p['specifications']) : ''),
+                'specifications' => !empty($p['specifications']) ? trim($p['specifications']) : '',
+                'unit' => !empty($p['unit']) ? trim($p['unit']) : '',
+                'packing_1' => !empty($p['unit']) ? trim($p['unit']) : (!empty($p['packing_1']) ? trim($p['packing_1']) : ''),
+                'packing_2' => !empty($p['packing_2']) ? trim($p['packing_2']) : '',
+                'mrp' => $mrp,
+                'price' => $price,
+                'gst_percent' => is_numeric($p['gst_percent'] ?? null) ? (float)$p['gst_percent'] : 18,
+                'category' => !empty($layout['category']) ? trim($layout['category']) : (!empty($p['category']) ? trim($p['category']) : 'General Hardware'),
+                'brand' => !empty($layout['brand']) ? trim($layout['brand']) : (!empty($p['brand']) ? trim($p['brand']) : ''),
+                'notes' => $p['notes'] ?? null,
+            ];
         }
 
         return response()->json([
             'success' => true,
             'page' => $page,
-            'rows' => $parsedRows,
-            'total_rows' => count($parsedRows),
+            'layout' => $layout,
+            'rows' => $normalizedRows,
+            'total_rows' => count($normalizedRows),
             'provider' => $provider,
         ]);
     }
