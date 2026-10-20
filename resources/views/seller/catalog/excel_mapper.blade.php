@@ -1690,11 +1690,55 @@
 
                         <!-- Sheet Multiplier -->
                         <div class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/80 flex flex-col justify-between">
-                            <label class="text-[10px] font-black text-purple-300 uppercase mb-1">6. Sheet Sizes</label>
+                            <label class="text-[10px] font-black text-purple-300 uppercase mb-1 flex items-center justify-between">
+                                <span>6. Sheet Sizes</span>
+                                <span class="text-[9px] text-purple-400 font-bold">Auto</span>
+                            </label>
                             <label class="flex items-center gap-1.5 text-[10px] text-gray-200 cursor-pointer font-bold select-none py-1">
-                                <input type="checkbox" id="formulaExpandSheetSizes" onchange="recalculateRawFormulaRates()" class="rounded text-purple-500 focus:ring-purple-400 h-3.5 w-3.5">
+                                <input type="checkbox" id="formulaExpandSheetSizes" onchange="toggleSheetSizesConfigUI(); recalculateRawFormulaRates();" class="rounded text-purple-500 focus:ring-purple-400 h-3.5 w-3.5">
                                 <span>8x4, 7x4... Area</span>
                             </label>
+                        </div>
+                    </div>
+
+                    <!-- Size Selection Pills & Presets (Visible when Sheet Multiplier is checked) -->
+                    <div id="formulaSheetSizesConfigRow" class="hidden mt-2.5 pt-2 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <span class="text-[10px] font-black text-purple-300 uppercase mr-1">Active Sizes:</span>
+                            <label class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-purple-200 text-[11px] font-bold cursor-pointer flex items-center gap-1.5 transition select-none">
+                                <input type="checkbox" class="sheet-size-cb rounded text-purple-500 focus:ring-purple-400 h-3.5 w-3.5" value="8 x 4" checked onchange="recalculateRawFormulaRates()">
+                                <span>8 x 4 (32 sqft)</span>
+                            </label>
+                            <label class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-purple-200 text-[11px] font-bold cursor-pointer flex items-center gap-1.5 transition select-none">
+                                <input type="checkbox" class="sheet-size-cb rounded text-purple-500 focus:ring-purple-400 h-3.5 w-3.5" value="7 x 4" checked onchange="recalculateRawFormulaRates()">
+                                <span>7 x 4 (28 sqft)</span>
+                            </label>
+                            <label class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-purple-200 text-[11px] font-bold cursor-pointer flex items-center gap-1.5 transition select-none">
+                                <input type="checkbox" class="sheet-size-cb rounded text-purple-500 focus:ring-purple-400 h-3.5 w-3.5" value="6 x 4" checked onchange="recalculateRawFormulaRates()">
+                                <span>6 x 4 (24 sqft)</span>
+                            </label>
+                            <label class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-purple-200 text-[11px] font-bold cursor-pointer flex items-center gap-1.5 transition select-none">
+                                <input type="checkbox" class="sheet-size-cb rounded text-purple-500 focus:ring-purple-400 h-3.5 w-3.5" value="7 x 3" checked onchange="recalculateRawFormulaRates()">
+                                <span>7 x 3 (21 sqft)</span>
+                            </label>
+                            <label class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-purple-200 text-[11px] font-bold cursor-pointer flex items-center gap-1.5 transition select-none">
+                                <input type="checkbox" class="sheet-size-cb rounded text-purple-500 focus:ring-purple-400 h-3.5 w-3.5" value="6 x 3" checked onchange="recalculateRawFormulaRates()">
+                                <span>6 x 3 (18 sqft)</span>
+                            </label>
+                        </div>
+
+                        <!-- Presets -->
+                        <div class="flex items-center gap-1.5 text-[10px]">
+                            <span class="text-gray-400 font-bold">Presets:</span>
+                            <button type="button" onclick="setSheetSizePreset('all')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-gray-300 hover:text-white font-bold border border-slate-700 transition">
+                                All 5 Sizes
+                            </button>
+                            <button type="button" onclick="setSheetSizePreset('popular')" class="px-2 py-0.5 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-300 font-bold border border-cyan-800 transition" title="Sirf 8x4 aur 7x4">
+                                🏡 8x4 & 7x4 Only
+                            </button>
+                            <button type="button" onclick="setSheetSizePreset('shuttering_only')" class="px-2 py-0.5 rounded bg-amber-950 hover:bg-amber-900 text-amber-300 font-bold border border-amber-800 transition" title="Shuttering me sirf 8x4 hota hai">
+                                🔨 8x4 Only (Shuttering)
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1702,12 +1746,27 @@
                 <!-- 3. Live Preview Table -->
                 <div class="space-y-2">
                     <div class="flex flex-wrap items-center justify-between gap-2 px-1">
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
                             <label class="block text-xs font-black text-gray-900 flex items-center gap-1.5">
                                 <span>Calculated Products Preview:</span>
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-800" id="rawPricePreviewCount">0 items</span>
                             </label>
+                            
+                            <!-- Quick Size Removal Shortcuts -->
+                            <div class="flex items-center gap-1 pl-2 border-l border-gray-200">
+                                <span class="text-[10px] text-gray-400 font-bold">Quick Remove:</span>
+                                <button type="button" onclick="removeSpecificSizeFromPreview('6 x 3')" class="px-2 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-bold border border-rose-200 transition" title="Preview se sabhi 6x3 sizes ek click me hatao">
+                                    &times; 6x3
+                                </button>
+                                <button type="button" onclick="removeSpecificSizeFromPreview('7 x 3')" class="px-2 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-bold border border-rose-200 transition" title="Preview se sabhi 7x3 sizes ek click me hatao">
+                                    &times; 7x3
+                                </button>
+                                <button type="button" onclick="removeSpecificSizeFromPreview('6 x 4')" class="px-2 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-bold border border-rose-200 transition" title="Preview se sabhi 6x4 sizes ek click me hatao">
+                                    &times; 6x4
+                                </button>
+                            </div>
                         </div>
+
                         <div class="text-[11px] text-gray-500 font-mono" id="rawPricePreviewSummaryText">
                             <!-- Populated via JS -->
                         </div>
@@ -5846,6 +5905,48 @@ With Pattam - 30% extra
             alertBox.classList.remove('hidden');
         }
 
+        function toggleSheetSizesConfigUI() {
+            const isChecked = document.getElementById('formulaExpandSheetSizes')?.checked ?? false;
+            const configRow = document.getElementById('formulaSheetSizesConfigRow');
+            if (configRow) {
+                if (isChecked) {
+                    configRow.classList.remove('hidden');
+                } else {
+                    configRow.classList.add('hidden');
+                }
+            }
+        }
+
+        function setSheetSizePreset(preset) {
+            const checkboxes = document.querySelectorAll('.sheet-size-cb');
+            checkboxes.forEach(cb => {
+                if (preset === 'all') {
+                    cb.checked = true;
+                } else if (preset === 'popular') {
+                    cb.checked = (cb.value === '8 x 4' || cb.value === '7 x 4');
+                } else if (preset === 'shuttering_only') {
+                    cb.checked = (cb.value === '8 x 4');
+                }
+            });
+            recalculateRawFormulaRates();
+        }
+
+        function removeSpecificSizeFromPreview(sizeLabel) {
+            // 1. Uncheck in the global config so it stays off
+            const checkboxes = document.querySelectorAll('.sheet-size-cb');
+            checkboxes.forEach(cb => {
+                if (cb.value === sizeLabel) cb.checked = false;
+            });
+
+            // 2. Filter out from currently calculated rows
+            const initialCount = rawPriceCalculatedItems.length;
+            rawPriceCalculatedItems = rawPriceCalculatedItems.filter(r => !r.variant.includes(sizeLabel));
+            renderRawPricePreviewTable();
+
+            const removedCount = initialCount - rawPriceCalculatedItems.length;
+            showToastNotification(`🗑️ Preview se ${sizeLabel} ke sabhi ${removedCount} items hata diye gaye hain!`);
+        }
+
         /**
          * 🧮 Live Pricing Formula Engine: Recalculates Less, Bhada, Selling Rates & Sheet Sizes
          */
@@ -5869,13 +5970,16 @@ With Pattam - 30% extra
 
             const expandSheets = document.getElementById('formulaExpandSheetSizes')?.checked ?? false;
 
-            const PLYWOOD_SHEET_SIZES = [
-                { label: '8 x 4', area: 32 },
-                { label: '7 x 4', area: 28 },
-                { label: '6 x 4', area: 24 },
-                { label: '7 x 3', area: 21 },
-                { label: '6 x 3', area: 18 }
-            ];
+            // Get all user-selected active sheet sizes
+            const activeSizesMap = {
+                '8 x 4': 32,
+                '7 x 4': 28,
+                '6 x 4': 24,
+                '7 x 3': 21,
+                '6 x 3': 18
+            };
+
+            const selectedSizeLabels = Array.from(document.querySelectorAll('.sheet-size-cb:checked')).map(cb => cb.value);
 
             const calculated = [];
 
@@ -5898,22 +6002,37 @@ With Pattam - 30% extra
                 rC = Math.round(rC * 100) / 100;
 
                 const isSqFt = (item.unit || '').toLowerCase().includes('sq');
+                
+                // Smart Rule: Shuttering Ply me ONLY 8x4 size hota hai!
+                const isShuttering = (item.category || '').toUpperCase().includes('SHATTER') || 
+                                     (item.category || '').toUpperCase().includes('SHUTTER') || 
+                                     (item.product_name || '').toUpperCase().includes('SHATTER') || 
+                                     (item.product_name || '').toUpperCase().includes('SHUTTER');
 
-                if (expandSheets && isSqFt) {
-                    // Expand into 5 standard plywood sheet sizes
-                    PLYWOOD_SHEET_SIZES.forEach(sz => {
+                const isFlushDoor = (item.category || '').toUpperCase().includes('DOOR') || 
+                                    (item.product_name || '').toUpperCase().includes('DOOR') ||
+                                    (item.product_name || '').toUpperCase().includes('WINDOW');
+
+                if (expandSheets && isSqFt && !isFlushDoor) {
+                    // If Shuttering, strictly use 8x4 only!
+                    const targetSizes = isShuttering 
+                        ? ['8 x 4'] 
+                        : (selectedSizeLabels.length > 0 ? selectedSizeLabels : ['8 x 4']);
+
+                    targetSizes.forEach(label => {
+                        const area = activeSizesMap[label] || 32;
                         calculated.push({
-                            id: idx + '_' + sz.label,
+                            id: idx + '_' + label,
                             category: item.category,
                             product_name: item.product_name,
-                            variant: `${item.variant} [${sz.label} = ${sz.area} sqft]`,
+                            variant: `${item.variant} [${label} = ${area} sqft]`,
                             unit: 'sheet',
-                            base_rate: Math.round(base * sz.area * 100) / 100,
-                            landing_cost: Math.round(landing * sz.area * 100) / 100,
-                            rate_a: Math.round(rA * sz.area * 100) / 100,
-                            rate_b: Math.round(rB * sz.area * 100) / 100,
-                            rate_c: Math.round(rC * sz.area * 100) / 100,
-                            notes: item.notes ? `${item.notes} | Base Rate: ₹${base}/sqft` : `Base Rate: ₹${base}/sqft`
+                            base_rate: Math.round(base * area * 100) / 100,
+                            landing_cost: Math.round(landing * area * 100) / 100,
+                            rate_a: Math.round(rA * area * 100) / 100,
+                            rate_b: Math.round(rB * area * 100) / 100,
+                            rate_c: Math.round(rC * area * 100) / 100,
+                            notes: item.notes ? `${item.notes} | Base: ₹${base}/sqft` : `Base: ₹${base}/sqft`
                         });
                     });
                 } else {
