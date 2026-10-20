@@ -2440,6 +2440,172 @@ Before answering, count the products on the page and make sure \"total_products_
     }
 
     /**
+     * 📱 AI Universal Raw Text / WhatsApp Price List Parser
+     * Extracts multi-item, multi-thickness, multi-unit price lists from raw unstructured messages.
+     * Understands Indian trade notations: "46/-", "30/25", "18m(14)-46/-", "Single - 79/-", "As Per Order Garjan Face Available +2/50 Sqft".
+     */
+    public function aiParseRawPriceText(Request $request)
+    {
+        $request->validate([
+            'raw_text' => 'required|string',
+            'api_key' => 'nullable|string',
+            'category' => 'nullable|string',
+        ]);
+
+        $rawText = trim($request->input('raw_text'));
+        if (empty($rawText)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please provide raw text to parse.',
+            ], 400);
+        }
+
+        $userKey = trim($request->input('api_key') ?? '');
+        $openAiKey = (str_starts_with($userKey, 'sk-')) 
+            ? $userKey 
+            : (env('OPENAI_KEY') ?: env('OPENAI_API_KEY') ?: ($userKey ?: null));
+
+        $geminiKey = (str_starts_with($userKey, 'AIza'))
+            ? $userKey
+            : (env('GEMINI_API_KEY') ?: env('GEMINI_KEY') ?: ($userKey ?: null));
+
+        $prompt = "You are an expert Indian wholesale B2B and trade price list extraction AI.
+The user pasted raw text from a WhatsApp message, dealer quotation, or trade SMS.
+The data can be from ANY industry: Plywood, Timber, Block Boards, Flush Doors, Laminates, Hardware, Sanitary, Pipes & Fittings, Electricals, Tiles, Steel, FMCG, etc.
+Extract every product and its pricing accurately into JSON.
+
+IMPORTANT RULES & TRADE CONVENTIONS:
+1. NEVER guess or invent data. If a field is not present, use null or appropriate default.
+2. Trade price notation conventions in India:
+   - '46/-' or '46' or '46.00' = 46.0
+   - '30/25' = 30.25 (30 rupees 25 paise)
+   - '52/50' = 52.50
+   - '71/75' = 71.75
+   - '18m(14)-46/-' means thickness '18mm (14)' with base rate 46.0
+   - 'Single - 79/-' means variant 'Single' with base rate 79.0
+3. Multiple variants on a single line:
+   - For example: '18m(14)-46/-, 12m(8)-30/25, 6m(5)-22/-' under 'Super Local'
+   - Split this into 3 separate product variant objects:
+     1) product_name: 'Super Local', variant: '18mm (14)', base_rate: 46.0
+     2) product_name: 'Super Local', variant: '12mm (8)', base_rate: 30.25
+     3) product_name: 'Super Local', variant: '6mm (5)', base_rate: 22.0
+4. Units:
+   - Detect appropriate unit: 'sqft' (common for Plywood, Boards, Doors, Glass, Marble, Tiles), 'pcs', 'meter', 'kg', 'box', 'bag', 'sheet'.
+   - If in doubt for Plywood/Block Boards/Doors, default unit is 'sqft'.
+5. Notes & Conditions:
+   - Preserve special notes like 'As Per Order Garjan Face Available +2/50 Sqft', 'Double Door 10% extra', 'Above 84\" Height plus 5/- sqft' into 'notes'.
+
+RAW TEXT TO PARSE:
+\"\"\"
+{$rawText}
+\"\"\"
+
+OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
+{
+  \"title\": \"Detected title or date like '14.9.26 Price List' or null\",
+  \"common_notes\": \"General terms like 'Ex Godown Rates, All With Bills Rates' or null\",
+  \"detected_unit\": \"sqft\",
+  \"items\": [
+    {
+      \"category\": \"Category name (e.g. Plywood, Block Boards, Shuttering Ply, Flush Doors, Hardware)\",
+      \"product_name\": \"Clean Product Name (e.g. Super Local, Kerla Hardwood Best Quality, Gujrat H/W MR ISI)\",
+      \"variant\": \"Variant / Thickness / Size / Specification (e.g. 18mm (14), 12mm, 25kg Ambossed RED DAIMOND 19-20kg-10m)\",
+      \"unit\": \"sqft | pcs | meter | box | kg | sheet\",
+      \"base_rate\": 46.00,
+      \"notes\": \"Any specific note or condition or null\"
+    }
+  ]
+}";
+
+        $reply = null;
+        $provider = null;
+
+        // 1. Try OpenAI
+        if ($openAiKey && (str_starts_with($openAiKey, 'sk-') || !$geminiKey)) {
+            try {
+                $response = Http::withToken($openAiKey)
+                    ->timeout(45)
+                    ->post('https://api.openai.com/v1/chat/completions', [
+                        'model' => 'gpt-4o-mini',
+                        'messages' => [
+                            ['role' => 'system', 'content' => 'You are a precise data extraction engine. Output ONLY valid JSON.'],
+                            ['role' => 'user', 'content' => $prompt],
+                        ],
+                        'temperature' => 0.0,
+                    ]);
+
+                if ($response->successful()) {
+                    $reply = $response->json('choices.0.message.content');
+                    $provider = 'OpenAI (GPT-4o mini)';
+                }
+            } catch (\Throwable $e) {
+                Log::warning('AI Raw Price parse OpenAI error: ' . $e->getMessage());
+            }
+        }
+
+        // 2. Try Gemini
+        if (!$reply && $geminiKey) {
+            try {
+                $response = Http::timeout(45)
+                    ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$geminiKey}", [
+                        'contents' => [
+                            ['parts' => [['text' => $prompt]]]
+                        ],
+                        'generationConfig' => [
+                            'temperature' => 0.0,
+                            'responseMimeType' => 'application/json'
+                        ]
+                    ]);
+
+                if ($response->successful()) {
+                    $reply = $response->json('candidates.0.content.parts.0.text');
+                    $provider = 'Google Gemini 1.5 Flash';
+                }
+            } catch (\Throwable $e) {
+                Log::warning('AI Raw Price parse Gemini error: ' . $e->getMessage());
+            }
+        }
+
+        if (!$reply) {
+            return response()->json([
+                'success' => false,
+                'message' => 'AI API Key nahi mili ya connection fail hua. Aap "Instant Fast Parse" use kar sakte hain ya AI Copilot me API key configure karein.',
+            ], 400);
+        }
+
+        // Clean JSON response
+        $cleanJson = trim($reply);
+        $cleanJson = preg_replace('/^```(?:json)?\s*/i', '', $cleanJson);
+        $cleanJson = preg_replace('/\s*```$/i', '', $cleanJson);
+        $cleanJson = trim($cleanJson);
+
+        $parsed = json_decode($cleanJson, true);
+        if (!is_array($parsed)) {
+            if (preg_match('/\{[\s\S]*\}/', $cleanJson, $matches)) {
+                $parsed = json_decode($matches[0], true);
+            }
+        }
+
+        if (!is_array($parsed) || empty($parsed['items'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'AI raw text se structured products detect nahi kar paya.',
+                'raw_reply' => $reply,
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'title' => $parsed['title'] ?? null,
+            'common_notes' => $parsed['common_notes'] ?? null,
+            'detected_unit' => $parsed['detected_unit'] ?? 'sqft',
+            'items' => $parsed['items'],
+            'total_items' => count($parsed['items']),
+            'provider' => $provider,
+        ]);
+    }
+
+    /**
      * 🔄 Load all existing live product cards and variants directly into Excel Mapper Spreadsheet.
      * Enables 1 single source of truth: changes reflect in the sheet and sync to cards automatically!
      */

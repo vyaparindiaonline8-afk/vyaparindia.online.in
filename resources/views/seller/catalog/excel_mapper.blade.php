@@ -183,6 +183,11 @@
                         <span>📋 Smart Paste</span>
                     </button>
 
+                    <button type="button" onclick="openRawPriceFormulaModal()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer" title="WhatsApp ya Raw Text Rate list paste karein aur Bhada + Margin auto-calculate karein">
+                        <i class="fa-brands fa-whatsapp text-sm text-green-300"></i>
+                        <span>🏷️ WhatsApp / Raw Rates & Formula</span>
+                    </button>
+
                     <button type="button" onclick="openBulkCategoryModal()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-gray-950 font-black text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 transition active:scale-95" title="Sabhi rows ka Category 1-click me badlein">
                         <i class="fa-solid fa-tags"></i>
                         <span>⚡ Bulk Category</span>
@@ -1517,6 +1522,253 @@
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 📱 WHATSAPP & RAW PRICE FORMULA MODAL      -->
+    <!-- ========================================== -->
+    <div id="rawPriceFormulaModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] hidden flex items-center justify-center p-3 sm:p-4" onclick="closeRawPriceFormulaModal()">
+        <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-6xl overflow-hidden animate-scale-up max-h-[94vh] flex flex-col" onclick="event.stopPropagation()">
+            
+            <!-- Header -->
+            <div class="p-4 sm:p-5 border-b border-gray-100 bg-slate-900 text-white flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center text-xl shadow-md shadow-emerald-500/20">
+                        <i class="fa-brands fa-whatsapp"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm font-black tracking-tight">WhatsApp / Raw Price List & Formula Engine</h3>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">AI Powered</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400">WhatsApp message ya dealer quote paste karein — AI items extract karega aur Bhada, Less & Margins auto-calculate honge!</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="loadSampleRawPriceText()" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 text-xs font-bold transition flex items-center gap-1.5" title="Sample Plywood message load karein">
+                        <i class="fa-solid fa-file-invoice text-amber-400"></i>
+                        <span>Load Sample Plywood List</span>
+                    </button>
+                    <button type="button" onclick="closeRawPriceFormulaModal()" class="h-8 w-8 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 flex items-center justify-center text-xs transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body (Scrollable) -->
+            <div class="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1">
+                
+                <!-- 1. Textarea & Parse Action Bar -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                            <i class="fa-solid fa-paste text-indigo-600"></i>
+                            <span>WhatsApp Message / Raw Rates Yahan Paste Karein:</span>
+                        </label>
+                        <span class="text-[11px] text-gray-400 font-mono" id="rawPriceStatsText">0 lines pasted</span>
+                    </div>
+                    <textarea id="rawPriceTextInput" rows="5" oninput="updateRawPriceStats()" placeholder="WhatsApp se aaya hua text ya price list yahan paste karein (Ctrl + V)...&#10;&#10;Jaise:&#10;➡️ 1) Super Local&#10;18m(14)-46/-, 12m(8)-30/25, 6m(5)-22/-&#10;➡️ 2) Kerla Hardwood Best Quality&#10;18-57/-, 12-46/25, 9-36/75, 6-24/25&#10;➡️ Raipur Super ISO Single - 79/-, Double Door - 10% extra" class="w-full p-3 rounded-2xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-xs bg-slate-50 focus:bg-white text-gray-800 leading-relaxed"></textarea>
+                    
+                    <!-- Controls Bar -->
+                    <div class="flex flex-wrap items-center justify-between gap-2.5 p-3 bg-slate-50 rounded-2xl border border-gray-200">
+                        <div class="flex flex-wrap items-center gap-2 text-xs">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-gray-500 font-bold text-[11px]">Category:</span>
+                                <input type="text" id="rawPriceTargetCategory" list="allCategoriesList" value="Plywoods & Boards" placeholder="Category" class="px-2.5 py-1 rounded-xl border border-gray-300 bg-white font-bold text-xs text-gray-800 focus:ring-1 focus:ring-emerald-500 w-36">
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-gray-500 font-bold text-[11px]">Base Unit:</span>
+                                <select id="rawPriceTargetUnit" class="px-2.5 py-1 rounded-xl border border-gray-300 bg-white font-bold text-xs text-gray-800 focus:ring-1 focus:ring-emerald-500">
+                                    <option value="auto">Auto-Detect</option>
+                                    <option value="sqft" selected>Per Sq. Ft.</option>
+                                    <option value="pcs">Per Piece (pcs)</option>
+                                    <option value="meter">Per Meter</option>
+                                    <option value="box">Per Box</option>
+                                    <option value="sheet">Per Sheet</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="parseRawPriceFast()" id="btnRawPriceFast" class="px-3.5 py-1.5 rounded-xl bg-gray-900 hover:bg-black text-white font-black text-xs shadow-sm flex items-center gap-1.5 transition active:scale-95" title="Bina internet/AI ke turant parse karein">
+                                <i class="fa-solid fa-bolt text-yellow-400"></i>
+                                <span>⚡ Instant Fast Parse</span>
+                            </button>
+                            <button type="button" onclick="parseRawPriceAI()" id="btnRawPriceAI" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition active:scale-95 cursor-pointer" title="OpenAI / Gemini Vision engine se deep parse karein">
+                                <i class="fa-solid fa-wand-magic-sparkles text-emerald-200"></i>
+                                <span>🤖 AI Smart Extract</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Status Notification Banner -->
+                    <div id="rawPriceStatusAlert" class="hidden p-3 rounded-2xl text-xs font-bold flex items-center justify-between">
+                        <div class="flex items-center gap-2" id="rawPriceStatusContent">
+                            <i class="fa-solid fa-spinner fa-spin"></i>
+                            <span>AI extraction in progress...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Universal Pricing & Formula Bar (Above Preview Table) -->
+                <div class="p-3.5 bg-slate-900 text-white rounded-2xl border border-slate-800 shadow-md">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5 pb-2 border-b border-slate-800">
+                        <div class="flex items-center gap-2">
+                            <div class="h-6 w-6 rounded-lg bg-amber-400/20 text-amber-300 flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-calculator"></i>
+                            </div>
+                            <span class="text-xs font-black tracking-wide text-amber-300 uppercase">
+                                Dynamic Pricing Formula (Auto-Calculates All Rates)
+                            </span>
+                        </div>
+                        <span class="text-[10px] text-gray-400 font-mono">
+                            Landing = (Base &minus; Less%) + Bhada &nbsp;|&nbsp; Rate A/B/C = Landing + Margin
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                        <!-- Less % -->
+                        <div class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/80">
+                            <label class="block text-[10px] font-black text-rose-300 uppercase mb-1 flex items-center justify-between">
+                                <span>1. Cash Less</span>
+                                <span class="text-gray-400 font-normal">%</span>
+                            </label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" step="0.25" id="formulaLessPercent" value="0" oninput="recalculateRawFormulaRates()" placeholder="0" class="w-full bg-slate-950 px-2 py-1 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-rose-400">
+                                <span class="text-gray-400 text-xs font-bold">%</span>
+                            </div>
+                        </div>
+
+                        <!-- Bhada / Freight -->
+                        <div class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/80">
+                            <label class="block text-[10px] font-black text-amber-300 uppercase mb-1 flex items-center justify-between">
+                                <span>2. Bhada / Freight</span>
+                                <span class="text-gray-400 font-normal">₹/unit</span>
+                            </label>
+                            <div class="flex items-center gap-1">
+                                <span class="text-gray-400 text-xs font-bold">₹</span>
+                                <input type="number" step="0.25" id="formulaFreightPerUnit" value="0" oninput="recalculateRawFormulaRates()" placeholder="0.00" class="w-full bg-slate-950 px-2 py-1 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-amber-400">
+                            </div>
+                        </div>
+
+                        <!-- Rate A (Retail) -->
+                        <div class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/80">
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="text-[10px] font-black text-emerald-300 uppercase">3. Rate A (Retail)</label>
+                                <select id="formulaRateAMode" onchange="recalculateRawFormulaRates()" class="text-[9px] bg-slate-900 text-emerald-300 rounded border border-slate-700 px-1 py-0.5">
+                                    <option value="percent">+ %</option>
+                                    <option value="flat">+ ₹ Flat</option>
+                                </select>
+                            </div>
+                            <input type="number" step="0.5" id="formulaRateAValue" value="15" oninput="recalculateRawFormulaRates()" class="w-full bg-slate-950 px-2 py-1 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-emerald-400">
+                        </div>
+
+                        <!-- Rate B (Wholesale) -->
+                        <div class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/80">
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="text-[10px] font-black text-cyan-300 uppercase">4. Rate B (Wholesale)</label>
+                                <select id="formulaRateBMode" onchange="recalculateRawFormulaRates()" class="text-[9px] bg-slate-900 text-cyan-300 rounded border border-slate-700 px-1 py-0.5">
+                                    <option value="percent">+ %</option>
+                                    <option value="flat">+ ₹ Flat</option>
+                                </select>
+                            </div>
+                            <input type="number" step="0.5" id="formulaRateBValue" value="10" oninput="recalculateRawFormulaRates()" class="w-full bg-slate-950 px-2 py-1 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-cyan-400">
+                        </div>
+
+                        <!-- Rate C (Bulk) -->
+                        <div class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/80">
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="text-[10px] font-black text-indigo-300 uppercase">5. Rate C (Bulk)</label>
+                                <select id="formulaRateCMode" onchange="recalculateRawFormulaRates()" class="text-[9px] bg-slate-900 text-indigo-300 rounded border border-slate-700 px-1 py-0.5">
+                                    <option value="percent">+ %</option>
+                                    <option value="flat">+ ₹ Flat</option>
+                                </select>
+                            </div>
+                            <input type="number" step="0.5" id="formulaRateCValue" value="5" oninput="recalculateRawFormulaRates()" class="w-full bg-slate-950 px-2 py-1 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-indigo-400">
+                        </div>
+
+                        <!-- Sheet Multiplier -->
+                        <div class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/80 flex flex-col justify-between">
+                            <label class="text-[10px] font-black text-purple-300 uppercase mb-1">6. Sheet Sizes</label>
+                            <label class="flex items-center gap-1.5 text-[10px] text-gray-200 cursor-pointer font-bold select-none py-1">
+                                <input type="checkbox" id="formulaExpandSheetSizes" onchange="recalculateRawFormulaRates()" class="rounded text-purple-500 focus:ring-purple-400 h-3.5 w-3.5">
+                                <span>8x4, 7x4... Area</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Live Preview Table -->
+                <div class="space-y-2">
+                    <div class="flex flex-wrap items-center justify-between gap-2 px-1">
+                        <div class="flex items-center gap-2">
+                            <label class="block text-xs font-black text-gray-900 flex items-center gap-1.5">
+                                <span>Calculated Products Preview:</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-800" id="rawPricePreviewCount">0 items</span>
+                            </label>
+                        </div>
+                        <div class="text-[11px] text-gray-500 font-mono" id="rawPricePreviewSummaryText">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+
+                    <div class="border border-gray-200 rounded-2xl overflow-hidden max-h-72 overflow-y-auto shadow-inner bg-white">
+                        <table class="w-full text-left text-xs font-medium">
+                            <thead class="bg-slate-50 text-[10px] font-black text-gray-500 uppercase border-b border-gray-200 sticky top-0 z-10 shadow-2xs">
+                                <tr>
+                                    <th class="p-2.5 w-8 text-center">#</th>
+                                    <th class="p-2.5 w-24">Category</th>
+                                    <th class="p-2.5 min-w-[160px]">Product Name / Grade</th>
+                                    <th class="p-2.5 w-28">Thickness / Size</th>
+                                    <th class="p-2.5 w-16">Unit</th>
+                                    <th class="p-2.5 w-20">Base (₹)</th>
+                                    <th class="p-2.5 w-24 text-amber-700 bg-amber-50/50">Landing (₹)</th>
+                                    <th class="p-2.5 w-24 text-emerald-700 bg-emerald-50/50">Rate A (₹)</th>
+                                    <th class="p-2.5 w-24 text-cyan-700">Rate B (₹)</th>
+                                    <th class="p-2.5 w-24 text-indigo-700">Rate C (₹)</th>
+                                    <th class="p-2.5 min-w-[130px]">Notes / Extras</th>
+                                    <th class="p-2.5 w-10 text-center">Del</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rawPricePreviewBody" class="divide-y divide-gray-100">
+                                <tr>
+                                    <td colspan="12" class="p-8 text-center text-gray-400 text-xs">
+                                        <div class="max-w-sm mx-auto space-y-1.5">
+                                            <i class="fa-brands fa-whatsapp text-3xl text-emerald-400"></i>
+                                            <p class="font-bold text-gray-600">Upar WhatsApp message paste karein aur "Fast Parse" ya "AI Smart Extract" dabayein</p>
+                                            <p class="text-[11px] text-gray-400">Plywood, Timber, Hardware, Flush Doors ya kisi bhi trade ka message turant calculate hoga.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-100 bg-gray-50 flex flex-wrap items-center justify-between gap-2 shrink-0">
+                <button type="button" onclick="closeRawPriceFormulaModal()" class="px-4 py-2 rounded-xl bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-200 transition">
+                    Cancel
+                </button>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" onclick="exportRawPricePreviewToCsv()" class="px-3.5 py-2 rounded-xl bg-white hover:bg-gray-100 text-gray-800 font-bold text-xs border border-gray-300 flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-file-csv text-emerald-600"></i>
+                        <span>Export CSV</span>
+                    </button>
+                    <button type="button" onclick="insertRawPriceRowsToDynamicTable(false)" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer">
+                        <i class="fa-solid fa-table-list"></i>
+                        <span>+ Add to Spreadsheet Rows</span>
+                    </button>
+                    <button type="button" onclick="insertRawPriceRowsAndAutoGroupCards()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer" title="Direct 6-8 sizes ke Grouped Product Cards banao bina alag se group kiye">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span>🎴 Direct Create Product Cards</span>
+                    </button>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -5241,6 +5493,616 @@
             if (textarea) textarea.value = '';
 
             showToastNotification(`🎉 Shabaash! ${smartPasteParsedItems.length} products clean name aur sizes ke sath table me jodh diye gaye hain!`);
+        }
+
+        // ==========================================
+        // 📱 WHATSAPP & RAW PRICE FORMULA ENGINE (JS)
+        // ==========================================
+        let rawPriceExtractedItems = [];
+        let rawPriceCalculatedItems = [];
+
+        function openRawPriceFormulaModal() {
+            const modal = document.getElementById('rawPriceFormulaModal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            const textarea = document.getElementById('rawPriceTextInput');
+            if (textarea) textarea.focus();
+            updateRawPriceStats();
+            if (rawPriceExtractedItems.length > 0) {
+                recalculateRawFormulaRates();
+            }
+        }
+
+        function closeRawPriceFormulaModal() {
+            const modal = document.getElementById('rawPriceFormulaModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function updateRawPriceStats() {
+            const text = document.getElementById('rawPriceTextInput')?.value || '';
+            const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0).length;
+            const statsEl = document.getElementById('rawPriceStatsText');
+            if (statsEl) {
+                statsEl.innerText = `${lines} raw lines pasted`;
+            }
+        }
+
+        function cleanWhatsAppText(t) {
+            if (!t) return '';
+            return t.normalize('NFKD')
+                .replace(/[\u0300-\u036f]/g, '') // strip unicode underline / combining marks
+                .replace(/[*_~`]/g, '')           // strip markdown styling
+                .replace(/➡️|➡|👉|🔹|🔸|▪️|•/g, ' ') // strip emojis
+                .trim();
+        }
+
+        function parseIndianTradeNumber(valStr) {
+            if (!valStr) return 0;
+            let s = valStr.toString().trim()
+                .replace(/₹/g, '')
+                .replace(/\/-$/, '')
+                .replace(/-$/, '')
+                .trim();
+            // Handle Indian mandi notation: 30/25 => 30.25, 52/50 => 52.50, 71/75 => 71.75
+            if (/^\d+\/\d+$/.test(s)) {
+                const parts = s.split('/');
+                return parseFloat(parts[0] + '.' + parts[1]);
+            }
+            const num = parseFloat(s);
+            return isNaN(num) ? 0 : num;
+        }
+
+        function loadSampleRawPriceText() {
+            const sample = `*14.9.26 Price List* 
+All Nett Rates A
+Ex Godoun Rates
+All With Bills Rates
+*PLYWOODS, SHATTERINGS, BLOCK BOARDS AND FLUSH DOORS* 
+➡️ *1) Super Local* 
+18m(14)-46/-, 12m(8)-30/25, 6m(5)-22/-
+➡️ *2) Super F.T.* 
+18m(16)-52/50, 12m(10)-37/-
+➡️ *3) Kerla Hardwood Best Quality* 
+18-57/-, 12-46/25, 9-36/75, 6-24/25
+➡️ *4) Okomo Face MR/Dipping Popular Best Quality* 
+18-61/-, 12-49/25, 6-25/25
+➡️ *5) Garjan Face MR Popular Best Quality* 
+18m-64/50, 12m-53/-, 6m-29/-
+➡️ *6) R/W Super 3 Line Falli Mix Okomo Face Dipping* 
+18m-68/50, 12m-52/75, 6m-29/-
+As Per Order Garjan Face Available +2/50 Sqft 
+➡️ *7) R/W Platinum 100% Core Okomo Face Dipping* 
+18m-71/75, 12m-56/50
+As Per Order Garjan Face Available +2/50 Sqft 
+➡️ *8) R/W Extra Layer Full Core Full Panal ISI Okomo Face Teak Patti (MAXICAN /WOOD / ASGARD)* 
+19m-71/50, 12m-56/50
+➡️ *9)Full Red Super 3 Line Falli Mix 710 BWR Garjan Face*
+18m-76/25, 12m-58/75
+➡️ *10)FULL RED 100% Core 710 BWP Garjan  Face(RED VILLA Platinum)*  
+19-83/-, 16m-79/50, 12-63/75, 9m-55/-, 6-36/-                         
+
+*Block Boards* 
+➡️ *Popular MR ISI Block Boards* 
+19mm-75/25
+25mm-89/-
+➡️ *100% Pine 100% BWP ISI Block Boards* 
+19mm-97/75
+25mm-109/-
+
+*SHATTERING PLY* 
+➡️ 1) 25kg Ambossed MARVALLOUS  Printed(16-17kg-10m) 38/50
+25kg Ambossed RED DAIMOND Printed(19-20kg-10m) 42/25
+25kg Ambossed A-ONE  Printed(22kg+ -12m) 47/25
+➡️ 2) 30kg Ambossed RED DAIMOND Printed(27kg-13m) 53/50
+➡️ 3) 30kg High Densified BLACK FILM CONCRETE GOLD/DELTA Printed MMUF(Semi Water Proof) 58/25
+➡️ 4) UNITED KINGDOM 30kg Y.N. 100% PF All Glu Layered, Mirror Finish, High Densified ISI(Water Proof) 64/75
+➡️ 5) KEENGDOM 34kg Y.N. 100% PF All Glu Layered, Mirror Finish, High Densified ISI(Water Proof) 83/-
+
+*FLUSH DOORS* 
+➡️ *Raipur Super ISO*
+Single - 79/-
+Double Door - 10% extra
+With Pattam - 15% extra 
+*Window* 
+Single - 15% extra 
+Double - 25% extra 
+With Pattam - 30% extra 
+➡️ *Gujrat H/W MR ISI* - 98/-
+➡️ *PINE BWP ISI 30m* - 140/-
+➡️ *PINE BWP ISI 35m* - 154/-
+*In H/W above 84" Height plus 5/- sqft*`;
+
+            const textarea = document.getElementById('rawPriceTextInput');
+            if (textarea) textarea.value = sample;
+            
+            // Set realistic default freight and cash less for Plywood
+            const freightInput = document.getElementById('formulaFreightPerUnit');
+            if (freightInput && (parseFloat(freightInput.value) === 0 || !freightInput.value)) {
+                freightInput.value = '2.50';
+            }
+            const lessInput = document.getElementById('formulaLessPercent');
+            if (lessInput && (parseFloat(lessInput.value) === 0 || !lessInput.value)) {
+                lessInput.value = '2.0';
+            }
+
+            updateRawPriceStats();
+            parseRawPriceFast();
+        }
+
+        /**
+         * ⚡ Instant Client-Side Parser for WhatsApp & Mandi Rate Lists
+         */
+        function parseRawPriceFast() {
+            const rawText = document.getElementById('rawPriceTextInput')?.value || '';
+            if (!rawText.trim()) {
+                alert('Pehle upar text box me WhatsApp message ya price list paste karein.');
+                return;
+            }
+
+            const defaultCat = (document.getElementById('rawPriceTargetCategory')?.value || '').trim() || 'Plywoods & Boards';
+            const selectedUnit = document.getElementById('rawPriceTargetUnit')?.value || 'sqft';
+            const rawLines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+            let currentCategory = defaultCat;
+            let currentProductName = '';
+            let currentNote = '';
+            const items = [];
+
+            rawLines.forEach(line => {
+                const cleaned = cleanWhatsAppText(line);
+                if (!cleaned) return;
+
+                // 1. Detect Category Sections
+                if (/^(BLOCK\s*BOARDS|SHATTERING|FLUSH\s*DOORS|PLYWOODS?|HARDWARE|SANITARY|PIPES?|ELECTRICAL)/i.test(cleaned)) {
+                    const match = cleaned.match(/^(BLOCK\s*BOARDS|SHATTERING\s*PLY|SHATTERING|FLUSH\s*DOORS|PLYWOODS?|HARDWARE|SANITARY|PIPES?|ELECTRICAL)/i);
+                    if (match) {
+                        currentCategory = match[0].toUpperCase();
+                        currentProductName = '';
+                        return;
+                    }
+                }
+
+                // 2. Ignore pure header metadata lines
+                if (/^(Price List|All Nett|Ex Godoun|Ex Godown|All With Bills|In H\/W above)/i.test(cleaned)) {
+                    if (/above\s*84/i.test(cleaned)) {
+                        currentNote = cleaned;
+                    }
+                    return;
+                }
+
+                // 3. Detect Extra Conditions / Add-ons (e.g. As Per Order Garjan Face Available +2/50 Sqft)
+                if (/^(As Per Order|Double Door|With Pattam|Single -|Window)/i.test(cleaned)) {
+                    if (items.length > 0) {
+                        const lastItem = items[items.length - 1];
+                        lastItem.notes = (lastItem.notes ? (lastItem.notes + '; ') : '') + cleaned;
+                    }
+                    return;
+                }
+
+                // 4. Detect Product Headings like "1) Super Local", "2) Super F.T.", "Raipur Super ISO"
+                const headingMatch = cleaned.match(/^(?:\d+[\)\.]\s*)?([A-Za-z0-9\/\s\(\)\-\.]+?)(?:\s*-\s*\d|\s*:\s*\d|$)/);
+                
+                // Check if line contains thickness/variant and prices
+                // e.g. "18m(14)-46/-, 12m(8)-30/25, 6m(5)-22/-" OR "19mm-75/25" OR "Single - 79/-"
+                const hasPricePattern = /\b\d+(?:m|mm|\"|\')?(?:\([^\)]+\))?\s*[-:]\s*\d+(?:\/\d+|-|\.\d+)?/i.test(cleaned) ||
+                                       /\b(?:Single|Double|Window|[0-9]+kg[^\d]*)\s*[-:]?\s*\d+(?:\/\d+|-|\.\d+)?/i.test(cleaned);
+
+                if (!hasPricePattern) {
+                    // This is a product heading line!
+                    let nameCandidate = cleaned.replace(/^\d+[\)\.]\s*/, '').replace(/:\s*$/, '').trim();
+                    if (nameCandidate.length > 2) {
+                        currentProductName = nameCandidate;
+                    }
+                    return;
+                }
+
+                // 5. Line contains prices! Check if heading was on the same line (e.g. "Raipur Super ISO Single - 79/-")
+                let lineToParse = cleaned;
+                if (/^\d+[\)\.]\s*/.test(cleaned)) {
+                    const colonIdx = cleaned.search(/[-:]\s*\d/);
+                    if (colonIdx > 0) {
+                        const possibleName = cleaned.substring(0, colonIdx).replace(/^\d+[\)\.]\s*/, '').trim();
+                        // If it has words, set as currentProductName
+                        if (possibleName && !/^\d+m/.test(possibleName)) {
+                            currentProductName = possibleName;
+                        }
+                    }
+                }
+
+                // Split comma-separated variants on the same line:
+                // e.g. "18m(14)-46/-, 12m(8)-30/25, 6m(5)-22/-"
+                const subTokens = lineToParse.split(/,\s*/);
+                subTokens.forEach(token => {
+                    const t = token.trim();
+                    if (!t) return;
+
+                    // Match variant and rate: e.g. "18m(14)-46/-" or "18-57/-" or "Single - 79/-" or "25mm-89/-" or "30kg ... 53/50"
+                    const priceMatch = t.match(/^(.*?)(?:[-:]|\s+)\s*(\d+(?:\/\d+|\.\d+)?)(?:\/-)?$/);
+                    if (priceMatch) {
+                        let variantName = priceMatch[1].trim();
+                        const rateNum = parseIndianTradeNumber(priceMatch[2]);
+
+                        if (rateNum > 0) {
+                            // If variantName still has product name in it, separate it
+                            let prodName = currentProductName || 'Plywood / Board Item';
+                            if (variantName.includes(currentProductName) && variantName !== currentProductName) {
+                                variantName = variantName.replace(currentProductName, '').trim();
+                            }
+                            if (!variantName) variantName = 'Standard';
+
+                            // Clean mm/meter notation: "18m(14)" => "18mm (14)", "18" => "18mm"
+                            if (/^\d+m\(/i.test(variantName)) {
+                                variantName = variantName.replace(/^(\d+)m\(/i, '$1mm (');
+                            } else if (/^\d+m$/i.test(variantName)) {
+                                variantName = variantName.replace(/^(\d+)m$/i, '$1mm');
+                            } else if (/^\d+$/.test(variantName) && (currentCategory.includes('PLY') || currentCategory.includes('BOARD'))) {
+                                variantName = variantName + 'mm';
+                            }
+
+                            items.push({
+                                category: currentCategory,
+                                product_name: prodName,
+                                variant: variantName,
+                                unit: selectedUnit === 'auto' ? 'sqft' : selectedUnit,
+                                base_rate: rateNum,
+                                notes: currentNote || null
+                            });
+                        }
+                    }
+                });
+            });
+
+            if (items.length === 0) {
+                alert('Koi product ya rates detect nahi hue. Kripya check karein ki text me items aur unke rates (jaise 18m-46/- ya 30/25) mojud hain.');
+                return;
+            }
+
+            rawPriceExtractedItems = items;
+            recalculateRawFormulaRates();
+            showRawPriceAlert(`⚡ Fast Parse Success: ${items.length} items successfully detect ho gaye!`, 'emerald');
+        }
+
+        /**
+         * 🤖 AI Smart Extract for WhatsApp & Trade Price Lists (OpenAI GPT-4o-mini / Gemini)
+         */
+        async function parseRawPriceAI() {
+            const rawText = document.getElementById('rawPriceTextInput')?.value || '';
+            if (!rawText.trim()) {
+                alert('Pehle text box me WhatsApp message paste karein.');
+                return;
+            }
+
+            const btn = document.getElementById('btnRawPriceAI');
+            const alertBox = document.getElementById('rawPriceStatusAlert');
+            const alertContent = document.getElementById('rawPriceStatusContent');
+            const defaultCat = (document.getElementById('rawPriceTargetCategory')?.value || '').trim() || 'Plywoods & Boards';
+
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+
+            showRawPriceAlert('<i class="fa-solid fa-spinner fa-spin text-emerald-600"></i> <span>AI Extraction Engine running... Raw text aur Indian trade notations analyze ho rahe hain...</span>', 'indigo');
+
+            try {
+                const response = await fetch("{{ route('seller.catalog.ai_parse_raw_text') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({
+                        raw_text: rawText,
+                        category: defaultCat
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'AI parsing request fail hua.');
+                }
+
+                if (!data.items || data.items.length === 0) {
+                    throw new Error('AI ne text me se koi valid product detect nahi kiya.');
+                }
+
+                rawPriceExtractedItems = data.items.map(item => ({
+                    category: item.category || defaultCat,
+                    product_name: item.product_name || 'Standard Product',
+                    variant: item.variant || 'Standard',
+                    unit: item.unit || data.detected_unit || 'sqft',
+                    base_rate: parseFloat(item.base_rate) || 0,
+                    notes: item.notes || null
+                }));
+
+                recalculateRawFormulaRates();
+                showRawPriceAlert(`🎉 AI Success (${data.provider || 'Deep AI'}): ${rawPriceExtractedItems.length} products with notes & trade variants detect ho gaye!`, 'emerald');
+
+            } catch (err) {
+                console.warn('AI Parse error:', err);
+                showRawPriceAlert(`⚠️ AI Notice: ${err.message}. Running Instant Fast Parse locally...`, 'amber');
+                parseRawPriceFast();
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+        }
+
+        function showRawPriceAlert(html, theme = 'emerald') {
+            const alertBox = document.getElementById('rawPriceStatusAlert');
+            const alertContent = document.getElementById('rawPriceStatusContent');
+            if (!alertBox || !alertContent) return;
+
+            alertBox.className = `p-3 rounded-2xl text-xs font-bold flex items-center justify-between border ${
+                theme === 'emerald' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                theme === 'indigo' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
+                theme === 'amber' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                'bg-rose-50 text-rose-800 border-rose-200'
+            }`;
+            alertContent.innerHTML = html;
+            alertBox.classList.remove('hidden');
+        }
+
+        /**
+         * 🧮 Live Pricing Formula Engine: Recalculates Less, Bhada, Selling Rates & Sheet Sizes
+         */
+        function recalculateRawFormulaRates() {
+            if (!rawPriceExtractedItems || rawPriceExtractedItems.length === 0) {
+                renderRawPricePreviewTable();
+                return;
+            }
+
+            const lessPct = parseFloat(document.getElementById('formulaLessPercent')?.value) || 0;
+            const freight = parseFloat(document.getElementById('formulaFreightPerUnit')?.value) || 0;
+
+            const rateAMode = document.getElementById('formulaRateAMode')?.value || 'percent';
+            const rateAVal = parseFloat(document.getElementById('formulaRateAValue')?.value) || 0;
+
+            const rateBMode = document.getElementById('formulaRateBMode')?.value || 'percent';
+            const rateBVal = parseFloat(document.getElementById('formulaRateBValue')?.value) || 0;
+
+            const rateCMode = document.getElementById('formulaRateCMode')?.value || 'percent';
+            const rateCVal = parseFloat(document.getElementById('formulaRateCValue')?.value) || 0;
+
+            const expandSheets = document.getElementById('formulaExpandSheetSizes')?.checked ?? false;
+
+            const PLYWOOD_SHEET_SIZES = [
+                { label: '8 x 4', area: 32 },
+                { label: '7 x 4', area: 28 },
+                { label: '6 x 4', area: 24 },
+                { label: '7 x 3', area: 21 },
+                { label: '6 x 3', area: 18 }
+            ];
+
+            const calculated = [];
+
+            rawPriceExtractedItems.forEach((item, idx) => {
+                const base = item.base_rate;
+                // Landing Cost: (Base - Less%) + Freight
+                const afterLess = base * (1 - (lessPct / 100));
+                const landing = Math.round((afterLess + freight) * 100) / 100;
+
+                // Rate A (Retail)
+                let rA = (rateAMode === 'percent') ? (landing * (1 + (rateAVal / 100))) : (landing + rateAVal);
+                rA = Math.round(rA * 100) / 100;
+
+                // Rate B (Wholesale)
+                let rB = (rateBMode === 'percent') ? (landing * (1 + (rateBVal / 100))) : (landing + rateBVal);
+                rB = Math.round(rB * 100) / 100;
+
+                // Rate C (Bulk)
+                let rC = (rateCMode === 'percent') ? (landing * (1 + (rateCVal / 100))) : (landing + rateCVal);
+                rC = Math.round(rC * 100) / 100;
+
+                const isSqFt = (item.unit || '').toLowerCase().includes('sq');
+
+                if (expandSheets && isSqFt) {
+                    // Expand into 5 standard plywood sheet sizes
+                    PLYWOOD_SHEET_SIZES.forEach(sz => {
+                        calculated.push({
+                            id: idx + '_' + sz.label,
+                            category: item.category,
+                            product_name: item.product_name,
+                            variant: `${item.variant} [${sz.label} = ${sz.area} sqft]`,
+                            unit: 'sheet',
+                            base_rate: Math.round(base * sz.area * 100) / 100,
+                            landing_cost: Math.round(landing * sz.area * 100) / 100,
+                            rate_a: Math.round(rA * sz.area * 100) / 100,
+                            rate_b: Math.round(rB * sz.area * 100) / 100,
+                            rate_c: Math.round(rC * sz.area * 100) / 100,
+                            notes: item.notes ? `${item.notes} | Base Rate: ₹${base}/sqft` : `Base Rate: ₹${base}/sqft`
+                        });
+                    });
+                } else {
+                    calculated.push({
+                        id: idx,
+                        category: item.category,
+                        product_name: item.product_name,
+                        variant: item.variant,
+                        unit: item.unit || 'sqft',
+                        base_rate: base,
+                        landing_cost: landing,
+                        rate_a: rA,
+                        rate_b: rB,
+                        rate_c: rC,
+                        notes: item.notes || ''
+                    });
+                }
+            });
+
+            rawPriceCalculatedItems = calculated;
+            renderRawPricePreviewTable();
+        }
+
+        /**
+         * Render the live preview table with calculated pricing
+         */
+        function renderRawPricePreviewTable() {
+            const tbody = document.getElementById('rawPricePreviewBody');
+            const countBadge = document.getElementById('rawPricePreviewCount');
+            const summaryText = document.getElementById('rawPricePreviewSummaryText');
+            if (!tbody) return;
+
+            if (rawPriceCalculatedItems.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="12" class="p-8 text-center text-gray-400 text-xs">
+                            <div class="max-w-sm mx-auto space-y-1.5">
+                                <i class="fa-brands fa-whatsapp text-3xl text-emerald-400"></i>
+                                <p class="font-bold text-gray-600">Upar WhatsApp message paste karein aur "Fast Parse" ya "AI Smart Extract" dabayein</p>
+                                <p class="text-[11px] text-gray-400">Plywood, Timber, Hardware, Flush Doors ya kisi bhi trade ka message turant calculate hoga.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                if (countBadge) countBadge.innerText = '0 items';
+                if (summaryText) summaryText.innerText = '';
+                return;
+            }
+
+            if (countBadge) countBadge.innerText = `${rawPriceCalculatedItems.length} items`;
+
+            const totalLanding = rawPriceCalculatedItems.reduce((acc, r) => acc + (r.landing_cost || 0), 0);
+            const totalRetail = rawPriceCalculatedItems.reduce((acc, r) => acc + (r.rate_a || 0), 0);
+            const avgLanding = (totalLanding / rawPriceCalculatedItems.length).toFixed(2);
+            const avgRetail = (totalRetail / rawPriceCalculatedItems.length).toFixed(2);
+
+            if (summaryText) {
+                summaryText.innerHTML = `<span class="font-bold text-gray-700">Avg Landing:</span> ₹${avgLanding} &nbsp;|&nbsp; <span class="font-bold text-emerald-700">Avg Selling (Rate A):</span> ₹${avgRetail}`;
+            }
+
+            let html = '';
+            rawPriceCalculatedItems.forEach((row, i) => {
+                html += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-2 text-center text-gray-400 font-mono text-[10px]">${i + 1}</td>
+                        <td class="p-2"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700">${escapeHtml(row.category)}</span></td>
+                        <td class="p-2 font-bold text-gray-900 truncate max-w-[200px]" title="${escapeHtml(row.product_name)}">${escapeHtml(row.product_name)}</td>
+                        <td class="p-2 font-mono font-bold text-purple-900">${escapeHtml(row.variant)}</td>
+                        <td class="p-2 font-mono text-[10px] text-gray-500 font-bold uppercase">${escapeHtml(row.unit)}</td>
+                        <td class="p-2 font-mono text-gray-600">₹${row.base_rate.toFixed(2)}</td>
+                        <td class="p-2 font-mono font-bold text-amber-700 bg-amber-50/40">₹${row.landing_cost.toFixed(2)}</td>
+                        <td class="p-2 font-mono font-black text-emerald-700 bg-emerald-50/40">₹${row.rate_a.toFixed(2)}</td>
+                        <td class="p-2 font-mono font-bold text-cyan-700">₹${row.rate_b.toFixed(2)}</td>
+                        <td class="p-2 font-mono font-bold text-indigo-700">₹${row.rate_c.toFixed(2)}</td>
+                        <td class="p-2 text-[10px] text-gray-500 truncate max-w-[150px]" title="${escapeHtml(row.notes || '-')}">${escapeHtml(row.notes || '-')}</td>
+                        <td class="p-2 text-center">
+                            <button type="button" onclick="deleteRawPricePreviewRow(${i})" class="h-6 w-6 rounded-lg bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 flex items-center justify-center text-xs transition" title="Remove line">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        function deleteRawPricePreviewRow(idx) {
+            rawPriceCalculatedItems.splice(idx, 1);
+            renderRawPricePreviewTable();
+        }
+
+        /**
+         * 📥 Insert calculated rows directly into dynamicRows spreadsheet table
+         */
+        function insertRawPriceRowsToDynamicTable(replaceMode = false) {
+            if (rawPriceCalculatedItems.length === 0) {
+                alert('Pehle upar text paste karein aur kam se kam 1 product calculate karein.');
+                return;
+            }
+
+            if (replaceMode) {
+                dynamicRows = [];
+                dynamicRowNextId = 1;
+            }
+
+            rawPriceCalculatedItems.forEach((item, idx) => {
+                dynamicRows.push({
+                    id: dynamicRowNextId++,
+                    product_code: '',
+                    model_no: '',
+                    item_code: '',
+                    hsn_code: '',
+                    product_name: item.product_name,
+                    size: item.variant,
+                    packing_1: item.unit || 'sqft',
+                    packing_2: '',
+                    group_type: item.category,
+                    category: item.category,
+                    description: item.notes || '',
+                    mrp: item.base_rate,
+                    purchase_cost: item.landing_cost,
+                    retail_price: item.rate_a,
+                    cost_price_2: item.rate_b,
+                    cost_price_3: item.rate_c,
+                    stock: 100,
+                    image_url: preselectedImg || '',
+                    asset_url: preselectedImg ? ('/' + preselectedImg.replace(/^\//, '')) : ''
+                });
+            });
+
+            saveToLocalStorage();
+            if (typeof autoSaveDraftToBackend === 'function') autoSaveDraftToBackend();
+            renderDynamicRows();
+            refreshCategoryFilterTabs();
+            closeRawPriceFormulaModal();
+
+            showToastNotification(`🎉 Shabaash! ${rawPriceCalculatedItems.length} products calculated landing & selling rates ke saath spreadsheet me add ho gaye!`);
+        }
+
+        /**
+         * 🎴 Direct Create Grouped Product Cards (Bina alag se manually group kiye)
+         */
+        function insertRawPriceRowsAndAutoGroupCards() {
+            if (rawPriceCalculatedItems.length === 0) {
+                alert('Pehle upar text paste karein aur kam se kam 1 product calculate karein.');
+                return;
+            }
+
+            insertRawPriceRowsToDynamicTable(false);
+
+            if (typeof autoGroupAllDynamicRowsIntoCards === 'function') {
+                setTimeout(() => {
+                    autoGroupAllDynamicRowsIntoCards();
+                }, 300);
+            }
+        }
+
+        /**
+         * 📥 Export calculated preview table to clean CSV
+         */
+        function exportRawPricePreviewToCsv() {
+            if (rawPriceCalculatedItems.length === 0) {
+                alert('Export karne ke liye koi calculated rows nahi hain.');
+                return;
+            }
+
+            const headers = ['Category', 'Product Name', 'Thickness / Size', 'Unit', 'Base Rate', 'Landing Cost', 'Rate A (Retail)', 'Rate B (Wholesale)', 'Rate C (Bulk)', 'Notes'];
+            const rows = rawPriceCalculatedItems.map(r => [
+                `"${(r.category || '').replace(/"/g, '""')}"`,
+                `"${(r.product_name || '').replace(/"/g, '""')}"`,
+                `"${(r.variant || '').replace(/"/g, '""')}"`,
+                `"${(r.unit || '').replace(/"/g, '""')}"`,
+                r.base_rate || 0,
+                r.landing_cost || 0,
+                r.rate_a || 0,
+                r.rate_b || 0,
+                r.rate_c || 0,
+                `"${(r.notes || '').replace(/"/g, '""')}"`
+            ]);
+
+            const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `whatsapp_price_list_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         function renderDynamicRows() {
