@@ -318,6 +318,10 @@
                             <input type="text" id="onPagePhotoSearch" placeholder="Search in folder..." oninput="filterOnPagePhotoBank(this.value)" class="w-full pl-8 pr-3 py-1.5 rounded-xl border border-gray-300 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-gray-50 focus:bg-white">
                             <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-gray-400 text-xs"></i>
                         </div>
+                        <button type="button" onclick="triggerDevicePhotoUpload()" class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black shadow-xs flex items-center gap-1.5 transition cursor-pointer" title="Apne mobile ya computer se photos upload karein">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <span>Upload Photo</span>
+                        </button>
                         <button type="button" onclick="openGalleryDrawer('browse', null)" class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 flex items-center gap-1.5 transition">
                             <i class="fa-solid fa-expand"></i>
                             <span>Full View Drawer</span>
@@ -2064,9 +2068,16 @@
                         Click any image to attach it immediately
                     </p>
                 </div>
-                <button type="button" onclick="closeGalleryDrawer()" class="h-8 w-8 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center text-sm">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="triggerDevicePhotoUpload()" class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-xs flex items-center gap-1.5 transition cursor-pointer" id="drawerUploadBtn" title="Apne mobile ya computer se photos upload karein">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>Upload Photo</span>
+                    </button>
+                    <input type="file" id="drawerDirectPhotoInput" accept="image/*" multiple class="hidden" onchange="handleDrawerDirectPhotoUpload(event)">
+                    <button type="button" onclick="closeGalleryDrawer()" class="h-8 w-8 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- Drawer Folder Filter Tabs -->
@@ -2449,6 +2460,130 @@
 
         function closeGalleryDrawer() {
             document.getElementById('galleryDrawerOverlay').classList.add('hidden');
+        }
+
+        function triggerDevicePhotoUpload() {
+            document.getElementById('drawerDirectPhotoInput')?.click();
+        }
+
+        async function handleDrawerDirectPhotoUpload(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            const btn = document.getElementById('drawerUploadBtn');
+            const originalText = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Uploading (0/${files.length})...</span>`;
+            }
+
+            let lastUploadedImg = null;
+            let successCount = 0;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (btn) {
+                    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Uploading (${i + 1}/${files.length})...</span>`;
+                }
+
+                const formData = new FormData();
+                formData.append('image_file', file);
+                formData.append('folder', activeDrawerFolder && activeDrawerFolder !== 'ALL' ? activeDrawerFolder : 'General');
+                formData.append('_token', csrfToken);
+
+                try {
+                    const res = await fetch("{{ route('seller.catalog.gallery.upload') }}", {
+                        method: "POST",
+                        headers: {
+                            "Accept": "application/json",
+                            "X-Requested-With": "XMLHttpRequest"
+                        },
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.success && data.image) {
+                        successCount++;
+                        lastUploadedImg = data.image;
+
+                        // 1. Add to drawer grid
+                        const grid = document.getElementById('drawerImagesGrid');
+                        const emptyPrompt = document.getElementById('drawerEmptyPrompt');
+                        if (emptyPrompt) emptyPrompt.style.display = 'none';
+
+                        const cardDiv = document.createElement('div');
+                        cardDiv.className = "drawer-img-card border-2 border-emerald-500 rounded-2xl p-2 bg-emerald-50 hover:bg-emerald-100 cursor-pointer text-center group transition";
+                        cardDiv.onclick = () => selectDrawerImage(data.image.url, data.image.asset_url);
+                        cardDiv.setAttribute('data-name', (data.image.filename || '').toLowerCase());
+                        cardDiv.setAttribute('data-folder', (data.image.folder || 'general').toLowerCase());
+                        cardDiv.setAttribute('data-raw-folder', data.image.folder || 'General');
+                        cardDiv.setAttribute('data-img-key', (data.image.filename || '').toLowerCase());
+                        cardDiv.innerHTML = `
+                            <div class="h-20 w-full bg-white rounded-xl p-1 mb-1.5 flex items-center justify-center overflow-hidden border border-emerald-200 group-hover:scale-105 transition">
+                                <img src="${data.image.asset_url}" alt="${data.image.filename}" class="max-h-full max-w-full object-contain">
+                            </div>
+                            <h5 class="text-[11px] font-bold text-gray-800 truncate" title="${data.image.filename}">${data.image.filename}</h5>
+                            <span class="text-[9px] text-emerald-600 font-bold block">✨ Uploaded</span>
+                            <span class="text-[8px] text-gray-500 font-bold truncate block">📁 ${data.image.folder || 'General'}</span>
+                        `;
+
+                        if (grid) {
+                            grid.insertBefore(cardDiv, grid.firstChild);
+                        }
+
+                        // 2. Also add to horizontal on-page strip
+                        const onPageGrid = document.getElementById('onPagePhotoGrid');
+                        if (onPageGrid) {
+                            const onPageLoadingMsg = document.getElementById('onPagePhotoLoadingMsg');
+                            if (onPageLoadingMsg) onPageLoadingMsg.remove();
+
+                            const onPageCard = document.createElement('div');
+                            onPageCard.className = "on-page-photo-card flex items-center gap-2.5 p-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-2xl cursor-pointer transition shrink-0 group";
+                            onPageCard.onclick = () => handleOnPagePhotoClick(data.image.url, data.image.asset_url);
+                            onPageCard.setAttribute('data-name', (data.image.filename || '').toLowerCase());
+                            onPageCard.setAttribute('data-folder', (data.image.folder || 'general').toLowerCase());
+                            onPageCard.setAttribute('data-raw-folder', data.image.folder || 'General');
+                            onPageCard.setAttribute('data-img-key', (data.image.filename || '').toLowerCase());
+                            onPageCard.innerHTML = `
+                                <div class="h-14 w-14 bg-white rounded-xl p-1 flex items-center justify-center overflow-hidden border border-emerald-200 group-hover:scale-105 transition">
+                                    <img src="${data.image.asset_url}" alt="${data.image.filename}" class="max-h-full max-w-full object-contain">
+                                </div>
+                                <div class="max-w-[120px]">
+                                    <h5 class="text-[11px] font-bold text-gray-800 truncate" title="${data.image.filename}">${data.image.filename}</h5>
+                                    <span class="text-[9px] text-emerald-600 font-semibold block">✨ Just Uploaded</span>
+                                    <span class="text-[8px] text-gray-500 font-bold truncate block">📁 ${data.image.folder || 'General'}</span>
+                                    <span class="text-[9px] text-emerald-600 font-bold group-hover:underline">Attach &rarr;</span>
+                                </div>
+                            `;
+                            onPageGrid.insertBefore(onPageCard, onPageGrid.firstChild);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Photo upload error for', file.name, err);
+                }
+            }
+
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+            event.target.value = '';
+
+            // Update photo count badges
+            const countEl = document.getElementById('drawerImagesCount');
+            if (countEl) {
+                const totalNow = document.querySelectorAll('.drawer-img-card').length;
+                countEl.innerText = `${totalNow} Photos`;
+            }
+            const onPageCountEl = document.getElementById('onPagePhotoCount');
+            if (onPageCountEl) {
+                const totalOnPage = document.querySelectorAll('.on-page-photo-card').length;
+                onPageCountEl.innerText = `${totalOnPage} Photos`;
+            }
+
+            // If drawer was open to attach to a card or row, automatically select the uploaded image!
+            if (lastUploadedImg && currentTargetType) {
+                selectDrawerImage(lastUploadedImg.url, lastUploadedImg.asset_url);
+            }
         }
 
         let activeDrawerFolder = 'ALL';
