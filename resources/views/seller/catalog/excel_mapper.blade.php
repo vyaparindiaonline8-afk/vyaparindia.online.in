@@ -359,7 +359,7 @@
                             <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-extrabold">Instant Magic</span>
                         </h4>
                         <p class="text-[11px] text-gray-600 mt-0.5">
-                            291 items ko 1-1 karke select karne ki zaroorat nahi! Click karte hi sabhi items (jaise 90° Elbow, Pipe 40 SCH, Tee, Union) apne-apne <b>alag Cards</b> me distribute ho jayenge — <b>fir aapko sirf 1-1 Photo link karni hogi!</b>
+                            Pending items ko 1-1 karke select karne ki zaroorat nahi! Click karte hi sabhi products apne-apne <b>Product Name / Model ke alag Cards</b> me distribute ho jayenge — <b>fir aapko sirf 1-1 Photo link karni hogi!</b>
                         </p>
                     </div>
                 </div>
@@ -824,6 +824,12 @@
                 <i class="fa-solid fa-images"></i>
                 <span>Pick Photo & Save Card</span>
             </button>
+            <!-- Bulk Category Change for Selected Rows -->
+            <div class="flex items-center gap-1.5 bg-gray-800/80 p-1 rounded-2xl border border-gray-700">
+                <span class="text-[10px] text-gray-400 pl-1">Category:</span>
+                <input list="allCategoriesList" id="batchCategoryInput" placeholder="New Category" class="bg-gray-900 text-indigo-300 text-[11px] font-bold py-1 px-2 rounded-xl border border-gray-700 focus:outline-none w-28">
+                <button type="button" onclick="applyBatchCategoryToSelectedRows()" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold rounded-lg transition" title="Selected sabhi rows ki category update karein">Set</button>
+            </div>
             <div id="addToExistingCardWrapper" class="hidden flex items-center gap-1.5 bg-gray-800/80 p-1 rounded-2xl border border-gray-700">
                 <span class="text-[10px] text-gray-400 pl-1">or merge into:</span>
                 <select id="selectTargetCard" class="bg-gray-900 text-amber-300 text-[11px] font-bold py-1 px-2 rounded-xl border border-gray-700 focus:outline-none max-w-[150px] truncate">
@@ -1761,6 +1767,11 @@
                             </label>
                             
                             <!-- Quick Size Removal Shortcuts -->
+                            <div class="flex items-center gap-1.5 pr-2 mr-1 border-r border-gray-200">
+                                <span class="text-[10px] text-gray-500 font-bold uppercase">Set All Category:</span>
+                                <input list="allCategoriesList" id="bulkPreviewCategoryInput" placeholder="Set for all..." class="px-2 py-0.5 rounded-lg border border-indigo-200 text-xs font-bold text-indigo-900 bg-white w-28">
+                                <button type="button" onclick="applyBulkCategoryToPreview()" class="px-2 py-0.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold shadow-xs transition active:scale-95" title="Preview ke sabhi items ki category badlein">Apply All</button>
+                            </div>
                             <div class="flex items-center gap-1 pl-2 border-l border-gray-200">
                                 <span class="text-[10px] text-gray-400 font-bold">Quick Remove:</span>
                                 <button type="button" onclick="removeSpecificSizeFromPreview('6 x 3')" class="px-2 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-bold border border-rose-200 transition" title="Preview se sabhi 6x3 sizes ek click me hatao">
@@ -2593,7 +2604,7 @@
                         cost_price_2: 0,
                         cost_price_3: 0,
                         retail_price: 85,
-                        stock: 100,
+                        stock: 0,
                         image_url: img,
                         asset_url: assetUrl
                     });
@@ -3609,7 +3620,7 @@
                 }
             }
 
-            alert(`🎉 Success! Excel sheet se ${newRows.length} products sahi MRP, Selling Price, Code, Packing aur Category ke sath map ho gaye hain!\n\n💡 Tip: Ab aap seedhe "⚡ Auto-Distribute Cards" dabakar sabhi 291 products ko unki Product Families (Elbow, Tee, Pipe etc.) me alag-alag Cards me baat sakte hain!`);
+            alert(`🎉 Success! Excel sheet se ${newRows.length} products sahi MRP, Selling Price, Code, Packing aur Category ke sath map ho gaye hain!\n\n💡 Tip: Ab aap seedhe "⚡ Auto-Distribute Cards" dabakar sabhi products ko unke Product Names ke mutabiq alag-alag Cards me baat sakte hain!`);
         }
 
         function showToastNotification(message) {
@@ -5270,7 +5281,7 @@
                     cost_price_2: 0,
                     cost_price_3: 0,
                     retail_price: retail,
-                    stock: 100,
+                    stock: 0,
                     image_url: preselectedImg || '',
                     asset_url: preselectedImg ? ('/' + preselectedImg.replace(/^\//, '')) : ''
                 });
@@ -5309,7 +5320,7 @@
                 cost_price_2: 0,
                 cost_price_3: 0,
                 retail_price: 85,
-                stock: 100,
+                stock: 0,
                 image_url: '',
                 asset_url: ''
             });
@@ -5590,7 +5601,7 @@
                     cost_price_2: 0,
                     cost_price_3: 0,
                     retail_price: retail,
-                    stock: 100,
+                    stock: 0,
                     image_url: preselectedImg || '',
                     asset_url: preselectedImg ? ('/' + preselectedImg.replace(/^\//, '')) : ''
                 });
@@ -5742,7 +5753,7 @@ With Pattam - 30% extra
             parseRawPriceFast();
         }
 
-        /**
+                /**
          * ⚡ Instant Client-Side Parser for WhatsApp & Mandi Rate Lists
          */
         function parseRawPriceFast() {
@@ -5761,17 +5772,24 @@ With Pattam - 30% extra
             let currentNote = '';
             const items = [];
 
-            rawLines.forEach(line => {
+            for (let i = 0; i < rawLines.length; i++) {
+                const line = rawLines[i];
                 const cleaned = cleanWhatsAppText(line);
-                if (!cleaned) return;
+                if (!cleaned) continue;
 
                 // 1. Detect Category Sections
-                if (/^(BLOCK\s*BOARDS|SHATTERING|FLUSH\s*DOORS|PLYWOODS?|HARDWARE|SANITARY|PIPES?|ELECTRICAL)/i.test(cleaned)) {
-                    const match = cleaned.match(/^(BLOCK\s*BOARDS|SHATTERING\s*PLY|SHATTERING|FLUSH\s*DOORS|PLYWOODS?|HARDWARE|SANITARY|PIPES?|ELECTRICAL)/i);
+                if (/^(BLOCK\s*BOARDS?|SHATTERING\s*PLY|SHATTERING|SHUTTERING|FLUSH\s*DOORS?|PLYWOODS?|HARDWARE|SANITARY|PIPES?|ELECTRICAL)/i.test(cleaned)) {
+                    const match = cleaned.match(/^(BLOCK\s*BOARDS?|SHATTERING\s*PLY|SHATTERING|SHUTTERING|FLUSH\s*DOORS?|PLYWOODS?|HARDWARE|SANITARY|PIPES?|ELECTRICAL)/i);
                     if (match) {
-                        currentCategory = match[0].toUpperCase();
+                        let cat = match[0].toUpperCase();
+                        if (cat.includes('PLYWOOD')) currentCategory = 'Plywoods';
+                        else if (cat.includes('BLOCK')) currentCategory = 'Block Boards';
+                        else if (cat.includes('SHATTER') || cat.includes('SHUTTER')) currentCategory = 'Shuttering Ply';
+                        else if (cat.includes('DOOR')) currentCategory = 'Flush Doors';
+                        else currentCategory = cat;
+
                         currentProductName = '';
-                        return;
+                        continue;
                     }
                 }
 
@@ -5780,90 +5798,147 @@ With Pattam - 30% extra
                     if (/above\s*84/i.test(cleaned)) {
                         currentNote = cleaned;
                     }
-                    return;
+                    continue;
                 }
 
-                // 3. Detect Extra Conditions / Add-ons (e.g. As Per Order Garjan Face Available +2/50 Sqft)
-                if (/^(As Per Order|Double Door|With Pattam|Single -|Window)/i.test(cleaned)) {
+                // 3. Standalone Price on next line (e.g. "64/75" or "83/-")
+                if (/^\d+(?:\/\d+|\.\d+)?(?:\/-)?$/.test(cleaned)) {
+                    const rateNum = parseIndianTradeNumber(cleaned);
+                    if (rateNum > 0 && currentProductName) {
+                        items.push({
+                            category: currentCategory,
+                            product_name: currentProductName,
+                            variant: 'Standard',
+                            base_rate: rateNum,
+                            unit: (currentCategory.includes('Plywood') || currentCategory.includes('Board') || currentCategory.includes('Shuttering') || currentCategory.includes('Door')) ? 'sqft' : (selectedUnit === 'auto' ? 'sqft' : selectedUnit),
+                            notes: currentNote || null
+                        });
+                        continue;
+                    }
+                }
+
+                // 4. Notes / Conditions on doors (e.g. Double Door - 10% extra, With Pattam - 15% extra)
+                if (/^(Double Door|With Pattam|Window)/i.test(cleaned) || /%\s*extra/i.test(cleaned) || /^As Per Order/i.test(cleaned)) {
                     if (items.length > 0) {
                         const lastItem = items[items.length - 1];
                         lastItem.notes = (lastItem.notes ? (lastItem.notes + '; ') : '') + cleaned;
                     }
-                    return;
+                    continue;
                 }
 
-                // 4. Detect Product Headings like "1) Super Local", "2) Super F.T.", "Raipur Super ISO"
-                const headingMatch = cleaned.match(/^(?:\d+[\)\.]\s*)?([A-Za-z0-9\/\s\(\)\-\.]+?)(?:\s*-\s*\d|\s*:\s*\d|$)/);
-                
-                // Check if line contains thickness/variant and prices
-                // e.g. "18m(14)-46/-, 12m(8)-30/25, 6m(5)-22/-" OR "19mm-75/25" OR "Single - 79/-"
-                const hasPricePattern = /\b\d+(?:m|mm|\"|\')?(?:\([^\)]+\))?\s*[-:]\s*\d+(?:\/\d+|-|\.\d+)?/i.test(cleaned) ||
-                                       /\b(?:Single|Double|Window|[0-9]+kg[^\d]*)\s*[-:]?\s*\d+(?:\/\d+|-|\.\d+)?/i.test(cleaned);
-
-                if (!hasPricePattern) {
-                    // This is a product heading line!
-                    let nameCandidate = cleaned.replace(/^\d+[\)\.]\s*/, '').replace(/:\s*$/, '').trim();
-                    if (nameCandidate.length > 2) {
-                        currentProductName = nameCandidate;
-                    }
-                    return;
-                }
-
-                // 5. Line contains prices! Check if heading was on the same line (e.g. "Raipur Super ISO Single - 79/-")
-                let lineToParse = cleaned;
-                if (/^\d+[\)\.]\s*/.test(cleaned)) {
-                    const colonIdx = cleaned.search(/[-:]\s*\d/);
-                    if (colonIdx > 0) {
-                        const possibleName = cleaned.substring(0, colonIdx).replace(/^\d+[\)\.]\s*/, '').trim();
-                        // If it has words, set as currentProductName
-                        if (possibleName && !/^\d+m/.test(possibleName)) {
-                            currentProductName = possibleName;
-                        }
+                // 5. Special Single Door condition: e.g. "Single - 79/-"
+                if (/^Single\s*[-:]\s*\d+/i.test(cleaned)) {
+                    const m = cleaned.match(/^Single\s*[-:]\s*(\d+(?:\/\d+|\.\d+)?)/i);
+                    if (m) {
+                        const rate = parseIndianTradeNumber(m[1]);
+                        items.push({
+                            category: currentCategory,
+                            product_name: currentProductName || 'Flush Door',
+                            variant: 'Single Door',
+                            base_rate: rate,
+                            unit: 'sqft',
+                            notes: currentNote || null
+                        });
+                        continue;
                     }
                 }
 
-                // Split comma-separated variants on the same line:
-                // e.g. "18m(14)-46/-, 12m(8)-30/25, 6m(5)-22/-"
-                const subTokens = lineToParse.split(/,\s*/);
-                subTokens.forEach(token => {
-                    const t = token.trim();
-                    if (!t) return;
+                // 6. Check if line is multi-variant (multiple prices separated by comma, e.g. "18m-46/-, 12m-30/25")
+                const subTokens = cleaned.split(/,\s*/);
+                const tokensWithPrice = subTokens.filter(t => /(?:[-:]|\s+)\s*\d+(?:\/\d+|\.\d+)?(?:\/-)?$/.test(t.trim()));
 
-                    // Match variant and rate: e.g. "18m(14)-46/-" or "18-57/-" or "Single - 79/-" or "25mm-89/-" or "30kg ... 53/50"
-                    const priceMatch = t.match(/^(.*?)(?:[-:]|\s+)\s*(\d+(?:\/\d+|\.\d+)?)(?:\/-)?$/);
-                    if (priceMatch) {
-                        let variantName = priceMatch[1].trim();
-                        const rateNum = parseIndianTradeNumber(priceMatch[2]);
+                if (tokensWithPrice.length > 1) {
+                    subTokens.forEach(token => {
+                        const t = token.trim();
+                        if (!t) return;
+                        const priceMatch = t.match(/^(.*?)(?:[-:]|\s+)\s*(\d+(?:\/\d+|\.\d+)?)(?:\/-)?$/);
+                        if (priceMatch) {
+                            let variantName = priceMatch[1].trim();
+                            const rateNum = parseIndianTradeNumber(priceMatch[2]);
+                            if (rateNum > 0) {
+                                let prodName = currentProductName || 'Plywood / Board Item';
+                                if (variantName.includes(currentProductName) && variantName !== currentProductName) {
+                                    variantName = variantName.replace(currentProductName, '').trim();
+                                }
+                                if (!variantName) variantName = 'Standard';
 
-                        if (rateNum > 0) {
-                            // If variantName still has product name in it, separate it
-                            let prodName = currentProductName || 'Plywood / Board Item';
-                            if (variantName.includes(currentProductName) && variantName !== currentProductName) {
-                                variantName = variantName.replace(currentProductName, '').trim();
+                                if (/^\d+m\(/i.test(variantName)) {
+                                    variantName = variantName.replace(/^(\d+)m\(/i, '$1mm (');
+                                } else if (/^\d+m$/i.test(variantName)) {
+                                    variantName = variantName.replace(/^(\d+)m$/i, '$1mm');
+                                } else if (/^\d+$/.test(variantName) && (currentCategory.includes('Plywood') || currentCategory.includes('Board') || currentCategory.includes('PLY') || currentCategory.includes('BOARD'))) {
+                                    variantName = variantName + 'mm';
+                                }
+
+                                items.push({
+                                    category: currentCategory,
+                                    product_name: prodName,
+                                    variant: variantName,
+                                    base_rate: rateNum,
+                                    unit: (currentCategory.includes('Plywood') || currentCategory.includes('Board') || currentCategory.includes('Shuttering') || currentCategory.includes('Door')) ? 'sqft' : (selectedUnit === 'auto' ? 'sqft' : selectedUnit),
+                                    notes: currentNote || null
+                                });
                             }
-                            if (!variantName) variantName = 'Standard';
-
-                            // Clean mm/meter notation: "18m(14)" => "18mm (14)", "18" => "18mm"
-                            if (/^\d+m\(/i.test(variantName)) {
-                                variantName = variantName.replace(/^(\d+)m\(/i, '$1mm (');
-                            } else if (/^\d+m$/i.test(variantName)) {
-                                variantName = variantName.replace(/^(\d+)m$/i, '$1mm');
-                            } else if (/^\d+$/.test(variantName) && (currentCategory.includes('PLY') || currentCategory.includes('BOARD'))) {
-                                variantName = variantName + 'mm';
-                            }
-
-                            items.push({
-                                category: currentCategory,
-                                product_name: prodName,
-                                variant: variantName,
-                                unit: selectedUnit === 'auto' ? 'sqft' : selectedUnit,
-                                base_rate: rateNum,
-                                notes: currentNote || null
-                            });
                         }
+                    });
+                    continue;
+                }
+
+                // 7. Standalone product heading with price at the end
+                const standaloneItemMatch = cleaned.match(/^(?:(?:\d+[\)\.]\s*)?)(.*?)[\s\-:]+(\d+(?:\/\d+|\.\d+)?)(?:\/-)?$/);
+                if (standaloneItemMatch) {
+                    let titlePart = standaloneItemMatch[1].replace(/^\d+[\)\.]\s*/, '').trim();
+                    const ratePart = standaloneItemMatch[2];
+                    const rateNum = parseIndianTradeNumber(ratePart);
+
+                    const isJustVariant = /^(?:\d+m|\d+mm|\d+\"|\d+)$/i.test(titlePart);
+
+                    if (!isJustVariant && titlePart.length > 2 && rateNum > 0) {
+                        let variant = 'Standard';
+                        let prodName = titlePart;
+
+                        const bracketMatch = prodName.match(/\(([^)]*(?:kg|m|mm)[^)]*)\)/i);
+                        if (bracketMatch) {
+                            variant = bracketMatch[1].trim();
+                        } else {
+                            const trailingThick = prodName.match(/\s+(\d+(?:mm|m))\b/i);
+                            if (trailingThick) {
+                                variant = trailingThick[1].replace(/m$/i, 'mm');
+                                prodName = prodName.substring(0, trailingThick.index).trim();
+                            }
+                        }
+
+                        currentProductName = prodName;
+                        items.push({
+                            category: currentCategory,
+                            product_name: prodName,
+                            variant: variant,
+                            base_rate: rateNum,
+                            unit: (currentCategory.includes('Plywood') || currentCategory.includes('Board') || currentCategory.includes('Shuttering') || currentCategory.includes('Door')) ? 'sqft' : (selectedUnit === 'auto' ? 'sqft' : selectedUnit),
+                            notes: currentNote || null
+                        });
+                        continue;
+                    } else if (isJustVariant && rateNum > 0) {
+                        let variantName = titlePart;
+                        if (/^\d+$/.test(variantName)) variantName += 'mm';
+                        items.push({
+                            category: currentCategory,
+                            product_name: currentProductName || 'Plywood / Board Item',
+                            variant: variantName,
+                            base_rate: rateNum,
+                            unit: (currentCategory.includes('Plywood') || currentCategory.includes('Board') || currentCategory.includes('Shuttering') || currentCategory.includes('Door')) ? 'sqft' : (selectedUnit === 'auto' ? 'sqft' : selectedUnit),
+                            notes: currentNote || null
+                        });
+                        continue;
                     }
-                });
-            });
+                }
+
+                // 8. Pure Product Heading line (no price on this line)
+                let nameCandidate = cleaned.replace(/^\d+[\)\.]\s*/, '').replace(/:\s*$/, '').trim();
+                if (nameCandidate.length > 2) {
+                    currentProductName = nameCandidate;
+                }
+            }
 
             if (items.length === 0) {
                 alert('Koi product ya rates detect nahi hue. Kripya check karein ki text me items aur unke rates (jaise 18m-46/- ya 30/25) mojud hain.');
@@ -5875,9 +5950,6 @@ With Pattam - 30% extra
             showRawPriceAlert(`⚡ Fast Parse Success: ${items.length} items successfully detect ho gaye!`, 'emerald');
         }
 
-        /**
-         * 🤖 AI Smart Extract for WhatsApp & Trade Price Lists (OpenAI GPT-4o-mini / Gemini)
-         */
         async function parseRawPriceAI() {
             const rawText = document.getElementById('rawPriceTextInput')?.value || '';
             if (!rawText.trim()) {
@@ -6048,7 +6120,8 @@ With Pattam - 30% extra
             }
 
             const lessPct = parseFloat(document.getElementById('formulaLessPercent')?.value) || 0;
-            const freight = parseFloat(document.getElementById('formulaFreightPerUnit')?.value) || 0;
+            const freightMode = document.getElementById('formulaFreightMode')?.value || 'flat';
+            const freightVal = parseFloat(document.getElementById('formulaFreightPerUnit')?.value) || 0;
 
             const rateAMode = document.getElementById('formulaRateAMode')?.value || 'percent';
             const rateAVal = parseFloat(document.getElementById('formulaRateAValue')?.value) || 0;
@@ -6194,7 +6267,9 @@ With Pattam - 30% extra
                 html += `
                     <tr class="hover:bg-slate-50 transition">
                         <td class="p-2 text-center text-gray-400 font-mono text-[10px]">${i + 1}</td>
-                        <td class="p-2"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700">${escapeHtml(row.category)}</span></td>
+                        <td class="p-2">
+                            <input list="allCategoriesList" value="${escapeHtml(row.category || 'Plywoods & Boards')}" onchange="updateRawPreviewItemField(${i}, 'category', this.value)" class="w-28 text-[11px] font-bold text-indigo-900 bg-white border border-indigo-200 hover:border-indigo-400 focus:border-indigo-600 rounded-lg px-2 py-1 shadow-2xs transition" placeholder="Category" title="Click to change Category for this product">
+                        </td>
                         <td class="p-2 min-w-[170px]">
                             <input type="text" value="${escapeHtml(row.product_name)}" oninput="updateRawPreviewItemField(${i}, 'product_name', this.value)" class="w-full font-bold text-gray-900 bg-transparent border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded px-1 py-0.5 transition text-xs" title="Edit Product Name">
                         </td>
@@ -6295,7 +6370,7 @@ With Pattam - 30% extra
                     retail_price: item.rate_a,
                     cost_price_2: item.rate_b,
                     cost_price_3: item.rate_c,
-                    stock: 100,
+                    stock: 0,
                     image_url: preselectedImg || '',
                     asset_url: preselectedImg ? ('/' + preselectedImg.replace(/^\//, '')) : ''
                 });

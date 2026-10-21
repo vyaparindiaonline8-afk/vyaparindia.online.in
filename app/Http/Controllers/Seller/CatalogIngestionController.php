@@ -887,7 +887,7 @@ class CatalogIngestionController extends Controller
                             'mrp' => $vMrp,
                             'wholesale_price' => $vWholesale,
                             'retail_price' => $vRetail,
-                            'stock_quantity' => $vStock ?? 100,
+                            'stock_quantity' => $vStock ?? 0,
                             'track_inventory' => !is_null($vStock),
                             'attributes' => $attributes,
                         ]);
