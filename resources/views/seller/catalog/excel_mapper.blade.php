@@ -2143,7 +2143,7 @@
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         let jobId = {{ $job ? $job->id : 'null' }};
-        const serverJobProducts = @json($products ?? []);
+        let serverJobProducts = @json($products ?? []);
 
         let currentTargetType = null; // 'row', 'card', or 'batch'
         let currentTargetId = null;
