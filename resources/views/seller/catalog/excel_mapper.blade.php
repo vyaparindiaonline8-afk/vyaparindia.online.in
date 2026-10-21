@@ -1841,12 +1841,15 @@
 
                         <!-- Bhada / Freight -->
                         <div class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/80">
-                            <label class="block text-[10px] font-black text-amber-300 uppercase mb-1 flex items-center justify-between">
-                                <span>2. Bhada / Freight</span>
-                                <span class="text-gray-400 font-normal">₹/unit</span>
-                            </label>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="text-[10px] font-black text-amber-300 uppercase">2. Bhada / Freight</label>
+                                <select id="formulaFreightMode" onchange="recalculateRawFormulaRates()" class="text-[9px] bg-slate-900 text-amber-300 rounded border border-slate-700 px-1 py-0.5 cursor-pointer focus:ring-1 focus:ring-amber-400">
+                                    <option value="flat">₹/sqft (Flat ₹)</option>
+                                    <option value="percent">% of Base</option>
+                                </select>
+                            </div>
                             <div class="flex items-center gap-1">
-                                <span class="text-gray-400 text-xs font-bold">₹</span>
+                                <span id="formulaFreightUnitPrefix" class="text-amber-400 text-xs font-bold font-mono">₹</span>
                                 <input type="number" step="0.25" id="formulaFreightPerUnit" value="0" oninput="recalculateRawFormulaRates()" placeholder="0.00" class="w-full bg-slate-950 px-2 py-1 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-amber-400">
                             </div>
                         </div>
@@ -6378,6 +6381,11 @@ With Pattam - 30% extra
             const freightMode = document.getElementById('formulaFreightMode')?.value || 'flat';
             const freightVal = parseFloat(document.getElementById('formulaFreightPerUnit')?.value) || 0;
 
+            const freightPrefix = document.getElementById('formulaFreightUnitPrefix');
+            if (freightPrefix) {
+                freightPrefix.innerText = (freightMode === 'percent') ? '%' : '₹';
+            }
+
             const rateAMode = document.getElementById('formulaRateAMode')?.value || 'percent';
             const rateAVal = parseFloat(document.getElementById('formulaRateAValue')?.value) || 0;
 
@@ -6409,9 +6417,10 @@ With Pattam - 30% extra
 
             rawPriceExtractedItems.forEach((item, idx) => {
                 const base = item.base_rate;
-                // Landing Cost: (Base - Less%) + Freight
+                // Landing Cost: (Base - Less%) + Freight (Flat ₹ or % of Base)
                 const afterLess = base * (1 - (lessPct / 100));
-                const landing = Math.round((afterLess + freight) * 100) / 100;
+                const freightAmt = (freightMode === 'percent') ? (base * (freightVal / 100)) : freightVal;
+                const landing = Math.round((afterLess + freightAmt) * 100) / 100;
 
                 // Rate A (Retail)
                 let rA = (rateAMode === 'percent') ? (landing * (1 + (rateAVal / 100))) : (landing + rateAVal);
@@ -6572,12 +6581,14 @@ With Pattam - 30% extra
             row.base_rate = newBaseRate;
             
             const lessPct = parseFloat(document.getElementById('formulaLessPercent')?.value) || 0;
-            const freight = parseFloat(document.getElementById('formulaFreightPerUnit')?.value) || 0;
+            const freightMode = document.getElementById('formulaFreightMode')?.value || 'flat';
+            const freightVal = parseFloat(document.getElementById('formulaFreightPerUnit')?.value) || 0;
             const rateAMode = document.getElementById('formulaRateAMode')?.value || 'percent';
             const rateAVal = parseFloat(document.getElementById('formulaRateAValue')?.value) || 0;
 
             const afterLess = newBaseRate * (1 - (lessPct / 100));
-            const landing = Math.round((afterLess + freight) * 100) / 100;
+            const freightAmt = (freightMode === 'percent') ? (newBaseRate * (freightVal / 100)) : freightVal;
+            const landing = Math.round((afterLess + freightAmt) * 100) / 100;
             let rA = (rateAMode === 'percent') ? (landing * (1 + (rateAVal / 100))) : (landing + rateAVal);
 
             row.landing_cost = landing;
