@@ -12,6 +12,7 @@ class CatalogIngestionJob extends Model
     protected $fillable = [
         'user_id',
         'filename',
+        'effective_date',
         'file_path',
         'status',
         'total_products_detected',

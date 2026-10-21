@@ -2925,11 +2925,14 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
 
         $request->validate([
             'sheet_name' => 'nullable|string|max:150',
+            'effective_date' => 'nullable|string|max:50',
+            'publish' => 'nullable|boolean',
             'rows' => 'nullable|array',
             'grouped_cards' => 'nullable|array',
         ]);
 
-        $sheetName = trim($request->input('sheet_name') ?: ('Catalog Sheet ' . date('d M Y, H:i')));
+        $effectiveDate = trim($request->input('effective_date') ?? '');
+        $sheetName = trim($request->input('sheet_name') ?: ('Catalog Sheet ' . ($effectiveDate ? "({$effectiveDate}) " : '') . date('d M Y, H:i')));
         $rawRows = $request->input('rows', []);
         $groupedCards = $request->input('grouped_cards', []);
 
@@ -2975,6 +2978,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                     'raw_rate' => $vCost,
                     'cost_price_2' => $vCost2,
                     'cost_price_3' => $vCost3,
+                    'price_effective_date' => $effectiveDate ?: ($v['price_effective_date'] ?? null),
                     'wholesale_price' => $vCost2 > 0 ? $vCost2 : round($vCost * 1.15, 2),
                     'retail_price' => $vRetail,
                     'mrp' => $vMrp,
@@ -2989,6 +2993,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                     'category' => $groupType,
                     'group_type' => $groupType,
                     'image_url' => $img,
+                    'effective_date' => $effectiveDate ?: null,
                     'hsn_code' => $cardVariants[0]['hsn_code'] ?? '39174000',
                     'variants' => $cardVariants,
                 ];
@@ -3022,6 +3027,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                     'category' => $categoryName,
                     'group_type' => $groupType,
                     'image_url' => $img,
+                    'effective_date' => $effectiveDate ?: null,
                     'hsn_code' => $hsn ?: '39174000',
                     'variants' => [],
                 ];
@@ -3043,6 +3049,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                 'raw_rate' => $cost,
                 'cost_price_2' => $cost2,
                 'cost_price_3' => $cost3,
+                'price_effective_date' => $effectiveDate ?: null,
                 'wholesale_price' => $cost2 > 0 ? $cost2 : round($cost * 1.15, 2),
                 'retail_price' => $retail,
                 'mrp' => $mrp,
@@ -3064,29 +3071,49 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
             $job = CatalogIngestionJob::create([
                 'user_id' => $userId,
                 'filename' => $sheetName,
+                'effective_date' => $effectiveDate ?: null,
                 'file_path' => 'dynamic_pdf_import',
                 'status' => 'parsed',
                 'total_products_detected' => count($products),
                 'extracted_data' => [
                     'sheet_name' => $sheetName,
+                    'effective_date' => $effectiveDate ?: null,
                     'products' => $products,
                 ],
             ]);
         } else {
             $job->update([
                 'filename' => $sheetName,
+                'effective_date' => $effectiveDate ?: ($job->effective_date ?? null),
                 'total_products_detected' => count($products),
                 'extracted_data' => [
                     'sheet_name' => $sheetName,
+                    'effective_date' => $effectiveDate ?: ($job->effective_date ?? null),
                     'products' => $products,
                 ],
             ]);
         }
 
+        // Direct Publish to Live Store & Home Page
+        $autoPublish = $request->boolean('publish', true);
+        if ($autoPublish) {
+            $publishedCount = $this->performDirectPublish($job, $products, $userId);
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'published' => true,
+                    'message' => "🎉 Mubarakan! {$publishedCount} products live store aur home page par successfully publish ho gaye hain!",
+                    'job_id' => $job->id,
+                    'redirect_url' => route('seller.inventory.index'),
+                ]);
+            }
+        }
+
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => "Successfully saved '{$sheetName}' with " . count($products) . " products!",
+                'published' => false,
+                'message' => "Successfully saved '{$sheetName}' draft with " . count($products) . " products!",
                 'job_id' => $job->id,
                 'redirect_url' => route('seller.catalog.excel_mapper', $job->id),
             ]);
@@ -3102,7 +3129,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
     public function publishDirectFromMapper(Request $request)
     {
         @set_time_limit(300);
-        $userId = Auth::id();
+        $userId = Auth::id() ?: 1;
         $jobId = $request->input('job_id');
 
         $job = CatalogIngestionJob::where('id', $jobId)
@@ -3116,6 +3143,17 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
             return back()->withErrors(['No products found in draft to publish.']);
         }
 
+        $publishedCount = $this->performDirectPublish($job, $products, $userId);
+
+        return redirect()->route('seller.inventory.index')
+            ->with('success', "🎉 Mubarakan! {$publishedCount} grouped products live store me successfully publish ho gaye hain!");
+    }
+
+    /**
+     * 🚀 Reusable Central Engine for publishing products & variants into DB.
+     */
+    public function performDirectPublish($job, array $products, int $userId)
+    {
         $publishedCount = 0;
         $categoriesCache = [];
 
@@ -3140,6 +3178,10 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                 $baseWholesale = floatval($firstVar['wholesale_price'] ?? ($basePurchase * 1.15));
                 $baseRetail = floatval($firstVar['retail_price'] ?? ($basePurchase * 1.35));
                 $baseMrp = floatval($firstVar['mrp'] ?? ($basePurchase * 1.60));
+                $effectiveDate = $prodData['effective_date'] ?? ($firstVar['price_effective_date'] ?? ($job->effective_date ?? null));
+                $cost2 = floatval($firstVar['cost_price_2'] ?? 0);
+                $cost3 = floatval($firstVar['cost_price_3'] ?? 0);
+
                 $prodHsn = !empty($prodData['hsn_code']) ? $prodData['hsn_code'] : (!empty($firstVar['hsn_code']) ? $firstVar['hsn_code'] : '39174000');
                 $prodBrand = !empty($prodData['brand']) ? trim($prodData['brand']) : (
                     stripos($prodData['name'], 'Yorker') !== false ? 'Yorker' : (
@@ -3172,6 +3214,9 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                         'image' => $finalImage,
                         'purchase_price' => $basePurchase,
                         'wholesale_price' => $baseWholesale,
+                        'cost_price_2' => $cost2,
+                        'cost_price_3' => $cost3,
+                        'price_effective_date' => $effectiveDate,
                         'price' => $baseRetail,
                         'mrp' => $baseMrp,
                         'gst_percent' => $gst,
@@ -3193,13 +3238,17 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                     $rPrice = floatval($v['retail_price'] ?? ($rawRate * 1.35));
                     $vMrp = floatval($v['mrp'] ?? ($rawRate * 1.60));
                     $vSku = !empty($v['product_code']) ? $v['product_code'] : (!empty($v['sku']) ? $v['sku'] : ('VAR-' . strtoupper(Str::random(7))));
-                    
+                    $vCost2 = floatval($v['cost_price_2'] ?? 0);
+                    $vCost3 = floatval($v['cost_price_3'] ?? 0);
+                    $vEffDate = $v['price_effective_date'] ?? $effectiveDate;
+
                     $attributes = [
                         'size' => $v['size'] ?? 'Standard',
                         'packing_1' => $v['packing_1'] ?? '',
                         'packing_2' => $v['packing_2'] ?? '',
-                        'cost_price_2' => $v['cost_price_2'] ?? 0,
-                        'cost_price_3' => $v['cost_price_3'] ?? 0,
+                        'cost_price_2' => $vCost2,
+                        'cost_price_3' => $vCost3,
+                        'price_effective_date' => $vEffDate,
                     ];
 
                     $variantRecords[] = [
@@ -3207,6 +3256,9 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                         'variant_name' => $v['size'] ?? ($v['variant_name'] ?? 'Standard'),
                         'purchase_price' => $rawRate,
                         'wholesale_price' => $wPrice,
+                        'cost_price_2' => $vCost2,
+                        'cost_price_3' => $vCost3,
+                        'price_effective_date' => $vEffDate,
                         'retail_price' => $rPrice,
                         'mrp' => $vMrp,
                         'stock_quantity' => intval($v['stock_quantity'] ?? 0),
@@ -3224,11 +3276,12 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                 $publishedCount++;
             }
 
-            $job->update(['status' => 'published']);
+            if ($job) {
+                $job->update(['status' => 'published']);
+            }
         });
 
-        return redirect()->route('seller.inventory.index')
-            ->with('success', "🎉 Mubarakan! {$publishedCount} grouped products live store me successfully publish ho gaye hain!");
+        return $publishedCount;
     }
 
     /**
