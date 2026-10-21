@@ -404,6 +404,35 @@
                 </button>
             </div>
 
+            <!-- 🏢 MULTI-INDUSTRY BUSINESS MODULE SELECTOR -->
+            <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-4 rounded-3xl border border-indigo-500/30 shadow-lg space-y-3" id="industryModuleSelectorBar">
+                <div class="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-indigo-900/60">
+                    <div class="flex items-center gap-2.5">
+                        <div class="h-8 w-8 rounded-xl bg-indigo-600/30 text-indigo-400 flex items-center justify-center text-sm border border-indigo-500/30 shrink-0">
+                            <i class="fa-solid fa-industry"></i>
+                        </div>
+                        <div>
+                            <span class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+                                <span>Multi-Business Industry Modules</span>
+                                <span class="px-2 py-0.5 rounded-full text-[9px] bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">Independent Business Logics</span>
+                            </span>
+                            <p class="text-[10px] text-gray-400">Plywood, Plumbing, Pumps, Electricals, Sanitaryware & Electronics ke alag-alag formula & size rules</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="openIndustryModuleConfigModal()" class="px-3 py-1.5 rounded-xl bg-indigo-800/60 hover:bg-indigo-700 text-indigo-200 text-[11px] font-bold border border-indigo-700/60 flex items-center gap-1.5 transition cursor-pointer">
+                            <i class="fa-solid fa-gear text-amber-300"></i>
+                            <span>Configure My Business Lines</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Module Selection Pills -->
+                <div class="flex items-center gap-2 overflow-x-auto pb-1" id="industryModulePills">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
             <!-- 🏷️ Dynamic Category Filter Tabs Bar (Filter UPVC, CPVC, SWR, etc.) -->
             <div class="bg-white p-3.5 rounded-3xl border border-gray-200 shadow-xs space-y-2.5" id="dynamicCategoryTabsWrapper">
                 <div class="flex items-center justify-between flex-wrap gap-2">
@@ -2099,6 +2128,46 @@
     <!-- ========================================== -->
     <!-- SLIDE-OVER PHOTO GALLERY DRAWER            -->
     <!-- ========================================== -->
+    <!-- ========================================== -->
+    <!-- 🏢 CONFIGURE MY BUSINESS LINES MODAL       -->
+    <!-- ========================================== -->
+    <div id="industryConfigModal" class="fixed inset-0 bg-black/70 backdrop-blur-xs z-[9999] hidden flex items-center justify-center p-4" onclick="closeIndustryModuleConfigModal()">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg shadow-xs">
+                        <i class="fa-solid fa-industry"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black text-gray-900">Configure My Active Business Lines</h3>
+                        <p class="text-[11px] text-gray-500">Chunein ki aapki dukan par kaun-kaun se vyapar hote hain</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeIndustryModuleConfigModal()" class="h-8 w-8 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center text-sm cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-2.5 max-h-80 overflow-y-auto pr-1" id="industryConfigList">
+                <!-- Dynamically generated module check items -->
+            </div>
+
+            <div class="pt-3 border-t border-gray-100 flex items-center justify-between">
+                <button type="button" onclick="resetDefaultBusinessModules()" class="text-xs font-bold text-gray-500 hover:text-gray-800 cursor-pointer">
+                    Reset Defaults
+                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeIndustryModuleConfigModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold cursor-pointer">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="saveIndustryModuleConfig()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-md shadow-indigo-600/30 cursor-pointer">
+                        Save Business Lines
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="galleryDrawerOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] hidden flex justify-end" onclick="closeGalleryDrawer()">
         <div class="drawer-slide w-full max-w-lg bg-white h-full shadow-2xl flex flex-col" onclick="event.stopPropagation()">
             
@@ -2262,12 +2331,14 @@
 
             if (isDynamicMode) {
                 dynamicRows.forEach(r => {
+                    if (activeIndustryModule !== 'ALL' && typeof detectCardModule === 'function' && detectCardModule(r) !== activeIndustryModule) return;
                     const c = (r.group_type || r.category || 'General Hardware').trim();
                     counts[c] = (counts[c] || 0) + 1;
                     total++;
                 });
                 // Also ensure categories from groupedProductCards exist in tabs even if all rows are already mapped into cards!
                 groupedProductCards.forEach(card => {
+                    if (activeIndustryModule !== 'ALL' && typeof detectCardModule === 'function' && detectCardModule(card) !== activeIndustryModule) return;
                     const c = (card.category || card.group_type || 'General Hardware').trim();
                     if (counts[c] === undefined) {
                         counts[c] = 0;
@@ -2275,6 +2346,8 @@
                 });
             } else {
                 document.querySelectorAll('.table-row-item').forEach(tr => {
+                    const trMod = tr.getAttribute('data-module') || '';
+                    if (activeIndustryModule !== 'ALL' && trMod && trMod !== activeIndustryModule) return;
                     const c = (tr.getAttribute('data-category') || 'General Hardware').trim();
                     counts[c] = (counts[c] || 0) + 1;
                     total++;
@@ -2348,18 +2421,29 @@
         }
 
         // =========================================================================
-        // ⚡ SMART CATEGORY SUB-GROUP MULTI-MARGIN & FREIGHT ENGINE
+        // 🏢 MULTI-INDUSTRY MODULAR ARCHITECTURE (Vyapar Multi-Business Engine)
         // =========================================================================
-        let activeSubGroupsMap = {};
-
-        function classifySubGroup(name, category, size) {
-            const text = `${name || ''} ${size || ''} ${category || ''}`.toUpperCase();
-            const uCat = (category || '').toUpperCase();
-
-            // 1. Plywoods & Sheet Boards
-            if (uCat.includes('PLY') || uCat.includes('BOARD') || uCat.includes('DOOR') || text.includes('PLY') || text.includes('BOARD')) {
-                if (text.includes('SHUTTER') || text.includes('SHATTER')) {
-                    return {
+        const VyaparIndustryModules = {
+            plywood: {
+                id: 'plywood',
+                name: 'Plywood & Timber',
+                shortName: 'Plywood',
+                icon: 'fa-tree',
+                badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                activePillClass: 'bg-amber-600 text-white shadow-lg ring-2 ring-amber-400',
+                unit: 'sqft',
+                unitLabel: 'Per Sqft / Sheet',
+                keywords: ['PLY', 'PLYWOOD', 'BOARD', 'BLOCK BOARD', 'DOOR', 'FLUSH DOOR', 'SHUTTER', 'SHATTER', 'TIMBER', 'LAMINATE', 'SUNMICA', 'VENEER', 'MDF', 'HDF', 'WPC'],
+                standardSizes: [
+                    { size: '8 x 4 ft (32 sqft)', area: 32, label: '8x4' },
+                    { size: '7 x 4 ft (28 sqft)', area: 28, label: '7x4' },
+                    { size: '6 x 4 ft (24 sqft)', area: 24, label: '6x4' },
+                    { size: '8 x 3 ft (24 sqft)', area: 24, label: '8x3' },
+                    { size: '7 x 3 ft (21 sqft)', area: 21, label: '7x3' },
+                    { size: '6 x 3 ft (18 sqft)', area: 18, label: '6x3' }
+                ],
+                subGroups: [
+                    {
                         key: 'shuttering',
                         label: 'Shuttering Ply',
                         icon: 'cubes-stacked',
@@ -2369,11 +2453,10 @@
                         defaultFreightVal: 3.00,
                         defaultMarginMode: 'percent',
                         defaultMarginVal: 12,
-                        unit: 'sqft'
-                    };
-                }
-                if (text.includes('BLOCK BOARD') || text.includes('PINE BOARD') || (text.includes('BOARD') && !text.includes('SWITCH'))) {
-                    return {
+                        unit: 'sqft',
+                        match: (txt) => txt.includes('SHUTTER') || txt.includes('SHATTER')
+                    },
+                    {
                         key: 'block_board',
                         label: 'Block Boards',
                         icon: 'layer-group',
@@ -2383,11 +2466,10 @@
                         defaultFreightVal: 2.50,
                         defaultMarginMode: 'percent',
                         defaultMarginVal: 15,
-                        unit: 'sqft'
-                    };
-                }
-                if (text.includes('FLUSH DOOR') || text.includes('DOOR') || text.includes('WINDOW')) {
-                    return {
+                        unit: 'sqft',
+                        match: (txt) => txt.includes('BLOCK BOARD') || txt.includes('PINE BOARD') || (txt.includes('BOARD') && !txt.includes('SWITCH'))
+                    },
+                    {
                         key: 'flush_door',
                         label: 'Flush Doors',
                         icon: 'door-open',
@@ -2397,27 +2479,60 @@
                         defaultFreightVal: 2.00,
                         defaultMarginMode: 'percent',
                         defaultMarginVal: 18,
-                        unit: 'sqft'
-                    };
-                }
-                return {
-                    key: 'plywood',
-                    label: 'Plywood (MR/BWP/Marine)',
-                    icon: 'tree',
-                    color: 'blue',
-                    defaultLess: 2.0,
-                    defaultFreightMode: 'flat',
-                    defaultFreightVal: 2.50,
-                    defaultMarginMode: 'percent',
-                    defaultMarginVal: 15,
-                    unit: 'sqft'
-                };
-            }
-
-            // 2. Pipes & Plumbing (UPVC, CPVC, SWR, PVC)
-            if (uCat.includes('PVC') || uCat.includes('PIPE') || uCat.includes('FITTING') || uCat.includes('PLUMB')) {
-                if (text.includes('BRASS') || text.includes('MTA') || text.includes('FTA') || text.includes('BRASS ELBOW') || text.includes('BRASS TEE') || text.includes('B.E') || text.includes('B.T')) {
-                    return {
+                        unit: 'sqft',
+                        match: (txt) => txt.includes('FLUSH DOOR') || txt.includes('DOOR') || txt.includes('WINDOW')
+                    },
+                    {
+                        key: 'plywood_bwp',
+                        label: 'Marine BWP 710 Plywood',
+                        icon: 'anchor',
+                        color: 'blue',
+                        defaultLess: 3.0,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 2.50,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 18,
+                        unit: 'sqft',
+                        match: (txt) => txt.includes('710') || txt.includes('MARINE') || txt.includes('BWP') || txt.includes('WATERPROOF')
+                    },
+                    {
+                        key: 'plywood',
+                        label: 'Plywood (MR Commercial)',
+                        icon: 'tree',
+                        color: 'blue',
+                        defaultLess: 2.0,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 2.50,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 15,
+                        unit: 'sqft',
+                        match: () => true
+                    }
+                ]
+            },
+            plumbing: {
+                id: 'plumbing',
+                name: 'Plumbing & Pipes',
+                shortName: 'Plumbing',
+                icon: 'fa-faucet-drip',
+                badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+                activePillClass: 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-400',
+                unit: 'pc',
+                unitLabel: 'Per Piece / Length',
+                keywords: ['UPVC', 'CPVC', 'SWR', 'PVC', 'PIPE', 'FITTING', 'PLUMB', 'ELBOW', 'TEE', 'SOCKET', 'REDUCER', 'MTA', 'FTA', 'UNION', 'VALVE', 'SOLVENT', 'NIPPLE', 'END CAP', 'AGRI', 'CONDUIT'],
+                standardSizes: [
+                    { size: '1/2" (15 mm)', label: '1/2"' },
+                    { size: '3/4" (20 mm)', label: '3/4"' },
+                    { size: '1" (25 mm)', label: '1"' },
+                    { size: '1-1/4" (32 mm)', label: '1-1/4"' },
+                    { size: '1-1/2" (40 mm)', label: '1-1/2"' },
+                    { size: '2" (50 mm)', label: '2"' },
+                    { size: '2-1/2" (65 mm)', label: '2-1/2"' },
+                    { size: '3" (80 mm)', label: '3"' },
+                    { size: '4" (110 mm)', label: '4"' }
+                ],
+                subGroups: [
+                    {
                         key: 'brass_fittings',
                         label: 'Brass Insert Fittings',
                         icon: 'ring',
@@ -2427,11 +2542,10 @@
                         defaultFreightVal: 0,
                         defaultMarginMode: 'percent',
                         defaultMarginVal: 25,
-                        unit: 'pc'
-                    };
-                }
-                if (text.includes('PIPE') || text.includes('CONDUIT') || text.includes('SCH 40') || text.includes('SCH 80') || text.includes('10M') || text.includes('6M')) {
-                    return {
+                        unit: 'pc',
+                        match: (txt) => txt.includes('BRASS') || txt.includes('MTA') || txt.includes('FTA') || txt.includes('BRASS ELBOW') || txt.includes('BRASS TEE') || txt.includes('B.E') || txt.includes('B.T')
+                    },
+                    {
                         key: 'pipes',
                         label: 'Pipes (Lengths)',
                         icon: 'grip-lines',
@@ -2441,11 +2555,10 @@
                         defaultFreightVal: 0,
                         defaultMarginMode: 'percent',
                         defaultMarginVal: 8,
-                        unit: 'length'
-                    };
-                }
-                if (text.includes('VALVE') || text.includes('BALL VALVE') || text.includes('SOLVENT') || text.includes('CEMENT') || text.includes('TEFLON') || text.includes('TAPE')) {
-                    return {
+                        unit: 'length',
+                        match: (txt) => txt.includes('PIPE') || txt.includes('SCH 40') || txt.includes('SCH 80') || txt.includes('10M') || txt.includes('6M') || txt.includes('10FT') || txt.includes('CONDUIT')
+                    },
+                    {
                         key: 'valves_acc',
                         label: 'Valves & Solvent / Accessories',
                         icon: 'faucet-drip',
@@ -2455,51 +2568,623 @@
                         defaultFreightVal: 0,
                         defaultMarginMode: 'percent',
                         defaultMarginVal: 15,
-                        unit: 'pc'
-                    };
-                }
-                return {
-                    key: 'plain_fittings',
-                    label: 'Plain PVC Fittings (Elbow/Tee/Socket)',
-                    icon: 'circle-nodes',
-                    color: 'emerald',
-                    defaultLess: 30,
-                    defaultFreightMode: 'percent',
-                    defaultFreightVal: 0,
-                    defaultMarginMode: 'percent',
-                    defaultMarginVal: 18,
-                    unit: 'pc'
-                };
-            }
-
-            // 3. Electrical & Power Tools
-            if (uCat.includes('TOOL') || uCat.includes('ELECTRIC') || text.includes('DRILL') || text.includes('GRINDER') || text.includes('CUTTER') || text.includes('BLOWER')) {
-                if (text.includes('MACHINE') || text.includes('DRILL') || text.includes('GRINDER') || text.includes('CUTTER') || text.includes('SAW') || text.includes('PLANER')) {
-                    return {
-                        key: 'power_tools',
-                        label: 'Power Tools & Machinery',
-                        icon: 'bolt',
-                        color: 'cyan',
-                        defaultLess: 0,
-                        defaultFreightMode: 'flat',
+                        unit: 'pc',
+                        match: (txt) => txt.includes('VALVE') || txt.includes('BALL VALVE') || txt.includes('SOLVENT') || txt.includes('CEMENT') || txt.includes('TEFLON') || txt.includes('TAPE')
+                    },
+                    {
+                        key: 'plain_fittings',
+                        label: 'Plain PVC Fittings (Elbow/Tee/Socket)',
+                        icon: 'circle-nodes',
+                        color: 'emerald',
+                        defaultLess: 30,
+                        defaultFreightMode: 'percent',
                         defaultFreightVal: 0,
                         defaultMarginMode: 'percent',
+                        defaultMarginVal: 18,
+                        unit: 'pc',
+                        match: () => true
+                    }
+                ]
+            },
+            pumps: {
+                id: 'pumps',
+                name: 'Pumps & Motors',
+                shortName: 'Pumps',
+                icon: 'fa-gears',
+                badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+                activePillClass: 'bg-cyan-600 text-white shadow-lg ring-2 ring-cyan-400',
+                unit: 'pc',
+                unitLabel: 'Per Unit / Set',
+                keywords: ['PUMP', 'MOTOR', 'SUBMERSIBLE', 'MONOBLOCK', 'OPENWELL', 'BOOSTER', 'JET PUMP', 'SEWAGE PUMP', 'V4', 'V6', 'KIRLOSKAR', 'CROMPTON PUMP', 'LUBI', 'TEXMO', 'STARTER', 'PANEL BOARD'],
+                standardSizes: [
+                    { size: '0.5 HP (0.37 kW) - 1 Phase', label: '0.5 HP' },
+                    { size: '1.0 HP (0.75 kW) - 1 Phase', label: '1.0 HP' },
+                    { size: '1.5 HP (1.1 kW) - 1 Phase', label: '1.5 HP' },
+                    { size: '2.0 HP (1.5 kW) - 1 Phase', label: '2.0 HP' },
+                    { size: '3.0 HP (2.2 kW) - 3 Phase', label: '3.0 HP' },
+                    { size: '5.0 HP (3.7 kW) - 3 Phase', label: '5.0 HP' }
+                ],
+                subGroups: [
+                    {
+                        key: 'submersible_pump',
+                        label: 'Borewell Submersible Pumps',
+                        icon: 'arrow-down-up-across-line',
+                        color: 'cyan',
+                        defaultLess: 15,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 150,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 15,
+                        unit: 'set',
+                        match: (txt) => txt.includes('SUBMERSIBLE') || txt.includes('BOREWELL') || txt.includes('V4') || txt.includes('V6')
+                    },
+                    {
+                        key: 'monoblock_pump',
+                        label: 'Domestic Monoblock Pumps',
+                        icon: 'fan',
+                        color: 'blue',
+                        defaultLess: 12,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 100,
+                        defaultMarginMode: 'percent',
                         defaultMarginVal: 12,
-                        unit: 'pc'
-                    };
+                        unit: 'pc',
+                        match: (txt) => txt.includes('MONOBLOCK') || txt.includes('DOMESTIC') || txt.includes('SELF PRIMING')
+                    },
+                    {
+                        key: 'openwell_pump',
+                        label: 'Openwell Submersible Pumps',
+                        icon: 'water',
+                        color: 'teal',
+                        defaultLess: 14,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 150,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 14,
+                        unit: 'pc',
+                        match: (txt) => txt.includes('OPENWELL') || txt.includes('OPEN WELL')
+                    },
+                    {
+                        key: 'booster_pump',
+                        label: 'Pressure Booster & Specialty Pumps',
+                        icon: 'gauge-high',
+                        color: 'indigo',
+                        defaultLess: 10,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 100,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 18,
+                        unit: 'pc',
+                        match: (txt) => txt.includes('BOOSTER') || txt.includes('PRESSURE') || txt.includes('SEWAGE') || txt.includes('DRAINAGE')
+                    },
+                    {
+                        key: 'pump_accessories',
+                        label: 'Starters, Control Panels & Cables',
+                        icon: 'microchip',
+                        color: 'amber',
+                        defaultLess: 18,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 50,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 15,
+                        unit: 'pc',
+                        match: () => true
+                    }
+                ]
+            },
+            electricals: {
+                id: 'electricals',
+                name: 'Electricals & Wiring',
+                shortName: 'Electricals',
+                icon: 'fa-bolt',
+                badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                activePillClass: 'bg-amber-600 text-white shadow-lg ring-2 ring-amber-400',
+                unit: 'coil',
+                unitLabel: 'Per Coil / Piece',
+                keywords: ['WIRE', 'CABLE', 'SWITCH', 'SOCKET', 'MCB', 'RCCB', 'DB', 'DISTRIBUTION', 'POLYCAB', 'HAVELLS', 'ANCHOR', 'ROMA', 'LEGRAND', 'SCHNEIDER', 'FINOLEX', 'ELECTRICAL', 'MODULAR', 'PANEL LIGHT', 'BULB', 'BATTEN', 'LED'],
+                standardSizes: [
+                    { size: '0.75 sq mm (90m Coil)', label: '0.75mm' },
+                    { size: '1.0 sq mm (90m Coil)', label: '1.0mm' },
+                    { size: '1.5 sq mm (90m Coil)', label: '1.5mm' },
+                    { size: '2.5 sq mm (90m Coil)', label: '2.5mm' },
+                    { size: '4.0 sq mm (90m Coil)', label: '4.0mm' },
+                    { size: '6.0 sq mm (90m Coil)', label: '6.0mm' },
+                    { size: '10.0 sq mm (90m Coil)', label: '10.0mm' }
+                ],
+                subGroups: [
+                    {
+                        key: 'wires_cables',
+                        label: 'FR / FRLS Copper Wires (90m Coils)',
+                        icon: 'lines-leaning',
+                        color: 'rose',
+                        defaultLess: 22,
+                        defaultFreightMode: 'percent',
+                        defaultFreightVal: 0,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 10,
+                        unit: 'coil',
+                        match: (txt) => txt.includes('WIRE') || txt.includes('CABLE') || txt.includes('SQ MM') || txt.includes('COIL') || txt.includes('COPPER')
+                    },
+                    {
+                        key: 'modular_switches',
+                        label: 'Modular Switches & Sockets',
+                        icon: 'toggle-on',
+                        color: 'indigo',
+                        defaultLess: 42,
+                        defaultFreightMode: 'percent',
+                        defaultFreightVal: 0,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 20,
+                        unit: 'pc',
+                        match: (txt) => (txt.includes('SWITCH') || txt.includes('SOCKET') || txt.includes('FAN REGULATOR')) && !txt.includes('MCB')
+                    },
+                    {
+                        key: 'modular_plates',
+                        label: 'Modular Cover Plates (1M - 18M)',
+                        icon: 'square',
+                        color: 'cyan',
+                        defaultLess: 45,
+                        defaultFreightMode: 'percent',
+                        defaultFreightVal: 0,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 22,
+                        unit: 'pc',
+                        match: (txt) => txt.includes('PLATE') || txt.includes('MODULAR COVER') || txt.includes('GRID')
+                    },
+                    {
+                        key: 'switchgear_mcb',
+                        label: 'MCBs, RCCBs & Distribution Boards',
+                        icon: 'shield-halved',
+                        color: 'amber',
+                        defaultLess: 25,
+                        defaultFreightMode: 'percent',
+                        defaultFreightVal: 0,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 15,
+                        unit: 'pc',
+                        match: (txt) => txt.includes('MCB') || txt.includes('ISOLATOR') || txt.includes('RCCB') || txt.includes('DB BOX') || txt.includes('DISTRIBUTION')
+                    },
+                    {
+                        key: 'lighting_led',
+                        label: 'LED Lights, Panels & Battens',
+                        icon: 'lightbulb',
+                        color: 'emerald',
+                        defaultLess: 28,
+                        defaultFreightMode: 'percent',
+                        defaultFreightVal: 0,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 18,
+                        unit: 'pc',
+                        match: () => true
+                    }
+                ]
+            },
+            sanitaryware: {
+                id: 'sanitaryware',
+                name: 'Sanitaryware & Bath',
+                shortName: 'Sanitaryware',
+                icon: 'fa-bath',
+                badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-500/30',
+                activePillClass: 'bg-teal-600 text-white shadow-lg ring-2 ring-teal-400',
+                unit: 'pc',
+                unitLabel: 'Per Piece / Set',
+                keywords: ['BASIN', 'COMMODE', 'TOILET', 'CLOSET', 'EWC', 'ORISSA', 'PAN', 'URINAL', 'CISTERN', 'TAP', 'FAUCET', 'SHOWER', 'DIVERTER', 'SANITARY', 'BATH', 'CP FITTING', 'JAQUAR', 'HINDWARE', 'CERA', 'PARRYWARE', 'VANITY'],
+                standardSizes: [
+                    { size: 'One Piece Toilet (S-Trap 220mm)', label: '1-Pc 220mm' },
+                    { size: 'One Piece Toilet (S-Trap 300mm)', label: '1-Pc 300mm' },
+                    { size: 'Wall Hung WC with Soft-Close', label: 'Wall Hung' },
+                    { size: 'Table Top Basin (18" x 14")', label: 'Table Top' },
+                    { size: 'Counter Basin (20" x 16")', label: 'Counter' },
+                    { size: 'Orissa Pan (21 Inch)', label: 'Orissa 21"' }
+                ],
+                subGroups: [
+                    {
+                        key: 'ceramic_toilets',
+                        label: 'Ceramic Toilets & Closets (EWC/1-Pc)',
+                        icon: 'toilet',
+                        color: 'teal',
+                        defaultLess: 15,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 200,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 20,
+                        unit: 'pc',
+                        match: (txt) => txt.includes('TOILET') || txt.includes('COMMODE') || txt.includes('CLOSET') || txt.includes('EWC') || txt.includes('ORISSA') || txt.includes('PAN') || txt.includes('URINAL')
+                    },
+                    {
+                        key: 'wash_basins',
+                        label: 'Wash Basins & Vanity Cabinets',
+                        icon: 'sink',
+                        color: 'blue',
+                        defaultLess: 18,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 100,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 22,
+                        unit: 'pc',
+                        match: (txt) => txt.includes('BASIN') || txt.includes('VANITY') || txt.includes('SINK')
+                    },
+                    {
+                        key: 'cp_fittings',
+                        label: 'CP Brass Taps & Wall Mixers',
+                        icon: 'faucet',
+                        color: 'amber',
+                        defaultLess: 30,
+                        defaultFreightMode: 'percent',
+                        defaultFreightVal: 0,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 25,
+                        unit: 'pc',
+                        match: (txt) => txt.includes('TAP') || txt.includes('FAUCET') || txt.includes('MIXER') || txt.includes('DIVERTER') || txt.includes('COCK') || txt.includes('SPOUT')
+                    },
+                    {
+                        key: 'bath_acc',
+                        label: 'Showers, Cisterns & Accessories',
+                        icon: 'shower',
+                        color: 'indigo',
+                        defaultLess: 25,
+                        defaultFreightMode: 'percent',
+                        defaultFreightVal: 0,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 20,
+                        unit: 'pc',
+                        match: () => true
+                    }
+                ]
+            },
+            electronics: {
+                id: 'electronics',
+                name: 'Appliances & Electronics',
+                shortName: 'Electronics',
+                icon: 'fa-tv',
+                badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+                activePillClass: 'bg-purple-600 text-white shadow-lg ring-2 ring-purple-400',
+                unit: 'pc',
+                unitLabel: 'Per Unit',
+                keywords: ['FAN', 'GEYSER', 'WATER HEATER', 'COOLER', 'TV', 'TELEVISION', 'AC', 'AIR CONDITIONER', 'REFRIGERATOR', 'FRIDGE', 'MIXER', 'INDUCTION', 'IRON', 'ELECTRONIC', 'APPLIANCE', 'LED TV', 'CHIMNEY', 'HAVELLS GEYSER', 'BAJAJ'],
+                standardSizes: [
+                    { size: 'Ceiling Fan 1200 mm (48 Inch)', label: 'Fan 48"' },
+                    { size: 'Storage Geyser 15 Litre (5 Star)', label: 'Geyser 15L' },
+                    { size: 'Storage Geyser 25 Litre (5 Star)', label: 'Geyser 25L' },
+                    { size: 'Desert Air Cooler 70 Litre', label: 'Cooler 70L' },
+                    { size: 'Smart LED TV 43 Inch (4K UHD)', label: 'TV 43"' },
+                    { size: 'Split AC 1.5 Ton (3 Star Inverter)', label: 'AC 1.5T' }
+                ],
+                subGroups: [
+                    {
+                        key: 'cooling_fans',
+                        label: 'Ceiling, Exhaust & Table Fans',
+                        icon: 'fan',
+                        color: 'cyan',
+                        defaultLess: 12,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 50,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 12,
+                        unit: 'pc',
+                        match: (txt) => txt.includes('FAN')
+                    },
+                    {
+                        key: 'water_heaters',
+                        label: 'Storage & Instant Water Geysers',
+                        icon: 'fire-burner',
+                        color: 'amber',
+                        defaultLess: 15,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 100,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 15,
+                        unit: 'pc',
+                        match: (txt) => txt.includes('GEYSER') || txt.includes('WATER HEATER') || txt.includes('HEATER')
+                    },
+                    {
+                        key: 'air_coolers',
+                        label: 'Air Coolers (Desert / Personal)',
+                        icon: 'snowflake',
+                        color: 'blue',
+                        defaultLess: 10,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 150,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 14,
+                        unit: 'pc',
+                        match: (txt) => txt.includes('COOLER')
+                    },
+                    {
+                        key: 'kitchen_appliances',
+                        label: 'Kitchen Appliances (Mixer/Induction/Chimney)',
+                        icon: 'blender',
+                        color: 'emerald',
+                        defaultLess: 15,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 50,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 18,
+                        unit: 'pc',
+                        match: (txt) => txt.includes('MIXER') || txt.includes('GRINDER') || txt.includes('INDUCTION') || txt.includes('CHIMNEY') || txt.includes('TOASTER') || txt.includes('KETTLE') || txt.includes('IRON')
+                    },
+                    {
+                        key: 'home_displays',
+                        label: 'Smart TVs & Large Entertainment',
+                        icon: 'tv',
+                        color: 'purple',
+                        defaultLess: 8,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 200,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 10,
+                        unit: 'pc',
+                        match: () => true
+                    }
+                ]
+            }
+        };
+
+        let activeIndustryModule = 'ALL';
+
+        function getEnabledIndustryModules() {
+            try {
+                const stored = localStorage.getItem('vyapar_enabled_modules');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
                 }
-                return {
-                    key: 'hand_tools',
-                    label: 'Hand Tools & Accessories',
-                    icon: 'wrench',
-                    color: 'purple',
-                    defaultLess: 0,
-                    defaultFreightMode: 'flat',
-                    defaultFreightVal: 0,
-                    defaultMarginMode: 'percent',
-                    defaultMarginVal: 18,
-                    unit: 'pc'
-                };
+            } catch (e) {}
+            return ['plywood', 'plumbing', 'pumps', 'electricals', 'sanitaryware', 'electronics'];
+        }
+
+        function initIndustryModules() {
+            renderIndustryModulePills();
+        }
+
+        function renderIndustryModulePills() {
+            const container = document.getElementById('industryModulePills');
+            if (!container) return;
+
+            const enabled = getEnabledIndustryModules();
+
+            let html = `
+                <button type="button" onclick="switchActiveIndustryModule('ALL')" class="px-3.5 py-1.5 rounded-2xl text-xs font-black transition cursor-pointer flex items-center gap-2 whitespace-nowrap active:scale-95 ${activeIndustryModule === 'ALL' ? 'bg-white text-gray-900 shadow-md ring-2 ring-white/50' : 'bg-slate-800/80 hover:bg-slate-700 text-gray-300 border border-slate-700/60'}">
+                    <i class="fa-solid fa-shapes text-indigo-400"></i>
+                    <span>All Businesses (Mix)</span>
+                    <span class="px-1.5 py-0.5 rounded-full text-[9px] bg-slate-900/60 text-gray-300 font-mono">${dynamicRows.length + groupedProductCards.length}</span>
+                </button>
+            `;
+
+            enabled.forEach(modKey => {
+                const mod = VyaparIndustryModules[modKey];
+                if (!mod) return;
+                const isActive = (activeIndustryModule === modKey);
+
+                const modCardCount = groupedProductCards.filter(c => detectCardModule(c) === modKey).length;
+                const modRowCount = dynamicRows.filter(r => detectCardModule(r) === modKey).length;
+                const modTotal = modCardCount + modRowCount;
+
+                html += `
+                    <button type="button" onclick="switchActiveIndustryModule('${modKey}')" class="px-3.5 py-1.5 rounded-2xl text-xs font-black transition cursor-pointer flex items-center gap-2 whitespace-nowrap active:scale-95 ${isActive ? mod.activePillClass : 'bg-slate-800/80 hover:bg-slate-700 text-gray-300 border border-slate-700/60'}">
+                        <i class="fa-solid ${mod.icon} text-amber-300"></i>
+                        <span>${mod.name}</span>
+                        <span class="px-1.5 py-0.5 rounded-full text-[9px] ${isActive ? 'bg-white/20 text-white' : 'bg-slate-900/60 text-gray-400'} font-mono">${modTotal}</span>
+                    </button>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function switchActiveIndustryModule(modKey) {
+            activeIndustryModule = modKey;
+            renderIndustryModulePills();
+            refreshCategoryFilterTabs();
+            applyCombinedFilter();
+            if (typeof renderSmartSubGroupRules === 'function') renderSmartSubGroupRules();
+            if (typeof updatePublishButtonText === 'function') updatePublishButtonText();
+        }
+
+        function openIndustryModuleConfigModal() {
+            const modal = document.getElementById('industryConfigModal');
+            const list = document.getElementById('industryConfigList');
+            if (!modal || !list) return;
+
+            const enabled = getEnabledIndustryModules();
+            let html = '';
+
+            Object.keys(VyaparIndustryModules).forEach(key => {
+                const mod = VyaparIndustryModules[key];
+                const isChecked = enabled.includes(key);
+
+                html += `
+                    <label class="flex items-center justify-between p-3 rounded-2xl border ${isChecked ? 'border-indigo-200 bg-indigo-50/40' : 'border-gray-200 bg-gray-50/50'} hover:border-indigo-300 cursor-pointer transition select-none">
+                        <div class="flex items-center gap-3">
+                            <div class="h-9 w-9 rounded-xl ${isChecked ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600'} flex items-center justify-center text-sm shadow-xs">
+                                <i class="fa-solid ${mod.icon}"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-black text-gray-900">${mod.name}</div>
+                                <div class="text-[10px] text-gray-500">${mod.unitLabel} • ${mod.subGroups.length} Sub-Categories</div>
+                            </div>
+                        </div>
+                        <input type="checkbox" name="module_config_chk" value="${key}" ${isChecked ? 'checked' : ''} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                    </label>
+                `;
+            });
+
+            list.innerHTML = html;
+            modal.classList.remove('hidden');
+        }
+
+        function closeIndustryModuleConfigModal() {
+            const modal = document.getElementById('industryConfigModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function saveIndustryModuleConfig() {
+            const checked = Array.from(document.querySelectorAll('input[name="module_config_chk"]:checked')).map(cb => cb.value);
+            if (checked.length === 0) {
+                alert('Kripya kam se kam ek business line select karein.');
+                return;
+            }
+            localStorage.setItem('vyapar_enabled_modules', JSON.stringify(checked));
+            closeIndustryModuleConfigModal();
+            if (activeIndustryModule !== 'ALL' && !checked.includes(activeIndustryModule)) {
+                activeIndustryModule = 'ALL';
+            }
+            renderIndustryModulePills();
+            refreshCategoryFilterTabs();
+            applyCombinedFilter();
+            if (typeof showToast === 'function') showToast('Aapki business lines safalta-purvak update ho gayi!', 'success');
+        }
+
+        function resetDefaultBusinessModules() {
+            const all = ['plywood', 'plumbing', 'pumps', 'electricals', 'sanitaryware', 'electronics'];
+            localStorage.setItem('vyapar_enabled_modules', JSON.stringify(all));
+            openIndustryModuleConfigModal();
+        }
+
+        function detectCardModule(item) {
+            if (!item) return 'general';
+            if (item.industry_module && VyaparIndustryModules[item.industry_module]) {
+                return item.industry_module;
+            }
+            const txt = `${item.parent_name || item.name || item.product_name || ''} ${item.category || item.group_type || ''} ${item.description || ''} ${item.variants?.[0]?.size || item.size || ''}`.toUpperCase();
+
+            // 1. Plywood & Boards
+            for (const kw of VyaparIndustryModules.plywood.keywords) {
+                if (txt.includes(kw)) return 'plywood';
+            }
+            // 2. Plumbing & Pipes
+            for (const kw of VyaparIndustryModules.plumbing.keywords) {
+                if (txt.includes(kw)) return 'plumbing';
+            }
+            // 3. Pumps & Motors
+            for (const kw of VyaparIndustryModules.pumps.keywords) {
+                if (txt.includes(kw)) return 'pumps';
+            }
+            // 4. Electricals & Wires
+            for (const kw of VyaparIndustryModules.electricals.keywords) {
+                if (txt.includes(kw)) return 'electricals';
+            }
+            // 5. Sanitaryware & Bath
+            for (const kw of VyaparIndustryModules.sanitaryware.keywords) {
+                if (txt.includes(kw)) return 'sanitaryware';
+            }
+            // 6. Electronics & Appliances
+            for (const kw of VyaparIndustryModules.electronics.keywords) {
+                if (txt.includes(kw)) return 'electronics';
+            }
+            return 'general';
+        }
+
+        function applyIndustryStandardSizes(cardId) {
+            const card = groupedProductCards.find(c => c.card_id === cardId);
+            if (!card) return;
+
+            const modKey = detectCardModule(card);
+            const mod = VyaparIndustryModules[modKey] || VyaparIndustryModules['plywood'];
+            const stdSizes = mod.standardSizes || [];
+
+            if (stdSizes.length === 0) {
+                alert('Is category ke liye koi predefined standard sizes available nahi hain.');
+                return;
+            }
+
+            if (!Array.isArray(card.variants)) {
+                card.variants = [];
+            }
+
+            const existingSizes = card.variants.map(v => (v.size || '').trim().toLowerCase());
+            
+            const baseVariant = card.variants[0] || {};
+            const baseCost = parseFloat(baseVariant.purchase_cost) || 0;
+            const basePrice = parseFloat(baseVariant.retail_price) || 0;
+            const baseMrp = parseFloat(baseVariant.mrp) || 0;
+
+            let sqftCost = 0;
+            let sqftPrice = 0;
+            let sqftMrp = 0;
+            if (modKey === 'plywood') {
+                let baseArea = 32;
+                if (baseVariant.size) {
+                    const m = baseVariant.size.match(/(\d+)\s*x\s*(\d+)/i);
+                    if (m) baseArea = (parseFloat(m[1]) * parseFloat(m[2])) || 32;
+                }
+                if (baseCost > 0) sqftCost = baseCost / baseArea;
+                if (basePrice > 0) sqftPrice = basePrice / baseArea;
+                if (baseMrp > 0) sqftMrp = baseMrp / baseArea;
+            }
+
+            let addedCount = 0;
+            stdSizes.forEach(item => {
+                const sizeName = item.size;
+                if (existingSizes.some(s => s === sizeName.toLowerCase() || (item.label && s.includes(item.label.toLowerCase())))) {
+                    return;
+                }
+
+                let variantCost = baseCost;
+                let variantPrice = basePrice;
+                let variantMrp = baseMrp;
+
+                if (modKey === 'plywood' && item.area && sqftPrice > 0) {
+                    variantCost = Math.round(sqftCost * item.area);
+                    variantPrice = Math.round(sqftPrice * item.area);
+                    variantMrp = Math.round(sqftMrp * item.area);
+                }
+
+                card.variants.push({
+                    id: 'v_auto_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                    size: sizeName,
+                    sku: (card.parent_name || 'PROD').substring(0, 3).toUpperCase() + '-' + (item.label || 'SZ'),
+                    hsn: baseVariant.hsn || '',
+                    packing: baseVariant.packing || '1 Pc',
+                    purchase_cost: variantCost > 0 ? variantCost : '',
+                    retail_price: variantPrice > 0 ? variantPrice : '',
+                    mrp: variantMrp > 0 ? variantMrp : '',
+                    stock: baseVariant.stock || 10
+                });
+                addedCount++;
+            });
+
+            if (addedCount === 0) {
+                if (typeof showToast === 'function') showToast(`Is card me pehle se hi ${mod.shortName} ke standard sizes maujood hain.`, 'info');
+                return;
+            }
+
+            saveToLocalStorage();
+            renderGroupedProductCards();
+            if (typeof autoSaveDraftToBackend === 'function') autoSaveDraftToBackend();
+            if (typeof showToast === 'function') {
+                showToast(`✓ ${addedCount} standard sizes (${mod.name}) card me safalta-purvak add ho gaye!`, 'success');
+            }
+        }
+
+        // =========================================================================
+        // ⚡ SMART CATEGORY SUB-GROUP MULTI-MARGIN & FREIGHT ENGINE
+        // =========================================================================
+        let activeSubGroupsMap = {};
+
+        function classifySubGroup(name, category, size) {
+            const text = `${name || ''} ${size || ''} ${category || ''}`.toUpperCase();
+
+            // Determine target module
+            let targetModKey = (activeIndustryModule !== 'ALL') ? activeIndustryModule : detectCardModule({ parent_name: name, category, size });
+            const mod = VyaparIndustryModules[targetModKey];
+            if (mod && Array.isArray(mod.subGroups)) {
+                for (const sg of mod.subGroups) {
+                    if (typeof sg.match === 'function' && sg.match(text)) {
+                        return {
+                            key: sg.key,
+                            label: sg.label,
+                            icon: sg.icon,
+                            color: sg.color,
+                            defaultLess: sg.defaultLess,
+                            defaultFreightMode: sg.defaultFreightMode,
+                            defaultFreightVal: sg.defaultFreightVal,
+                            defaultMarginMode: sg.defaultMarginMode,
+                            defaultMarginVal: sg.defaultMarginVal,
+                            unit: sg.unit || mod.unit
+                        };
+                    }
+                }
             }
 
             // Default Generic Sub-Group
@@ -2526,13 +3211,18 @@
 
             // Collect items matching current category
             const normCat = (activeCategory || 'ALL').trim().toLowerCase();
-            const targetRows = (normCat === 'all') 
+            let targetRows = (normCat === 'all') 
                 ? dynamicRows 
                 : dynamicRows.filter(r => (r.group_type || r.category || 'General Hardware').trim().toLowerCase() === normCat);
             
-            const targetCards = (normCat === 'all')
+            let targetCards = (normCat === 'all')
                 ? groupedProductCards
                 : groupedProductCards.filter(c => (c.category || '').trim().toLowerCase() === normCat);
+
+            if (activeIndustryModule !== 'ALL') {
+                targetRows = targetRows.filter(r => detectCardModule(r) === activeIndustryModule);
+                targetCards = targetCards.filter(c => detectCardModule(c) === activeIndustryModule);
+            }
 
             const totalItems = targetRows.length + targetCards.length;
             if (totalItems === 0) {
@@ -2789,17 +3479,21 @@
             rows.forEach(tr => {
                 const text = (tr.getAttribute('data-search') || '').toLowerCase();
                 const category = (tr.getAttribute('data-category') || '').toLowerCase();
+                const trMod = tr.getAttribute('data-module') || '';
                 const matchSearch = (!searchQuery || text.includes(searchQuery));
                 const matchCat = (activeCategory === 'ALL' || category === activeCategory.toLowerCase());
-                tr.style.display = (matchSearch && matchCat) ? '' : 'none';
+                const matchMod = (activeIndustryModule === 'ALL' || !trMod || trMod === activeIndustryModule);
+                tr.style.display = (matchSearch && matchCat && matchMod) ? '' : 'none';
             });
             // Cards view
             document.querySelectorAll('.product-family-card, [id^="grouped_card_box_"]').forEach(card => {
                 const text = (card.getAttribute('data-search') || '').toLowerCase();
                 const category = (card.getAttribute('data-category') || '').toLowerCase();
+                const cardMod = card.getAttribute('data-module') || '';
                 const matchSearch = (!searchQuery || text.includes(searchQuery));
                 const matchCat = (activeCategory === 'ALL' || category === activeCategory.toLowerCase());
-                card.style.display = (matchSearch && matchCat) ? '' : 'none';
+                const matchMod = (activeIndustryModule === 'ALL' || !cardMod || cardMod === activeIndustryModule);
+                card.style.display = (matchSearch && matchCat && matchMod) ? '' : 'none';
             });
         }
 
@@ -3831,6 +4525,7 @@
             loadFromLocalStorage();
 
             // 1. TOP PRIORITY: If we have existing saved dynamic spreadsheet rows or grouped cards in localStorage, PRESERVE THEM!
+            initIndustryModules();
             if (groupedProductCards.length > 0 || dynamicRows.length > 0) {
                 renderDynamicRows();
                 renderGroupedProductCards();
@@ -4875,8 +5570,12 @@
                     }
                 }
 
+                const cardMod = detectCardModule(c);
+                const modMeta = VyaparIndustryModules[cardMod] || { name: 'General', icon: 'fa-box', badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-100', shortName: 'Standard' };
+                const moduleBadgeHtml = `<span class="px-2.5 py-0.5 rounded-lg ${modMeta.badgeColor || 'bg-indigo-50 text-indigo-700 border-indigo-100'} font-extrabold text-[10px] border flex items-center gap-1"><i class="fa-solid ${modMeta.icon} text-[9px]"></i> ${modMeta.shortName || modMeta.name}</span>`;
+
                 html += `
-                    <div class="bg-white rounded-3xl border-2 border-indigo-100 p-5 shadow-sm hover:shadow-md transition space-y-4" id="grouped_card_box_${c.card_id}" data-category="${escapeHtml(cardCategory)}" data-search="${escapeHtml(cardSearch)}">
+                    <div class="bg-white rounded-3xl border-2 border-indigo-100 p-5 shadow-sm hover:shadow-md transition space-y-4 product-family-card" id="grouped_card_box_${c.card_id}" data-category="${escapeHtml(cardCategory)}" data-module="${cardMod}" data-search="${escapeHtml(cardSearch)}">
                         <!-- Card Top Bar: Checkbox, Badge & Merge Card Action -->
                         <div class="flex items-center justify-between pb-2.5 border-b border-gray-100 flex-wrap gap-2 bg-slate-50/60 -mx-5 -mt-5 p-4 rounded-t-3xl border-b border-indigo-50">
                             <label class="flex items-center gap-2.5 cursor-pointer select-none">
@@ -4908,6 +5607,7 @@
                                             <span class="text-[10px] font-bold text-gray-400 uppercase">Category:</span>
                                             <input list="allCategoriesList" value="${escapeHtml(cardCategory)}" onchange="updateGroupedCardField(${c.card_id}, 'category', this.value); refreshCategoryFilterTabs();" class="text-xs font-bold py-1 px-2.5 rounded-xl border border-indigo-200 bg-white text-indigo-900 focus:ring-2 focus:ring-indigo-500 w-44 shadow-2xs" placeholder="Category">
                                         </div>
+                                        ${moduleBadgeHtml}
                                         <span class="px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 font-extrabold text-[10px] border border-indigo-100 flex items-center gap-1">
                                             <i class="fa-solid fa-layer-group text-[9px]"></i> ${c.variants.length} Sizes Included
                                         </span>
@@ -4970,11 +5670,17 @@
                                     ${variantRowsHtml}
                                 </tbody>
                             </table>
-                            <div class="p-2.5 border-t border-gray-100 flex items-center justify-between bg-white/70">
-                                <button type="button" onclick="addVariantToCard(${c.card_id})" class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1.5 transition">
-                                    <i class="fa-solid fa-plus text-[10px]"></i>
-                                    <span>+ Add Missed Size Variant</span>
-                                </button>
+                            <div class="p-2.5 border-t border-gray-100 flex items-center justify-between flex-wrap gap-2 bg-white/70">
+                                <div class="flex items-center gap-2">
+                                    <button type="button" onclick="addVariantToCard(${c.card_id})" class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1.5 transition">
+                                        <i class="fa-solid fa-plus text-[10px]"></i>
+                                        <span>+ Add Variant</span>
+                                    </button>
+                                    <button type="button" onclick="applyIndustryStandardSizes(${c.card_id})" class="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow-2xs" title="Auto-add standard trade sizes for ${modMeta.name}">
+                                        <i class="fa-solid fa-wand-magic-sparkles text-amber-600"></i>
+                                        <span>Auto-Fill Standard Sizes</span>
+                                    </button>
+                                </div>
                                 <button type="button" onclick="saveSingleCardChanges(${c.card_id})" class="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-xs flex items-center gap-1.5 transition">
                                     <i class="fa-solid fa-check"></i>
                                     <span>Save Changes to Card</span>
@@ -7461,8 +8167,9 @@ With Pattam - 30% extra
                 const catVal = r.group_type || r.category || 'General Hardware';
                 const searchStr = `${r.product_name} ${r.product_code || ''} ${r.hsn_code || ''} ${r.size || ''} ${catVal}`.toLowerCase();
 
-                html += `
-                    <tr class="hover:bg-slate-50 transition dynamic-row-item" id="dyn_row_${r.id}" data-category="${escapeHtml(catVal)}" data-search="${escapeHtml(searchStr)}">
+                    const trMod = detectCardModule(r);
+                    html += `
+                    <tr class="hover:bg-slate-50 transition dynamic-row-item" id="dyn_row_${r.id}" data-category="${escapeHtml(catVal)}" data-module="${trMod}" data-search="${escapeHtml(searchStr)}">
                         <td class="p-3 text-center">
                             <input type="checkbox" value="${r.id}" onchange="handleDynamicCheckboxChange(this)" class="dynamic-row-checkbox h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
                         </td>
@@ -8109,6 +8816,7 @@ With Pattam - 30% extra
 
         // Initialize when DOM is ready
         window.addEventListener('DOMContentLoaded', () => {
+            initIndustryModules();
             initDynamicSheet();
             cleanupDuplicatePhotosFromDom();
             loadGalleryImagesAjax();
