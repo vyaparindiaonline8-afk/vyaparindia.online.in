@@ -236,9 +236,13 @@
                         <i class="fa-solid fa-file-csv text-emerald-600"></i>
                         <span>Export CSV</span>
                     </button>
-                    <button type="button" onclick="saveDynamicSheetToBackend()" id="btnSaveDynamicSheet" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition active:scale-95">
+                    <button type="button" onclick="saveDynamicSheetToBackend(false)" id="btnSaveDynamicSheet" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer" title="Category-wise ya complete sheet publish karein">
                         <i class="fa-solid fa-cloud-arrow-up"></i>
-                        <span>Save to Catalog & Publish</span>
+                        <span id="btnSaveDynamicSheetText">Save & Publish</span>
+                    </button>
+                    <button type="button" onclick="saveDynamicSheetToBackend(true)" id="btnSaveAllDynamicSheet" class="hidden px-3.5 py-2 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-xs shadow-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer" title="Sabhi categories ko ek sath publish karein">
+                        <i class="fa-solid fa-layer-group text-amber-300"></i>
+                        <span>Publish All</span>
                     </button>
                     @if($job && !empty($products))
                         <button type="button" onclick="toggleDynamicMode(false)" class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-xs">
@@ -2180,6 +2184,7 @@
                 renderDynamicRows();
             }
             applyCombinedFilter();
+            if (typeof updatePublishButtonText === 'function') updatePublishButtonText();
         }
 
         function refreshCategoryFilterTabs() {
@@ -2277,6 +2282,7 @@
 
             if (dynamicContainer) dynamicContainer.innerHTML = buildTabsHtml(true);
             if (savedContainer) savedContainer.innerHTML = buildTabsHtml(false);
+            if (typeof updatePublishButtonText === 'function') updatePublishButtonText();
         }
 
         // Live Search Filter
@@ -3173,9 +3179,13 @@
             const isFromPdf = urlParams.get('source') === 'pdf_lines';
             const isFreshStart = urlParams.get('new') === '1' || urlParams.get('fresh') === '1';
             const isLiveView = urlParams.get('view') === 'live';
+            const catParam = urlParams.get('category');
 
             if (isLiveView) {
                 switchMapperMainView('live');
+                if (catParam) {
+                    setTimeout(() => filterLiveProductsByCategory(catParam), 150);
+                }
             }
 
             if (isFreshStart) {
@@ -6705,6 +6715,7 @@ With Pattam - 30% extra
                 const totalPending = dynamicRows.length + groupedProductCards.length;
                 pendingTabBadge.innerText = `${totalPending} Items`;
             }
+            if (typeof updatePublishButtonText === 'function') updatePublishButtonText();
 
             if (!tbody) return;
 
@@ -7097,20 +7108,75 @@ With Pattam - 30% extra
             showToastNotification(`📥 Catalog sheet "${sheetName}${catSuffix}.csv" download ho gayi hai!`);
         }
 
-        function saveDynamicSheetToBackend() {
-            if (dynamicRows.length === 0 && groupedProductCards.length === 0) {
-                alert('Save karne ke liye kam se kam 1 row ya 1 Grouped Card hona zaroori hai.');
+        function updatePublishButtonText() {
+            const btnText = document.getElementById('btnSaveDynamicSheetText');
+            const btnAll = document.getElementById('btnSaveAllDynamicSheet');
+            if (!btnText) return;
+
+            let targetCategory = (typeof activeCategory !== 'undefined' && activeCategory) ? activeCategory : 'ALL';
+            let targetRows = dynamicRows;
+            let targetCards = groupedProductCards;
+
+            if (targetCategory !== 'ALL') {
+                const normCat = targetCategory.trim().toLowerCase();
+                targetRows = dynamicRows.filter(r => (r.group_type || r.category || 'General Hardware').trim().toLowerCase() === normCat);
+                targetCards = groupedProductCards.filter(c => (c.category || '').trim().toLowerCase() === normCat);
+            }
+
+            const totalInCat = targetRows.length + targetCards.length;
+            const totalAll = dynamicRows.length + groupedProductCards.length;
+
+            if (targetCategory === 'ALL' || totalInCat === totalAll) {
+                btnText.innerHTML = `<span>Save & Publish All (${totalAll})</span>`;
+                if (btnAll) btnAll.classList.add('hidden');
+            } else {
+                btnText.innerHTML = `<span>Publish "${targetCategory}" Only (${totalInCat})</span>`;
+                if (btnAll) {
+                    btnAll.classList.remove('hidden');
+                    btnAll.innerHTML = `<i class="fa-solid fa-layer-group text-amber-300"></i> <span>Publish All (${totalAll})</span>`;
+                }
+            }
+        }
+
+        function saveDynamicSheetToBackend(forceAll = false) {
+            let targetCategory = (forceAll || activeCategory === 'ALL') ? 'ALL' : activeCategory;
+            
+            let targetRows = dynamicRows;
+            let targetCards = groupedProductCards;
+
+            if (targetCategory !== 'ALL') {
+                const normCat = targetCategory.trim().toLowerCase();
+                targetRows = dynamicRows.filter(r => (r.group_type || r.category || 'General Hardware').trim().toLowerCase() === normCat);
+                targetCards = groupedProductCards.filter(c => (c.category || '').trim().toLowerCase() === normCat);
+            }
+
+            if (targetRows.length === 0 && targetCards.length === 0) {
+                alert(`Category "${targetCategory}" me publish karne ke liye koi items nahi hain.`);
                 return;
             }
+
+            const totalPublishing = targetRows.length + targetCards.length;
+            const remainingCount = (dynamicRows.length + groupedProductCards.length) - totalPublishing;
+
+            let confirmMsg = '';
+            if (targetCategory === 'ALL') {
+                confirmMsg = `Kya aap sabhi categories ke ${totalPublishing} products ko live store me publish karna chahte hain?`;
+            } else {
+                confirmMsg = `Kya aap sirf "${targetCategory}" category ke ${totalPublishing} products ko live store me publish karna chahte hain?\n\n✨ Bachi hui dusri categories (${remainingCount} items) Pending Draft me hi rahengi taaki aap unhe baad me publish kar sakein!`;
+            }
+
+            if (!confirm(confirmMsg)) return;
 
             // Immediately cancel any pending autoSave timer
             if (autoSaveTimer) clearTimeout(autoSaveTimer);
 
-            const sheetTitle = (document.getElementById('dynamicSheetName')?.value || 'Catalog Sheet').trim();
+            const sheetTitle = (document.getElementById('dynamicSheetName')?.value || 'Catalog Sheet').trim() + 
+                (targetCategory !== 'ALL' ? ` (${targetCategory})` : '');
+
             const btn = document.getElementById('btnSaveDynamicSheet');
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Live Store Me Publish Ho Raha Hai...`;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${targetCategory !== 'ALL' ? `Publishing "${targetCategory}"...` : 'Live Store Me Publish Ho Raha Hai...'}`;
             }
 
             fetch("{{ route('seller.catalog.excel_mapper.create_sheet') }}", {
@@ -7123,8 +7189,8 @@ With Pattam - 30% extra
                 body: JSON.stringify({
                     job_id: jobId,
                     sheet_name: sheetTitle,
-                    rows: dynamicRows,
-                    grouped_cards: groupedProductCards,
+                    rows: targetRows,
+                    grouped_cards: targetCards,
                     publish: true
                 })
             })
@@ -7132,33 +7198,46 @@ With Pattam - 30% extra
             .then(data => {
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Save to Catalog & Publish`;
                 }
 
                 if (data.success) {
-                    localStorage.removeItem('vyapar_grouped_cards');
-                    localStorage.removeItem('vyapar_dynamic_rows');
-                    localStorage.removeItem('vyapar_custom_excel_lines');
-                    localStorage.removeItem('vyapar_grouped_cards_backup');
-                    localStorage.removeItem('vyapar_dynamic_rows_backup');
-                    dynamicRows = [];
-                    groupedProductCards = [];
+                    if (targetCategory === 'ALL' || remainingCount === 0) {
+                        localStorage.removeItem('vyapar_grouped_cards');
+                        localStorage.removeItem('vyapar_dynamic_rows');
+                        localStorage.removeItem('vyapar_custom_excel_lines');
+                        localStorage.removeItem('vyapar_grouped_cards_backup');
+                        localStorage.removeItem('vyapar_dynamic_rows_backup');
+                        dynamicRows = [];
+                        groupedProductCards = [];
+                    } else {
+                        // Category-specific publish: REMOVE ONLY THIS CATEGORY from pending!
+                        const normCat = targetCategory.trim().toLowerCase();
+                        dynamicRows = dynamicRows.filter(r => (r.group_type || r.category || 'General Hardware').trim().toLowerCase() !== normCat);
+                        groupedProductCards = groupedProductCards.filter(c => (c.category || '').trim().toLowerCase() !== normCat);
+                        saveToLocalStorage();
+                    }
+
                     if (typeof serverJobProducts !== 'undefined') {
                         serverJobProducts = [];
                     }
                     renderDynamicRows();
                     renderGroupedProductCards();
-                    alert(data.message || '🎉 Products live store me successfully publish ho gaye!');
-                    window.location.href = "{{ route('seller.catalog.excel_mapper') }}?view=live";
+                    refreshCategoryFilterTabs();
+                    updatePublishButtonText();
+
+                    alert(data.message || `🎉 "${targetCategory}" ke products live store me successfully publish ho gaye!`);
+                    // Switch to Live Tab filtered by that category!
+                    window.location.href = "{{ route('seller.catalog.excel_mapper') }}?view=live&category=" + encodeURIComponent(targetCategory);
                 } else {
                     alert(data.message || 'Error saving sheet.');
+                    updatePublishButtonText();
                 }
             })
             .catch(err => {
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Save to Catalog & Publish`;
                 }
+                updatePublishButtonText();
                 console.error(err);
                 alert('Network error while saving dynamic sheet.');
             });
