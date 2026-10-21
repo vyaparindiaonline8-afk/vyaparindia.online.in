@@ -2636,7 +2636,8 @@
                         job_id: jobId,
                         sheet_name: sheetTitle,
                         rows: dynamicRows,
-                        grouped_cards: groupedProductCards
+                        grouped_cards: groupedProductCards,
+                        publish: false
                     })
                 })
                 .then(res => res.json())
@@ -2647,7 +2648,7 @@
                     }
                 })
                 .catch(err => console.warn('Auto-save background sync error:', err));
-            }, 600);
+            }, 1000);
         }
 
         function loadFromLocalStorage() {
@@ -3925,6 +3926,7 @@
                 variants: selectedRows.map(r => ({
                     id: r.id,
                     product_code: r.product_code || '',
+                    product_name: r.product_name || parentTitle,
                     hsn_code: r.hsn_code || '39174000',
                     size: r.size || 'Standard',
                     description: r.description || '',
@@ -3934,6 +3936,7 @@
                     purchase_cost: r.purchase_cost,
                     cost_price_2: r.cost_price_2 || 0,
                     cost_price_3: r.cost_price_3 || 0,
+                    price_effective_date: r.price_effective_date || '',
                     retail_price: r.retail_price,
                     stock: (r.stock !== undefined && r.stock !== null && r.stock !== '') ? parseInt(r.stock) : 0
                 }))
@@ -4318,7 +4321,7 @@
                     id: dynamicRowNextId++,
                     product_code: v.product_code || '',
                     hsn_code: v.hsn_code || '39174000',
-                    product_name: card.parent_name,
+                    product_name: v.product_name || card.parent_name,
                     description: card.description || v.description || '',
                     size: v.size || 'Standard',
                     packing_1: v.packing_1 || '',
@@ -4329,6 +4332,7 @@
                     purchase_cost: v.purchase_cost,
                     cost_price_2: v.cost_price_2 || 0,
                     cost_price_3: v.cost_price_3 || 0,
+                    price_effective_date: v.price_effective_date || '',
                     retail_price: v.retail_price,
                     stock: (v.stock !== undefined && v.stock !== null && v.stock !== '') ? v.stock : 0,
                     image_url: card.image_url || '',
@@ -4344,6 +4348,58 @@
             saveToLocalStorage();
             autoSaveDraftToBackend();
             showToastNotification(`↩️ "${card.parent_name}" ke sabhi items wapas Table Listing me bhej diye gaye!`);
+        }
+
+        function ungroupAllCardsToTable() {
+            if (!groupedProductCards || groupedProductCards.length === 0) {
+                alert('Table me koi cards nahi hain jinhe ungroup kiya ja sake.');
+                return;
+            }
+
+            if (!confirm(`Kya aap sabhi ${groupedProductCards.length} cards ko wapas flat Table Listing me dismantle karna chahte hain?\n\nIsse sare items wapas table me aa jayenge aur aap apni marzi se rows select karke nayi cards bana sakenge.`)) {
+                return;
+            }
+
+            let totalItemsUnpacked = 0;
+            const cardsToUnpack = [...groupedProductCards];
+            cardsToUnpack.forEach(card => {
+                if (card.variants && card.variants.length > 0) {
+                    card.variants.forEach(v => {
+                        dynamicRows.push({
+                            id: dynamicRowNextId++,
+                            product_code: v.product_code || '',
+                            hsn_code: v.hsn_code || '39174000',
+                            product_name: v.product_name || card.parent_name,
+                            description: card.description || v.description || '',
+                            size: v.size || 'Standard',
+                            packing_1: v.packing_1 || '',
+                            packing_2: v.packing_2 || '',
+                            group_type: card.category || 'General Hardware',
+                            category: card.category || 'General Hardware',
+                            mrp: v.mrp,
+                            purchase_cost: v.purchase_cost,
+                            cost_price_2: v.cost_price_2 || 0,
+                            cost_price_3: v.cost_price_3 || 0,
+                            price_effective_date: v.price_effective_date || '',
+                            retail_price: v.retail_price,
+                            stock: (v.stock !== undefined && v.stock !== null && v.stock !== '') ? v.stock : 0,
+                            image_url: card.image_url || '',
+                            asset_url: card.asset_url || ''
+                        });
+                        totalItemsUnpacked++;
+                    });
+                }
+            });
+
+            groupedProductCards = [];
+            renderDynamicRows();
+            renderGroupedProductCards();
+            refreshCategoryFilterTabs();
+            updateFloatingBatchBar();
+            saveToLocalStorage();
+            if (typeof autoSaveDraftToBackend === 'function') autoSaveDraftToBackend();
+
+            showToastNotification(`↩️ Sabhi ${totalItemsUnpacked} items wapas Spreadsheet Table me aa gaye! Ab aap unhe apni marzi se select karke cards bana sakte hain.`);
         }
 
         function addVariantToCard(cardId) {
@@ -6723,17 +6779,43 @@ With Pattam - 30% extra
                 return;
             }
             if (confirm('Kya aap table ke sabhi purane rows aur cards ko hatakar nayi list ke liye fresh shuru karna chahte hain?')) {
+                if (autoSaveTimer) clearTimeout(autoSaveTimer);
                 dynamicRows = [];
                 groupedProductCards = [];
+                if (typeof serverJobProducts !== 'undefined') {
+                    serverJobProducts = [];
+                }
                 localStorage.removeItem('vyapar_custom_excel_lines');
                 localStorage.removeItem('vyapar_grouped_cards');
                 localStorage.removeItem('vyapar_dynamic_rows');
+                localStorage.removeItem('vyapar_grouped_cards_backup');
+                localStorage.removeItem('vyapar_dynamic_rows_backup');
                 localStorage.removeItem('vyapar_grouped_next_id');
                 localStorage.removeItem('vyapar_dynamic_next_id');
                 renderDynamicRows();
                 renderGroupedProductCards();
                 refreshCategoryFilterTabs();
                 clearDynamicRowSelection();
+
+                // Clear backend draft so reload doesn't restore deleted items
+                if (jobId) {
+                    fetch("{{ route('seller.catalog.excel_mapper.create_sheet') }}", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRF-TOKEN": csrfToken,
+                            "Accept": "application/json"
+                        },
+                        body: JSON.stringify({
+                            job_id: jobId,
+                            sheet_name: 'Catalog Sheet',
+                            rows: [],
+                            grouped_cards: [],
+                            publish: false
+                        })
+                    }).catch(e => console.warn(e));
+                }
+
                 showToastNotification('✨ Sabhi purane rows aur cards saaf ho gaye! Ab aap nayi list shuru kar sakte hain.');
             }
         }
@@ -6830,11 +6912,14 @@ With Pattam - 30% extra
                 return;
             }
 
+            // Immediately cancel any pending autoSave timer
+            if (autoSaveTimer) clearTimeout(autoSaveTimer);
+
             const sheetTitle = (document.getElementById('dynamicSheetName')?.value || 'Catalog Sheet').trim();
             const btn = document.getElementById('btnSaveDynamicSheet');
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Live Store Me Publish Ho Raha Hai...`;
             }
 
             fetch("{{ route('seller.catalog.excel_mapper.create_sheet') }}", {
@@ -6845,9 +6930,11 @@ With Pattam - 30% extra
                     "Accept": "application/json"
                 },
                 body: JSON.stringify({
+                    job_id: jobId,
                     sheet_name: sheetTitle,
                     rows: dynamicRows,
-                    grouped_cards: groupedProductCards
+                    grouped_cards: groupedProductCards,
+                    publish: true
                 })
             })
             .then(res => res.json())
@@ -6861,10 +6948,11 @@ With Pattam - 30% extra
                     localStorage.removeItem('vyapar_grouped_cards');
                     localStorage.removeItem('vyapar_dynamic_rows');
                     localStorage.removeItem('vyapar_custom_excel_lines');
-                    alert(data.message || 'Sheet saved successfully!');
+                    localStorage.removeItem('vyapar_grouped_cards_backup');
+                    localStorage.removeItem('vyapar_dynamic_rows_backup');
+                    alert(data.message || 'Sheet published successfully!');
                     if (data.redirect_url) {
-                        const targetUrl = data.redirect_url + (data.redirect_url.includes('?') ? '&' : '?') + 'mode=saved_job';
-                        window.location.href = targetUrl;
+                        window.location.href = data.redirect_url;
                     }
                 } else {
                     alert(data.message || 'Error saving sheet.');

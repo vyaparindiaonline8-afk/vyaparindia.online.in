@@ -3094,8 +3094,8 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
             ]);
         }
 
-        // Direct Publish to Live Store & Home Page
-        $autoPublish = $request->boolean('publish', true);
+        // Direct Publish to Live Store & Home Page (Draft saves will NOT publish!)
+        $autoPublish = $request->boolean('publish', false);
         if ($autoPublish) {
             $publishedCount = $this->performDirectPublish($job, $products, $userId);
             if ($request->wantsJson()) {
@@ -3157,129 +3157,139 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
         $publishedCount = 0;
         $categoriesCache = [];
 
-        DB::transaction(function () use ($products, $userId, $job, &$publishedCount, &$categoriesCache) {
-            foreach ($products as $prodData) {
-                $catName = !empty($prodData['category']) ? trim($prodData['category']) : (!empty($prodData['group_type']) ? trim($prodData['group_type']) : 'General Hardware');
-                
-                if (!isset($categoriesCache[$catName])) {
-                    $category = Category::firstOrCreate(
-                        ['name' => $catName],
-                        ['slug' => Str::slug($catName) . '-' . Str::random(4)]
-                    );
-                    $categoriesCache[$catName] = $category->id;
-                }
-                $catId = $categoriesCache[$catName];
-                $gst = 18;
-                $variants = $prodData['variants'] ?? [];
-                $hasMultipleVariants = count($variants) > 1;
+        @set_time_limit(300);
+        try {
+            DB::statement("SET statement_timeout = '60s'");
+        } catch (\Throwable $e) {}
 
-                $firstVar = $variants[0] ?? [];
-                $basePurchase = floatval($firstVar['raw_rate'] ?? 0);
-                $baseWholesale = floatval($firstVar['wholesale_price'] ?? ($basePurchase * 1.15));
-                $baseRetail = floatval($firstVar['retail_price'] ?? ($basePurchase * 1.35));
-                $baseMrp = floatval($firstVar['mrp'] ?? ($basePurchase * 1.60));
-                $effectiveDate = $prodData['effective_date'] ?? ($firstVar['price_effective_date'] ?? ($job->effective_date ?? null));
-                $cost2 = floatval($firstVar['cost_price_2'] ?? 0);
-                $cost3 = floatval($firstVar['cost_price_3'] ?? 0);
+        foreach ($products as $prodData) {
+            $prodName = trim($prodData['name'] ?? '');
+            if (empty($prodName)) continue;
 
-                $prodHsn = !empty($prodData['hsn_code']) ? $prodData['hsn_code'] : (!empty($firstVar['hsn_code']) ? $firstVar['hsn_code'] : '39174000');
-                $prodBrand = !empty($prodData['brand']) ? trim($prodData['brand']) : (
-                    stripos($prodData['name'], 'Yorker') !== false ? 'Yorker' : (
-                        stripos($prodData['name'], 'Astral') !== false ? 'Astral' : (
-                            stripos($prodData['name'], 'Supreme') !== false ? 'Supreme' : (
-                                stripos($prodData['name'], 'Plasto') !== false ? 'Plasto' : ''
+            retry(3, function () use ($prodData, $prodName, $userId, $job, &$publishedCount, &$categoriesCache) {
+                DB::transaction(function () use ($prodData, $prodName, $userId, $job, &$publishedCount, &$categoriesCache) {
+                    $catName = !empty($prodData['category']) ? trim($prodData['category']) : (!empty($prodData['group_type']) ? trim($prodData['group_type']) : 'General Hardware');
+                    
+                    if (!isset($categoriesCache[$catName])) {
+                        $category = Category::firstOrCreate(
+                            ['name' => $catName],
+                            ['slug' => Str::slug($catName) . '-' . Str::random(4)]
+                        );
+                        $categoriesCache[$catName] = $category->id;
+                    }
+                    $catId = $categoriesCache[$catName];
+                    $gst = 18;
+                    $variants = $prodData['variants'] ?? [];
+                    $hasMultipleVariants = count($variants) > 1;
+
+                    $firstVar = $variants[0] ?? [];
+                    $basePurchase = floatval($firstVar['raw_rate'] ?? 0);
+                    $baseWholesale = floatval($firstVar['wholesale_price'] ?? ($basePurchase * 1.15));
+                    $baseRetail = floatval($firstVar['retail_price'] ?? ($basePurchase * 1.35));
+                    $baseMrp = floatval($firstVar['mrp'] ?? ($basePurchase * 1.60));
+                    $effectiveDate = $prodData['effective_date'] ?? ($firstVar['price_effective_date'] ?? ($job->effective_date ?? null));
+                    $cost2 = floatval($firstVar['cost_price_2'] ?? 0);
+                    $cost3 = floatval($firstVar['cost_price_3'] ?? 0);
+
+                    $prodHsn = !empty($prodData['hsn_code']) ? $prodData['hsn_code'] : (!empty($firstVar['hsn_code']) ? $firstVar['hsn_code'] : '39174000');
+                    $prodBrand = !empty($prodData['brand']) ? trim($prodData['brand']) : (
+                        stripos($prodName, 'Yorker') !== false ? 'Yorker' : (
+                            stripos($prodName, 'Astral') !== false ? 'Astral' : (
+                                stripos($prodName, 'Supreme') !== false ? 'Supreme' : (
+                                    stripos($prodName, 'Plasto') !== false ? 'Plasto' : ''
+                                )
                             )
                         )
-                    )
-                );
-                $prodGroup = !empty($prodData['group_type']) ? trim($prodData['group_type']) : (!empty($prodData['group']) ? trim($prodData['group']) : (stripos($catName, 'swr') !== false || stripos($prodData['name'], 'trap') !== false ? 'Sanitary & Drainage' : 'General Hardware'));
-                $prodDesc = !empty($prodData['description']) ? trim($prodData['description']) : "High grade {$prodData['name']} manufactured to industrial specifications.";
+                    );
+                    $prodGroup = !empty($prodData['group_type']) ? trim($prodData['group_type']) : (!empty($prodData['group']) ? trim($prodData['group']) : (stripos($catName, 'swr') !== false || stripos($prodName, 'trap') !== false ? 'Sanitary & Drainage' : 'General Hardware'));
+                    $prodDesc = !empty($prodData['description']) ? trim($prodData['description']) : "High grade {$prodName} manufactured to industrial specifications.";
 
-                $existingProd = Product::where('user_id', $userId)->where('name', $prodData['name'])->first();
-                $finalImage = !empty($prodData['image_url']) ? $prodData['image_url'] : ($existingProd->image ?? null);
-                $prodSku = !empty($prodData['sku']) ? $prodData['sku'] : (!empty($firstVar['product_code']) ? $firstVar['product_code'] : ($existingProd->sku ?? ('PRD-' . strtoupper(Str::random(8)))));
+                    $existingProd = Product::where('user_id', $userId)->where('name', $prodName)->first();
+                    $finalImage = !empty($prodData['image_url']) ? $prodData['image_url'] : ($existingProd->image ?? null);
+                    $prodSku = !empty($prodData['sku']) ? $prodData['sku'] : (!empty($firstVar['product_code']) ? $firstVar['product_code'] : ($existingProd->sku ?? ('PRD-' . strtoupper(Str::random(8)))));
 
-                $product = Product::updateOrCreate(
-                    [
-                        'user_id' => $userId,
-                        'name' => $prodData['name'],
-                    ],
-                    [
-                        'category_id' => $catId,
-                        'brand' => $prodBrand ?: 'Generic',
-                        'group_name' => $prodGroup,
-                        'slug' => $existingProd->slug ?? (Str::slug($prodData['name']) . '-' . Str::random(5)),
-                        'description' => $prodDesc,
-                        'hsn_code' => $prodHsn,
-                        'image' => $finalImage,
-                        'purchase_price' => $basePurchase,
-                        'wholesale_price' => $baseWholesale,
-                        'cost_price_2' => $cost2,
-                        'cost_price_3' => $cost3,
-                        'price_effective_date' => $effectiveDate,
-                        'price' => $baseRetail,
-                        'mrp' => $baseMrp,
-                        'gst_percent' => $gst,
-                        'stock_quantity' => intval($firstVar['stock_quantity'] ?? 0),
-                        'track_inventory' => false,
-                        'has_variants' => $hasMultipleVariants,
-                        'sku' => $prodSku,
-                    ]
-                );
+                    $product = Product::updateOrCreate(
+                        [
+                            'user_id' => $userId,
+                            'name' => $prodName,
+                        ],
+                        [
+                            'category_id' => $catId,
+                            'brand' => $prodBrand ?: 'Generic',
+                            'group_name' => $prodGroup,
+                            'slug' => $existingProd->slug ?? (Str::slug($prodName) . '-' . Str::random(5)),
+                            'description' => $prodDesc,
+                            'hsn_code' => $prodHsn,
+                            'image' => $finalImage,
+                            'purchase_price' => $basePurchase,
+                            'wholesale_price' => $baseWholesale,
+                            'cost_price_2' => $cost2,
+                            'cost_price_3' => $cost3,
+                            'price_effective_date' => $effectiveDate,
+                            'price' => $baseRetail,
+                            'mrp' => $baseMrp,
+                            'gst_percent' => $gst,
+                            'stock_quantity' => intval($firstVar['stock_quantity'] ?? 0),
+                            'track_inventory' => false,
+                            'has_variants' => $hasMultipleVariants,
+                            'sku' => $prodSku,
+                        ]
+                    );
 
-                // Clean variant sync
-                ProductVariant::where('product_id', $product->id)->delete();
+                    // Clean variant sync
+                    ProductVariant::where('product_id', $product->id)->delete();
 
-                $variantRecords = [];
-                $now = now();
-                foreach ($variants as $v) {
-                    $rawRate = floatval($v['raw_rate'] ?? 0);
-                    $wPrice = floatval($v['wholesale_price'] ?? ($rawRate * 1.15));
-                    $rPrice = floatval($v['retail_price'] ?? ($rawRate * 1.35));
-                    $vMrp = floatval($v['mrp'] ?? ($rawRate * 1.60));
-                    $vSku = !empty($v['product_code']) ? $v['product_code'] : (!empty($v['sku']) ? $v['sku'] : ('VAR-' . strtoupper(Str::random(7))));
-                    $vCost2 = floatval($v['cost_price_2'] ?? 0);
-                    $vCost3 = floatval($v['cost_price_3'] ?? 0);
-                    $vEffDate = $v['price_effective_date'] ?? $effectiveDate;
+                    $variantRecords = [];
+                    $now = now();
+                    foreach ($variants as $v) {
+                        $rawRate = floatval($v['raw_rate'] ?? 0);
+                        $wPrice = floatval($v['wholesale_price'] ?? ($rawRate * 1.15));
+                        $rPrice = floatval($v['retail_price'] ?? ($rawRate * 1.35));
+                        $vMrp = floatval($v['mrp'] ?? ($rawRate * 1.60));
+                        $vSku = !empty($v['product_code']) ? $v['product_code'] : (!empty($v['sku']) ? $v['sku'] : ('VAR-' . strtoupper(Str::random(7))));
+                        $vCost2 = floatval($v['cost_price_2'] ?? 0);
+                        $vCost3 = floatval($v['cost_price_3'] ?? 0);
+                        $vEffDate = $v['price_effective_date'] ?? $effectiveDate;
 
-                    $attributes = [
-                        'size' => $v['size'] ?? 'Standard',
-                        'packing_1' => $v['packing_1'] ?? '',
-                        'packing_2' => $v['packing_2'] ?? '',
-                        'cost_price_2' => $vCost2,
-                        'cost_price_3' => $vCost3,
-                        'price_effective_date' => $vEffDate,
-                    ];
+                        $attributes = [
+                            'size' => $v['size'] ?? 'Standard',
+                            'packing_1' => $v['packing_1'] ?? '',
+                            'packing_2' => $v['packing_2'] ?? '',
+                            'cost_price_2' => $vCost2,
+                            'cost_price_3' => $vCost3,
+                            'price_effective_date' => $vEffDate,
+                        ];
 
-                    $variantRecords[] = [
-                        'product_id' => $product->id,
-                        'variant_name' => $v['size'] ?? ($v['variant_name'] ?? 'Standard'),
-                        'purchase_price' => $rawRate,
-                        'wholesale_price' => $wPrice,
-                        'cost_price_2' => $vCost2,
-                        'cost_price_3' => $vCost3,
-                        'price_effective_date' => $vEffDate,
-                        'retail_price' => $rPrice,
-                        'mrp' => $vMrp,
-                        'stock_quantity' => intval($v['stock_quantity'] ?? 0),
-                        'sku' => $vSku,
-                        'attributes' => json_encode($attributes),
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ];
-                }
+                        $variantRecords[] = [
+                            'product_id' => $product->id,
+                            'variant_name' => $v['size'] ?? ($v['variant_name'] ?? 'Standard'),
+                            'purchase_price' => $rawRate,
+                            'wholesale_price' => $wPrice,
+                            'cost_price_2' => $vCost2,
+                            'cost_price_3' => $vCost3,
+                            'price_effective_date' => $vEffDate,
+                            'retail_price' => $rPrice,
+                            'mrp' => $vMrp,
+                            'stock_quantity' => intval($v['stock_quantity'] ?? 0),
+                            'sku' => $vSku,
+                            'attributes' => json_encode($attributes),
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+                    }
 
-                if (!empty($variantRecords)) {
-                    ProductVariant::insert($variantRecords);
-                }
+                    if (!empty($variantRecords)) {
+                        ProductVariant::insert($variantRecords);
+                    }
 
-                $publishedCount++;
-            }
+                    $publishedCount++;
+                });
+            }, 200);
+        }
 
-            if ($job) {
-                $job->update(['status' => 'published']);
-            }
-        });
+        if ($job) {
+            $job->update(['status' => 'published']);
+        }
 
         return $publishedCount;
     }
