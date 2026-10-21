@@ -429,6 +429,10 @@
                             <i class="fa-solid fa-bolt text-amber-300"></i>
                             <span>Auto-Distribute Cards</span>
                         </button>
+                        <button type="button" onclick="ungroupAllCardsToTable()" class="px-3.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-extrabold text-xs border border-amber-200 flex items-center gap-1.5 transition active:scale-95 shadow-2xs" title="Sabhi cards ko dismantle karke sare items wapas Table Listing me bhejein taaki aap apni marzi se rows select karke cards bana sakein">
+                            <i class="fa-solid fa-arrow-rotate-left text-amber-600"></i>
+                            <span>↩️ Wapas Sabhi Cards List Me Kholein</span>
+                        </button>
                         <button type="button" onclick="autoFixAllExistingCards()" class="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition ml-1 active:scale-95" title="Bina manual mehnat ke Cards ke Descriptions aur Tape sizes ko auto-fix karein">
                             <i class="fa-solid fa-wand-magic-sparkles text-yellow-200"></i>
                             <span>Auto-Fix Cards</span>
@@ -1836,13 +1840,13 @@
                         <i class="fa-solid fa-file-csv text-emerald-600"></i>
                         <span>Export CSV</span>
                     </button>
-                    <button type="button" onclick="insertRawPriceRowsToDynamicTable(false)" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer">
-                        <i class="fa-solid fa-table-list"></i>
-                        <span>+ Add to Spreadsheet Rows</span>
+                    <button type="button" onclick="insertRawPriceRowsToDynamicTable(false)" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-black text-xs shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95 cursor-pointer" title="Direct table listing me dalein taaki aap apni marzi se rows select karke cards bana sakein!">
+                        <i class="fa-solid fa-table-list text-sm"></i>
+                        <span>📋 Add to Spreadsheet Listing (Recommended)</span>
                     </button>
-                    <button type="button" onclick="insertRawPriceRowsAndAutoGroupCards()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer" title="Agar card pehle se bana hai to rates update ho jayenge, nahi bana to naya card create ho jayega!">
-                        <i class="fa-solid fa-layer-group"></i>
-                        <span>🎴 Direct Create / Update Cards</span>
+                    <button type="button" onclick="insertRawPriceRowsAndAutoGroupCards()" class="px-3.5 py-2 rounded-xl bg-white hover:bg-indigo-50 text-indigo-700 font-bold text-xs border border-indigo-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer" title="Direct cards me bhejna chahein to">
+                        <i class="fa-solid fa-bolt text-indigo-500"></i>
+                        <span>⚡ Direct Auto-Cards</span>
                     </button>
                 </div>
             </div>
@@ -4314,7 +4318,7 @@
                     id: dynamicRowNextId++,
                     product_code: v.product_code || '',
                     hsn_code: v.hsn_code || '39174000',
-                    product_name: `${card.parent_name} ${v.size === 'Standard' ? '' : v.size}`.trim() || card.parent_name,
+                    product_name: card.parent_name,
                     description: card.description || v.description || '',
                     size: v.size || 'Standard',
                     packing_1: v.packing_1 || '',
@@ -4326,7 +4330,7 @@
                     cost_price_2: v.cost_price_2 || 0,
                     cost_price_3: v.cost_price_3 || 0,
                     retail_price: v.retail_price,
-                    stock: v.stock || 100,
+                    stock: (v.stock !== undefined && v.stock !== null && v.stock !== '') ? v.stock : 0,
                     image_url: card.image_url || '',
                     asset_url: card.asset_url || ''
                 });
@@ -6382,7 +6386,11 @@ With Pattam - 30% extra
             refreshCategoryFilterTabs();
             closeRawPriceFormulaModal();
 
-            showToastNotification(`🎉 Shabaash! ${rawPriceCalculatedItems.length} products calculated landing & selling rates ke saath spreadsheet me add ho gaye!`);
+            showToastNotification(`🎉 Shabaash! ${rawPriceCalculatedItems.length} products clean Table Listing me add ho gaye! Ab aap rows select karke apni marzi se Cards bana sakte hain.`);
+
+            setTimeout(() => {
+                document.getElementById('dynamicTableBody')?.scrollIntoView({ behavior: 'smooth' });
+            }, 250);
         }
 
         /**
