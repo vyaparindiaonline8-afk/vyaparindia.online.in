@@ -128,6 +128,33 @@
             @endif
         </div>
 
+        <!-- 🎛️ Dual Workspace Switcher: PENDING DRAFT vs LIVE PUBLISHED -->
+        <div class="bg-white p-3.5 rounded-3xl border border-gray-200 shadow-xs flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div class="flex items-center gap-2 p-1.5 bg-slate-100 rounded-2xl">
+                <button type="button" onclick="switchMapperMainView('pending')" id="viewBtnPending" class="px-5 py-2.5 rounded-xl font-black text-xs transition flex items-center gap-2 bg-white text-gray-900 shadow-sm border border-gray-200 cursor-pointer">
+                    <span class="h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span>🟡 Pending Draft (Nayi List / In-Progress)</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 font-extrabold" id="pendingTabCountBadge">0 Items</span>
+                </button>
+                <button type="button" onclick="switchMapperMainView('live')" id="viewBtnLive" class="px-5 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer">
+                    <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                    <span>🟢 Live Store Products (Published)</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-extrabold" id="liveTabCountBadge">{{ count($liveProducts ?? []) }} Live</span>
+                </button>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="openRawPriceFormulaModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer">
+                    <i class="fa-brands fa-whatsapp text-sm text-green-300"></i>
+                    <span>🏷️ WhatsApp / Raw Rates</span>
+                </button>
+                <button type="button" onclick="resetDynamicTable()" class="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-black text-xs border border-rose-200 flex items-center gap-1.5 transition active:scale-95 cursor-pointer" title="Purana data hatakar nayi list shuru karein">
+                    <i class="fa-solid fa-broom text-rose-600"></i>
+                    <span>Start Fresh</span>
+                </button>
+            </div>
+        </div>
+
         <!-- ========================================== -->
         <!-- 📑 DYNAMIC SAAS SPREADSHEET TABLE          -->
         <!-- (Supports PDF Extracted Lines & 6-8 Link)  -->
@@ -524,6 +551,164 @@
 
                 <div id="groupedCardsGrid" class="space-y-4">
                     <!-- Populated via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 🟢 LIVE STORE PRODUCTS & RATE MATRIX VIEW  -->
+        <!-- ========================================== -->
+        <div id="liveStoreProductsContainer" class="hidden space-y-6">
+            <!-- Header & Filter Bar -->
+            <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-base font-black text-gray-900 flex items-center gap-2">
+                            <span class="h-3 w-3 rounded-full bg-emerald-500"></span>
+                            <span>Live Store Catalog & Rate Matrix</span>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-800 font-extrabold" id="liveHeaderCountBadge">{{ count($liveProducts ?? []) }} Published</span>
+                        </h3>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Ye products aapke live store par published hain. Categories wise filtered hain aur real-time rates dikhate hain.
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="switchMapperMainView('pending')" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95 cursor-pointer">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>➕ Add New Rate List (Pending)</span>
+                        </button>
+                        <a href="{{ route('seller.inventory.index') }}" class="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-boxes-stacked text-indigo-600"></i>
+                            <span>Full Inventory &rarr;</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Live Category Filter Tabs -->
+                <div class="flex items-center gap-2 overflow-x-auto pb-2 border-t border-gray-100 pt-3" id="liveCategoryFilterTabs">
+                    @php
+                        $liveCategories = [];
+                        if (isset($liveProducts)) {
+                            foreach ($liveProducts as $lp) {
+                                $cName = $lp->category->name ?? ($lp->group_name ?? 'General');
+                                $liveCategories[$cName] = ($liveCategories[$cName] ?? 0) + 1;
+                            }
+                        }
+                    @endphp
+                    <button type="button" onclick="filterLiveProductsByCategory('ALL')" class="live-cat-tab-btn px-4 py-1.5 rounded-xl font-extrabold text-xs transition bg-emerald-600 text-white shadow-xs cursor-pointer" data-cat="ALL">
+                        All ({{ count($liveProducts ?? []) }})
+                    </button>
+                    @foreach($liveCategories as $cName => $cCount)
+                        <button type="button" onclick="filterLiveProductsByCategory('{{ addslashes($cName) }}')" class="live-cat-tab-btn px-4 py-1.5 rounded-xl font-bold text-xs transition bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer" data-cat="{{ $cName }}">
+                            {{ $cName }} ({{ $cCount }})
+                        </button>
+                    @endforeach
+                </div>
+
+                <!-- Search Input -->
+                <div class="relative max-w-md">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="text" id="liveProductsSearchInput" oninput="filterLiveProductsSearch(this.value)" placeholder="Search live products by name, brand or size..." class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-xs bg-gray-50 focus:bg-white focus:border-emerald-600 focus:outline-none transition">
+                </div>
+            </div>
+
+            <!-- Live Products List Table -->
+            <div class="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-600 font-extrabold border-b border-gray-200">
+                                <th class="p-3.5">Product & Details</th>
+                                <th class="p-3.5">Category</th>
+                                <th class="p-3.5">Variants & Sizes</th>
+                                <th class="p-3.5">Rate A (Retail)</th>
+                                <th class="p-3.5">Rate B (Wholesale)</th>
+                                <th class="p-3.5">Effective Date</th>
+                                <th class="p-3.5">Status</th>
+                                <th class="p-3.5 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="liveProductsTableBody" class="divide-y divide-gray-100">
+                            @forelse($liveProducts ?? [] as $lp)
+                                @php
+                                    $lpCat = $lp->category->name ?? ($lp->group_name ?? 'General');
+                                    $variants = $lp->variants ?? collect();
+                                @endphp
+                                <tr class="live-product-row hover:bg-gray-50/60 transition" data-category="{{ $lpCat }}" data-name="{{ strtolower($lp->name) }}">
+                                    <td class="p-3.5">
+                                        <div class="flex items-center gap-3">
+                                            @if($lp->image)
+                                                <img src="{{ $lp->image }}" alt="{{ $lp->name }}" class="h-10 w-10 rounded-xl object-cover border border-gray-200 shrink-0">
+                                            @else
+                                                <div class="h-10 w-10 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center text-sm shrink-0">
+                                                    <i class="fa-solid fa-cube"></i>
+                                                </div>
+                                            @endif
+                                            <div>
+                                                <div class="font-black text-gray-900 text-xs">{{ $lp->name }}</div>
+                                                <div class="text-[10px] text-gray-500 font-mono">{{ $lp->brand ?? 'Generic' }} • SKU: {{ $lp->sku }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-3.5">
+                                        <span class="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                            {{ $lpCat }}
+                                        </span>
+                                    </td>
+                                    <td class="p-3.5 font-mono">
+                                        @if($variants->count() > 0)
+                                            <div class="space-y-0.5">
+                                                @foreach($variants->take(3) as $v)
+                                                    <div class="text-[11px] text-gray-700"><span class="font-bold text-gray-900">{{ $v->size ?? $v->variant_name }}</span>: ₹{{ number_format($v->retail_price ?? $v->purchase_price, 2) }}</div>
+                                                @endforeach
+                                                @if($variants->count() > 3)
+                                                    <span class="text-[10px] text-gray-400 font-sans">+{{ $variants->count() - 3 }} more sizes</span>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <span class="text-gray-500 font-sans">Single Item (₹{{ number_format($lp->price, 2) }})</span>
+                                        @endif
+                                    </td>
+                                    <td class="p-3.5 font-mono font-bold text-emerald-700">
+                                        ₹{{ number_format($lp->price, 2) }}
+                                    </td>
+                                    <td class="p-3.5 font-mono font-bold text-cyan-700">
+                                        ₹{{ number_format($lp->wholesale_price ?? ($lp->price * 0.85), 2) }}
+                                    </td>
+                                    <td class="p-3.5 text-[11px] text-gray-600 font-mono">
+                                        {{ $lp->price_effective_date ?: '-' }}
+                                    </td>
+                                    <td class="p-3.5">
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 flex items-center gap-1 w-fit">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>
+                                            <span>LIVE</span>
+                                        </span>
+                                    </td>
+                                    <td class="p-3.5 text-center">
+                                        <a href="{{ route('seller.products.edit', $lp->id) }}" class="px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition inline-flex items-center gap-1">
+                                            <i class="fa-solid fa-pen-to-square text-xs text-indigo-600"></i>
+                                            <span>Edit</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="p-12 text-center text-gray-500">
+                                        <div class="h-14 w-14 mx-auto rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl mb-3 shadow-inner">
+                                            <i class="fa-solid fa-store"></i>
+                                        </div>
+                                        <h4 class="text-sm font-black text-gray-800">Abhi tak koi product Live store me publish nahi hua hai.</h4>
+                                        <p class="text-xs text-gray-500 mt-1 max-w-md mx-auto">
+                                            "Pending Draft" tab me jakar apni WhatsApp ya Excel rate list paste karein aur "Save to Catalog & Publish" dabayein!
+                                        </p>
+                                        <button type="button" onclick="switchMapperMainView('pending')" class="mt-4 px-4 py-2 rounded-xl bg-emerald-600 text-white font-black text-xs shadow-md shadow-emerald-600/30">
+                                            🟡 Go to Pending Draft
+                                        </button>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -1840,7 +2025,7 @@
                         <i class="fa-solid fa-file-csv text-emerald-600"></i>
                         <span>Export CSV</span>
                     </button>
-                    <button type="button" onclick="insertRawPriceRowsToDynamicTable(false)" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-black text-xs shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95 cursor-pointer" title="Direct table listing me dalein taaki aap apni marzi se rows select karke cards bana sakein!">
+                    <button type="button" onclick="insertRawPriceRowsToDynamicTable(true)" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-black text-xs shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition active:scale-95 cursor-pointer" title="Direct table listing me dalein taaki aap apni marzi se rows select karke cards bana sakein!">
                         <i class="fa-solid fa-table-list text-sm"></i>
                         <span>📋 Add to Spreadsheet Listing (Recommended)</span>
                     </button>
@@ -2987,6 +3172,11 @@
             const urlParams = new URLSearchParams(window.location.search);
             const isFromPdf = urlParams.get('source') === 'pdf_lines';
             const isFreshStart = urlParams.get('new') === '1' || urlParams.get('fresh') === '1';
+            const isLiveView = urlParams.get('view') === 'live';
+
+            if (isLiveView) {
+                switchMapperMainView('live');
+            }
 
             if (isFreshStart) {
                 dynamicRows = [];
@@ -3721,13 +3911,8 @@
         }
 
         function deduplicateDynamicRowsAgainstCards() {
-            if (!groupedProductCards || groupedProductCards.length === 0 || !dynamicRows || dynamicRows.length === 0) return;
-            const origLength = dynamicRows.length;
-            dynamicRows = dynamicRows.filter(r => !isRowAlreadyMappedInCards(r));
-            if (dynamicRows.length !== origLength) {
-                saveToLocalStorage();
-                if (typeof autoSaveDraftToBackend === 'function') autoSaveDraftToBackend();
-            }
+            // Non-destructive: Preserve all dynamicRows in the spreadsheet table!
+            return;
         }
 
         function clearOnlyPendingRows() {
@@ -6406,8 +6591,9 @@ With Pattam - 30% extra
                 return;
             }
 
-            if (replaceMode) {
+            if (replaceMode || dynamicRows.length === 0) {
                 dynamicRows = [];
+                groupedProductCards = [];
                 dynamicRowNextId = 1;
             }
 
@@ -6514,6 +6700,11 @@ With Pattam - 30% extra
             if (pendingEl) pendingEl.innerText = `${dynamicRows.length} Rows Left`;
             if (completedEl) completedEl.innerText = `${groupedProductCards.length} Cards Ready`;
             if (statsBadge) statsBadge.innerHTML = `<i class="fa-solid fa-clock-rotate-left text-amber-600"></i> <span>${dynamicRows.length} Unmapped Left</span>`;
+            const pendingTabBadge = document.getElementById('pendingTabCountBadge');
+            if (pendingTabBadge) {
+                const totalPending = dynamicRows.length + groupedProductCards.length;
+                pendingTabBadge.innerText = `${totalPending} Items`;
+            }
 
             if (!tbody) return;
 
@@ -6950,10 +7141,15 @@ With Pattam - 30% extra
                     localStorage.removeItem('vyapar_custom_excel_lines');
                     localStorage.removeItem('vyapar_grouped_cards_backup');
                     localStorage.removeItem('vyapar_dynamic_rows_backup');
-                    alert(data.message || 'Sheet published successfully!');
-                    if (data.redirect_url) {
-                        window.location.href = data.redirect_url;
+                    dynamicRows = [];
+                    groupedProductCards = [];
+                    if (typeof serverJobProducts !== 'undefined') {
+                        serverJobProducts = [];
                     }
+                    renderDynamicRows();
+                    renderGroupedProductCards();
+                    alert(data.message || '🎉 Products live store me successfully publish ho gaye!');
+                    window.location.href = "{{ route('seller.catalog.excel_mapper') }}?view=live";
                 } else {
                     alert(data.message || 'Error saving sheet.');
                 }
@@ -6966,6 +7162,81 @@ With Pattam - 30% extra
                 console.error(err);
                 alert('Network error while saving dynamic sheet.');
             });
+        }
+
+        // ==========================================
+        // 🎛️ DUAL WORKSPACE: PENDING DRAFT vs LIVE
+        // ==========================================
+        function switchMapperMainView(mode) {
+            const btnPending = document.getElementById('viewBtnPending');
+            const btnLive = document.getElementById('viewBtnLive');
+            const pendingContainer = document.getElementById('dynamicSheetContainer');
+            const liveContainer = document.getElementById('liveStoreProductsContainer');
+
+            if (mode === 'live') {
+                if (pendingContainer) pendingContainer.classList.add('hidden');
+                if (liveContainer) liveContainer.classList.remove('hidden');
+
+                if (btnPending) {
+                    btnPending.className = 'px-5 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer';
+                }
+                if (btnLive) {
+                    btnLive.className = 'px-5 py-2.5 rounded-xl font-black text-xs transition flex items-center gap-2 bg-white text-gray-900 shadow-sm border border-gray-200 cursor-pointer';
+                }
+            } else {
+                if (pendingContainer) pendingContainer.classList.remove('hidden');
+                if (liveContainer) liveContainer.classList.add('hidden');
+
+                if (btnPending) {
+                    btnPending.className = 'px-5 py-2.5 rounded-xl font-black text-xs transition flex items-center gap-2 bg-white text-gray-900 shadow-sm border border-gray-200 cursor-pointer';
+                }
+                if (btnLive) {
+                    btnLive.className = 'px-5 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer';
+                }
+            }
+        }
+
+        let activeLiveCategory = 'ALL';
+        function filterLiveProductsByCategory(cat) {
+            activeLiveCategory = cat;
+            document.querySelectorAll('.live-cat-tab-btn').forEach(btn => {
+                const bCat = btn.getAttribute('data-cat');
+                if (bCat === cat) {
+                    btn.className = 'live-cat-tab-btn px-4 py-1.5 rounded-xl font-extrabold text-xs transition bg-emerald-600 text-white shadow-xs cursor-pointer';
+                } else {
+                    btn.className = 'live-cat-tab-btn px-4 py-1.5 rounded-xl font-bold text-xs transition bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer';
+                }
+            });
+
+            applyLiveProductFilters();
+        }
+
+        function filterLiveProductsSearch(query) {
+            applyLiveProductFilters();
+        }
+
+        function applyLiveProductFilters() {
+            const query = (document.getElementById('liveProductsSearchInput')?.value || '').trim().toLowerCase();
+            const rows = document.querySelectorAll('.live-product-row');
+            let visibleCount = 0;
+
+            rows.forEach(tr => {
+                const rowCat = (tr.getAttribute('data-category') || '').trim();
+                const rowName = (tr.getAttribute('data-name') || '').trim().toLowerCase();
+
+                const catMatch = (activeLiveCategory === 'ALL' || rowCat.toLowerCase() === activeLiveCategory.toLowerCase());
+                const searchMatch = (!query || rowName.includes(query) || rowCat.toLowerCase().includes(query));
+
+                if (catMatch && searchMatch) {
+                    tr.style.display = '';
+                    visibleCount++;
+                } else {
+                    tr.style.display = 'none';
+                }
+            });
+
+            const badge = document.getElementById('liveHeaderCountBadge');
+            if (badge) badge.innerText = `${visibleCount} Products`;
         }
 
         function escapeHtml(str) {

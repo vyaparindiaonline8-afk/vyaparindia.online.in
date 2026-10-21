@@ -2722,6 +2722,11 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
 
         $recentJobs = CatalogIngestionJob::where('user_id', $userId)->latest()->take(5)->get();
 
+        $liveProducts = Product::where('user_id', $userId)
+            ->with(['variants', 'category'])
+            ->latest()
+            ->get();
+
         if (!$job) {
             $galleryImages = $this->getAllGalleryImages($userId);
             $imageFolders = [];
@@ -2739,6 +2744,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                 'galleryImages' => $galleryImages,
                 'imageFolders' => $imageFolders,
                 'recentJobs' => $recentJobs,
+                'liveProducts' => $liveProducts,
                 'upvcCount' => 0,
                 'cpvcCount' => 0,
                 'swrCount' => 0,
@@ -2746,8 +2752,10 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
             ]);
         }
 
+        $isJobPublished = ($job->status === 'published');
         $extractedData = $job->extracted_data ?? ['products' => []];
-        $products = $extractedData['products'] ?? [];
+        // If job is already published, do NOT dump old products back into pending draft workspace
+        $products = ($isJobPublished && !$request->has('edit_draft')) ? [] : ($extractedData['products'] ?? []);
         $categories = Category::all();
 
         // Categorize each product preserving real sheet/custom categories
@@ -2849,7 +2857,8 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
             'upvcCount',
             'cpvcCount',
             'swrCount',
-            'otherCount'
+            'otherCount',
+            'liveProducts'
         ));
     }
 
