@@ -426,6 +426,37 @@
                 </div>
             </div>
 
+            <!-- ⚡ SMART CATEGORY SUB-GROUP MULTI-MARGIN & FREIGHT ENGINE -->
+            <div id="smartSubGroupRuleCard" class="hidden bg-slate-900 border border-indigo-800/80 rounded-3xl p-4 sm:p-5 text-white shadow-xl space-y-3.5 transition-all">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                    <div class="flex items-center gap-3">
+                        <div class="h-10 w-10 rounded-2xl bg-indigo-600/30 text-indigo-400 flex items-center justify-center text-lg border border-indigo-500/30 shrink-0">
+                            <i class="fa-solid fa-sliders"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h4 class="text-xs font-black uppercase tracking-wider text-indigo-300">Category Multi-Margin & Freight Engine</h4>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/30 text-indigo-200 font-mono font-bold" id="smartSubGroupActiveCatBadge">Category</span>
+                            </div>
+                            <p class="text-[11px] text-gray-400">
+                                Pipes me alag margin, plain fittings me alag aur brass fittings me alag margin & bhada 1-click me set karein
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="applyAllSubGroupRules()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer">
+                            <i class="fa-solid fa-bolt-lightning text-amber-300"></i>
+                            <span>⚡ Apply All Sub-Groups</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sub-Group Rows Container (Populated dynamically) -->
+                <div class="space-y-2.5" id="smartSubGroupRowsContainer">
+                    <!-- Dynamic Sub-Group rows rendered here -->
+                </div>
+            </div>
+
             <!-- Dynamic Table Card -->
             <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden" id="dynamicTableCard">
                 <div class="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/70">
@@ -678,7 +709,22 @@
                                         @endif
                                     </td>
                                     <td class="p-3.5 font-mono font-bold text-emerald-700">
-                                        ₹{{ number_format($lp->price, 2) }}
+                                        @php
+                                            $minP = $variants->count() > 0 ? $variants->min('retail_price') : $lp->price;
+                                            $maxP = $variants->count() > 0 ? $variants->max('retail_price') : $lp->price;
+                                            $isSqftLive = stripos($lpCat, 'ply') !== false || stripos($lpCat, 'board') !== false || stripos($lpCat, 'door') !== false || stripos($lp->name, 'ply') !== false;
+                                            $hasSheetLive = $variants->contains(function($v) {
+                                                $s = strtolower($v->size ?? '');
+                                                return str_contains($s, 'x') || str_contains($s, 'sheet');
+                                            });
+                                        @endphp
+                                        @if($variants->count() > 1 && $minP != $maxP)
+                                            ₹{{ number_format($minP, 2) }} – ₹{{ number_format($maxP, 2) }} <span class="text-[10px] text-gray-500 font-normal">/ Sheet</span>
+                                        @elseif($isSqftLive && !$hasSheetLive)
+                                            ₹{{ number_format($lp->purchase_price ?: $lp->price, 2) }} <span class="text-[10px] text-gray-500 font-normal">/ sqft</span>
+                                        @else
+                                            ₹{{ number_format($lp->price, 2) }}
+                                        @endif
                                     </td>
                                     <td class="p-3.5 font-mono font-bold text-cyan-700">
                                         ₹{{ number_format($lp->wholesale_price ?? ($lp->price * 0.85), 2) }}
@@ -2199,6 +2245,7 @@
             }
             applyCombinedFilter();
             if (typeof updatePublishButtonText === 'function') updatePublishButtonText();
+            if (typeof renderSmartSubGroupRules === 'function') renderSmartSubGroupRules();
         }
 
         function refreshCategoryFilterTabs() {
@@ -2297,6 +2344,437 @@
             if (dynamicContainer) dynamicContainer.innerHTML = buildTabsHtml(true);
             if (savedContainer) savedContainer.innerHTML = buildTabsHtml(false);
             if (typeof updatePublishButtonText === 'function') updatePublishButtonText();
+            if (typeof renderSmartSubGroupRules === 'function') renderSmartSubGroupRules();
+        }
+
+        // =========================================================================
+        // ⚡ SMART CATEGORY SUB-GROUP MULTI-MARGIN & FREIGHT ENGINE
+        // =========================================================================
+        let activeSubGroupsMap = {};
+
+        function classifySubGroup(name, category, size) {
+            const text = `${name || ''} ${size || ''} ${category || ''}`.toUpperCase();
+            const uCat = (category || '').toUpperCase();
+
+            // 1. Plywoods & Sheet Boards
+            if (uCat.includes('PLY') || uCat.includes('BOARD') || uCat.includes('DOOR') || text.includes('PLY') || text.includes('BOARD')) {
+                if (text.includes('SHUTTER') || text.includes('SHATTER')) {
+                    return {
+                        key: 'shuttering',
+                        label: 'Shuttering Ply',
+                        icon: 'cubes-stacked',
+                        color: 'amber',
+                        defaultLess: 0,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 3.00,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 12,
+                        unit: 'sqft'
+                    };
+                }
+                if (text.includes('BLOCK BOARD') || text.includes('PINE BOARD') || (text.includes('BOARD') && !text.includes('SWITCH'))) {
+                    return {
+                        key: 'block_board',
+                        label: 'Block Boards',
+                        icon: 'layer-group',
+                        color: 'indigo',
+                        defaultLess: 2.0,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 2.50,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 15,
+                        unit: 'sqft'
+                    };
+                }
+                if (text.includes('FLUSH DOOR') || text.includes('DOOR') || text.includes('WINDOW')) {
+                    return {
+                        key: 'flush_door',
+                        label: 'Flush Doors',
+                        icon: 'door-open',
+                        color: 'emerald',
+                        defaultLess: 0,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 2.00,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 18,
+                        unit: 'sqft'
+                    };
+                }
+                return {
+                    key: 'plywood',
+                    label: 'Plywood (MR/BWP/Marine)',
+                    icon: 'tree',
+                    color: 'blue',
+                    defaultLess: 2.0,
+                    defaultFreightMode: 'flat',
+                    defaultFreightVal: 2.50,
+                    defaultMarginMode: 'percent',
+                    defaultMarginVal: 15,
+                    unit: 'sqft'
+                };
+            }
+
+            // 2. Pipes & Plumbing (UPVC, CPVC, SWR, PVC)
+            if (uCat.includes('PVC') || uCat.includes('PIPE') || uCat.includes('FITTING') || uCat.includes('PLUMB')) {
+                if (text.includes('BRASS') || text.includes('MTA') || text.includes('FTA') || text.includes('BRASS ELBOW') || text.includes('BRASS TEE') || text.includes('B.E') || text.includes('B.T')) {
+                    return {
+                        key: 'brass_fittings',
+                        label: 'Brass Insert Fittings',
+                        icon: 'ring',
+                        color: 'amber',
+                        defaultLess: 28,
+                        defaultFreightMode: 'percent',
+                        defaultFreightVal: 0,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 25,
+                        unit: 'pc'
+                    };
+                }
+                if (text.includes('PIPE') || text.includes('CONDUIT') || text.includes('SCH 40') || text.includes('SCH 80') || text.includes('10M') || text.includes('6M')) {
+                    return {
+                        key: 'pipes',
+                        label: 'Pipes (Lengths)',
+                        icon: 'grip-lines',
+                        color: 'blue',
+                        defaultLess: 25,
+                        defaultFreightMode: 'percent',
+                        defaultFreightVal: 0,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 8,
+                        unit: 'length'
+                    };
+                }
+                if (text.includes('VALVE') || text.includes('BALL VALVE') || text.includes('SOLVENT') || text.includes('CEMENT') || text.includes('TEFLON') || text.includes('TAPE')) {
+                    return {
+                        key: 'valves_acc',
+                        label: 'Valves & Solvent / Accessories',
+                        icon: 'faucet-drip',
+                        color: 'rose',
+                        defaultLess: 20,
+                        defaultFreightMode: 'percent',
+                        defaultFreightVal: 0,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 15,
+                        unit: 'pc'
+                    };
+                }
+                return {
+                    key: 'plain_fittings',
+                    label: 'Plain PVC Fittings (Elbow/Tee/Socket)',
+                    icon: 'circle-nodes',
+                    color: 'emerald',
+                    defaultLess: 30,
+                    defaultFreightMode: 'percent',
+                    defaultFreightVal: 0,
+                    defaultMarginMode: 'percent',
+                    defaultMarginVal: 18,
+                    unit: 'pc'
+                };
+            }
+
+            // 3. Electrical & Power Tools
+            if (uCat.includes('TOOL') || uCat.includes('ELECTRIC') || text.includes('DRILL') || text.includes('GRINDER') || text.includes('CUTTER') || text.includes('BLOWER')) {
+                if (text.includes('MACHINE') || text.includes('DRILL') || text.includes('GRINDER') || text.includes('CUTTER') || text.includes('SAW') || text.includes('PLANER')) {
+                    return {
+                        key: 'power_tools',
+                        label: 'Power Tools & Machinery',
+                        icon: 'bolt',
+                        color: 'cyan',
+                        defaultLess: 0,
+                        defaultFreightMode: 'flat',
+                        defaultFreightVal: 0,
+                        defaultMarginMode: 'percent',
+                        defaultMarginVal: 12,
+                        unit: 'pc'
+                    };
+                }
+                return {
+                    key: 'hand_tools',
+                    label: 'Hand Tools & Accessories',
+                    icon: 'wrench',
+                    color: 'purple',
+                    defaultLess: 0,
+                    defaultFreightMode: 'flat',
+                    defaultFreightVal: 0,
+                    defaultMarginMode: 'percent',
+                    defaultMarginVal: 18,
+                    unit: 'pc'
+                };
+            }
+
+            // Default Generic Sub-Group
+            const catClean = (category || 'General Hardware').trim();
+            return {
+                key: catClean.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+                label: catClean,
+                icon: 'tag',
+                color: 'indigo',
+                defaultLess: 0,
+                defaultFreightMode: 'flat',
+                defaultFreightVal: 0,
+                defaultMarginMode: 'percent',
+                defaultMarginVal: 15,
+                unit: 'pc'
+            };
+        }
+
+        function renderSmartSubGroupRules() {
+            const ruleCard = document.getElementById('smartSubGroupRuleCard');
+            const container = document.getElementById('smartSubGroupRowsContainer');
+            const catBadge = document.getElementById('smartSubGroupActiveCatBadge');
+            if (!ruleCard || !container) return;
+
+            // Collect items matching current category
+            const normCat = (activeCategory || 'ALL').trim().toLowerCase();
+            const targetRows = (normCat === 'all') 
+                ? dynamicRows 
+                : dynamicRows.filter(r => (r.group_type || r.category || 'General Hardware').trim().toLowerCase() === normCat);
+            
+            const targetCards = (normCat === 'all')
+                ? groupedProductCards
+                : groupedProductCards.filter(c => (c.category || '').trim().toLowerCase() === normCat);
+
+            const totalItems = targetRows.length + targetCards.length;
+            if (totalItems === 0) {
+                ruleCard.classList.add('hidden');
+                return;
+            }
+
+            ruleCard.classList.remove('hidden');
+            if (catBadge) {
+                catBadge.innerText = (activeCategory === 'ALL') ? `All Categories (${totalItems} Items)` : `📁 ${activeCategory} (${totalItems} Items)`;
+            }
+
+            // Classify all items into sub-groups
+            const groups = {};
+            targetRows.forEach(r => {
+                const sg = classifySubGroup(r.product_name, r.category || r.group_type, r.size);
+                if (!groups[sg.key]) {
+                    groups[sg.key] = { meta: sg, rows: [], cardVariants: [] };
+                }
+                groups[sg.key].rows.push(r);
+            });
+
+            targetCards.forEach(c => {
+                const sg = classifySubGroup(c.parent_name, c.category, c.variants?.[0]?.size);
+                if (!groups[sg.key]) {
+                    groups[sg.key] = { meta: sg, rows: [], cardVariants: [] };
+                }
+                (c.variants || []).forEach(v => {
+                    groups[sg.key].cardVariants.push({ card: c, variant: v });
+                });
+            });
+
+            activeSubGroupsMap = groups;
+
+            // Load saved rules from localStorage
+            let savedRules = {};
+            try {
+                savedRules = JSON.parse(localStorage.getItem('vyapar_subgroup_rules') || '{}');
+            } catch (e) {
+                savedRules = {};
+            }
+
+            let html = '';
+            Object.keys(groups).forEach(key => {
+                const g = groups[key];
+                const meta = g.meta;
+                const totalInSg = g.rows.length + g.cardVariants.length;
+                if (totalInSg === 0) return;
+
+                // Compute average base rate
+                let sumBase = 0;
+                let countBase = 0;
+                g.rows.forEach(r => {
+                    const b = parseFloat(r.raw_rate || r.purchase_cost || r.cost_price || r.mrp || 0);
+                    if (b > 0) { sumBase += b; countBase++; }
+                });
+                g.cardVariants.forEach(cv => {
+                    const b = parseFloat(cv.variant.raw_rate || cv.variant.purchase_cost || cv.variant.mrp || 0);
+                    if (b > 0) { sumBase += b; countBase++; }
+                });
+                const avgBase = countBase > 0 ? (sumBase / countBase) : 0;
+
+                const ruleKey = (activeCategory !== 'ALL' ? activeCategory : 'GLOBAL') + '_' + key;
+                const rule = savedRules[ruleKey] || {
+                    less_pct: meta.defaultLess,
+                    freight_mode: meta.defaultFreightMode,
+                    freight_val: meta.defaultFreightVal,
+                    margin_mode: meta.defaultMarginMode,
+                    margin_val: meta.defaultMarginVal
+                };
+
+                // Calculate preview
+                const afterLess = avgBase * (1 - (rule.less_pct / 100));
+                const freightAmt = (rule.freight_mode === 'percent') ? (avgBase * (rule.freight_val / 100)) : rule.freight_val;
+                const landing = Math.round((afterLess + freightAmt) * 100) / 100;
+                const estSelling = (rule.margin_mode === 'percent') ? Math.round(landing * (1 + (rule.margin_val / 100)) * 100) / 100 : Math.round((landing + rule.margin_val) * 100) / 100;
+
+                html += `
+                    <div class="bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 transition" id="sg_row_${key}">
+                        <!-- Left: Subgroup Info -->
+                        <div class="flex items-center gap-2.5 min-w-[200px]">
+                            <div class="h-9 w-9 rounded-xl bg-${meta.color}-500/20 text-${meta.color}-400 flex items-center justify-center text-sm border border-${meta.color}-500/30 shrink-0">
+                                <i class="fa-solid fa-${meta.icon}"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-black text-white flex items-center gap-1.5">
+                                    <span>${meta.label}</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/30 text-indigo-300 font-mono font-bold">${totalInSg} Items</span>
+                                </div>
+                                <div class="text-[10px] text-gray-400 font-mono">Avg Base: ₹${avgBase.toFixed(2)} / ${meta.unit}</div>
+                            </div>
+                        </div>
+
+                        <!-- Center: Inputs (Less + Freight + Margin) -->
+                        <div class="flex items-center gap-2.5 flex-wrap">
+                            <!-- Less % -->
+                            <div class="flex items-center gap-1 bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-700/80">
+                                <span class="text-[10px] text-rose-400 font-bold uppercase">Less:</span>
+                                <input type="number" step="0.25" id="sg_less_${key}" value="${rule.less_pct}" oninput="updateSubGroupLivePreview('${key}', ${avgBase})" class="w-12 bg-transparent text-white font-mono text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-rose-400 rounded">
+                                <span class="text-[10px] text-gray-400 font-bold">%</span>
+                            </div>
+
+                            <!-- Bhada / Freight -->
+                            <div class="flex items-center gap-1 bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-700/80">
+                                <span class="text-[10px] text-amber-400 font-bold uppercase">Bhada:</span>
+                                <select id="sg_freight_mode_${key}" onchange="updateSubGroupLivePreview('${key}', ${avgBase})" class="bg-slate-900 text-[10px] text-amber-300 font-bold rounded border border-slate-700 px-1 py-0.5 cursor-pointer">
+                                    <option value="flat" ${rule.freight_mode === 'flat' ? 'selected' : ''}>₹/unit</option>
+                                    <option value="percent" ${rule.freight_mode === 'percent' ? 'selected' : ''}>%</option>
+                                </select>
+                                <input type="number" step="0.25" id="sg_freight_val_${key}" value="${rule.freight_val}" oninput="updateSubGroupLivePreview('${key}', ${avgBase})" class="w-14 bg-transparent text-white font-mono text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-amber-400 rounded">
+                            </div>
+
+                            <!-- Margin % or Flat -->
+                            <div class="flex items-center gap-1 bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-700/80">
+                                <span class="text-[10px] text-emerald-400 font-bold uppercase">Margin:</span>
+                                <select id="sg_margin_mode_${key}" onchange="updateSubGroupLivePreview('${key}', ${avgBase})" class="bg-slate-900 text-[10px] text-emerald-300 font-bold rounded border border-slate-700 px-1 py-0.5 cursor-pointer">
+                                    <option value="percent" ${rule.margin_mode === 'percent' ? 'selected' : ''}>+ %</option>
+                                    <option value="flat" ${rule.margin_mode === 'flat' ? 'selected' : ''}>+ ₹ Flat</option>
+                                </select>
+                                <input type="number" step="0.5" id="sg_margin_val_${key}" value="${rule.margin_val}" oninput="updateSubGroupLivePreview('${key}', ${avgBase})" class="w-14 bg-transparent text-white font-mono text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-emerald-400 rounded">
+                            </div>
+                        </div>
+
+                        <!-- Right: Live Preview & Apply Button -->
+                        <div class="flex items-center gap-3">
+                            <div class="text-right">
+                                <div class="text-[9px] text-gray-400 uppercase font-bold">Est. Selling</div>
+                                <div class="text-xs font-mono font-black text-emerald-400" id="sg_preview_${key}">₹${estSelling.toFixed(2)}</div>
+                            </div>
+                            <button type="button" onclick="applySubGroupRule('${key}')" id="btn_apply_sg_${key}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer" title="Sirf is subgroup ke sabhi ${totalInSg} items ke rates calculate karein">
+                                <i class="fa-solid fa-bolt text-amber-300 text-xs"></i>
+                                <span>Apply (${totalInSg})</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function updateSubGroupLivePreview(key, avgBase) {
+            const lessPct = parseFloat(document.getElementById(`sg_less_${key}`)?.value) || 0;
+            const freightMode = document.getElementById(`sg_freight_mode_${key}`)?.value || 'flat';
+            const freightVal = parseFloat(document.getElementById(`sg_freight_val_${key}`)?.value) || 0;
+            const marginMode = document.getElementById(`sg_margin_mode_${key}`)?.value || 'percent';
+            const marginVal = parseFloat(document.getElementById(`sg_margin_val_${key}`)?.value) || 0;
+
+            const afterLess = avgBase * (1 - (lessPct / 100));
+            const freightAmt = (freightMode === 'percent') ? (avgBase * (freightVal / 100)) : freightVal;
+            const landing = Math.round((afterLess + freightAmt) * 100) / 100;
+            const estSelling = (marginMode === 'percent') ? Math.round(landing * (1 + (marginVal / 100)) * 100) / 100 : Math.round((landing + marginVal) * 100) / 100;
+
+            const previewEl = document.getElementById(`sg_preview_${key}`);
+            if (previewEl) {
+                previewEl.innerText = `₹${estSelling.toFixed(2)}`;
+            }
+        }
+
+        function applySubGroupRule(key) {
+            const g = activeSubGroupsMap[key];
+            if (!g) return;
+
+            const lessPct = parseFloat(document.getElementById(`sg_less_${key}`)?.value) || 0;
+            const freightMode = document.getElementById(`sg_freight_mode_${key}`)?.value || 'flat';
+            const freightVal = parseFloat(document.getElementById(`sg_freight_val_${key}`)?.value) || 0;
+            const marginMode = document.getElementById(`sg_margin_mode_${key}`)?.value || 'percent';
+            const marginVal = parseFloat(document.getElementById(`sg_margin_val_${key}`)?.value) || 0;
+
+            // Save to persistent storage
+            let savedRules = {};
+            try {
+                savedRules = JSON.parse(localStorage.getItem('vyapar_subgroup_rules') || '{}');
+            } catch (e) {
+                savedRules = {};
+            }
+            const ruleKey = (activeCategory !== 'ALL' ? activeCategory : 'GLOBAL') + '_' + key;
+            savedRules[ruleKey] = {
+                less_pct: lessPct,
+                freight_mode: freightMode,
+                freight_val: freightVal,
+                margin_mode: marginMode,
+                margin_val: marginVal
+            };
+            localStorage.setItem('vyapar_subgroup_rules', JSON.stringify(savedRules));
+
+            // Apply to Dynamic Rows
+            let updatedCount = 0;
+            g.rows.forEach(r => {
+                const base = parseFloat(r.raw_rate || r.purchase_cost || r.cost_price || r.mrp || 100);
+                const afterLess = base * (1 - (lessPct / 100));
+                const freightAmt = (freightMode === 'percent') ? (base * (freightVal / 100)) : freightVal;
+                const landing = Math.round((afterLess + freightAmt) * 100) / 100;
+                const selling = (marginMode === 'percent') ? Math.round(landing * (1 + (marginVal / 100)) * 100) / 100 : Math.round((landing + marginVal) * 100) / 100;
+
+                r.purchase_cost = landing;
+                r.retail_price = selling;
+                r.cost_price_2 = Math.round(selling * 0.95 * 100) / 100;
+                r.mrp = Math.max(parseFloat(r.mrp) || 0, Math.round(selling * 1.25 * 100) / 100);
+                updatedCount++;
+            });
+
+            // Apply to Grouped Cards variants
+            g.cardVariants.forEach(cv => {
+                const v = cv.variant;
+                const base = parseFloat(v.raw_rate || v.purchase_cost || v.mrp || 100);
+                const afterLess = base * (1 - (lessPct / 100));
+                const freightAmt = (freightMode === 'percent') ? (base * (freightVal / 100)) : freightVal;
+                const landing = Math.round((afterLess + freightAmt) * 100) / 100;
+                const selling = (marginMode === 'percent') ? Math.round(landing * (1 + (marginVal / 100)) * 100) / 100 : Math.round((landing + marginVal) * 100) / 100;
+
+                v.purchase_cost = landing;
+                v.retail_price = selling;
+                v.mrp = Math.max(parseFloat(v.mrp) || 0, Math.round(selling * 1.25 * 100) / 100);
+                updatedCount++;
+            });
+
+            saveToLocalStorage();
+            if (typeof autoSaveDraftToBackend === 'function') autoSaveDraftToBackend();
+
+            renderDynamicRows();
+            renderGroupedProductCards();
+
+            // Button feedback
+            const btn = document.getElementById(`btn_apply_sg_${key}`);
+            if (btn) {
+                const orig = btn.innerHTML;
+                btn.innerHTML = `<i class="fa-solid fa-check text-white"></i> <span>Applied ✓</span>`;
+                setTimeout(() => { btn.innerHTML = orig; }, 1500);
+            }
+        }
+
+        function applyAllSubGroupRules() {
+            if (!activeSubGroupsMap) return;
+            const keys = Object.keys(activeSubGroupsMap);
+            if (keys.length === 0) return;
+
+            keys.forEach(key => {
+                applySubGroupRule(key);
+            });
+
+            alert(`🎉 "${activeCategory}" ke sabhi ${keys.length} Sub-Groups par naye rates successfully apply ho gaye!`);
         }
 
         // Live Search Filter
@@ -4376,6 +4854,27 @@
                 const cardCategory = c.category || 'General Hardware';
                 const cardSearch = `${c.parent_name} ${cardCategory} ${c.variants.map(v => (v.product_code || '') + ' ' + (v.size || '')).join(' ')}`.toLowerCase();
 
+                // Calculate price range & sqft rate for card badge
+                const sellingRates = (c.variants || []).map(v => parseFloat(v.retail_price) || 0).filter(r => r > 0);
+                const minRate = sellingRates.length > 0 ? Math.min(...sellingRates) : 0;
+                const maxRate = sellingRates.length > 0 ? Math.max(...sellingRates) : 0;
+
+                const isPlywoodOrBoard = (cardCategory.toUpperCase().includes('PLY') || cardCategory.toUpperCase().includes('BOARD') || cardCategory.toUpperCase().includes('DOOR') || (c.parent_name || '').toUpperCase().includes('PLY'));
+                const hasSheetSizes = (c.variants || []).some(v => (v.size || '').includes('x') || (v.size || '').includes('X') || (v.size || '').toLowerCase().includes('sheet'));
+
+                let rateBadgeHtml = '';
+                if (sellingRates.length > 0) {
+                    if (isPlywoodOrBoard && !hasSheetSizes) {
+                        // Sizes not expanded yet: show ONLY per-sqft rate!
+                        const sqftRate = parseFloat(c.variants[0]?.purchase_cost || c.variants[0]?.retail_price || 0);
+                        rateBadgeHtml = `<span class="px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 font-black text-[10px] border border-emerald-200 font-mono flex items-center gap-1"><i class="fa-solid fa-tag text-[9px] text-emerald-600"></i> ₹${sqftRate.toFixed(2)} / sqft</span>`;
+                    } else if (minRate === maxRate) {
+                        rateBadgeHtml = `<span class="px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 font-black text-[10px] border border-emerald-200 font-mono flex items-center gap-1"><i class="fa-solid fa-tag text-[9px] text-emerald-600"></i> ₹${minRate.toFixed(2)}</span>`;
+                    } else {
+                        rateBadgeHtml = `<span class="px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 font-black text-[10px] border border-emerald-200 font-mono flex items-center gap-1"><i class="fa-solid fa-tags text-[9px] text-emerald-600"></i> ₹${minRate.toFixed(2)} – ₹${maxRate.toFixed(2)} / Sheet</span>`;
+                    }
+                }
+
                 html += `
                     <div class="bg-white rounded-3xl border-2 border-indigo-100 p-5 shadow-sm hover:shadow-md transition space-y-4" id="grouped_card_box_${c.card_id}" data-category="${escapeHtml(cardCategory)}" data-search="${escapeHtml(cardSearch)}">
                         <!-- Card Top Bar: Checkbox, Badge & Merge Card Action -->
@@ -4412,6 +4911,7 @@
                                         <span class="px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 font-extrabold text-[10px] border border-indigo-100 flex items-center gap-1">
                                             <i class="fa-solid fa-layer-group text-[9px]"></i> ${c.variants.length} Sizes Included
                                         </span>
+                                        ${rateBadgeHtml}
                                     </div>
                                     <div>
                                         <label class="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-0.5">Product Title / Name (Click to edit)</label>
