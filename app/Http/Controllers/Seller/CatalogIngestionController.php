@@ -1377,6 +1377,17 @@ class CatalogIngestionController extends Controller
             $f = $img['folder'] ?? 'General';
             $folders[$f] = ($folders[$f] ?? 0) + 1;
         }
+
+        // Include custom created folders (even if 0 images currently)
+        try {
+            $customFolders = \App\Models\SellerFolder::where('user_id', $userId)->pluck('name');
+            foreach ($customFolders as $cf) {
+                if (!isset($folders[$cf])) {
+                    $folders[$cf] = 0;
+                }
+            }
+        } catch (\Throwable $e) {}
+
         ksort($folders);
 
         $selectedFolder = trim($request->input('folder', 'ALL'));
@@ -1421,6 +1432,16 @@ class CatalogIngestionController extends Controller
             $f = $i['folder'] ?? 'General';
             $folders[$f] = ($folders[$f] ?? 0) + 1;
         }
+
+        try {
+            $customFolders = \App\Models\SellerFolder::where('user_id', $userId)->pluck('name');
+            foreach ($customFolders as $cf) {
+                if (!isset($folders[$cf])) {
+                    $folders[$cf] = 0;
+                }
+            }
+        } catch (\Throwable $e) {}
+
         ksort($folders);
 
         $selectedFolder = trim($request->input('folder', 'ALL'));
@@ -1809,6 +1830,53 @@ class CatalogIngestionController extends Controller
     }
 
     /**
+     * Create an empty custom Image Folder for seller.
+     */
+    public function createFolder(Request $request)
+    {
+        $request->validate([
+            'folder_name' => 'required|string|max:100',
+        ]);
+
+        $userId = Auth::id() ?: 1;
+        $rawFolder = trim($request->input('folder_name'));
+        $folderName = trim(html_entity_decode($rawFolder, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $folderName = ucwords(strtolower(preg_replace('/\s+/', ' ', $folderName)));
+
+        if (in_array(strtolower($folderName), ['general', 'all', '']) || strlen($folderName) < 2) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kripya ek valid folder ka naam likhein.',
+            ], 422);
+        }
+
+        try {
+            \App\Models\SellerFolder::firstOrCreate([
+                'user_id' => $userId,
+                'name' => $folderName,
+            ]);
+
+            // Un-blacklist folder if it was previously deleted
+            $deletedFolders = \Illuminate\Support\Facades\Cache::get("deleted_gallery_folders_{$userId}", []);
+            unset($deletedFolders[strtolower(trim($folderName))]);
+            unset($deletedFolders[strtolower(trim($rawFolder))]);
+            \Illuminate\Support\Facades\Cache::put("deleted_gallery_folders_{$userId}", $deletedFolders, now()->addYears(1));
+
+            return response()->json([
+                'success' => true,
+                'message' => "Folder '{$folderName}' safaltapoorvak ban gaya!",
+                'folder_name' => $folderName,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Create folder error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Folder create karne me error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Delete an entire image folder / category in Gallery.
      */
     public function deleteFolder(Request $request)
@@ -1864,6 +1932,14 @@ class CatalogIngestionController extends Controller
                 ->update(['category_type' => 'General']);
             $msg = "Folder '{$folderName}' delete ho gaya aur photos 'General' me move ho gaye hain!";
         }
+
+        try {
+            \App\Models\SellerFolder::where('user_id', $userId)
+                ->where(function($q) use ($rawFolder, $folderName) {
+                    $q->whereRaw('LOWER(TRIM(name)) = ?', [strtolower($rawFolder)])
+                      ->orWhereRaw('LOWER(TRIM(name)) = ?', [strtolower($folderName)]);
+                })->delete();
+        } catch (\Throwable $e) {}
 
         // Blacklist deleted folder permanently so it never shows up as empty ghost folder
         $deletedFolders = \Illuminate\Support\Facades\Cache::get("deleted_gallery_folders_{$userId}", []);
@@ -1933,6 +2009,10 @@ class CatalogIngestionController extends Controller
                 $folders[] = $f;
             }
         }
+        try {
+            $customFolders = \App\Models\SellerFolder::where('user_id', $userId)->pluck('name')->toArray();
+            $folders = array_values(array_unique(array_merge($folders, $customFolders)));
+        } catch (\Throwable $e) {}
         sort($folders);
 
         return view('seller.catalog.pdf_studio', compact('galleryImages', 'folders'));

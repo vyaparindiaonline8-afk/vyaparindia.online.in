@@ -149,6 +149,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::get('/gallery', [CatalogIngestionController::class, 'gallery'])->name('gallery');
         Route::get('/gallery-json', [CatalogIngestionController::class, 'galleryJson'])->name('gallery_json');
         Route::post('/gallery/upload', [CatalogIngestionController::class, 'uploadToGallery'])->name('gallery.upload');
+        Route::post('/gallery/create-folder', [CatalogIngestionController::class, 'createFolder'])->name('gallery.create_folder');
         Route::post('/gallery/assign-folder', [CatalogIngestionController::class, 'assignFolder'])->name('gallery.assign_folder');
         Route::post('/gallery/delete-folder', [CatalogIngestionController::class, 'deleteFolder'])->name('gallery.delete_folder');
         Route::post('/gallery/update-details', [CatalogIngestionController::class, 'updateMediaDetails'])->name('gallery.update_details');

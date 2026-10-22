@@ -88,7 +88,7 @@
                     <div>
                         <h3 class="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
                             <span>Image Folders & Groups</span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-100 text-indigo-800 font-extrabold">{{ count($folders) }} Groups</span>
+                            <span id="groupsCountPill" class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-100 text-indigo-800 font-extrabold">{{ count($folders) }} Groups</span>
                         </h3>
                         <p class="text-[11px] text-gray-500">
                             Hazaar (1000s) images ko category wise alag folders me dekhein taaki Excel mapping me asani se mil jayein
@@ -371,14 +371,14 @@
             </div>
             <div class="space-y-3">
                 <label class="block text-xs font-bold text-gray-700 mb-1">Folder Name:</label>
-                <input type="text" id="newFolderNameInput" placeholder="e.g. Sanitary Ware, UPVC Valves, Paints..." class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-bold focus:ring-2 focus:ring-indigo-600">
+                <input type="text" id="newFolderNameInput" placeholder="e.g. Sanitary Ware, UPVC Valves, Paints..." class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-bold focus:ring-2 focus:ring-indigo-600" onkeydown="if(event.key==='Enter') submitCreateFolder()">
                 <p class="text-[11px] text-gray-500">Folder banne ke baad aap photos ko isme move kar sakte hain ya directly upload kar sakte hain.</p>
             </div>
             <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
                 <button type="button" onclick="closeNewFolderModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition">
                     Cancel
                 </button>
-                <button type="button" onclick="submitCreateFolder()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-md transition">
+                <button type="button" id="btnSubmitCreateFolder" onclick="submitCreateFolder()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-md transition">
                     Create & Select
                 </button>
             </div>
@@ -597,21 +597,132 @@
 
         function openNewFolderModal() {
             document.getElementById('newFolderModal').classList.remove('hidden');
+            const input = document.getElementById('newFolderNameInput');
+            if (input) {
+                input.value = '';
+                setTimeout(() => input.focus(), 100);
+            }
         }
 
         function closeNewFolderModal() {
             document.getElementById('newFolderModal').classList.add('hidden');
         }
 
-        function submitCreateFolder() {
-            const name = document.getElementById('newFolderNameInput').value.trim();
+        async function submitCreateFolder() {
+            const input = document.getElementById('newFolderNameInput');
+            const name = input.value.trim();
             if (!name) {
                 alert('Kripya folder ka naam likhein.');
+                input.focus();
                 return;
             }
-            // Switch filter to newly created folder name or open upload modal
-            closeNewFolderModal();
-            filterGalleryByFolder(name);
+
+            const btn = document.getElementById('btnSubmitCreateFolder');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Creating...`;
+            }
+
+            try {
+                const res = await fetch("{{ route('seller.catalog.gallery.create_folder') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": csrfToken,
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify({ folder_name: name })
+                });
+
+                const data = await res.json();
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `Create & Select`;
+                }
+
+                if (data.success) {
+                    closeNewFolderModal();
+                    input.value = '';
+
+                    appendFolderChip(data.folder_name);
+                    appendFolderToSelects(data.folder_name);
+                    filterGalleryByFolder(data.folder_name);
+                    showGalleryToast(data.message || `Folder "${data.folder_name}" ban gaya!`);
+                } else {
+                    alert(data.message || 'Folder create karne me error aayi.');
+                }
+            } catch (err) {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `Create & Select`;
+                }
+                alert('Network error. Kripya dubara koshish karein.');
+            }
+        }
+
+        function appendFolderChip(folderName) {
+            const container = document.getElementById('galleryFolderChips');
+            if (!container) return;
+            const existing = container.querySelector(`[data-folder-name="${CSS.escape(folderName)}"]`);
+            if (existing) return;
+
+            const div = document.createElement('div');
+            div.className = "inline-flex items-center rounded-xl bg-gray-100 hover:bg-gray-200 transition group/fchip";
+            
+            const safeName = JSON.stringify(folderName);
+            div.innerHTML = `
+                <button type="button" onclick="filterGalleryByFolder(${safeName})" data-folder-name="${folderName}" class="folder-chip-btn px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap text-gray-700">
+                    <i class="fa-solid fa-folder text-indigo-500"></i>
+                    <span>${folderName}</span>
+                    <span class="px-1.5 py-0.2 bg-gray-200 rounded-md text-[10px] text-gray-800 font-bold folder-count">0</span>
+                </button>
+                <button type="button" onclick="confirmDeleteFolder(${safeName}, 0)" class="pr-2.5 pl-1 py-1.5 text-gray-400 hover:text-rose-600 transition cursor-pointer" title="Delete folder '${folderName}'">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            `;
+            container.appendChild(div);
+
+            const groupsPill = document.getElementById('groupsCountPill');
+            if (groupsPill) {
+                const currentCount = parseInt(groupsPill.textContent) || 0;
+                groupsPill.textContent = (currentCount + 1) + ' Groups';
+            }
+        }
+
+        function appendFolderToSelects(folderName) {
+            ['uploadFolderSelect', 'bulkTargetFolder', 'quickMoveTargetFolder'].forEach(id => {
+                const sel = document.getElementById(id);
+                if (!sel) return;
+                let exists = false;
+                for (let i = 0; i < sel.options.length; i++) {
+                    if (sel.options[i].value.toLowerCase() === folderName.toLowerCase()) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    const opt = document.createElement('option');
+                    opt.value = folderName;
+                    opt.textContent = `📁 ${folderName} (0)`;
+                    const newOpt = sel.querySelector('option[value="__NEW__"]');
+                    if (newOpt) {
+                        sel.insertBefore(opt, newOpt);
+                    } else {
+                        sel.appendChild(opt);
+                    }
+                }
+            });
+        }
+
+        function showGalleryToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-6 right-6 z-50 px-4 py-3 rounded-2xl bg-slate-900 text-white text-xs font-bold shadow-2xl flex items-center gap-2 transition-all duration-300';
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i><span>${message}</span>`;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
         }
 
         function confirmDeleteFolder(folderName, count) {
