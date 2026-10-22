@@ -103,32 +103,37 @@ class ProductController extends Controller
         // 🏷️ Build accurate, complete category tabs from both category relation AND product group_name
         $categoriesMap = [];
         foreach ($allSellerProducts as $prod) {
+            $catId = null;
+            $catName = null;
+
             if ($prod->category) {
-                $cKey = strtolower($prod->category->slug ?: \Illuminate\Support\Str::slug($prod->category->name));
-                if (!isset($categoriesMap[$cKey])) {
-                    $categoriesMap[$cKey] = (object)[
-                        'id' => $prod->category->id,
-                        'name' => $prod->category->name,
-                        'slug' => $prod->category->slug ?: \Illuminate\Support\Str::slug($prod->category->name),
-                        'products_count' => 0
-                    ];
-                }
-                $categoriesMap[$cKey]->products_count++;
+                $catId = $prod->category->id;
+                $catName = trim($prod->category->name);
             } elseif (!empty($prod->group_name)) {
-                $cKey = strtolower(\Illuminate\Support\Str::slug($prod->group_name));
-                if (!isset($categoriesMap[$cKey])) {
-                    $categoriesMap[$cKey] = (object)[
-                        'id' => 'grp_' . $cKey,
-                        'name' => $prod->group_name,
-                        'slug' => $cKey,
+                $catId = 'grp_' . \Illuminate\Support\Str::slug($prod->group_name);
+                $catName = trim($prod->group_name);
+            }
+
+            if (!empty($catName)) {
+                // Group by normalized slug so "Flush Doors", "Flush Doors ", and case variations collapse into one unified tab!
+                $normKey = strtolower(\Illuminate\Support\Str::slug($catName));
+                if (!isset($categoriesMap[$normKey])) {
+                    $categoriesMap[$normKey] = (object)[
+                        'id' => $catId,
+                        'name' => ucwords(strtolower($catName)),
+                        'slug' => $normKey,
                         'products_count' => 0
                     ];
                 }
-                $categoriesMap[$cKey]->products_count++;
+                $categoriesMap[$normKey]->products_count++;
             }
         }
 
-        $categories = collect(array_values($categoriesMap))->sortBy('name')->values();
+        // Exclude empty categories (count = 0) and sort alphabetically
+        $categories = collect(array_values($categoriesMap))
+            ->where('products_count', '>', 0)
+            ->sortBy('name')
+            ->values();
 
         $galleryImages = CatalogIngestionController::getAllGalleryImages($user->id);
 

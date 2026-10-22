@@ -1019,6 +1019,7 @@ class CatalogIngestionController extends Controller
     {
         $images = [];
         $seenUrls = [];
+        $seenHashes = [];
 
         // 1. Registered SellerMedia from Database:
         // - Personal: ALWAYS include all images owned by $userId
@@ -1047,6 +1048,12 @@ class CatalogIngestionController extends Controller
                         }
                     }
                     if ($isFashion) continue;
+                }
+
+                // ⚡ Smart content hash deduplication: prevent showing duplicate uploaded/cropped photos
+                if (!empty($m->content_hash)) {
+                    if (isset($seenHashes[$m->content_hash])) continue;
+                    $seenHashes[$m->content_hash] = true;
                 }
 
                 $url = $m->file_path;
@@ -1445,6 +1452,9 @@ class CatalogIngestionController extends Controller
         $originalName = $file->getClientOriginalName();
         $fileName = 'upload_' . time() . '_' . Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
 
+        $contentHash = hash_file('sha256', $file->getRealPath());
+        $fileSize = $file->getSize();
+
         $shareToCentral = $request->boolean('share_to_central', false);
 
         // Read folder or category
@@ -1452,6 +1462,38 @@ class CatalogIngestionController extends Controller
         $folderChoice = trim($request->input('folder', $request->input('category_type', 'General')));
         $folder = (!empty($customFolder) && $folderChoice === '__NEW__') ? $customFolder : (($folderChoice !== '__NEW__') ? $folderChoice : 'General');
         $categoryType = $folder;
+
+        // ⚡ META-STYLE DEDUPLICATION:
+        // If this exact photo was already uploaded, re-link to the existing media instead of creating redundant uploads
+        $existingMedia = \App\Models\SellerMedia::where('user_id', $userId)
+            ->where('content_hash', $contentHash)
+            ->first();
+
+        if ($existingMedia) {
+            if ($categoryType && $categoryType !== 'General' && $existingMedia->category_type !== $categoryType) {
+                $existingMedia->update(['category_type' => $categoryType]);
+            }
+            $existingUrl = $existingMedia->file_path;
+            $assetUrl = (str_starts_with($existingUrl, 'http://') || str_starts_with($existingUrl, 'https://')) ? $existingUrl : asset($existingUrl);
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'is_duplicate' => true,
+                    'message' => "✓ Yeh photo pehle se folder '{$existingMedia->category_type}' me maujood hai! Purani photo se link kar diya gaya hai (Duplicate avoided).",
+                    'image' => [
+                        'filename' => $existingMedia->filename,
+                        'url' => $existingUrl,
+                        'asset_url' => $assetUrl,
+                        'folder' => $existingMedia->category_type ?: $folder,
+                        'category' => $existingMedia->category_type ?: $folder,
+                        'is_universal' => (bool)$existingMedia->is_universal,
+                    ],
+                ]);
+            }
+
+            return back()->with('info', "Yeh photo pehle se aapke vault me maujood hai!");
+        }
 
         // Protect Central Universal Hub: clothes/fashion/unbranded must never enter central hub
         $fashionKeywords = ['cloth', 'dress', 'shirt', 'pant', 'sari', 'saree', 'suit', 'fashion', 'kurti', 'tshirt', 'jeans', 'fabric', 'apparel', 'garment', 'dupatta', 'top', 'tunic'];
@@ -1485,6 +1527,8 @@ class CatalogIngestionController extends Controller
                 'user_id' => $userId,
                 'filename' => $fileName,
                 'file_path' => $storedUrl,
+                'content_hash' => $contentHash,
+                'file_size' => $fileSize,
                 'is_assigned' => false,
                 'is_universal' => $isUniversal,
                 'permission_granted' => $shareToCentral,
@@ -1913,12 +1957,67 @@ class CatalogIngestionController extends Controller
             $userId = Auth::id() ?: 1;
             $name = $rawTitle ? ucwords(str_replace(['_', '-'], ' ', $rawTitle)) : "Crop (Page {$page})";
 
+            // Extract binary data for SHA-256 hash & local fallback
+            $binary = null;
+            $ext = 'jpg';
+            if (preg_match('/^data:image\/(\w+);base64,/', $rawData, $type)) {
+                $ext = strtolower($type[1]) === 'png' ? 'png' : 'jpg';
+                $binary = base64_decode(substr($rawData, strpos($rawData, ',') + 1));
+            } else {
+                $binary = base64_decode($rawData);
+            }
+
+            if ($binary === false || empty($binary)) {
+                return response()->json(['success' => false, 'message' => 'Malformed image payload'], 422);
+            }
+
+            $contentHash = hash('sha256', $binary);
+            $fileSize = strlen($binary);
+            $shareToCentral = $request->boolean('share_to_central', false);
+            $categoryType = $request->input('folder') ?: $request->input('category_type', 'General');
+
+            // ⚡ META/GOOGLE-STYLE SMART DEDUPLICATION:
+            // If the seller cropped the exact same area/image before, link to existing image instantly (skip duplicate upload)
+            $existingMedia = \App\Models\SellerMedia::where('user_id', $userId)
+                ->where('content_hash', $contentHash)
+                ->first();
+
+            if ($existingMedia) {
+                if ($categoryType && $categoryType !== 'General' && $existingMedia->category_type !== $categoryType) {
+                    $existingMedia->update(['category_type' => $categoryType]);
+                }
+
+                $existingUrl = $existingMedia->file_path;
+                $assetUrl = (str_starts_with($existingUrl, 'http://') || str_starts_with($existingUrl, 'https://')) ? $existingUrl : asset($existingUrl);
+                $existingName = $rawTitle ? ucwords(str_replace(['_', '-'], ' ', $rawTitle)) : ucwords(str_replace(['crop_', 'p_', '_', '-'], ' ', pathinfo($existingMedia->filename, PATHINFO_FILENAME)));
+
+                return response()->json([
+                    'success' => true,
+                    'is_duplicate' => true,
+                    'message' => '✓ Yeh photo pehle se aapke vault me maujood hai! Purani photo se link kar diya gaya hai (Duplicate avoided).',
+                    'image' => [
+                        'id' => md5($existingUrl),
+                        'filename' => $existingMedia->filename,
+                        'name' => $existingName,
+                        'url' => $existingUrl,
+                        'asset_url' => $assetUrl,
+                        'size_kb' => round(($existingMedia->file_size ?: $fileSize) / 1024, 1),
+                        'created_at' => $existingMedia->created_at ? $existingMedia->created_at->format('d M Y, H:i') : date('d M Y, H:i'),
+                        'source' => 'personal_vault',
+                        'is_universal' => (bool)$existingMedia->is_universal,
+                        'permission_granted' => (bool)$existingMedia->permission_granted,
+                        'is_mine' => true,
+                        'deletable' => true,
+                        'folder' => $existingMedia->category_type ?: $categoryType,
+                        'category' => $existingMedia->category_type ?: $categoryType,
+                    ],
+                ]);
+            }
+
             // 1. Cloudinary Priority (Production Cloud CDN)
             $cloudinaryUrl = CloudinaryService::uploadBase64($rawData, "vyaparindia/catalog/seller_{$userId}");
             if ($cloudinaryUrl) {
                 $fileName = basename(parse_url($cloudinaryUrl, PHP_URL_PATH));
-                $shareToCentral = $request->boolean('share_to_central', false);
-                $categoryType = $request->input('folder') ?: $request->input('category_type', 'General');
 
                 // Protect Central Hub from clothes/fashion
                 $fashionKeywords = ['cloth', 'dress', 'shirt', 'pant', 'sari', 'saree', 'suit', 'fashion', 'kurti', 'tshirt', 'jeans', 'fabric', 'apparel', 'garment', 'dupatta', 'top', 'tunic'];
@@ -1938,7 +2037,7 @@ class CatalogIngestionController extends Controller
                     'name' => $name,
                     'url' => $cloudinaryUrl,
                     'asset_url' => $cloudinaryUrl,
-                    'size_kb' => 35.0,
+                    'size_kb' => round($fileSize / 1024, 1),
                     'created_at' => date('d M Y, H:i'),
                     'source' => 'personal_vault',
                     'is_universal' => $isUniversal,
@@ -1954,6 +2053,8 @@ class CatalogIngestionController extends Controller
                         'user_id' => $userId,
                         'filename' => $fileName,
                         'file_path' => $cloudinaryUrl,
+                        'content_hash' => $contentHash,
+                        'file_size' => $fileSize,
                         'is_assigned' => false,
                         'is_universal' => $isUniversal,
                         'permission_granted' => $shareToCentral,
@@ -1973,16 +2074,6 @@ class CatalogIngestionController extends Controller
             }
 
             // 2. Safe Local Storage Fallback
-            if (preg_match('/^data:image\/(\w+);base64,/', $rawData, $type)) {
-                $binary = substr($rawData, strpos($rawData, ',') + 1);
-                $ext = strtolower($type[1]) === 'png' ? 'png' : 'jpg';
-                $binary = base64_decode($binary);
-                if ($binary === false) {
-                    return response()->json(['success' => false, 'message' => 'Invalid image base64'], 422);
-                }
-            } else {
-                return response()->json(['success' => false, 'message' => 'Malformed image payload'], 422);
-            }
 
             $targetDir = public_path('storage/catalog_extracted/seller_' . $userId);
             if (!is_dir($targetDir)) {
@@ -2024,6 +2115,8 @@ class CatalogIngestionController extends Controller
                     'user_id' => $userId,
                     'filename' => $fileName,
                     'file_path' => $relUrl,
+                    'content_hash' => $contentHash,
+                    'file_size' => $fileSize,
                     'category_type' => $categoryType,
                     'is_assigned' => false,
                 ]);
@@ -3177,13 +3270,17 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
 
             retry(3, function () use ($prodData, $prodName, $userId, $job, &$publishedCount, &$categoriesCache) {
                 DB::transaction(function () use ($prodData, $prodName, $userId, $job, &$publishedCount, &$categoriesCache) {
-                    $catName = !empty($prodData['category']) ? trim($prodData['category']) : (!empty($prodData['group_type']) ? trim($prodData['group_type']) : 'General Hardware');
+                    $rawCat = !empty($prodData['category']) ? trim($prodData['category']) : (!empty($prodData['group_type']) ? trim($prodData['group_type']) : 'General Hardware');
+                    $catName = ucwords(strtolower(trim(preg_replace('/\s+/', ' ', $rawCat))));
                     
                     if (!isset($categoriesCache[$catName])) {
-                        $category = Category::firstOrCreate(
-                            ['name' => $catName],
-                            ['slug' => Str::slug($catName) . '-' . Str::random(4)]
-                        );
+                        $category = Category::whereRaw('LOWER(TRIM(name)) = ?', [strtolower($catName)])->first();
+                        if (!$category) {
+                            $category = Category::create([
+                                'name' => $catName,
+                                'slug' => Str::slug($catName) . '-' . Str::random(4)
+                            ]);
+                        }
                         $categoriesCache[$catName] = $category->id;
                     }
                     $catId = $categoriesCache[$catName];

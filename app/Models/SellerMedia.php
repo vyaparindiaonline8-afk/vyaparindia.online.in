@@ -13,6 +13,8 @@ class SellerMedia extends Model
         'user_id',
         'filename',
         'file_path',
+        'content_hash',
+        'file_size',
         'is_assigned',
         'is_universal',
         'permission_granted',

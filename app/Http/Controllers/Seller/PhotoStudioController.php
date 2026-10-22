@@ -45,6 +45,24 @@ class PhotoStudioController extends Controller
         $savedMedia = [];
 
         foreach ($request->file('photos') as $file) {
+            $contentHash = hash_file('sha256', $file->getRealPath());
+            $fileSize = $file->getSize();
+
+            // ⚡ META-STYLE DEDUPLICATION: Link to existing media if already uploaded
+            $existingMedia = SellerMedia::where('user_id', $sellerId)
+                ->where('content_hash', $contentHash)
+                ->first();
+
+            if ($existingMedia) {
+                $savedMedia[] = [
+                    'id' => $existingMedia->id,
+                    'filename' => $existingMedia->filename,
+                    'url' => asset($existingMedia->file_path),
+                    'is_duplicate' => true,
+                ];
+                continue;
+            }
+
             $filename = $file->getClientOriginalName();
             $path = $file->store('seller_media/' . $sellerId, 'public');
 
@@ -52,6 +70,8 @@ class PhotoStudioController extends Controller
                 'user_id' => $sellerId,
                 'filename' => $filename,
                 'file_path' => 'storage/' . $path,
+                'content_hash' => $contentHash,
+                'file_size' => $fileSize,
                 'is_assigned' => false,
             ]);
 
