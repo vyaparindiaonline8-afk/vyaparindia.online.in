@@ -48,7 +48,41 @@ class OrderController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Multi-Channel Filter (Amazon, Meesho, Flipkart, VyaparIndia Direct)
+        $channel = $request->input('channel', 'all');
+        if ($channel === 'amazon') {
+            $query->where('order_source', 'amazon');
+        } elseif ($channel === 'meesho') {
+            $query->where('order_source', 'meesho');
+        } elseif ($channel === 'flipkart') {
+            $query->where('order_source', 'flipkart');
+        } elseif ($channel === 'vyaparindia') {
+            $query->where(function ($q) {
+                $q->whereNull('order_source')
+                  ->orWhere('order_source', 'vyaparindia')
+                  ->orWhere('order_source', 'direct');
+            });
+        }
+
         $orders = $query->latest()->paginate(20)->withQueryString();
+
+        // Channel Tray Counts
+        $baseCountQuery = Order::where(function ($q) use ($sellerId) {
+            $q->where('seller_id', $sellerId)
+              ->orWhereHas('products', function ($pq) use ($sellerId) {
+                  $pq->where('user_id', $sellerId);
+              });
+        });
+
+        $channelCounts = [
+            'all' => (clone $baseCountQuery)->count(),
+            'vyaparindia' => (clone $baseCountQuery)->where(function ($q) {
+                $q->whereNull('order_source')->orWhere('order_source', 'vyaparindia')->orWhere('order_source', 'direct');
+            })->count(),
+            'amazon' => (clone $baseCountQuery)->where('order_source', 'amazon')->count(),
+            'meesho' => (clone $baseCountQuery)->where('order_source', 'meesho')->count(),
+            'flipkart' => (clone $baseCountQuery)->where('order_source', 'flipkart')->count(),
+        ];
 
         // Metrics for today's orders
         $todayOrdersCount = Order::where(function ($q) use ($sellerId) {
@@ -65,7 +99,16 @@ class OrderController extends Controller
               });
         })->whereDate('created_at', now()->today())->where('status', '!=', 'cancelled')->sum('total_price');
 
-        return view('seller.orders.index', compact('orders', 'dateFilter', 'fromDate', 'toDate', 'todayOrdersCount', 'todayRevenue'));
+        return view('seller.orders.index', compact(
+            'orders',
+            'dateFilter',
+            'fromDate',
+            'toDate',
+            'todayOrdersCount',
+            'todayRevenue',
+            'channel',
+            'channelCounts'
+        ));
     }
 
     public function show(Order $order)
@@ -107,5 +150,21 @@ class OrderController extends Controller
         }
 
         return redirect()->route('seller.orders.show', $order)->with('success', 'Order status updated successfully.');
+    }
+
+    public function shippingLabel(Order $order)
+    {
+        $sellerId = Auth::id();
+        $isMyOrder = ($order->seller_id == $sellerId) || $order->products()->where('user_id', $sellerId)->exists();
+
+        if (!$isMyOrder) {
+            abort(403);
+        }
+
+        $order->load(['products', 'buyer', 'dispatch']);
+        $seller = Auth::user();
+        $sellerProfile = $seller->sellerProfile;
+
+        return view('seller.orders.shipping_label', compact('order', 'seller', 'sellerProfile'));
     }
 }

@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\ProductView;
 use App\Models\AbandonedCart;
 use App\Models\Wishlist;
+use App\Models\BroadcastCampaign;
 
 class AnalyticsController extends Controller
 {
@@ -25,7 +26,7 @@ class AnalyticsController extends Controller
         // 2. 👁️ Product Views & Catalog Metrics
         $products = Product::where('user_id', $sellerId)
             ->withCount(['productViews', 'orders', 'wishlists'])
-            ->with(['category', 'productViews'])
+            ->with(['category', 'productViews', 'variants'])
             ->get();
 
         $totalViews = $products->sum('views_count');
@@ -54,6 +55,63 @@ class AnalyticsController extends Controller
         })->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count();
 
         $monthOrders = (clone $ordersQuery)->whereMonth('created_at', now()->month)->count();
+
+        // 💰 Real Net Profit & Loss (P&L) Calculator Engine
+        $grossSales = (clone $ordersQuery)->whereNotIn('status', ['cancelled', 'returned', 'rto'])->sum('total_price');
+
+        // Returned / RTO Orders & Reverse Courier Loss
+        $returnedOrders = Order::where(function ($q) use ($sellerId) {
+            $q->where('seller_id', $sellerId)
+              ->orWhereHas('products', function ($pq) use ($sellerId) {
+                  $pq->where('user_id', $sellerId);
+              });
+        })->whereIn('status', ['returned', 'rto'])->get();
+
+        $returnOrdersCount = $returnedOrders->count();
+        $returnProductLoss = $returnedOrders->sum('total_price');
+        $returnReverseCourierLoss = $returnOrdersCount * 75; // Approx ₹75 reverse logistics charge per RTO
+        $totalReturnLoss = $returnProductLoss + $returnReverseCourierLoss;
+
+        // Cost of Goods Sold (COGS / Maal Ki Lagat) & Marketplace Platform Fees
+        $totalCogs = 0;
+        $shippedOrdersCount = 0;
+        $marketplaceFees = 0;
+
+        $validOrders = (clone $ordersQuery)->whereNotIn('status', ['cancelled', 'returned', 'rto'])->with('products')->get();
+
+        foreach ($validOrders as $ord) {
+            $shippedOrdersCount++;
+            $orderChannel = strtolower($ord->order_source ?? 'vyaparindia');
+
+            // Marketplace commission: 15% on Amazon / Meesho / Flipkart, 0% on VyaparIndia direct
+            if (in_array($orderChannel, ['amazon', 'flipkart', 'meesho', 'woocommerce', 'shopify'])) {
+                $marketplaceFees += ($ord->total_price * 0.15);
+            }
+
+            foreach ($ord->products as $p) {
+                $qty = $p->pivot->quantity ?? 1;
+                $unitCost = ($p->purchase_price > 0) ? (float)$p->purchase_price : ((float)$p->price * 0.60);
+                $totalCogs += ($unitCost * $qty);
+            }
+        }
+
+        if ($totalCogs == 0 && $grossSales > 0) {
+            $totalCogs = $grossSales * 0.60;
+        }
+
+        // Courier & Packaging Cost (Approx ₹60 per dispatched order)
+        $courierPackagingCost = $shippedOrdersCount * 60;
+
+        // Ads & Promotions (WhatsApp broadcast msgs @ ₹0.80 or promotional campaign spend)
+        $broadcastSent = BroadcastCampaign::where('seller_id', $sellerId)->sum('sent_count');
+        $adsSpend = ($broadcastSent * 0.80);
+        if ($adsSpend == 0 && $grossSales > 0) {
+            $adsSpend = round($grossSales * 0.03, 2); // 3% default marketing estimate
+        }
+
+        // Net In-Hand Profit (Asli Shuddh Munafa)
+        $netProfit = $grossSales - $totalReturnLoss - $totalCogs - $courierPackagingCost - $marketplaceFees - $adsSpend;
+        $netProfitMargin = $grossSales > 0 ? round(($netProfit / $grossSales) * 100, 1) : 0;
 
         // 3. 🛒 Abandoned / Dropped Checkouts (ऑर्डर तक गए पर पेमेंट नहीं किया)
         $abandonedCarts = AbandonedCart::where('seller_id', $sellerId)->latest()->get();
@@ -107,7 +165,16 @@ class AnalyticsController extends Controller
             'topSelling',
             'topViewed',
             'slowMoving',
-            'sellerPage'
+            'sellerPage',
+            'grossSales',
+            'returnOrdersCount',
+            'totalReturnLoss',
+            'totalCogs',
+            'courierPackagingCost',
+            'marketplaceFees',
+            'adsSpend',
+            'netProfit',
+            'netProfitMargin'
         ));
     }
 }

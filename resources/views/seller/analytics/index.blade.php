@@ -120,6 +120,159 @@
             </div>
         </div>
 
+        <!-- 💰 REAL NET PROFIT & LOSS (P&L) CALCULATOR (SHUDDH MUNAFA) -->
+        <div class="mb-8 bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-sm">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-gray-100">
+                <div>
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <i class="fa-solid fa-calculator mr-1"></i> Transparent Net P&L Engine
+                        </span>
+                        <span class="text-xs text-gray-500 font-medium">Auto-calculated from actual orders, returns & platform costs</span>
+                    </div>
+                    <h2 class="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">Mahine Ka Asli Shuddh Munafa (In-Hand Real Profit)</h2>
+                    <p class="text-xs text-gray-500 mt-1 max-w-2xl leading-relaxed">
+                        Kull bikri me se maal ki lagat (COGS), RTO/Return loss, courier-packaging, marketplace cuts aur ad spend sabhi kharche katne ke baad asli bachat.
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-4 bg-gray-50/80 p-4 rounded-2xl border border-gray-200/80 shrink-0">
+                    <div>
+                        <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Net In-Hand Profit</div>
+                        <div class="text-3xl font-black {{ $netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600' }} tracking-tight mt-0.5">
+                            ₹{{ number_format($netProfit, 2) }}
+                        </div>
+                    </div>
+                    <div class="h-10 w-[1px] bg-gray-200"></div>
+                    <div>
+                        <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Profit Margin</div>
+                        <div class="text-lg font-black {{ $netProfitMargin >= 15 ? 'text-emerald-600' : ($netProfitMargin >= 0 ? 'text-amber-600' : 'text-rose-600') }} flex items-center gap-1">
+                            <span>{{ $netProfitMargin }}%</span>
+                            <i class="fa-solid {{ $netProfitMargin >= 0 ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down' }} text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mathematical Deduction Itemized Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mt-6">
+                <!-- 1. Gross Sales -->
+                <div class="p-4 rounded-2xl bg-blue-50/70 border border-blue-200/70 flex flex-col justify-between">
+                    <div>
+                        <div class="text-[11px] font-black uppercase text-blue-700 tracking-wide flex items-center justify-between">
+                            <span>1. Gross Sales</span>
+                            <i class="fa-solid fa-plus-circle text-blue-500 text-xs"></i>
+                        </div>
+                        <div class="text-lg sm:text-xl font-black text-blue-950 mt-1.5">
+                            ₹{{ number_format($grossSales, 0) }}
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-blue-700/80 font-semibold mt-2">
+                        Delivered & confirmed orders
+                    </div>
+                </div>
+
+                <!-- 2. COGS (Maal Ki Lagat) -->
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <div class="text-[11px] font-black uppercase text-slate-700 tracking-wide flex items-center justify-between">
+                            <span>2. Maal Lagat</span>
+                            <i class="fa-solid fa-minus-circle text-slate-400 text-xs"></i>
+                        </div>
+                        <div class="text-lg sm:text-xl font-black text-slate-900 mt-1.5">
+                            -₹{{ number_format($totalCogs, 0) }}
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-slate-500 font-semibold mt-2">
+                        Purchase/raw cost of items
+                    </div>
+                </div>
+
+                <!-- 3. Returns & RTO Loss -->
+                <div class="p-4 rounded-2xl bg-rose-50/70 border border-rose-200/70 flex flex-col justify-between">
+                    <div>
+                        <div class="text-[11px] font-black uppercase text-rose-700 tracking-wide flex items-center justify-between">
+                            <span>3. Return/RTO</span>
+                            <i class="fa-solid fa-minus-circle text-rose-400 text-xs"></i>
+                        </div>
+                        <div class="text-lg sm:text-xl font-black text-rose-900 mt-1.5">
+                            -₹{{ number_format($totalReturnLoss, 0) }}
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-rose-700/80 font-semibold mt-2">
+                        Refunds + ₹75 reverse courier
+                    </div>
+                </div>
+
+                <!-- 4. Courier & Packing -->
+                <div class="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/70 flex flex-col justify-between">
+                    <div>
+                        <div class="text-[11px] font-black uppercase text-amber-700 tracking-wide flex items-center justify-between">
+                            <span>4. Shipping</span>
+                            <i class="fa-solid fa-minus-circle text-amber-400 text-xs"></i>
+                        </div>
+                        <div class="text-lg sm:text-xl font-black text-amber-950 mt-1.5">
+                            -₹{{ number_format($courierPackagingCost, 0) }}
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-amber-700/80 font-semibold mt-2">
+                        Dispatch, box & tape charges
+                    </div>
+                </div>
+
+                <!-- 5. Marketplace Commission -->
+                <div class="p-4 rounded-2xl bg-purple-50/70 border border-purple-200/70 flex flex-col justify-between">
+                    <div>
+                        <div class="text-[11px] font-black uppercase text-purple-700 tracking-wide flex items-center justify-between">
+                            <span>5. Channel Fee</span>
+                            <i class="fa-solid fa-minus-circle text-purple-400 text-xs"></i>
+                        </div>
+                        <div class="text-lg sm:text-xl font-black text-purple-950 mt-1.5">
+                            -₹{{ number_format($marketplaceFees, 0) }}
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-purple-700/80 font-semibold mt-2">
+                        15% Amazon/Meesho (0% Direct)
+                    </div>
+                </div>
+
+                <!-- 6. Ads & Broadcast -->
+                <div class="p-4 rounded-2xl bg-teal-50/70 border border-teal-200/70 flex flex-col justify-between">
+                    <div>
+                        <div class="text-[11px] font-black uppercase text-teal-700 tracking-wide flex items-center justify-between">
+                            <span>6. Ads & Promo</span>
+                            <i class="fa-solid fa-minus-circle text-teal-400 text-xs"></i>
+                        </div>
+                        <div class="text-lg sm:text-xl font-black text-teal-950 mt-1.5">
+                            -₹{{ number_format($adsSpend, 0) }}
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-teal-700/80 font-semibold mt-2">
+                        WhatsApp broadcasts & promos
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profit Optimizer Banner -->
+            <div class="mt-5 p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border border-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm font-bold shrink-0">
+                        <i class="fa-solid fa-sack-dollar"></i>
+                    </div>
+                    <div>
+                        <span class="font-black text-emerald-950">Munafa Badhane Ka Raaz:</span>
+                        <span class="text-emerald-900 ml-1">
+                            Apne VyaparIndia direct mini-store aur WhatsApp catalog se order lene par aapka 15% marketplace commission <b>(₹{{ number_format($marketplaceFees, 0) }})</b> seedhe bachta hai!
+                        </span>
+                    </div>
+                </div>
+                <a href="{{ route('seller.catalog.gallery') }}" class="px-3.5 py-1.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition shadow-xs whitespace-nowrap text-xs flex items-center gap-1.5 self-end sm:self-auto">
+                    <span>Share Catalog Link</span>
+                    <i class="fa-solid fa-share-nodes text-[11px]"></i>
+                </a>
+            </div>
+        </div>
+
         <!-- 🤖 AI Growth & Performance Advisor -->
         <div class="mb-8 p-5 bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 text-white rounded-3xl shadow-lg border border-indigo-700/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div class="flex items-start gap-4">

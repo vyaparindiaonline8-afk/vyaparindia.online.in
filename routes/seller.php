@@ -41,6 +41,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
     Route::delete('products/{product}/images/{image}', [ProductController::class, 'deleteImage'])->name('products.images.destroy');
     Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+    Route::get('orders/{order}/shipping-label', [OrderController::class, 'shippingLabel'])->name('orders.shippingLabel');
     Route::put('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.updateStatus');
     Route::get('orders/{order}/dispatch/create', [DispatchController::class, 'create'])->name('orders.dispatch.create');
     Route::post('orders/{order}/dispatch', [DispatchController::class, 'store'])->name('orders.dispatch.store');
@@ -110,6 +111,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/publish', [ChannelController::class, 'publishProduct'])->name('publish');
         Route::get('/inventory', [ChannelController::class, 'inventory'])->name('inventory');
         Route::post('/products/{product}/sync-stock', [ChannelController::class, 'syncStock'])->name('syncStock');
+        Route::post('/simulate-order', [\App\Http\Controllers\Seller\ChannelWebhookController::class, 'simulateOrder'])->name('simulateOrder');
     });
 
     // 🚚 Smart Shipping & Anti-RTO Routes

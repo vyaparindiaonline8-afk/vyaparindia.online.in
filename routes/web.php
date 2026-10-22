@@ -52,6 +52,10 @@ Route::prefix('ai-copilot')->name('copilot.')->group(function () {
     Route::match(['GET', 'POST'], '/voice-webhook', [\App\Http\Controllers\AICopilotController::class, 'voiceWebhook'])->name('voice_webhook');
 });
 
+// 🌐 Multi-Channel Real-Time Inbound Webhooks (Amazon, Meesho, Flipkart, Shopify, WooCommerce)
+Route::match(['GET', 'POST'], '/api/webhooks/channel/{channel}', [\App\Http\Controllers\Seller\ChannelWebhookController::class, 'handleWebhook'])->name('channel.webhook');
+Route::match(['GET', 'POST'], '/webhooks/channel/{channel}', [\App\Http\Controllers\Seller\ChannelWebhookController::class, 'handleWebhook']);
+
 // Auth routes are in routes/auth.php
 // Buyer routes are in routes/buyer.php
 // Seller routes are in routes/seller.php

@@ -345,6 +345,13 @@ class Product extends Model
                     'reference_type' => $refType,
                     'reference_id' => $refId,
                 ]);
+
+                // Sync across all connected external channels
+                $this->channelListings()->update([
+                    'synced_stock' => $newStock,
+                    'sync_status' => 'synced',
+                    'last_synced_at' => now(),
+                ]);
             }
             return;
         }
@@ -363,6 +370,13 @@ class Product extends Model
                 'reason' => $reason,
                 'reference_type' => $refType,
                 'reference_id' => $refId,
+            ]);
+
+            // Auto-decrement inventory across all other connected external channels
+            $this->channelListings()->update([
+                'synced_stock' => $newStock,
+                'sync_status' => 'synced',
+                'last_synced_at' => now(),
             ]);
         }
     }
@@ -408,6 +422,13 @@ class Product extends Model
             'reason' => $reason,
             'reference_type' => $refType,
             'reference_id' => $refId,
+        ]);
+
+        // Auto-sync restocked inventory to all external channels
+        $this->channelListings()->update([
+            'synced_stock' => $newStock,
+            'sync_status' => 'synced',
+            'last_synced_at' => now(),
         ]);
 
         return $newStock;

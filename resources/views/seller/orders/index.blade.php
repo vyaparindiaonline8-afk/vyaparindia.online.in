@@ -56,6 +56,45 @@
             </div>
         </div>
 
+        <!-- Multi-Channel Order Tray Tabs -->
+        <div class="mb-4 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            @php $curChan = request('channel', 'all'); @endphp
+            <a href="{{ route('seller.orders.index', array_merge(request()->except('channel'), ['channel' => 'all'])) }}" 
+               class="px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 border whitespace-nowrap {{ $curChan === 'all' ? 'bg-gray-900 text-white border-gray-900 shadow-sm' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50' }}">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>All Orders</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] {{ $curChan === 'all' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700' }}">{{ $channelCounts['all'] ?? 0 }}</span>
+            </a>
+
+            <a href="{{ route('seller.orders.index', array_merge(request()->except('channel'), ['channel' => 'vyaparindia'])) }}" 
+               class="px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 border whitespace-nowrap {{ $curChan === 'vyaparindia' ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50' }}">
+                <span class="w-2 h-2 rounded-full {{ $curChan === 'vyaparindia' ? 'bg-white' : 'bg-blue-500' }}"></span>
+                <span>🔵 VyaparIndia Direct</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] {{ $curChan === 'vyaparindia' ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-700' }}">{{ $channelCounts['vyaparindia'] ?? 0 }}</span>
+            </a>
+
+            <a href="{{ route('seller.orders.index', array_merge(request()->except('channel'), ['channel' => 'amazon'])) }}" 
+               class="px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 border whitespace-nowrap {{ $curChan === 'amazon' ? 'bg-amber-600 text-white border-amber-600 shadow-sm' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50' }}">
+                <i class="fa-brands fa-amazon text-sm"></i>
+                <span>🟠 Amazon Easy-Ship</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] {{ $curChan === 'amazon' ? 'bg-white/20 text-white' : 'bg-amber-50 text-amber-700' }}">{{ $channelCounts['amazon'] ?? 0 }}</span>
+            </a>
+
+            <a href="{{ route('seller.orders.index', array_merge(request()->except('channel'), ['channel' => 'meesho'])) }}" 
+               class="px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 border whitespace-nowrap {{ $curChan === 'meesho' ? 'bg-pink-600 text-white border-pink-600 shadow-sm' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50' }}">
+                <i class="fa-solid fa-cart-shopping text-xs"></i>
+                <span>🟣 Meesho Reseller</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] {{ $curChan === 'meesho' ? 'bg-white/20 text-white' : 'bg-pink-50 text-pink-700' }}">{{ $channelCounts['meesho'] ?? 0 }}</span>
+            </a>
+
+            <a href="{{ route('seller.orders.index', array_merge(request()->except('channel'), ['channel' => 'flipkart'])) }}" 
+               class="px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 border whitespace-nowrap {{ $curChan === 'flipkart' ? 'bg-blue-700 text-white border-blue-700 shadow-sm' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50' }}">
+                <i class="fa-solid fa-bolt text-xs text-amber-300"></i>
+                <span>🟡 Flipkart Express</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] {{ $curChan === 'flipkart' ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-700' }}">{{ $channelCounts['flipkart'] ?? 0 }}</span>
+            </a>
+        </div>
+
         <!-- Filter Bar -->
         <div class="bg-white border border-gray-200 rounded-2xl p-4 mb-6 shadow-xs space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-4">
@@ -172,10 +211,30 @@
                                 <tr class="hover:bg-blue-50/30 transition">
                                     <!-- Order Number & Date -->
                                     <td class="py-4 px-4 font-medium">
-                                        <a href="{{ route('seller.orders.show', $order) }}" class="font-bold text-blue-600 hover:underline">
-                                            #{{ $order->order_number ?: $order->id }}
-                                        </a>
-                                        <div class="text-[11px] text-gray-400 mt-0.5">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <a href="{{ route('seller.orders.show', $order) }}" class="font-bold text-blue-600 hover:underline">
+                                                #{{ $order->order_number ?: $order->id }}
+                                            </a>
+                                            @php $ch = strtolower($order->order_source ?? 'vyaparindia'); @endphp
+                                            @if($ch === 'amazon')
+                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-50 text-amber-800 border border-amber-200">
+                                                    <i class="fa-brands fa-amazon text-[10px]"></i> Amazon
+                                                </span>
+                                            @elseif($ch === 'meesho')
+                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black bg-pink-50 text-pink-800 border border-pink-200">
+                                                    <i class="fa-solid fa-cart-shopping text-[8px]"></i> Meesho
+                                                </span>
+                                            @elseif($ch === 'flipkart')
+                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black bg-blue-50 text-blue-800 border border-blue-200">
+                                                    <i class="fa-solid fa-bolt text-yellow-500 text-[8px]"></i> Flipkart
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black bg-indigo-50 text-indigo-800 border border-indigo-200">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span> Direct
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <div class="text-[11px] text-gray-400 mt-1">
                                             {{ $order->created_at->format('d M Y, h:i A') }}
                                         </div>
                                         <div class="text-[10px] font-bold text-gray-400 mt-0.5">
@@ -247,10 +306,16 @@
 
                                     <!-- Actions -->
                                     <td class="py-4 px-4 text-right">
-                                        <a href="{{ route('seller.orders.show', $order) }}" class="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-blue-600 hover:text-white rounded-lg text-xs font-bold text-gray-700 transition">
-                                            <span>Manage</span>
-                                            <i class="fa-solid fa-arrow-right text-[10px]"></i>
-                                        </a>
+                                        <div class="flex items-center justify-end gap-1.5">
+                                            <a href="{{ route('seller.orders.shippingLabel', $order) }}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-gray-50 hover:bg-gray-200 text-gray-700 border border-gray-300 rounded-lg text-xs font-bold transition shadow-2xs" title="Print 4x6 Thermal Shipping Label & QR Code">
+                                                <i class="fa-solid fa-receipt text-gray-600"></i>
+                                                <span class="hidden sm:inline">Label</span>
+                                            </a>
+                                            <a href="{{ route('seller.orders.show', $order) }}" class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white rounded-lg text-xs font-bold text-blue-700 transition">
+                                                <span>Manage</span>
+                                                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach

@@ -24,6 +24,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'is_seller' => \App\Middleware\IsSeller::class,
             'is_buyer' => \App\Middleware\IsBuyer::class,
         ]);
+
+        $middleware->validateCsrfTokens(except: [
+            'api/webhooks/*',
+            'webhooks/*',
+            'ai-copilot/voice-webhook',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, Request $request) {

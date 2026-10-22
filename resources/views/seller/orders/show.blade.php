@@ -31,6 +31,10 @@
                 </div>
 
                 <div class="flex items-center gap-3">
+                    <a href="{{ route('seller.orders.shippingLabel', $order) }}" target="_blank" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
+                        <i class="fa-solid fa-receipt"></i>
+                        <span>Thermal Shipping Label</span>
+                    </a>
                     <button onclick="window.print()" class="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
                         <i class="fa-solid fa-print"></i>
                         <span>Print Bill</span>
