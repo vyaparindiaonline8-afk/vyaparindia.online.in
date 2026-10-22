@@ -1555,6 +1555,13 @@ class CatalogIngestionController extends Controller
                 'permission_granted' => $shareToCentral,
                 'category_type' => $categoryType,
             ]);
+
+            if (!in_array(strtolower($categoryType), ['general', 'all', ''])) {
+                \App\Models\SellerFolder::firstOrCreate([
+                    'user_id' => $userId,
+                    'name' => $categoryType,
+                ]);
+            }
             \Illuminate\Support\Facades\Cache::forget('cloudinary_resources_vyaparindia');
         } catch (\Throwable $e) {
             Log::warning('SellerMedia insert error: ' . $e->getMessage());
@@ -1592,8 +1599,21 @@ class CatalogIngestionController extends Controller
         ]);
 
         $userId = Auth::id() ?: 1;
-        $folderName = trim($request->input('folder_name'));
+        $folderName = ucwords(strtolower(trim($request->input('folder_name'))));
         $urls = $request->input('image_urls');
+
+        // Ensure folder is registered in SellerFolder table for 100% sync
+        if (!in_array(strtolower($folderName), ['general', 'all', ''])) {
+            try {
+                \App\Models\SellerFolder::firstOrCreate([
+                    'user_id' => $userId,
+                    'name' => $folderName,
+                ]);
+                $deletedFolders = \Illuminate\Support\Facades\Cache::get("deleted_gallery_folders_{$userId}", []);
+                unset($deletedFolders[strtolower(trim($folderName))]);
+                \Illuminate\Support\Facades\Cache::put("deleted_gallery_folders_{$userId}", $deletedFolders, now()->addYears(1));
+            } catch (\Throwable $e) {}
+        }
 
         $movedCount = 0;
         $alreadyCount = 0;
@@ -2140,6 +2160,13 @@ class CatalogIngestionController extends Controller
                         'permission_granted' => $shareToCentral,
                         'category_type' => $categoryType,
                     ]);
+
+                    if (!in_array(strtolower($categoryType), ['general', 'all', ''])) {
+                        \App\Models\SellerFolder::firstOrCreate([
+                            'user_id' => $userId,
+                            'name' => $categoryType,
+                        ]);
+                    }
                 } catch (\Throwable $e) {
                     Log::warning('SellerMedia insert error: ' . $e->getMessage());
                 }
@@ -2200,6 +2227,13 @@ class CatalogIngestionController extends Controller
                     'category_type' => $categoryType,
                     'is_assigned' => false,
                 ]);
+
+                if (!in_array(strtolower($categoryType), ['general', 'all', ''])) {
+                    \App\Models\SellerFolder::firstOrCreate([
+                        'user_id' => $userId,
+                        'name' => $categoryType,
+                    ]);
+                }
             } catch (\Throwable $e) {
                 Log::warning('SellerMedia local insert error: ' . $e->getMessage());
             }
