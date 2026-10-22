@@ -348,17 +348,34 @@
                 @endif
             </div>
 
-            @if(!empty($activeFolder) && $activeFolder !== 'all')
-                <div class="flex items-center gap-2 shrink-0">
-                    <span class="text-xs font-bold text-indigo-900 bg-indigo-50 px-2.5 py-1 rounded-xl border border-indigo-200">
-                        Active Folder: <strong>{{ $activeFolder }}</strong> ({{ $products->count() }} items)
+            <div class="flex items-center gap-2 flex-wrap shrink-0">
+                @if(!empty($activeFolder) && $activeFolder !== 'all')
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-indigo-900 bg-indigo-50 px-2.5 py-1 rounded-xl border border-indigo-200 flex items-center gap-1.5">
+                            <i class="fa-solid fa-folder text-indigo-600 text-[10px]"></i>
+                            <span>Active Folder: <strong>{{ $activeFolder }}</strong> ({{ $products->count() }} items)</span>
+                            <a href="{{ route('seller.products.index', array_filter(['category' => $activeCategory, 'search' => $search])) }}" class="text-rose-600 hover:text-rose-800 ml-1 font-black text-xs" title="Clear Folder Filter">&times;</a>
+                        </span>
+                        <a href="{{ route('seller.products.export_sheet', ['type' => 'rates', 'folder' => $activeFolder]) }}" class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-xs transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-download"></i>
+                            <span>इस फोल्डर की रेट शीट (.csv)</span>
+                        </a>
+                    </div>
+                @endif
+                @if(!empty($activeCategory) && $activeCategory !== 'all')
+                    <span class="text-xs font-bold text-blue-900 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-200 flex items-center gap-1.5">
+                        <i class="fa-solid fa-layer-group text-blue-600 text-[10px]"></i>
+                        <span>Active Category: <strong>{{ $activeCategory }}</strong> ({{ $products->count() }} items)</span>
+                        <a href="{{ route('seller.products.index', array_filter(['folder' => $activeFolder, 'search' => $search])) }}" class="text-rose-600 hover:text-rose-800 ml-1 font-black text-xs" title="Clear Category Filter">&times;</a>
                     </span>
-                    <a href="{{ route('seller.products.export_sheet', ['type' => 'rates', 'folder' => $activeFolder]) }}" class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-xs transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-download"></i>
-                        <span>इस फोल्डर की रेट शीट (.csv)</span>
+                @endif
+                @if((!empty($activeFolder) && $activeFolder !== 'all') || (!empty($activeCategory) && $activeCategory !== 'all') || !empty($search))
+                    <a href="{{ route('seller.products.index') }}" class="px-2.5 py-1 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-[11px] border border-rose-200 transition flex items-center gap-1" title="Reset all filters">
+                        <i class="fa-solid fa-rotate-left text-[9px]"></i>
+                        <span>Reset All</span>
                     </a>
-                </div>
-            @endif
+                @endif
+            </div>
         </div>
 
         <!-- 🔍 Search, Categories & View Mode Switcher Bar -->
@@ -415,7 +432,7 @@
                 </span>
 
                 <!-- All Categories Tab -->
-                <a href="{{ route('seller.products.index', array_filter(['folder' => $activeFolder, 'search' => $search])) }}" class="px-3 py-1.5 rounded-xl text-xs font-extrabold shrink-0 transition flex items-center gap-1.5 {{ empty($activeCategory) || $activeCategory === 'all' ? 'bg-blue-600 text-white shadow-xs' : 'bg-gray-100 hover:bg-gray-200 text-gray-700' }}">
+                <a href="{{ route('seller.products.index', array_filter(['search' => $search])) }}" class="px-3 py-1.5 rounded-xl text-xs font-extrabold shrink-0 transition flex items-center gap-1.5 {{ empty($activeCategory) || $activeCategory === 'all' ? 'bg-blue-600 text-white shadow-xs' : 'bg-gray-100 hover:bg-gray-200 text-gray-700' }}">
                     <span>सभी कैटेगरीज (All)</span>
                     <span class="px-1.5 py-0.2 rounded-full {{ empty($activeCategory) || $activeCategory === 'all' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700' }} text-[10px]">{{ $productCardsCount ?? $productCount }}</span>
                 </a>
@@ -428,7 +445,7 @@
                             $isActive = (!empty($activeCategory) && (strtolower($activeCategory) === strtolower($catSlug) || strtolower($activeCategory) === strtolower($catName)));
                             $catCount = is_object($cat) ? ($cat->products_count ?? null) : null;
                         @endphp
-                        <a href="{{ route('seller.products.index', array_filter(['category' => $catSlug, 'folder' => $activeFolder, 'search' => $search])) }}" class="px-3 py-1.5 rounded-xl text-xs font-extrabold shrink-0 transition flex items-center gap-1.5 {{ $isActive ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200' }}">
+                        <a href="{{ route('seller.products.index', array_filter(['category' => $catSlug, 'search' => $search])) }}" class="px-3 py-1.5 rounded-xl text-xs font-extrabold shrink-0 transition flex items-center gap-1.5 {{ $isActive ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200' }}">
                             <span>{{ $catName }}</span>
                             @if(!is_null($catCount))
                                 <span class="px-1.5 py-0.2 rounded-full {{ $isActive ? 'bg-white/25 text-white' : 'bg-blue-200/70 text-blue-900' }} text-[10px]">{{ $catCount }}</span>
@@ -490,7 +507,7 @@
                                 </p>
                             </div>
                         </div>
-                        <span class="px-3 py-1 rounded-xl bg-white/10 text-white font-black text-xs border border-white/10 shrink-0">
+                        <span class="category-card-count-badge px-3 py-1 rounded-xl bg-white/10 text-white font-black text-xs border border-white/10 shrink-0">
                             {{ $groupItems->count() }} Cards
                         </span>
                     </div>
@@ -1570,6 +1587,17 @@
 
                 const matches = matchItem(name, sku, category, group, variants, isReducer, hasPrice, hasVariants);
                 card.style.display = matches ? '' : 'none';
+            });
+
+            // Update category blocks visibility and badge counts
+            document.querySelectorAll('.category-block').forEach(block => {
+                const cards = block.querySelectorAll('.product-item-card');
+                const visibleCards = Array.from(cards).filter(c => c.style.display !== 'none');
+                block.style.display = (visibleCards.length > 0) ? '' : 'none';
+                const badge = block.querySelector('.category-card-count-badge');
+                if (badge) {
+                    badge.innerText = `${visibleCards.length} Cards`;
+                }
             });
 
             // Filter table rows

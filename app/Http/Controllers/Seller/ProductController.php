@@ -22,6 +22,33 @@ class ProductController extends Controller
         $search = trim((string)$request->query('search'));
         $hasGroupCol = \Illuminate\Support\Facades\Schema::hasColumn('products', 'group_name');
 
+        // 🛡️ SMART CONFLICT RESOLUTION:
+        // If both folder and category were supplied in URL (e.g. from previous filter state),
+        // check if ANY product actually belongs to BOTH. If none match both, the user clicked
+        // a category while browsing or vice-versa. Do NOT let the stale folder zero-out the category results!
+        if ($hasGroupCol && $activeFolder && $activeFolder !== 'all' && $activeCategory && $activeCategory !== 'all') {
+            $folderTerm = strtolower(trim($activeFolder));
+            $catTerm = strtolower(trim($activeCategory));
+            $cleanTerm = str_replace('-', ' ', $catTerm);
+
+            $bothMatchCount = (clone $query)->whereRaw('LOWER(group_name) = ?', [$folderTerm])
+                ->where(function($q) use ($catTerm, $cleanTerm) {
+                    $q->whereHas('category', function($cq) use ($catTerm, $cleanTerm) {
+                        $cq->whereRaw('LOWER(slug) = ?', [$catTerm])
+                           ->orWhereRaw('LOWER(name) = ?', [$catTerm])
+                           ->orWhereRaw('LOWER(name) = ?', [$cleanTerm])
+                           ->orWhereRaw('LOWER(slug) LIKE ?', [$catTerm . '%']);
+                    })
+                    ->orWhereRaw('LOWER(group_name) = ?', [$catTerm])
+                    ->orWhereRaw('LOWER(group_name) = ?', [$cleanTerm]);
+                })->count();
+
+            if ($bothMatchCount === 0) {
+                // Category was clicked or requested, clear conflicting folder so products show up!
+                $activeFolder = null;
+            }
+        }
+
         if ($hasGroupCol && $activeFolder && $activeFolder !== 'all') {
             $folderTerm = strtolower(trim($activeFolder));
             $query->whereRaw('LOWER(group_name) = ?', [$folderTerm]);
@@ -29,12 +56,17 @@ class ProductController extends Controller
 
         if ($activeCategory && $activeCategory !== 'all') {
             $catTerm = strtolower(trim($activeCategory));
-            $query->where(function($q) use ($catTerm) {
-                $q->whereHas('category', function($cq) use ($catTerm) {
+            $cleanTerm = str_replace('-', ' ', $catTerm);
+            $query->where(function($q) use ($catTerm, $cleanTerm) {
+                $q->whereHas('category', function($cq) use ($catTerm, $cleanTerm) {
                     $cq->whereRaw('LOWER(slug) = ?', [$catTerm])
-                       ->orWhereRaw('LOWER(name) = ?', [$catTerm]);
+                       ->orWhereRaw('LOWER(name) = ?', [$catTerm])
+                       ->orWhereRaw('LOWER(name) = ?', [$cleanTerm])
+                       ->orWhereRaw('LOWER(slug) LIKE ?', [$catTerm . '%']);
                 })
-                ->orWhereRaw('LOWER(group_name) = ?', [$catTerm]);
+                ->orWhereRaw('LOWER(group_name) = ?', [$catTerm])
+                ->orWhereRaw('LOWER(group_name) = ?', [$cleanTerm])
+                ->orWhereRaw('LOWER(REPLACE(group_name, " ", "-")) = ?', [$catTerm]);
             });
         }
 
@@ -68,16 +100,35 @@ class ProductController extends Controller
                 ->values();
         }
 
-        $categories = $allSellerProducts
-            ->pluck('category')
-            ->filter()
-            ->unique('id')
-            ->map(function($cat) use ($allSellerProducts) {
-                $count = $allSellerProducts->where('category_id', $cat->id)->count();
-                $cat->products_count = $count;
-                return $cat;
-            })
-            ->values();
+        // 🏷️ Build accurate, complete category tabs from both category relation AND product group_name
+        $categoriesMap = [];
+        foreach ($allSellerProducts as $prod) {
+            if ($prod->category) {
+                $cKey = strtolower($prod->category->slug ?: \Illuminate\Support\Str::slug($prod->category->name));
+                if (!isset($categoriesMap[$cKey])) {
+                    $categoriesMap[$cKey] = (object)[
+                        'id' => $prod->category->id,
+                        'name' => $prod->category->name,
+                        'slug' => $prod->category->slug ?: \Illuminate\Support\Str::slug($prod->category->name),
+                        'products_count' => 0
+                    ];
+                }
+                $categoriesMap[$cKey]->products_count++;
+            } elseif (!empty($prod->group_name)) {
+                $cKey = strtolower(\Illuminate\Support\Str::slug($prod->group_name));
+                if (!isset($categoriesMap[$cKey])) {
+                    $categoriesMap[$cKey] = (object)[
+                        'id' => 'grp_' . $cKey,
+                        'name' => $prod->group_name,
+                        'slug' => $cKey,
+                        'products_count' => 0
+                    ];
+                }
+                $categoriesMap[$cKey]->products_count++;
+            }
+        }
+
+        $categories = collect(array_values($categoriesMap))->sortBy('name')->values();
 
         $galleryImages = CatalogIngestionController::getAllGalleryImages($user->id);
 
