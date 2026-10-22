@@ -44,6 +44,13 @@ Route::prefix('order-verify')->name('verification.')->group(function () {
     Route::post('/{token}/confirm-cod', [\App\Http\Controllers\OrderVerificationController::class, 'confirmCod'])->name('confirmCod');
 });
 
+// 🤖 AI Copilot & Voice Calling Module (Interactive Store Assistant & Auto-Listing)
+Route::prefix('ai-copilot')->name('copilot.')->group(function () {
+    Route::post('/chat', [\App\Http\Controllers\AICopilotController::class, 'chat'])->name('chat');
+    Route::post('/publish-draft', [\App\Http\Controllers\AICopilotController::class, 'publishDraft'])->name('publish_draft');
+    Route::match(['GET', 'POST'], '/voice-webhook', [\App\Http\Controllers\AICopilotController::class, 'voiceWebhook'])->name('voice_webhook');
+});
+
 // Auth routes are in routes/auth.php
 // Buyer routes are in routes/buyer.php
 // Seller routes are in routes/seller.php
