@@ -1803,6 +1803,17 @@
             // Show Typing indicator
             const typingBubble = appendAiTypingIndicator();
 
+            // Capture high-res canvas image for Vision OCR (ensures scanned / photo catalog pages are fully readable)
+            const canvas = document.getElementById('pdfCanvas');
+            let pageImage = null;
+            if (canvas && canvas.width > 50 && canvas.height > 50) {
+                try {
+                    pageImage = canvas.toDataURL('image/jpeg', 0.85);
+                } catch (e) {
+                    console.warn('Canvas capture for AI Copilot warning:', e);
+                }
+            }
+
             fetch("{{ route('seller.catalog.ai_copilot') }}", {
                 method: "POST",
                 headers: {
@@ -1814,6 +1825,7 @@
                     prompt: userMsg,
                     page: currentPdfPage,
                     page_text: currentPageTextContent || '',
+                    page_image: pageImage,
                     api_key: apiKey
                 })
             })

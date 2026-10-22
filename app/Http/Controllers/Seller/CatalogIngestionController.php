@@ -2261,6 +2261,7 @@ class CatalogIngestionController extends Controller
             'prompt' => 'required|string',
             'page' => 'nullable|integer',
             'page_text' => 'nullable|string',
+            'page_image' => 'nullable|string',
             'api_key' => 'nullable|string',
         ]);
 
@@ -2279,6 +2280,7 @@ class CatalogIngestionController extends Controller
         $prompt = $request->input('prompt');
         $page = $request->input('page', 1);
         $pageText = $request->input('page_text', '');
+        $pageImage = $request->input('page_image');
 
         $masterFile = storage_path("app/catalogs/master_sheets/seller_" . Auth::id() . "_master.json");
         $masterContext = "";
@@ -2291,9 +2293,11 @@ class CatalogIngestionController extends Controller
             } catch (\Throwable $e) {}
         }
 
+        $hasImage = ($pageImage && str_starts_with($pageImage, 'data:image'));
+
         $systemPrompt = "You are VyaparIndia AI Catalog Copilot, an expert universal AI catalog digitizer and business assistant for ALL wholesale B2B and retail sectors across India (Hardware, Hand Tools, Measuring Tapes, Blades, Sanitaryware, Electricals, Pipes & Fittings, FMCG, Grocery, Clothing & Apparel, Paints, Building Materials, Agriculture, Electronics, and Automobiles).
-{$masterContext}Current Catalog Page: Page {$page}.
-Extracted text lines on active page (ordered line-by-line horizontally from top to bottom):
+{$masterContext}Current Catalog Page: Page {$page}." . ($hasImage ? "\n(A high-resolution image of this active catalog page is provided. You MUST examine the page image directly with Optical Character Recognition (OCR) to extract every visible product name, series, size, dimension, and MRP even if digital text is empty or scanned.)" : "") . "
+Extracted digital text lines on active page (ordered line-by-line horizontally from top to bottom):
 \"\"\"
 " . substr($pageText, 0, 12000) . "
 \"\"\"
@@ -2301,7 +2305,7 @@ Extracted text lines on active page (ordered line-by-line horizontally from top 
 User question: \"{$prompt}\"
 
 CRITICAL INSTRUCTIONS FOR UNIVERSAL CATALOG ROW, SPECS & PRICE MATCHING:
-1. In the text above, each line represents a single horizontal row across the catalog page.
+1. In the text or image above, each line represents a single horizontal row across the catalog page.
 2. The price/MRP on a line STRICTLY BELONGS to the product variant or size on THAT SAME LINE.
 3. NEVER mix, swap, or borrow prices from other lines or lower down the page! Do NOT assign bottom table rates to items at the top.
 4. When a product heading appears above a table of items/sizes, use that heading as the \"Product Name\" for all rows in that section.
@@ -2315,16 +2319,35 @@ CRITICAL INSTRUCTIONS FOR UNIVERSAL CATALOG ROW, SPECS & PRICE MATCHING:
 8. Always format product listings as a neat Markdown Table with these 5 columns:
 | Product Name | Description / Series | Size / Dimension | MRP (INR) | Pack / Code |";
 
-        // If OpenAI key is present (starts with sk- or env variable set)
+        // If OpenAI key is present (supports Vision if pageImage is sent)
         if ($openAiKey && (str_starts_with($openAiKey, 'sk-') || !$geminiKey)) {
             try {
+                $userContent = [];
+                if ($hasImage) {
+                    $userContent = [
+                        [
+                            'type' => 'text',
+                            'text' => "USER QUESTION: \"{$prompt}\"\n\nPlease analyze Page {$page} using the attached image and extracted reference text.",
+                        ],
+                        [
+                            'type' => 'image_url',
+                            'image_url' => [
+                                'url' => $pageImage,
+                                'detail' => 'high',
+                            ],
+                        ],
+                    ];
+                } else {
+                    $userContent = $prompt;
+                }
+
                 $response = Http::withToken($openAiKey)
-                    ->timeout(35)
+                    ->timeout(45)
                     ->post('https://api.openai.com/v1/chat/completions', [
                         'model' => 'gpt-4o-mini',
                         'messages' => [
                             ['role' => 'system', 'content' => $systemPrompt],
-                            ['role' => 'user', 'content' => $prompt],
+                            ['role' => 'user', 'content' => $userContent],
                         ],
                         'temperature' => 0.1,
                     ]);
@@ -2334,7 +2357,7 @@ CRITICAL INSTRUCTIONS FOR UNIVERSAL CATALOG ROW, SPECS & PRICE MATCHING:
                     return response()->json([
                         'success' => true,
                         'reply' => $reply,
-                        'provider' => 'OpenAI (GPT-4o mini)',
+                        'provider' => 'OpenAI (GPT-4o mini' . ($hasImage ? ' Vision' : '') . ')',
                     ]);
                 } else {
                     $errMsg = $response->json('error.message') ?? 'OpenAI API error occurred.';
@@ -2345,13 +2368,35 @@ CRITICAL INSTRUCTIONS FOR UNIVERSAL CATALOG ROW, SPECS & PRICE MATCHING:
             }
         }
 
-        // If Google Gemini key is present
+        // If Google Gemini key is present (supports Vision if pageImage is sent)
         if ($geminiKey) {
             try {
-                $response = Http::timeout(35)
+                $parts = [];
+                if ($hasImage) {
+                    $imgParts = explode(',', $pageImage, 2);
+                    $base64Only = $imgParts[1] ?? $pageImage;
+                    $mime = 'image/jpeg';
+                    if (str_contains($imgParts[0], 'image/png')) $mime = 'image/png';
+
+                    $parts = [
+                        ['text' => $systemPrompt . "\n\nUser Question: \"{$prompt}\""],
+                        [
+                            'inline_data' => [
+                                'mime_type' => $mime,
+                                'data' => $base64Only,
+                            ],
+                        ],
+                    ];
+                } else {
+                    $parts = [
+                        ['text' => $systemPrompt . "\n\nUser Question: \"{$prompt}\""]
+                    ];
+                }
+
+                $response = Http::timeout(45)
                     ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$geminiKey}", [
                         'contents' => [
-                            ['parts' => [['text' => $systemPrompt]]]
+                            ['parts' => $parts]
                         ],
                         'generationConfig' => [
                             'temperature' => 0.1,
@@ -2363,7 +2408,7 @@ CRITICAL INSTRUCTIONS FOR UNIVERSAL CATALOG ROW, SPECS & PRICE MATCHING:
                     return response()->json([
                         'success' => true,
                         'reply' => $reply,
-                        'provider' => 'Google Gemini 1.5 Flash',
+                        'provider' => 'Google Gemini 1.5 Flash' . ($hasImage ? ' Vision' : ''),
                     ]);
                 } else {
                     $errMsg = $response->json('error.message') ?? 'Gemini API error occurred.';
