@@ -22,6 +22,18 @@
         <priority>0.5</priority>
     </url>
 
+    <!-- Product Categories for Google Search Discovery -->
+    @foreach ($categories as $cat)
+        @if($cat->slug)
+            <url>
+                <loc>{{ url('/search?category=' . urlencode($cat->slug)) }}</loc>
+                <lastmod>{{ $cat->updated_at ? $cat->updated_at->tz('UTC')->toAtomString() : now()->tz('UTC')->toAtomString() }}</lastmod>
+                <changefreq>daily</changefreq>
+                <priority>0.85</priority>
+            </url>
+        @endif
+    @endforeach
+
     <!-- Seller Mini-Storefronts -->
     @foreach ($sellerPages as $page)
         @if($page->slug)

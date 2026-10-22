@@ -1,9 +1,95 @@
+@php
+    $pageTitle = $product->name . ' - Best Price & Wholesale in India | VyaparIndia';
+    $metaDescription = \Illuminate\Support\Str::limit(strip_tags($product->description ?: "Buy {$product->name} wholesale at best price directly from verified sellers on VyaparIndia. Fast delivery and verified quality."), 160);
+    $productImages = [$product->image_url];
+    if ($product->images) {
+        foreach ($product->images as $pImg) {
+            $productImages[] = $pImg->url;
+        }
+    }
+    $productImages = array_values(array_unique(array_filter($productImages)));
+    $primaryImage = $productImages[0] ?? asset('images/placeholder.png');
+    $sellerName = $product->seller->business_name ?? ($product->seller->sellerPage->page_title ?? 'Verified VyaparIndia Seller');
+    $productUrl = route('product.show', $product->slug);
+
+    // Pricing calculation (variants support)
+    $hasVariants = $product->variants && $product->variants->count() > 0;
+    if ($hasVariants) {
+        $minPrice = (float)($product->variants->min('wholesale_price') ?: $product->price);
+        $maxPrice = (float)($product->variants->max('wholesale_price') ?: $product->price);
+        $offers = [
+            '@type' => 'AggregateOffer',
+            'priceCurrency' => 'INR',
+            'lowPrice' => $minPrice,
+            'highPrice' => $maxPrice,
+            'offerCount' => $product->variants->count(),
+            'availability' => 'https://schema.org/InStock',
+            'url' => $productUrl,
+            'seller' => [
+                '@type' => 'Organization',
+                'name' => $sellerName
+            ]
+        ];
+    } else {
+        $offers = [
+            '@type' => 'Offer',
+            'priceCurrency' => 'INR',
+            'price' => (float)$product->price,
+            'priceValidUntil' => now()->addYear()->format('Y-m-d'),
+            'itemCondition' => 'https://schema.org/NewCondition',
+            'availability' => 'https://schema.org/InStock',
+            'url' => $productUrl,
+            'seller' => [
+                '@type' => 'Organization',
+                'name' => $sellerName
+            ]
+        ];
+    }
+
+    $schemaData = [
+        '@context' => 'https://schema.org/',
+        '@type' => 'Product',
+        'name' => $product->name,
+        'image' => $productImages,
+        'description' => $metaDescription,
+        'sku' => $product->sku ?: 'PROD-' . $product->id,
+        'brand' => [
+            '@type' => 'Brand',
+            'name' => $product->brand ?: $sellerName
+        ],
+        'offers' => $offers
+    ];
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $product->name }} - VyaparIndia Verified B2B Marketplace</title>
+    <title>{{ $pageTitle }}</title>
+    <meta name="description" content="{{ $metaDescription }}">
+    <link rel="canonical" href="{{ $productUrl }}">
+
+    <!-- OpenGraph Meta Tags for Google & Social Media Previews -->
+    <meta property="og:type" content="product">
+    <meta property="og:title" content="{{ $pageTitle }}">
+    <meta property="og:description" content="{{ $metaDescription }}">
+    <meta property="og:url" content="{{ $productUrl }}">
+    <meta property="og:image" content="{{ $primaryImage }}">
+    <meta property="og:site_name" content="VyaparIndia">
+    <meta property="product:price:amount" content="{{ $product->price }}">
+    <meta property="product:price:currency" content="INR">
+
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $pageTitle }}">
+    <meta name="twitter:description" content="{{ $metaDescription }}">
+    <meta name="twitter:image" content="{{ $primaryImage }}">
+
+    <!-- ⚡ Google Search Engine Structured Data JSON-LD (Rich Snippets & Google Shopping) -->
+    <script type="application/ld+json">
+        {!! json_encode($schemaData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>

@@ -14,14 +14,18 @@ class SitemapController extends Controller
     public function index(): Response
     {
         $sellerPages = SellerPage::select('slug', 'updated_at')->get();
+        $categories = \App\Models\Category::has('products')
+            ->select('id', 'name', 'slug', 'updated_at')
+            ->get();
+
         $products = Product::with(['user.sellerPage'])
             ->whereNotNull('slug')
             ->select('id', 'user_id', 'slug', 'updated_at')
             ->latest('updated_at')
-            ->limit(1000)
+            ->limit(5000)
             ->get();
 
-        $content = view('sitemap', compact('sellerPages', 'products'))->render();
+        $content = view('sitemap', compact('sellerPages', 'categories', 'products'))->render();
 
         return response($content, 200)
             ->header('Content-Type', 'application/xml; charset=utf-8');
