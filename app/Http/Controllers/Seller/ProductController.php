@@ -40,7 +40,8 @@ class ProductController extends Controller
                            ->orWhereRaw('LOWER(slug) LIKE ?', [$catTerm . '%']);
                     })
                     ->orWhereRaw('LOWER(group_name) = ?', [$catTerm])
-                    ->orWhereRaw('LOWER(group_name) = ?', [$cleanTerm]);
+                    ->orWhereRaw('LOWER(group_name) = ?', [$cleanTerm])
+                    ->orWhereRaw("LOWER(REPLACE(group_name, ' ', '-')) = ?", [$catTerm]);
                 })->count();
 
             if ($bothMatchCount === 0) {
@@ -66,7 +67,7 @@ class ProductController extends Controller
                 })
                 ->orWhereRaw('LOWER(group_name) = ?', [$catTerm])
                 ->orWhereRaw('LOWER(group_name) = ?', [$cleanTerm])
-                ->orWhereRaw('LOWER(REPLACE(group_name, " ", "-")) = ?', [$catTerm]);
+                ->orWhereRaw("LOWER(REPLACE(group_name, ' ', '-')) = ?", [$catTerm]);
             });
         }
 
