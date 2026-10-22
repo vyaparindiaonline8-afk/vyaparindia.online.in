@@ -2295,12 +2295,13 @@ class CatalogIngestionController extends Controller
 
         $hasImage = ($pageImage && str_starts_with($pageImage, 'data:image'));
 
+        $textNotice = !empty(trim($pageText))
+            ? "Extracted digital text lines on active page (ordered line-by-line horizontally from top to bottom):\n\"\"\"\n" . substr($pageText, 0, 12000) . "\n\"\"\""
+            : "(Note: Digital text layer is completely empty because this catalog was designed with fonts converted to vector curves/paths or raster images. You MUST read all product names, series, sizes, dimensions, codes, and MRP directly from the attached high-resolution page image using Vision OCR).";
+
         $systemPrompt = "You are VyaparIndia AI Catalog Copilot, an expert universal AI catalog digitizer and business assistant for ALL wholesale B2B and retail sectors across India (Hardware, Hand Tools, Measuring Tapes, Blades, Sanitaryware, Electricals, Pipes & Fittings, FMCG, Grocery, Clothing & Apparel, Paints, Building Materials, Agriculture, Electronics, and Automobiles).
 {$masterContext}Current Catalog Page: Page {$page}." . ($hasImage ? "\n(A high-resolution image of this active catalog page is provided. You MUST examine the page image directly with Optical Character Recognition (OCR) to extract every visible product name, series, size, dimension, and MRP even if digital text is empty or scanned.)" : "") . "
-Extracted digital text lines on active page (ordered line-by-line horizontally from top to bottom):
-\"\"\"
-" . substr($pageText, 0, 12000) . "
-\"\"\"
+{$textNotice}
 
 User question: \"{$prompt}\"
 
@@ -2379,13 +2380,13 @@ CRITICAL INSTRUCTIONS FOR UNIVERSAL CATALOG ROW, SPECS & PRICE MATCHING:
                     if (str_contains($imgParts[0], 'image/png')) $mime = 'image/png';
 
                     $parts = [
-                        ['text' => $systemPrompt . "\n\nUser Question: \"{$prompt}\""],
                         [
                             'inline_data' => [
                                 'mime_type' => $mime,
                                 'data' => $base64Only,
                             ],
                         ],
+                        ['text' => $systemPrompt . "\n\nUser Question: \"{$prompt}\""],
                     ];
                 } else {
                     $parts = [

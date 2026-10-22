@@ -1804,7 +1804,7 @@
             const typingBubble = appendAiTypingIndicator();
 
             // Capture high-res canvas image for Vision OCR (ensures scanned / photo catalog pages are fully readable)
-            const canvas = document.getElementById('pdfCanvas');
+            const canvas = document.getElementById('pdfPageCanvas');
             let pageImage = null;
             if (canvas && canvas.width > 50 && canvas.height > 50) {
                 try {
@@ -2690,7 +2690,7 @@
         }
 
         function runAiPageTableExtraction() {
-            const canvas = document.getElementById('pdfCanvas');
+            const canvas = document.getElementById('pdfPageCanvas');
             let pageImage = null;
             if (canvas && canvas.width > 50 && canvas.height > 50) {
                 try {
