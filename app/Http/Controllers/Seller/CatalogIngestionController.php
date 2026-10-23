@@ -2965,6 +2965,16 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
             $job = CatalogIngestionJob::where('id', $request->input('job_id'))->where('user_id', $userId)->first();
         }
 
+        // If coming from PDF Studio or starting fresh, never inject an old background job
+        if ($request->get('source') === 'pdf_lines' || $request->has('fresh') || $request->has('new')) {
+            $job = null;
+        }
+
+        // If job was from live cards master sync and not explicitly editing, don't dump into pending workspace
+        if ($job && str_contains($job->filename, 'LIVE_CARDS') && !$request->has('edit_live_cards')) {
+            $job = null;
+        }
+
         // Only load un-published/pending draft job if explicitly requested with ?resume_job=1
         if (!$job && $request->has('resume_job')) {
             $job = CatalogIngestionJob::where('user_id', $userId)

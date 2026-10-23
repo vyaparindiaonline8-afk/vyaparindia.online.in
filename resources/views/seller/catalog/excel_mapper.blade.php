@@ -2272,6 +2272,39 @@
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         let jobId = {{ $job ? $job->id : 'null' }};
         let serverJobProducts = @json($products ?? []);
+        const publishedProductNames = new Set(@json(isset($liveProducts) ? $liveProducts->pluck('name')->map(fn($n) => strtolower(trim($n)))->values() : []));
+        const publishedProductSkus = new Set(@json(isset($liveProducts) ? $liveProducts->pluck('sku')->filter()->map(fn($s) => strtolower(trim($s)))->values() : []));
+
+        function isProductAlreadyPublished(item) {
+            if (!item) return false;
+            const name = (item.parent_name || item.product_name || item.name || '').trim().toLowerCase();
+            const sku = (item.sku || item.product_code || item.item_code || '').trim().toLowerCase();
+            if (name && publishedProductNames.has(name)) return true;
+            if (sku && publishedProductSkus.has(sku)) return true;
+            return false;
+        }
+
+        function removePublishedProductsFromPendingWorkspace() {
+            let removedCards = 0;
+            let removedRows = 0;
+
+            if (Array.isArray(groupedProductCards) && groupedProductCards.length > 0) {
+                const originalCardCount = groupedProductCards.length;
+                groupedProductCards = groupedProductCards.filter(card => !isProductAlreadyPublished(card));
+                removedCards = originalCardCount - groupedProductCards.length;
+            }
+
+            if (Array.isArray(dynamicRows) && dynamicRows.length > 0) {
+                const originalRowCount = dynamicRows.length;
+                dynamicRows = dynamicRows.filter(row => !isProductAlreadyPublished(row));
+                removedRows = originalRowCount - dynamicRows.length;
+            }
+
+            if (removedCards > 0 || removedRows > 0) {
+                saveToLocalStorage();
+                console.log(`🛡️ Filter System: Auto-removed ${removedCards} published cards & ${removedRows} published rows from Pending Workspace.`);
+            }
+        }
 
         let currentTargetType = null; // 'row', 'card', or 'batch'
         let currentTargetId = null;
@@ -4549,6 +4582,7 @@
             // ALWAYS restore existing saved cards & rows from localStorage first into memory
             loadFromLocalStorage();
             initIndustryModules();
+            removePublishedProductsFromPendingWorkspace();
 
             // 🌟 PRIORITY 1: IF COMING DIRECTLY FROM PDF STUDIO (source=pdf_lines), LOAD NEW PDF ITEMS!
             if (isFromPdf) {
