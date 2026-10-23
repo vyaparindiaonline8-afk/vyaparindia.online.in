@@ -3571,9 +3571,8 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
     }
 
     /**
-     * 🩺 Auto-heal & Enrich existing cards and published products.
-     * Fixes: Tape model codes (3016 -> 3m x 16mm, 5019 -> 5m x 19mm), series descriptions (Auto Stop, Neo Lock),
-     * plumbing dimensions (15mm-110mm), and miscategorized brands.
+     * 🪄 Dynamic Auto-Heal for Existing Products & Variants
+     * Universally standardizes titles, descriptions, and variant dimensions without hardcoded brand assumptions.
      */
     public function autoHealExistingProducts(Request $request)
     {
@@ -3581,131 +3580,57 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
         $healedProductsCount = 0;
         $healedVariantsCount = 0;
 
-        $tapeSeriesMap = [
-            'AS' => ['series' => 'Auto Stop', 'desc' => 'Heavy Duty Steel Strip Tape with Auto-Stop mechanism, shockproof rubber casing, ISI grade'],
-            'NL' => ['series' => 'Neo Lock', 'desc' => 'Self-Locking Heavy Duty Measuring Tape with smooth recoil and dual metric/inch markings'],
-            'PR' => ['series' => 'Pro Model', 'desc' => 'Pro Model Professional Grade Measuring Tape with reinforced steel blade and rugged case'],
-            'PF' => ['series' => 'Perfect Series', 'desc' => 'Perfect Series High Accuracy Measuring Tape with impact-resistant outer body'],
-            'BW' => ['series' => 'Black & White', 'desc' => 'Black & White High Contrast Measuring Tape with anti-glare wide blade'],
-            'FC' => ['series' => 'First Choice', 'desc' => 'First Choice Contractor Grade Measuring Tape with heavy duty spring mechanism'],
-            'JP' => ['series' => 'Jupiter', 'desc' => 'Jupiter Series Heavy Duty Measuring Tape with smooth blade payout and belt clip'],
-            'YK' => ['series' => 'Y-Series', 'desc' => 'Yorker Standard Y-Series Measuring Tape with durable compact case'],
-            '2IN1' => ['series' => 'Yorker 2-in-1', 'desc' => 'Yorker 2-in-1 Dual Scale Measuring Tape with metric and imperial units'],
-            'SS' => ['series' => 'Steel Strip', 'desc' => 'Stainless Steel Strip Measuring Tape with rustproof blade for heavy outdoor work'],
-            'SP' => ['series' => 'Spring Series', 'desc' => 'Yorker High Tensile Spring Mechanism Measuring Tape']
+        $inchMap = [
+            '15' => '1/2"', '20' => '3/4"', '25' => '1"', '32' => '1-1/4"',
+            '40' => '1-1/2"', '50' => '2"', '65' => '2-1/2"', '80' => '3"',
+            '90' => '3-1/2"', '100' => '4"', '110' => '4-1/2"', '160' => '6"'
         ];
 
-        DB::transaction(function () use ($userId, $tapeSeriesMap, &$healedProductsCount, &$healedVariantsCount) {
+        DB::transaction(function () use ($userId, $inchMap, &$healedProductsCount, &$healedVariantsCount) {
             $products = Product::where('user_id', $userId)->with('variants')->get();
-
-            // Get or create Hardware category for tools
-            $hardwareCategory = Category::firstOrCreate(
-                ['name' => 'Hardware & Tools'],
-                ['slug' => 'hardware-tools-' . Str::random(4)]
-            );
 
             foreach ($products as $prod) {
                 $pChanged = false;
-                $allText = strtoupper($prod->name . ' ' . $prod->sku . ' ' . $prod->variants->pluck('sku')->implode(' '));
-
-                $isTape = false;
-                $matchedSeries = null;
-
-                foreach ($tapeSeriesMap as $codeKey => $sObj) {
-                    if (str_contains($allText, $codeKey . '-3016') || str_contains($allText, $codeKey . '-5019') || str_contains($allText, strtoupper($sObj['series'])) || preg_match('/\b' . $codeKey . '[-_\s\d]/i', $allText)) {
-                        $isTape = true;
-                        $matchedSeries = $sObj;
-                        break;
-                    }
+                $cleanName = trim(preg_replace('/\s+/', ' ', $prod->name));
+                if ($cleanName !== $prod->name) {
+                    $prod->name = $cleanName;
+                    $pChanged = true;
                 }
 
-                if (!$isTape && (str_contains($allText, 'TAPE') || str_contains($allText, 'YORKER') || str_contains($allText, '3016') || str_contains($allText, '5019'))) {
-                    $isTape = true;
-                    $matchedSeries = ['series' => 'Measuring Tape', 'desc' => 'Heavy Duty Measuring Tape with high tensile steel blade and shockproof rubber casing.'];
+                // Dynamic Description Enrichment if missing or generic
+                if (empty($prod->description) || strlen($prod->description) < 15 || str_contains($prod->description, 'High grade')) {
+                    $catName = $prod->category ? $prod->category->name : ($prod->group_name ?: 'Industrial Goods');
+                    $nameUp = strtoupper($prod->name);
+
+                    if (str_contains($nameUp, 'CPVC')) {
+                        $prod->description = 'CPVC High Temperature & Pressure Fitting manufactured as per ASTM D2846 (SDR 11 Class 1).';
+                    } elseif (str_contains($nameUp, 'SWR') || str_contains($nameUp, 'TRAP') || str_contains($nameUp, 'DRAIN')) {
+                        $prod->description = 'SWR Soil, Waste & Rainwater drainage fitting with precision leak-proof socket as per IS:14735.';
+                    } elseif (str_contains($nameUp, 'UPVC')) {
+                        $prod->description = 'Heavy Duty UPVC Lead-Free Pressure Pipe Fitting manufactured as per ASTM D2466 / Schedule 40 ISI standard.';
+                    } elseif (str_contains($nameUp, 'PLYWOOD') || str_contains($nameUp, 'PLY') || str_contains($nameUp, 'BOARD')) {
+                        $prod->description = 'Premium Calibrated Hardwood Plywood engineered with high density veneers for structural strength and borer resistance.';
+                    } else {
+                        $prod->description = "High quality commercial grade {$prod->name} ({$catName}) engineered for durability and reliable performance.";
+                    }
+                    $pChanged = true;
                 }
 
-                if ($isTape) {
-                    // Fix brand to Yorker
-                    if ($prod->brand === 'Plasto' || empty($prod->brand) || $prod->brand === 'Generic') {
-                        $prod->brand = 'Yorker';
-                        $pChanged = true;
-                    }
+                // Dynamic Variant Dimension Standardization
+                foreach ($prod->variants as $var) {
+                    $origName = trim($var->variant_name);
+                    $combo = trim(($var->sku ?? '') . ' ' . $origName . ' ' . $prod->name);
 
-                    // Fix category
-                    if ($prod->category_id !== $hardwareCategory->id && ($prod->group_name === 'UPVC' || $prod->group_name === 'Plumbing' || empty($prod->group_name))) {
-                        $prod->category_id = $hardwareCategory->id;
-                        $prod->group_name = 'Hardware & Tools';
-                        $pChanged = true;
-                    }
-
-                    // Fix name
-                    if ($matchedSeries && !str_contains($prod->name, $matchedSeries['series'])) {
-                        $prod->name = "Yorker Measuring Tape ({$matchedSeries['series']})";
-                        $pChanged = true;
-                    }
-
-                    // Fix description
-                    if (empty($prod->description) || str_contains($prod->description, 'High grade') || strlen($prod->description) < 15) {
-                        $prod->description = $matchedSeries ? $matchedSeries['desc'] : 'Heavy Duty Professional Measuring Tape with high tensile steel blade and impact resistant case.';
-                        $pChanged = true;
-                    }
-
-                    // Fix variants
-                    foreach ($prod->variants as $var) {
-                        $vSku = strtoupper($var->sku ?? '');
-                        $origName = $var->variant_name;
-                        $newName = $origName;
-
-                        if (str_contains($vSku, '3016') || $origName === 'Standard' || $origName === '1/2 inch' || $origName === '1/2"') {
-                            if (str_contains($vSku, '3016')) $newName = '3 Meter x 16mm';
-                        }
-                        if (str_contains($vSku, '5019') || $origName === '3/4 inch' || $origName === '3/4"') {
-                            if (str_contains($vSku, '5019')) $newName = '5 Meter x 19mm';
-                        }
-                        if (str_contains($vSku, '1025')) {
-                            $newName = '10 Meter x 25mm';
-                        }
-
-                        if ($newName !== $origName) {
+                    if (empty($origName) || $origName === 'Standard' || $origName === 'Default' || $origName === '-') {
+                        if (preg_match('/\b(15|20|25|32|40|50|65|75|80|90|100|110|160)\s*(?:mm)?\b/i', $combo, $m)) {
+                            $mm = $m[1];
+                            $resolvedSize = isset($inchMap[$mm]) ? "{$mm}mm ({$inchMap[$mm]})" : "{$mm}mm";
                             $attrs = json_decode($var->attributes, true) ?: [];
-                            $attrs['size'] = $newName;
-                            $var->variant_name = $newName;
+                            $attrs['size'] = $resolvedSize;
+                            $var->variant_name = $resolvedSize;
                             $var->attributes = json_encode($attrs);
                             $var->save();
                             $healedVariantsCount++;
-                        }
-                    }
-                } else {
-                    // Plumbing fittings
-                    if (empty($prod->description) || str_contains($prod->description, 'manufactured to industrial specifications')) {
-                        $nameUp = strtoupper($prod->name);
-                        if (str_contains($nameUp, 'CPVC')) {
-                            $prod->description = 'CPVC High Temperature & Pressure Fitting manufactured as per ASTM D2846 (SDR 11 Class 1).';
-                            $pChanged = true;
-                        } elseif (str_contains($nameUp, 'SWR') || str_contains($nameUp, 'TRAP')) {
-                            $prod->description = 'SWR Soil, Waste & Rainwater drainage fitting with precision leak-proof socket as per IS:14735.';
-                            $pChanged = true;
-                        } elseif (str_contains($nameUp, 'UPVC')) {
-                            $prod->description = 'Heavy Duty UPVC Lead-Free Pressure Pipe Fitting manufactured as per ASTM D2466 / Schedule 40 ISI standard.';
-                            $pChanged = true;
-                        }
-                    }
-
-                    // Fix variant names if Standard
-                    foreach ($prod->variants as $var) {
-                        if ($var->variant_name === 'Standard' || empty($var->variant_name)) {
-                            $combo = $var->sku . ' ' . $prod->name;
-                            if (preg_match('/\b(15|20|25|32|40|50|65|75|80|90|100|110|160)\s*(?:mm)?\b/i', $combo, $m)) {
-                                $mm = $m[1];
-                                $inchMap = ['15' => '1/2"', '20' => '3/4"', '25' => '1"', '32' => '1-1/4"', '40' => '1-1/2"', '50' => '2"', '65' => '2-1/2"', '80' => '3"', '100' => '4"'];
-                                $resolvedSize = isset($inchMap[$mm]) ? "{$mm}mm ({$inchMap[$mm]})" : "{$mm}mm";
-                                $attrs = json_decode($var->attributes, true) ?: [];
-                                $attrs['size'] = $resolvedSize;
-                                $var->variant_name = $resolvedSize;
-                                $var->attributes = json_encode($attrs);
-                                $var->save();
-                                $healedVariantsCount++;
-                            }
                         }
                     }
                 }

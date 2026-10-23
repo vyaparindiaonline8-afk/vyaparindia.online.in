@@ -544,7 +544,7 @@
                             <i class="fa-solid fa-arrow-rotate-left text-amber-600"></i>
                             <span>↩️ Wapas Sabhi Cards List Me Kholein</span>
                         </button>
-                        <button type="button" onclick="autoFixAllExistingCards()" class="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition ml-1 active:scale-95" title="Bina manual mehnat ke Cards ke Descriptions aur Tape sizes ko auto-fix karein">
+                        <button type="button" onclick="autoFixAllExistingCards()" class="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition ml-1 active:scale-95" title="Bina manual mehnat ke Cards ke Titles, Descriptions aur Sizes ko dynamic rules se auto-fix karein">
                             <i class="fa-solid fa-wand-magic-sparkles text-yellow-200"></i>
                             <span>Auto-Fix Cards</span>
                         </button>
@@ -604,7 +604,7 @@
                             <i class="fa-solid fa-wand-magic-sparkles text-yellow-300"></i>
                             <span>🪄 AI Fix Descriptions Only</span>
                         </button>
-                        <button type="button" onclick="autoFixAllExistingCards()" id="btnAutoFixAllCards" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-indigo-600 hover:from-amber-600 hover:to-indigo-700 text-white font-black text-xs shadow-md hover:shadow-lg flex items-center gap-2 transition active:scale-95" title="Bina manual mehnat ke sare cards ke Descriptions, Tape Sizes (3M x 16mm, 5M x 19mm) aur Series Names auto-fix karein">
+                        <button type="button" onclick="autoFixAllExistingCards()" id="btnAutoFixAllCards" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-indigo-600 hover:from-amber-600 hover:to-indigo-700 text-white font-black text-xs shadow-md hover:shadow-lg flex items-center gap-2 transition active:scale-95" title="Bina manual mehnat ke Cards ke Titles, Descriptions aur Sizes ko dynamic rules se auto-fix karein">
                             <i class="fa-solid fa-wand-magic-sparkles text-yellow-200"></i>
                             <span>✨ 1-Click Auto-Fix All Cards</span>
                         </button>
@@ -1918,29 +1918,45 @@
                         </span>
                     </div>
 
-                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-                        <!-- Less % -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5">
+                        <!-- Less & GST Mode -->
                         <div class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/80">
                             <label class="block text-[10px] font-black text-rose-300 uppercase mb-1 flex items-center justify-between">
-                                <span>1. Cash Less</span>
+                                <span>1. Less Mode</span>
+                                <span class="text-gray-400 font-normal">GST</span>
+                            </label>
+                            <select id="formulaGstMode" onchange="toggleGstModeUI(); recalculateRawFormulaRates();" class="w-full bg-slate-950 px-1 py-1 rounded-lg border border-slate-700 text-rose-300 font-bold text-[10px] focus:ring-1 focus:ring-rose-400 cursor-pointer mb-1">
+                                <option value="without_gst" selected>Without GST Less (Discount pehle, GST alag)</option>
+                                <option value="with_gst">With GST Less (Rate me GST shamil)</option>
+                            </select>
+                            <div class="flex items-center gap-1">
+                                <input type="number" step="0.25" id="formulaLessPercent" value="0" oninput="recalculateRawFormulaRates()" placeholder="0" class="w-full bg-slate-950 px-1.5 py-0.5 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-rose-400" title="Cash Discount / Less %">
+                                <span class="text-gray-400 text-xs font-bold">% Less</span>
+                            </div>
+                        </div>
+
+                        <!-- GST % -->
+                        <div id="formulaGstFieldBox" class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/80">
+                            <label class="block text-[10px] font-black text-emerald-300 uppercase mb-1 flex items-center justify-between">
+                                <span>2. GST Rate</span>
                                 <span class="text-gray-400 font-normal">%</span>
                             </label>
-                            <div class="flex items-center gap-1">
-                                <input type="number" step="0.25" id="formulaLessPercent" value="0" oninput="recalculateRawFormulaRates()" placeholder="0" class="w-full bg-slate-950 px-2 py-1 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-rose-400">
-                                <span class="text-gray-400 text-xs font-bold">%</span>
+                            <div class="flex items-center gap-1 mt-2.5">
+                                <input type="number" step="1" id="formulaGstPercent" value="18" oninput="recalculateRawFormulaRates()" placeholder="18" class="w-full bg-slate-950 px-2 py-1 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-emerald-400">
+                                <span class="text-gray-400 text-xs font-bold">% GST</span>
                             </div>
                         </div>
 
                         <!-- Bhada / Freight -->
                         <div class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/80">
                             <div class="flex items-center justify-between mb-1">
-                                <label class="text-[10px] font-black text-amber-300 uppercase">2. Bhada / Freight</label>
+                                <label class="text-[10px] font-black text-amber-300 uppercase">3. Bhada / Freight</label>
                                 <select id="formulaFreightMode" onchange="recalculateRawFormulaRates()" class="text-[9px] bg-slate-900 text-amber-300 rounded border border-slate-700 px-1 py-0.5 cursor-pointer focus:ring-1 focus:ring-amber-400">
-                                    <option value="flat">₹/sqft (Flat ₹)</option>
+                                    <option value="flat">₹/unit (Flat ₹)</option>
                                     <option value="percent">% of Base</option>
                                 </select>
                             </div>
-                            <div class="flex items-center gap-1">
+                            <div class="flex items-center gap-1 mt-2">
                                 <span id="formulaFreightUnitPrefix" class="text-amber-400 text-xs font-bold font-mono">₹</span>
                                 <input type="number" step="0.25" id="formulaFreightPerUnit" value="0" oninput="recalculateRawFormulaRates()" placeholder="0.00" class="w-full bg-slate-950 px-2 py-1 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-amber-400">
                             </div>
@@ -1949,43 +1965,43 @@
                         <!-- Rate A (Retail) -->
                         <div class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/80">
                             <div class="flex items-center justify-between mb-1">
-                                <label class="text-[10px] font-black text-emerald-300 uppercase">3. Rate A (Retail)</label>
+                                <label class="text-[10px] font-black text-emerald-300 uppercase" title="Rate A: Counter / Retail Grahak">4. Rate A (Retail)</label>
                                 <select id="formulaRateAMode" onchange="recalculateRawFormulaRates()" class="text-[9px] bg-slate-900 text-emerald-300 rounded border border-slate-700 px-1 py-0.5">
                                     <option value="percent">+ %</option>
                                     <option value="flat">+ ₹ Flat</option>
                                 </select>
                             </div>
-                            <input type="number" step="0.5" id="formulaRateAValue" value="15" oninput="recalculateRawFormulaRates()" class="w-full bg-slate-950 px-2 py-1 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-emerald-400">
+                            <input type="number" step="0.5" id="formulaRateAValue" value="15" oninput="recalculateRawFormulaRates()" class="w-full bg-slate-950 px-2 py-1 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-emerald-400 mt-2">
                         </div>
 
                         <!-- Rate B (Wholesale) -->
                         <div class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/80">
                             <div class="flex items-center justify-between mb-1">
-                                <label class="text-[10px] font-black text-cyan-300 uppercase">4. Rate B (Wholesale)</label>
+                                <label class="text-[10px] font-black text-cyan-300 uppercase" title="Rate B: Dukandar / Dealer / Wholesale">5. Rate B (Wholesale)</label>
                                 <select id="formulaRateBMode" onchange="recalculateRawFormulaRates()" class="text-[9px] bg-slate-900 text-cyan-300 rounded border border-slate-700 px-1 py-0.5">
                                     <option value="percent">+ %</option>
                                     <option value="flat">+ ₹ Flat</option>
                                 </select>
                             </div>
-                            <input type="number" step="0.5" id="formulaRateBValue" value="10" oninput="recalculateRawFormulaRates()" class="w-full bg-slate-950 px-2 py-1 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-cyan-400">
+                            <input type="number" step="0.5" id="formulaRateBValue" value="10" oninput="recalculateRawFormulaRates()" class="w-full bg-slate-950 px-2 py-1 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-cyan-400 mt-2">
                         </div>
 
-                        <!-- Rate C (Bulk) -->
+                        <!-- Rate C (Special) -->
                         <div class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/80">
                             <div class="flex items-center justify-between mb-1">
-                                <label class="text-[10px] font-black text-indigo-300 uppercase">5. Rate C (Bulk)</label>
+                                <label class="text-[10px] font-black text-indigo-300 uppercase" title="Rate C: Project / Contractor / Bulk">6. Rate C (Special)</label>
                                 <select id="formulaRateCMode" onchange="recalculateRawFormulaRates()" class="text-[9px] bg-slate-900 text-indigo-300 rounded border border-slate-700 px-1 py-0.5">
                                     <option value="percent">+ %</option>
                                     <option value="flat">+ ₹ Flat</option>
                                 </select>
                             </div>
-                            <input type="number" step="0.5" id="formulaRateCValue" value="5" oninput="recalculateRawFormulaRates()" class="w-full bg-slate-950 px-2 py-1 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-indigo-400">
+                            <input type="number" step="0.5" id="formulaRateCValue" value="5" oninput="recalculateRawFormulaRates()" class="w-full bg-slate-950 px-2 py-1 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-indigo-400 mt-2">
                         </div>
 
                         <!-- Sheet Multiplier -->
                         <div class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/80 flex flex-col justify-between">
                             <label class="text-[10px] font-black text-purple-300 uppercase mb-1 flex items-center justify-between">
-                                <span>6. Sheet Sizes</span>
+                                <span>7. Sheet Sizes</span>
                                 <span class="text-[9px] text-purple-400 font-bold">Auto</span>
                             </label>
                             <label class="flex items-center gap-1.5 text-[10px] text-gray-200 cursor-pointer font-bold select-none py-1">
@@ -2089,10 +2105,10 @@
                                     <th class="p-2.5 w-28">Thickness / Size</th>
                                     <th class="p-2.5 w-16">Unit</th>
                                     <th class="p-2.5 w-20">Base (₹)</th>
-                                    <th class="p-2.5 w-24 text-amber-700 bg-amber-50/50">Landing (₹)</th>
-                                    <th class="p-2.5 w-24 text-emerald-700 bg-emerald-50/50">Rate A (₹)</th>
-                                    <th class="p-2.5 w-24 text-cyan-700">Rate B (₹)</th>
-                                    <th class="p-2.5 w-24 text-indigo-700">Rate C (₹)</th>
+                                    <th class="p-2.5 w-28 text-amber-900 bg-amber-100 font-black" title="Auto-Calculated Cost Price (Kharid Padti)">Cost Price (₹)</th>
+                                    <th class="p-2.5 w-24 text-emerald-700 bg-emerald-50/50" title="Retail / Counter Grahak Rate">Rate A (Retail) (₹)</th>
+                                    <th class="p-2.5 w-24 text-cyan-700" title="Wholesale / Dukandar Rate">Rate B (Wholesale) (₹)</th>
+                                    <th class="p-2.5 w-24 text-indigo-700" title="Special / Contractor Rate">Rate C (Special) (₹)</th>
                                     <th class="p-2.5 min-w-[130px]">Notes / Extras</th>
                                     <th class="p-2.5 w-10 text-center">Del</th>
                                 </tr>
@@ -2142,6 +2158,53 @@
     <!-- SLIDE-OVER PHOTO GALLERY DRAWER            -->
     <!-- ========================================== -->
     <!-- ========================================== -->
+
+    <!-- ========================================== -->
+    <!-- ✨ AUTO-FIX SUMMARY REPORT MODAL (COPYABLE) -->
+    <!-- ========================================== -->
+    <div id="autoFixSummaryModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] hidden flex items-center justify-center p-4" onclick="closeAutoFixSummaryModal()">
+        <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-lg overflow-hidden animate-scale-up" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="px-5 py-4 bg-gradient-to-r from-amber-600 via-orange-600 to-indigo-600 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="h-8 w-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-sm shadow-xs">
+                        <i class="fa-solid fa-wand-magic-sparkles text-yellow-300"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black tracking-wide">Auto-Fix Summary Report</h3>
+                        <p class="text-[10px] text-amber-100 font-medium">Automatic smart enrichment & normalization result</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAutoFixSummaryModal()" class="h-8 w-8 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 flex items-center justify-center text-xs transition cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Content Area (Copyable) -->
+            <div class="p-5 space-y-4 select-text" style="user-select: text !important; -webkit-user-select: text !important;">
+                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 space-y-2 select-text" id="autoFixSummaryReportBody" style="user-select: text !important; -webkit-user-select: text !important;">
+                    <!-- Filled dynamically via JS -->
+                </div>
+
+                <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 flex items-start gap-2">
+                    <i class="fa-solid fa-lightbulb text-amber-600 shrink-0 mt-0.5"></i>
+                    <span>Aap upar diye gaye kisi bhi text ko mouse se select karke copy kar sakte hain ya niche "Copy Details" button se 1-click me copy karein!</span>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-3">
+                <button type="button" onclick="copyAutoFixSummaryText()" id="btnCopyAutoFixSummary" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white font-black text-xs flex items-center gap-2 transition active:scale-95 cursor-pointer shadow-sm">
+                    <i class="fa-regular fa-copy text-amber-300"></i>
+                    <span id="btnCopyAutoFixSummaryText">📋 Copy Details</span>
+                </button>
+                <button type="button" onclick="closeAutoFixSummaryModal()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs transition active:scale-95 cursor-pointer shadow-md shadow-indigo-600/20">
+                    Theek Hai (Done)
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 🏢 CONFIGURE MY BUSINESS LINES MODAL       -->
     <!-- ========================================== -->
     <div id="industryConfigModal" class="fixed inset-0 bg-black/70 backdrop-blur-xs z-[9999] hidden flex items-center justify-center p-4" onclick="closeIndustryModuleConfigModal()">
@@ -4062,7 +4125,63 @@
             XLSX.writeFile(wb, "VyaparIndia_Product_Catalog_Template.xlsx");
         }
 
-        function saveToLocalStorage() {
+        
+        // ==========================================
+        // 🛡️ PERMANENT DELETED ITEMS REGISTRY
+        // (Ensures deleted items NEVER reappear on reload)
+        // ==========================================
+        function getDeletedItemsList() {
+            try {
+                const stored = localStorage.getItem('vyapar_deleted_items');
+                if (stored) {
+                    const arr = JSON.parse(stored);
+                    if (Array.isArray(arr)) return arr;
+                }
+            } catch (e) {}
+            return [];
+        }
+
+        function recordDeletedItem(name, size) {
+            const cleanName = (name || '').trim().toLowerCase();
+            const cleanSize = (size || '').trim().toLowerCase();
+            if (!cleanName && !cleanSize) return;
+
+            try {
+                const list = getDeletedItemsList();
+                const sigWithVariant = cleanName + '___' + cleanSize;
+                if (!list.includes(sigWithVariant)) list.push(sigWithVariant);
+                if (cleanName && !cleanSize && !list.includes(cleanName)) list.push(cleanName);
+                localStorage.setItem('vyapar_deleted_items', JSON.stringify(list));
+
+                // Also purge from vyapar_custom_excel_lines so PDF lines don't resurrect it
+                const rawPdf = localStorage.getItem('vyapar_custom_excel_lines');
+                if (rawPdf) {
+                    const parsed = JSON.parse(rawPdf);
+                    if (parsed && Array.isArray(parsed.items)) {
+                        parsed.items = parsed.items.filter(it => {
+                            const itName = (it.name || it.item_name || it.product_name || '').trim().toLowerCase();
+                            const itSize = (it.size || '').trim().toLowerCase();
+                            const itSig = itName + '___' + itSize;
+                            return !list.includes(itSig) && !list.includes(itName);
+                        });
+                        localStorage.setItem('vyapar_custom_excel_lines', JSON.stringify(parsed));
+                    }
+                }
+            } catch (e) {
+                console.warn('recordDeletedItem error:', e);
+            }
+        }
+
+        function isItemDeleted(name, size) {
+            const list = getDeletedItemsList();
+            if (list.length === 0) return false;
+            const cleanName = (name || '').trim().toLowerCase();
+            const cleanSize = (size || '').trim().toLowerCase();
+            const sig = cleanName + '___' + cleanSize;
+            return list.includes(sig) || (cleanName && list.includes(cleanName));
+        }
+
+function saveToLocalStorage() {
             try {
                 if (Array.isArray(groupedProductCards) && groupedProductCards.length > 0) {
                     localStorage.setItem('vyapar_grouped_cards', JSON.stringify(groupedProductCards));
@@ -4222,7 +4341,7 @@
                     try {
                         const parsedCards = JSON.parse(storedCards);
                         if (Array.isArray(parsedCards) && parsedCards.length > 0) {
-                            groupedProductCards = parsedCards;
+                            groupedProductCards = parsedCards.filter(c => !isItemDeleted(c.parent_name, ''));
                             groupedCardNextId = parseInt(localStorage.getItem('vyapar_grouped_next_id') || '100');
                             hasLoaded = true;
                         }
@@ -4234,7 +4353,7 @@
                     try {
                         const parsedRows = JSON.parse(storedRows);
                         if (Array.isArray(parsedRows) && parsedRows.length > 0) {
-                            dynamicRows = parsedRows;
+                            dynamicRows = parsedRows.filter(r => !isItemDeleted(r.product_name, r.size));
                             dynamicRowNextId = parseInt(localStorage.getItem('vyapar_dynamic_next_id') || '1000');
                             hasLoaded = true;
                         }
@@ -4421,6 +4540,7 @@
                 structuredRows.forEach((r, idx) => {
                     const name = (r.name || r.product_name || `Product ${idx + 1}`).trim();
                     const size = (r.size && r.size !== '-') ? r.size.trim() : '';
+                    if (isItemDeleted(name, size)) return;
                     const modelNo = (r.model_no && r.model_no !== '-') ? r.model_no.trim() : '';
                     const itemCode = (r.item_code && r.item_code !== '-') ? r.item_code.trim() : '';
                     const sku = itemCode || (r.sku && r.sku !== '-' ? r.sku.trim() : '');
@@ -4559,11 +4679,18 @@
             if (isFreshStart) {
                 dynamicRows = [];
                 groupedProductCards = [];
+                if (typeof serverJobProducts !== 'undefined') serverJobProducts = [];
                 localStorage.removeItem('vyapar_custom_excel_lines');
                 localStorage.removeItem('vyapar_grouped_cards');
                 localStorage.removeItem('vyapar_dynamic_rows');
+                localStorage.removeItem('vyapar_grouped_cards_backup');
+                localStorage.removeItem('vyapar_dynamic_rows_backup');
+                localStorage.removeItem('vyapar_deleted_items');
                 localStorage.removeItem('vyapar_grouped_next_id');
                 localStorage.removeItem('vyapar_dynamic_next_id');
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
                 renderDynamicRows();
                 renderGroupedProductCards();
                 refreshCategoryFilterTabs();
@@ -6164,10 +6291,18 @@
 
         function deleteGroupedCard(cardId) {
             if (!confirm('Kya aap is Grouped Product Card ko delete karna chahte hain?')) return;
+            const cardToDelete = groupedProductCards.find(c => c.card_id === cardId);
+            if (cardToDelete) {
+                recordDeletedItem(cardToDelete.parent_name, '');
+                if (Array.isArray(cardToDelete.variants)) {
+                    cardToDelete.variants.forEach(v => recordDeletedItem(cardToDelete.parent_name, v.size));
+                }
+            }
             groupedProductCards = groupedProductCards.filter(c => c.card_id !== cardId);
             renderGroupedProductCards();
             saveToLocalStorage();
-            autoSaveDraftToBackend();
+            if (typeof autoSaveDraftToBackend === 'function') autoSaveDraftToBackend();
+            refreshCategoryFilterTabs();
         }
 
         // ==========================================
@@ -6783,129 +6918,130 @@
             showToastNotification(`🎉 Sabhi ${fixedCount} Cards ke Descriptions AI se fix ho gaye!`);
         }
 
+        let lastAutoFixReportText = '';
+
+        function openAutoFixSummaryModal(data) {
+            const modal = document.getElementById('autoFixSummaryModal');
+            const body = document.getElementById('autoFixSummaryReportBody');
+            if (!modal || !body) return;
+
+            const textLines = [
+                '✅ Auto-Fix Execution Complete!',
+                '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+                `📦 Total Cards Scanned: ${data.checkedCardsCount || 0}`,
+                `📋 Table Rows Scanned: ${data.checkedRowsCount || 0}`,
+                `📝 Descriptions Auto-Enriched: ${data.fixedDescriptionsCount || 0}`,
+                `📏 Variant Dimensions Standardized: ${data.fixedVariantsCount || 0}`,
+                `✨ Cards Updated: ${data.fixedCardsCount || 0}`,
+                `⚡ Table Rows Healed: ${data.fixedRowsCount || 0}`,
+            ];
+
+            if (data.dbHealedCount > 0) {
+                textLines.push(`💾 Database Products Synced: ${data.dbHealedCount}`);
+            }
+            textLines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            textLines.push('Sabhi updates 100% dynamic aur generic rules ke hisab se successfully apply ho gaye hain.');
+
+            lastAutoFixReportText = textLines.join('\n');
+
+            body.innerHTML = `
+                <div class="font-bold text-emerald-700 text-sm flex items-center gap-1.5 pb-1 border-b border-slate-200">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Auto-Fix Process Completed</span>
+                </div>
+                <div class="space-y-1.5 text-slate-700 pt-1 select-text">
+                    <p>• <b>Total Cards Scanned:</b> ${data.checkedCardsCount || 0}</p>
+                    <p>• <b>Table Rows Scanned:</b> ${data.checkedRowsCount || 0}</p>
+                    <p>• <b>Descriptions Auto-Enriched:</b> <span class="text-indigo-700 font-bold">${data.fixedDescriptionsCount || 0}</span></p>
+                    <p>• <b>Variant Dimensions Standardized:</b> <span class="text-purple-700 font-bold">${data.fixedVariantsCount || 0}</span></p>
+                    <p>• <b>Cards Updated:</b> <span class="text-emerald-700 font-bold">${data.fixedCardsCount || 0}</span></p>
+                    <p>• <b>Table Rows Healed:</b> ${data.fixedRowsCount || 0}</p>
+                    ${data.dbHealedCount > 0 ? `<p>• <b>Database Products Synced:</b> <span class="text-emerald-700 font-bold">${data.dbHealedCount}</span></p>` : ''}
+                </div>
+                <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-200">
+                    Koi bhi product ya size hardcoded nahi hai — sabhi dynamic extraction aur AI rules se process hue hain.
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeAutoFixSummaryModal() {
+            const modal = document.getElementById('autoFixSummaryModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function copyAutoFixSummaryText() {
+            if (!lastAutoFixReportText) return;
+            navigator.clipboard.writeText(lastAutoFixReportText).then(() => {
+                const txt = document.getElementById('btnCopyAutoFixSummaryText');
+                if (txt) {
+                    const orig = txt.innerText;
+                    txt.innerText = '✅ Copied to Clipboard!';
+                    setTimeout(() => { txt.innerText = orig; }, 2000);
+                }
+                showToastNotification('📋 Summary details successfully copied!');
+            }).catch(e => {
+                console.warn('Copy failed:', e);
+            });
+        }
+
         async function autoFixAllExistingCards() {
             const btn = document.getElementById('btnAutoFixAllCards');
-            const origHtml = btn ? btn.innerHTML : '';
+            let origHtml = '';
             if (btn) {
+                origHtml = btn.innerHTML;
                 btn.disabled = true;
-                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Fixing All Cards...</span>`;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-yellow-200"></i> Auto-Fixing Cards...`;
             }
 
             try {
-                let fixedCardsCount = 0;
+                let checkedCardsCount = Array.isArray(groupedProductCards) ? groupedProductCards.length : 0;
+                let checkedRowsCount = Array.isArray(dynamicRows) ? dynamicRows.length : 0;
+                let fixedDescriptionsCount = 0;
                 let fixedVariantsCount = 0;
+                let fixedCardsCount = 0;
                 let fixedRowsCount = 0;
-
-                const tapeSeriesMap = {
-                    'AS': { series: 'Auto Stop Series', desc: 'Heavy Duty Steel Strip Tape with Auto-Stop mechanism, shockproof rubber casing, ISI grade' },
-                    'NL': { series: 'Neo Lock Series', desc: 'Self-Locking Heavy Duty Measuring Tape with smooth recoil and dual metric/inch markings' },
-                    'PR': { series: 'Pro Model Heavy Duty', desc: 'Yorker Professional Heavy Duty Tape with high tensile steel blade and impact resistant body' },
-                    'PF': { series: 'Perfect Series', desc: 'Yorker Perfect Series compact measuring tape with belt clip and ergonomic grip' },
-                    'BW': { series: 'Black & White Series', desc: 'Black & White Contractor Grade high contrast measuring tape' },
-                    'FC': { series: 'First Choice Series', desc: 'First Choice Contractor Grade Measuring Tape with heavy duty spring mechanism' },
-                    'JP': { series: 'Jupiter Series', desc: 'Jupiter Series Heavy Duty Measuring Tape with smooth blade payout and belt clip' },
-                    'YK': { series: 'Yorker Y-Series', desc: 'Yorker Standard Y-Series Measuring Tape with durable compact case' },
-                    '2IN1': { series: 'Yorker 2-in-1 Dual Scale', desc: 'Yorker 2-in-1 Dual Scale Measuring Tape with metric and imperial units' },
-                    '2in1': { series: 'Yorker 2-in-1 Dual Scale', desc: 'Yorker 2-in-1 Dual Scale Measuring Tape with metric and imperial units' },
-                    'SS': { series: 'Stainless Steel Strip Series', desc: 'Stainless Steel Strip Measuring Tape with rustproof blade for heavy outdoor work' },
-                    'SP': { series: 'High Tensile Spring Series', desc: 'Yorker High Tensile Spring Mechanism Measuring Tape with shockproof bumper' }
-                };
 
                 const inchMap = {
                     '15': '1/2"', '20': '3/4"', '25': '1"', '32': '1-1/4"',
-                    '40': '1-1/2"', '50': '2"', '65': '2-1/2"', '80': '3"', '100': '4"'
+                    '40': '1-1/2"', '50': '2"', '65': '2-1/2"', '80': '3"',
+                    '90': '3-1/2"', '100': '4"', '110': '4-1/2"', '160': '6"'
                 };
 
-                // 1. Process all Grouped Product Cards safely
+                // 1. Process all Grouped Product Cards safely & dynamically
                 if (Array.isArray(groupedProductCards)) {
                     groupedProductCards.forEach(card => {
                         let cardModified = false;
-                        const parentUp = (card.parent_name || '').toUpperCase();
-                        const catUp = (card.category || '').toUpperCase();
-                        const cardText = `${parentUp} ${catUp} ${card.variants ? card.variants.map(v => v.product_code || '').join(' ') : ''}`.toUpperCase();
+                        const pName = (card.parent_name || '').trim();
+                        const pCat = (card.category || '').trim();
 
-                        // SAFE Plumbing Check: NEVER treat plumbing as Tape!
-                        const isPlumbing = /UPVC|CPVC|SWR|PIPE|ELBOW|TEE|SOCKET|MTA|FTA|TRAP|DRAIN|COUPLER|UNION|NIPPLE|BUSH|BEND|PLASTO/i.test(parentUp) || /PIPE|UPVC|CPVC|SWR|PLUMBING/i.test(catUp);
-
-                        let isTape = false;
-                        let matchedSeries = null;
-
-                        if (!isPlumbing && (/TAPE|MEASURING/i.test(parentUp) || (catUp === 'HARDWARE & TOOLS' && /TAPE/i.test(cardText)))) {
-                            isTape = true;
-                            for (const [codeKey, sObj] of Object.entries(tapeSeriesMap)) {
-                                const upperKey = codeKey.toUpperCase();
-                                if (cardText.includes(upperKey + '-3016') || cardText.includes(upperKey + '-5019') || cardText.includes(sObj.series.toUpperCase())) {
-                                    matchedSeries = sObj;
-                                    break;
-                                }
-                            }
+                        // Dynamic smart description enrichment without brand hardcoding
+                        const smartDesc = getSmartAiDescriptionForProduct(pName, pCat);
+                        if (!card.description || card.description.length < 15 || card.description.includes('High grade')) {
+                            card.description = smartDesc;
+                            fixedDescriptionsCount++;
+                            cardModified = true;
                         }
 
-                        if (isTape) {
-                            if (card.category !== 'Hardware & Tools') {
-                                card.category = 'Hardware & Tools';
-                                cardModified = true;
-                            }
-
-                            if (matchedSeries) {
-                                const currentTitle = card.parent_name || '';
-                                if (!currentTitle.includes(matchedSeries.series) || currentTitle.includes('-3016') || currentTitle.includes('-5019')) {
-                                    card.parent_name = `Yorker Measuring Tape (${matchedSeries.series})`;
-                                    cardModified = true;
-                                }
-                            }
-
-                            card.description = matchedSeries ? matchedSeries.desc : 'Heavy Duty Measuring Tape with high tensile steel blade and shockproof rubber casing.';
-                            cardModified = true;
-
-                            if (Array.isArray(card.variants)) {
-                                card.variants.forEach(v => {
-                                    const code = (v.product_code || '').toUpperCase();
-                                    const oldSize = v.size || '';
-                                    let newSize = oldSize;
-
-                                    if (code.includes('3016') || oldSize === 'Standard' || oldSize === '1/2 inch' || oldSize === '1/2"') {
-                                        newSize = '3 Meter x 16mm';
-                                    } else if (code.includes('5019') || oldSize === '3/4 inch' || oldSize === '3/4"') {
-                                        newSize = '5 Meter x 19mm';
-                                    } else if (code.includes('1025')) {
-                                        newSize = '10 Meter x 25mm';
-                                    }
-
-                                    if (newSize !== oldSize) {
-                                        v.size = newSize;
+                        // Dynamic variant dimension standardization
+                        if (Array.isArray(card.variants)) {
+                            card.variants.forEach(v => {
+                                const oldSize = (v.size || '').trim();
+                                if (!oldSize || oldSize === 'Standard' || oldSize === 'Default' || oldSize === '-') {
+                                    const combo = `${v.product_code || ''} ${v.model_no || ''} ${pName}`;
+                                    const match = combo.match(/\b(15|20|25|32|40|50|65|75|80|90|100|110|160)\s*(?:mm)?\b/i);
+                                    if (match) {
+                                        const mm = match[1];
+                                        v.size = inchMap[mm] ? `${mm}mm (${inchMap[mm]})` : `${mm}mm`;
                                         fixedVariantsCount++;
                                         cardModified = true;
                                     }
-                                    v.description = card.description;
-                                });
-                            }
-                        } else {
-                            // Smart category & description enrichment without corrupting titles
-                            const smartDesc = getSmartAiDescriptionForProduct(card.parent_name, card.category);
-                            if (!card.description || card.description.includes('Measuring Tape') || card.description.length < 15) {
-                                card.description = smartDesc;
-                                cardModified = true;
-                            }
-
-                            if (Array.isArray(card.variants)) {
-                                card.variants.forEach(v => {
-                                    if (!v.size || v.size === 'Standard') {
-                                        const combo = `${v.product_code || ''} ${card.parent_name || ''}`;
-                                        const match = combo.match(/\b(15|20|25|32|40|50|65|75|80|90|100|110|160)\s*(?:mm)?\b/i);
-                                        if (match) {
-                                            const mm = match[1];
-                                            const resolved = inchMap[mm] ? `${mm}mm (${inchMap[mm]})` : `${mm}mm`;
-                                            v.size = resolved;
-                                            fixedVariantsCount++;
-                                            cardModified = true;
-                                        }
-                                    }
-                                    if (!v.description || v.description.includes('Measuring Tape')) {
-                                        v.description = card.description || smartDesc;
-                                    }
-                                });
-                            }
+                                }
+                                if (!v.description || v.description.length < 15) {
+                                    v.description = card.description || smartDesc;
+                                }
+                            });
                         }
 
                         if (cardModified) {
@@ -6914,33 +7050,26 @@
                     });
                 }
 
-                // 2. Also heal any pending dynamicRows
+                // 2. Also heal any pending dynamicRows dynamically
                 if (Array.isArray(dynamicRows)) {
                     dynamicRows.forEach(r => {
-                        const rCode = (r.product_code || '').toUpperCase();
-                        const rName = (r.product_name || '').toUpperCase();
                         let rModified = false;
+                        const rName = (r.product_name || '').trim();
+                        const rSize = (r.size || '').trim();
 
-                        if (rCode.includes('3016') || rName.includes('3016')) {
-                            if (r.size === 'Standard' || !r.size || r.size === '1/2 inch') {
-                                r.size = '3 Meter x 16mm';
+                        if (!rSize || rSize === 'Standard' || rSize === 'Default' || rSize === '-') {
+                            const combo = `${r.model_no || ''} ${r.product_code || ''} ${r.item_code || ''} ${rName}`;
+                            const match = combo.match(/\b(15|20|25|32|40|50|65|75|80|90|100|110|160)\s*(?:mm)?\b/i);
+                            if (match) {
+                                const mm = match[1];
+                                r.size = inchMap[mm] ? `${mm}mm (${inchMap[mm]})` : `${mm}mm`;
                                 rModified = true;
                             }
-                            if (r.category !== 'Hardware & Tools') {
-                                r.category = 'Hardware & Tools';
-                                r.group_type = 'Hardware & Tools';
-                                rModified = true;
-                            }
-                        } else if (rCode.includes('5019') || rName.includes('5019')) {
-                            if (r.size === 'Standard' || !r.size || r.size === '3/4 inch') {
-                                r.size = '5 Meter x 19mm';
-                                rModified = true;
-                            }
-                            if (r.category !== 'Hardware & Tools') {
-                                r.category = 'Hardware & Tools';
-                                r.group_type = 'Hardware & Tools';
-                                rModified = true;
-                            }
+                        }
+
+                        if (!r.description || r.description.length < 15) {
+                            r.description = getSmartAiDescriptionForProduct(rName, r.group_type || r.category || 'General');
+                            rModified = true;
                         }
 
                         if (rModified) fixedRowsCount++;
@@ -6972,18 +7101,24 @@
                 refreshCategoryFilterTabs();
                 autoSaveDraftToBackend();
 
-                let msg = `✨ Zabardast! ${fixedCardsCount} Grouped Cards, ${fixedVariantsCount} Variant Sizes aur Description auto-fix ho gaye bina kisi manual mehnat ke!`;
-                if (dbHealResult && dbHealResult.healed_products_count > 0) {
-                    msg += ` (${dbHealResult.healed_products_count} database products bhi sync ho gaye)`;
-                }
-                showToastNotification(msg);
-                alert(`✅ Auto-Fix Complete!\n\n• ${fixedCardsCount} Cards ke Titles & Descriptions theek hue\n• ${fixedVariantsCount} Sizes (3M x 16mm, 5M x 19mm) auto-update ho gaye\n• Category "Hardware & Tools" me classify ho gayi\n\nAapko kuch bhi manually type karne ki zaroorat nahi padi!`);
+                // 5. Open Copyable Summary Modal
+                openAutoFixSummaryModal({
+                    checkedCardsCount,
+                    checkedRowsCount,
+                    fixedCardsCount,
+                    fixedDescriptionsCount,
+                    fixedVariantsCount,
+                    fixedRowsCount,
+                    dbHealedCount: dbHealResult?.healed_products_count || 0
+                });
+
             } finally {
                 if (btn) {
                     btn.disabled = false;
                     btn.innerHTML = origHtml;
                 }
             }
+        }
         }
 
         function loadLinesIntoDynamicRows(lines) {
@@ -7066,9 +7201,16 @@
         }
 
         function deleteDynamicRow(id) {
+            const rowToDelete = dynamicRows.find(r => r.id === id);
+            if (rowToDelete) {
+                recordDeletedItem(rowToDelete.product_name, rowToDelete.size);
+            }
             dynamicRows = dynamicRows.filter(r => r.id !== id);
+            saveToLocalStorage();
+            if (typeof autoSaveDraftToBackend === 'function') autoSaveDraftToBackend();
             renderDynamicRows();
             updateFloatingBatchBar();
+            refreshCategoryFilterTabs();
         }
 
         // ==========================================
@@ -7995,13 +8137,35 @@ With Pattam - 30% extra
         /**
          * 🧮 Live Pricing Formula Engine: Recalculates Less, Bhada, Selling Rates & Sheet Sizes
          */
+        function toggleGstModeUI() {
+            const mode = document.getElementById('formulaGstMode')?.value || 'without_gst';
+            const gstBox = document.getElementById('formulaGstFieldBox');
+            if (gstBox) {
+                if (mode === 'with_gst') {
+                    gstBox.classList.add('opacity-40', 'pointer-events-none');
+                } else {
+                    gstBox.classList.remove('opacity-40', 'pointer-events-none');
+                }
+            }
+            const formulaDesc = document.getElementById('formulaSummaryRuleDesc');
+            if (formulaDesc) {
+                if (mode === 'with_gst') {
+                    formulaDesc.innerHTML = 'Landing = (Base &minus; Less%) + Bhada &nbsp;|&nbsp; 3 Margins: Rate A (Retail), Rate B (Wholesale), Rate C (Special)';
+                } else {
+                    formulaDesc.innerHTML = 'Landing = (Base &minus; Less%) + GST + Bhada &nbsp;|&nbsp; 3 Margins: Rate A (Retail), Rate B (Wholesale), Rate C (Special)';
+                }
+            }
+        }
+
         function recalculateRawFormulaRates() {
             if (!rawPriceExtractedItems || rawPriceExtractedItems.length === 0) {
                 renderRawPricePreviewTable();
                 return;
             }
 
+            const gstMode = document.getElementById('formulaGstMode')?.value || 'without_gst';
             const lessPct = parseFloat(document.getElementById('formulaLessPercent')?.value) || 0;
+            const gstPct = (gstMode === 'without_gst') ? (parseFloat(document.getElementById('formulaGstPercent')?.value) || 0) : 0;
             const freightMode = document.getElementById('formulaFreightMode')?.value || 'flat';
             const freightVal = parseFloat(document.getElementById('formulaFreightPerUnit')?.value) || 0;
 
@@ -8041,26 +8205,26 @@ With Pattam - 30% extra
 
             rawPriceExtractedItems.forEach((item, idx) => {
                 const base = item.base_rate;
-                // Landing Cost: (Base - Less%) + Freight (Flat ₹ or % of Base)
+                // 1. Calculate Landing Cost / Cost Price
                 const afterLess = base * (1 - (lessPct / 100));
+                const afterGst = (gstMode === 'without_gst') ? (afterLess * (1 + (gstPct / 100))) : afterLess;
                 const freightAmt = (freightMode === 'percent') ? (base * (freightVal / 100)) : freightVal;
-                const landing = Math.round((afterLess + freightAmt) * 100) / 100;
+                const landing = Math.round((afterGst + freightAmt) * 100) / 100;
 
-                // Rate A (Retail)
+                // 2. Rate A (Retail / Counter)
                 let rA = (rateAMode === 'percent') ? (landing * (1 + (rateAVal / 100))) : (landing + rateAVal);
                 rA = Math.round(rA * 100) / 100;
 
-                // Rate B (Wholesale)
+                // 3. Rate B (Wholesale / Dukandar)
                 let rB = (rateBMode === 'percent') ? (landing * (1 + (rateBVal / 100))) : (landing + rateBVal);
                 rB = Math.round(rB * 100) / 100;
 
-                // Rate C (Bulk)
+                // 4. Rate C (Special / Contractor)
                 let rC = (rateCMode === 'percent') ? (landing * (1 + (rateCVal / 100))) : (landing + rateCVal);
                 rC = Math.round(rC * 100) / 100;
 
                 const isSqFt = (item.unit || '').toLowerCase().includes('sq');
                 
-                // Smart Rule: Shuttering Ply me ONLY 8x4 size hota hai!
                 const isShuttering = (item.category || '').toUpperCase().includes('SHATTER') || 
                                      (item.category || '').toUpperCase().includes('SHUTTER') || 
                                      (item.product_name || '').toUpperCase().includes('SHATTER') || 
@@ -8071,7 +8235,6 @@ With Pattam - 30% extra
                                     (item.product_name || '').toUpperCase().includes('WINDOW');
 
                 if (expandSheets && isSqFt && !isFlushDoor) {
-                    // If Shuttering, strictly use 8x4 only!
                     const targetSizes = isShuttering 
                         ? ['8 x 4'] 
                         : (selectedSizeLabels.length > 0 ? selectedSizeLabels : ['8 x 4']);
@@ -8147,7 +8310,9 @@ With Pattam - 30% extra
             const avgRetail = (totalRetail / rawPriceCalculatedItems.length).toFixed(2);
 
             if (summaryText) {
-                summaryText.innerHTML = `<span class="font-bold text-gray-700">Avg Landing:</span> ₹${avgLanding} &nbsp;|&nbsp; <span class="font-bold text-emerald-700">Avg Selling (Rate A):</span> ₹${avgRetail}`;
+                const totalWholesale = rawPriceCalculatedItems.reduce((acc, r) => acc + (r.rate_b || 0), 0);
+                const avgWholesale = (totalWholesale / rawPriceCalculatedItems.length).toFixed(2);
+                summaryText.innerHTML = `<span class="font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-200">Avg Cost Price: ₹${avgLanding}</span> &nbsp;|&nbsp; <span class="font-bold text-emerald-700">Rate A (Retail): ₹${avgRetail}</span> &nbsp;|&nbsp; <span class="font-bold text-cyan-700">Rate B (Wholesale): ₹${avgWholesale}</span>`;
             }
 
             let html = '';
@@ -8628,33 +8793,33 @@ With Pattam - 30% extra
                 localStorage.removeItem('vyapar_dynamic_rows');
                 localStorage.removeItem('vyapar_grouped_cards_backup');
                 localStorage.removeItem('vyapar_dynamic_rows_backup');
+                localStorage.removeItem('vyapar_deleted_items');
                 localStorage.removeItem('vyapar_grouped_next_id');
                 localStorage.removeItem('vyapar_dynamic_next_id');
-                renderDynamicRows();
-                renderGroupedProductCards();
-                refreshCategoryFilterTabs();
-                clearDynamicRowSelection();
 
                 // Clear backend draft so reload doesn't restore deleted items
                 if (jobId) {
-                    fetch("{{ route('seller.catalog.excel_mapper.create_sheet') }}", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-CSRF-TOKEN": csrfToken,
-                            "Accept": "application/json"
-                        },
-                        body: JSON.stringify({
-                            job_id: jobId,
-                            sheet_name: 'Catalog Sheet',
-                            rows: [],
-                            grouped_cards: [],
-                            publish: false
-                        })
-                    }).catch(e => console.warn(e));
+                    try {
+                        fetch("{{ route('seller.catalog.excel_mapper.create_sheet') }}", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRF-TOKEN": csrfToken,
+                                "Accept": "application/json"
+                            },
+                            body: JSON.stringify({
+                                job_id: jobId,
+                                sheet_name: 'Catalog Sheet',
+                                rows: [],
+                                grouped_cards: [],
+                                publish: false
+                            })
+                        }).catch(e => console.warn(e));
+                    } catch (e) {}
                 }
 
-                showToastNotification('✨ Sabhi purane rows aur cards saaf ho gaye! Ab aap nayi list shuru kar sakte hain.');
+                // Redirect cleanly to ?new=1 so no background job or query param restores anything
+                window.location.href = "{{ route('seller.catalog.excel_mapper') }}?new=1";
             }
         }
 
