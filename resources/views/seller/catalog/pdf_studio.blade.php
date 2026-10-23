@@ -1451,8 +1451,8 @@
             try {
                 // Displayed canvas size vs actual internal pixel resolution
                 const rect = canvas.getBoundingClientRect();
-                const scaleX = canvas.width / rect.width;
-                const scaleY = canvas.height / rect.height;
+                const scaleX = (rect.width > 0) ? (canvas.width / rect.width) : 1;
+                const scaleY = (rect.height > 0) ? (canvas.height / rect.height) : 1;
 
                 let actualX = Math.round(cropCoords.x * scaleX);
                 let actualY = Math.round(cropCoords.y * scaleY);
@@ -2382,14 +2382,28 @@
             return false;
         }
 
-        function extractBoxToExcel() {
+        async function extractBoxToExcel() {
             if (!cropCoords || cropCoords.w < 10 || cropCoords.h < 10) {
                 alert('Pehle mouse se PDF canvas par us table ya text area par rectangle box banayein.');
                 return;
             }
 
+            // If raw items not cached yet, try to load directly from PDF page
+            if ((!currentPageRawItems || currentPageRawItems.length === 0) && pdfDoc) {
+                try {
+                    const page = await pdfDoc.getPage(currentPdfPage);
+                    const textContent = await page.getTextContent();
+                    if (textContent && textContent.items) {
+                        currentPageRawItems = textContent.items;
+                        currentPageViewport = page.getViewport({ scale: currentScale });
+                    }
+                } catch (e) {
+                    console.warn('Could not re-fetch text content for box extraction:', e);
+                }
+            }
+
             if (!currentPageViewport || !currentPageRawItems || currentPageRawItems.length === 0) {
-                alert('PDF text items abhi load nahi hue hain ya is page par text uplabdh nahi hai.');
+                alert('Is PDF page par koi selectable digital text nahi mila (ye page scanned image/photo ho sakta hai). Scanned photo ke liye kripya "AI Smart Extract" ya "Crop Image" tool use karein.');
                 return;
             }
 
@@ -2855,7 +2869,7 @@
                     retail_price: Math.round(mrp * 0.88),
                     cost_price_2: 0,
                     cost_price_3: 0,
-                    hsn_code: '39174000',
+                    hsn_code: (r.hsn_code && r.hsn_code !== '-') ? r.hsn_code.trim() : '',
                     stock: 100
                 };
             });

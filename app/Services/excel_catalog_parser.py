@@ -165,7 +165,7 @@ def process_excel(excel_path, output_dir, job_id):
         wholesale_price = float(r[sale_c_idx]) if sale_c_idx < len(r) and r[sale_c_idx] is not None else round(pcost * 1.15, 2)
         category = str(r[category_idx]).strip() if category_idx < len(r) and r[category_idx] is not None else "Plumbing & Hardware"
         stock = int(r[stock_idx]) if stock_idx < len(r) and r[stock_idx] is not None and str(r[stock_idx]).isdigit() else None
-        hsn = str(r[hsn_idx]).strip() if hsn_idx < len(r) and r[hsn_idx] is not None else "3917"
+        hsn = str(r[hsn_idx]).strip() if hsn_idx < len(r) and r[hsn_idx] is not None else ""
 
         # Explicit image or auto-matched
         if image_idx is not None and image_idx < len(r) and r[image_idx]:

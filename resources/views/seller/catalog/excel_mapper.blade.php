@@ -2187,7 +2187,7 @@
     <!-- ========================================== -->
     <!-- ✨ AUTO-FIX SUMMARY REPORT MODAL (COPYABLE) -->
     <!-- ========================================== -->
-    <div id="autoFixSummaryModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] hidden flex items-center justify-center p-4" onclick="closeAutoFixSummaryModal()">
+    <div id="autoFixSummaryModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] hidden items-center justify-center p-4" style="display: none;" onclick="closeAutoFixSummaryModal()">
         <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-lg overflow-hidden animate-scale-up" onclick="event.stopPropagation()">
             <!-- Header -->
             <div class="px-5 py-4 bg-gradient-to-r from-amber-600 via-orange-600 to-indigo-600 text-white flex items-center justify-between">
@@ -4249,7 +4249,7 @@ function saveToLocalStorage() {
                         variants: variants.map((v) => ({
                             id: dynamicRowNextId++,
                             product_code: v.product_code || v.sku || '',
-                            hsn_code: v.hsn_code || '39174000',
+                            hsn_code: v.hsn_code || '',
                             size: v.size || v.variant_name || 'Standard',
                             packing_1: v.packing_1 || '',
                             packing_2: v.packing_2 || '',
@@ -4266,7 +4266,7 @@ function saveToLocalStorage() {
                     dynamicRows.push({
                         id: dynamicRowNextId++,
                         product_code: v.product_code || v.sku || '',
-                        hsn_code: v.hsn_code || '39174000',
+                        hsn_code: v.hsn_code || '',
                         product_name: prod.name,
                         description: prod.description || '',
                         size: v.size || v.variant_name || 'Standard',
@@ -4287,7 +4287,7 @@ function saveToLocalStorage() {
                     dynamicRows.push({
                         id: dynamicRowNextId++,
                         product_code: '',
-                        hsn_code: prod.hsn_code || '39174000',
+                        hsn_code: prod.hsn_code || '',
                         product_name: prod.name,
                         size: 'Standard',
                         packing_1: '',
@@ -5224,7 +5224,7 @@ function saveToLocalStorage() {
 
                 const name = (nameIdx !== -1 && row[nameIdx] !== undefined) ? String(row[nameIdx]).trim() : 'Sample Product';
                 const code = (codeIdx !== -1 && row[codeIdx] !== undefined) ? String(row[codeIdx]).trim() : '-';
-                const rawHsn = (hsnIdx !== -1 && row[hsnIdx] !== undefined && String(row[hsnIdx]).trim() !== '') ? String(row[hsnIdx]).trim() : '39174000';
+                const rawHsn = (hsnIdx !== -1 && row[hsnIdx] !== undefined && String(row[hsnIdx]).trim() !== '') ? String(row[hsnIdx]).trim() : '';
 
                 let size = (sizeIdx !== -1 && row[sizeIdx] !== undefined) ? String(row[sizeIdx]).trim() : '';
                 if (!size) {
@@ -5329,7 +5329,7 @@ function saveToLocalStorage() {
                 if (!rawName) continue;
 
                 const rawCode = (codeIdx !== -1 && row[codeIdx] !== undefined) ? String(row[codeIdx]).trim() : '';
-                const rawHsn = (hsnIdx !== -1 && row[hsnIdx] !== undefined && String(row[hsnIdx]).trim() !== '') ? String(row[hsnIdx]).trim() : '39174000';
+                const rawHsn = (hsnIdx !== -1 && row[hsnIdx] !== undefined && String(row[hsnIdx]).trim() !== '') ? String(row[hsnIdx]).trim() : '';
                 const rawDesc = (descIdx !== -1 && row[descIdx] !== undefined) ? String(row[descIdx]).trim() : '';
                 const rawImage = (imageIdx !== -1 && row[imageIdx] !== undefined) ? String(row[imageIdx]).trim() : '';
 
@@ -5613,13 +5613,13 @@ function saveToLocalStorage() {
                             existingCard.variants.push({
                                 id: r.id,
                                 product_code: r.product_code || '',
-                                hsn_code: r.hsn_code || '39174000',
+                                hsn_code: r.hsn_code || '',
                                 size: r.size || 'Standard',
                                 description: r.description || '',
                                 packing_1: r.packing_1 || '',
                                 packing_2: r.packing_2 || '',
                                 mrp: r.mrp,
-                                purchase_cost: r.purchase_cost,
+                                purchase_cost: (r.purchase_cost !== undefined && r.purchase_cost !== null && r.purchase_cost !== '') ? parseFloat(r.purchase_cost) : (parseFloat(r.cost_price || r.landing_cost) || 0),
                                 cost_price_2: r.cost_price_2 || 0,
                                 cost_price_3: r.cost_price_3 || 0,
                                 retail_price: r.retail_price,
@@ -5644,13 +5644,13 @@ function saveToLocalStorage() {
                         variants: rowsInFamily.map(r => ({
                             id: r.id,
                             product_code: r.product_code || '',
-                            hsn_code: r.hsn_code || '39174000',
+                            hsn_code: r.hsn_code || '',
                             size: r.size || 'Standard',
                             description: r.description || '',
                             packing_1: r.packing_1 || '',
                             packing_2: r.packing_2 || '',
                             mrp: r.mrp,
-                            purchase_cost: r.purchase_cost,
+                            purchase_cost: (r.purchase_cost !== undefined && r.purchase_cost !== null && r.purchase_cost !== '') ? parseFloat(r.purchase_cost) : (parseFloat(r.cost_price || r.landing_cost) || 0),
                             cost_price_2: r.cost_price_2 || 0,
                             cost_price_3: r.cost_price_3 || 0,
                             retail_price: r.retail_price,
@@ -5724,14 +5724,14 @@ function saveToLocalStorage() {
                     id: r.id,
                     product_code: r.product_code || '',
                     product_name: r.product_name || parentTitle,
-                    hsn_code: r.hsn_code || '39174000',
+                    hsn_code: r.hsn_code || '',
                     gst_percent: (r.gst_percent !== undefined) ? r.gst_percent : 18,
                     size: r.size || 'Standard',
                     description: r.description || '',
                     packing_1: r.packing_1 || '',
                     packing_2: r.packing_2 || '',
                     mrp: r.mrp,
-                    purchase_cost: r.purchase_cost,
+                    purchase_cost: (r.purchase_cost !== undefined && r.purchase_cost !== null && r.purchase_cost !== '') ? parseFloat(r.purchase_cost) : (parseFloat(r.cost_price || r.landing_cost) || 0),
                     cost_price_2: r.cost_price_2 || 0,
                     cost_price_3: r.cost_price_3 || 0,
                     price_effective_date: r.price_effective_date || '',
@@ -5800,7 +5800,7 @@ function saveToLocalStorage() {
                                 <input type="text" value="${escapeHtml(v.product_code || '')}" placeholder="SKU" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'product_code', this.value)" class="w-20 text-[11px] font-mono text-gray-600 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent">
                             </td>
                             <td class="p-2 font-mono">
-                                <input type="text" value="${escapeHtml(v.hsn_code || '39174000')}" placeholder="39174000" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'hsn_code', this.value)" class="w-20 text-[10px] font-mono text-indigo-700 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent" title="HSN Code">
+                                <input type="text" value="${escapeHtml(v.hsn_code || '39174000')}" placeholder="HSN Code" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'hsn_code', this.value)" class="w-20 text-[10px] font-mono text-indigo-700 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent" title="HSN Code">
                             </td>
                             <td class="p-2 font-mono text-[10px] text-indigo-700">
                                 <input type="text" value="${escapeHtml(packStr)}" placeholder="Box/Bag" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'packing_1', this.value)" class="w-24 text-[10px] font-mono text-indigo-700 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent">
@@ -5809,7 +5809,7 @@ function saveToLocalStorage() {
                                 <div class="flex items-center"><span class="text-gray-400 mr-0.5">₹</span><input type="number" step="0.5" value="${v.mrp}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'mrp', parseFloat(this.value) || 0)" class="w-16 text-xs font-bold text-gray-800 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent"></div>
                             </td>
                             <td class="p-2 font-mono">
-                                <div class="flex items-center"><span class="text-gray-400 mr-0.5">₹</span><input type="number" step="0.5" value="${v.purchase_cost}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'purchase_cost', parseFloat(this.value) || 0)" class="w-16 text-xs text-gray-600 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent"></div>
+                                <div class="flex items-center"><span class="text-gray-400 mr-0.5">₹</span><input type="number" step="0.5" value="${(v.purchase_cost !== undefined && v.purchase_cost !== null && v.purchase_cost !== '') ? v.purchase_cost : (v.cost_price || 0)}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'purchase_cost', parseFloat(this.value) || 0)" class="w-16 text-xs text-gray-600 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent"></div>
                             </td>
                             <td class="p-2 font-mono">
                                 <div class="flex items-center"><span class="text-gray-400 mr-0.5">₹</span><input type="number" step="0.5" value="${v.retail_price}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'retail_price', parseFloat(this.value) || 0)" class="w-16 text-xs font-bold text-emerald-700 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent"></div>
@@ -5846,6 +5846,21 @@ function saveToLocalStorage() {
                 const minRate = sellingRates.length > 0 ? Math.min(...sellingRates) : 0;
                 const maxRate = sellingRates.length > 0 ? Math.max(...sellingRates) : 0;
 
+                
+                // Calculate Cost Price range for card badge
+                const costRates = (c.variants || []).map(v => parseFloat((v.purchase_cost !== undefined && v.purchase_cost !== null && v.purchase_cost !== '') ? v.purchase_cost : (v.cost_price || 0)) || 0).filter(r => r > 0);
+                const minCost = costRates.length > 0 ? Math.min(...costRates) : 0;
+                const maxCost = costRates.length > 0 ? Math.max(...costRates) : 0;
+
+                let costBadgeHtml = '';
+                if (minCost > 0) {
+                    if (minCost === maxCost) {
+                        costBadgeHtml = `<span class="px-2.5 py-0.5 rounded-lg bg-amber-50 text-amber-800 font-black text-[10px] border border-amber-200 font-mono flex items-center gap-1" title="Cost / Landing Rate"><i class="fa-solid fa-receipt text-[9px] text-amber-600"></i> Cost: ₹${minCost.toFixed(2)}</span>`;
+                    } else {
+                        costBadgeHtml = `<span class="px-2.5 py-0.5 rounded-lg bg-amber-50 text-amber-800 font-black text-[10px] border border-amber-200 font-mono flex items-center gap-1" title="Cost / Landing Rate Range"><i class="fa-solid fa-receipt text-[9px] text-amber-600"></i> Cost: ₹${minCost.toFixed(2)} – ₹${maxCost.toFixed(2)}</span>`;
+                    }
+                }
+
                 const isPlywoodOrBoard = (cardCategory.toUpperCase().includes('PLY') || cardCategory.toUpperCase().includes('BOARD') || cardCategory.toUpperCase().includes('DOOR') || (c.parent_name || '').toUpperCase().includes('PLY'));
                 const hasSheetSizes = (c.variants || []).some(v => (v.size || '').includes('x') || (v.size || '').includes('X') || (v.size || '').toLowerCase().includes('sheet'));
 
@@ -5856,9 +5871,9 @@ function saveToLocalStorage() {
                         const sqftRate = parseFloat(c.variants[0]?.purchase_cost || c.variants[0]?.retail_price || 0);
                         rateBadgeHtml = `<span class="px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 font-black text-[10px] border border-emerald-200 font-mono flex items-center gap-1"><i class="fa-solid fa-tag text-[9px] text-emerald-600"></i> ₹${sqftRate.toFixed(2)} / sqft</span>`;
                     } else if (minRate === maxRate) {
-                        rateBadgeHtml = `<span class="px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 font-black text-[10px] border border-emerald-200 font-mono flex items-center gap-1"><i class="fa-solid fa-tag text-[9px] text-emerald-600"></i> ₹${minRate.toFixed(2)}</span>`;
+                        rateBadgeHtml = `<span class="px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 font-black text-[10px] border border-emerald-200 font-mono flex items-center gap-1"><i class="fa-solid fa-tag text-[9px] text-emerald-600"></i> Selling: ₹${minRate.toFixed(2)}</span>`;
                     } else {
-                        rateBadgeHtml = `<span class="px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 font-black text-[10px] border border-emerald-200 font-mono flex items-center gap-1"><i class="fa-solid fa-tags text-[9px] text-emerald-600"></i> ₹${minRate.toFixed(2)} – ₹${maxRate.toFixed(2)} / Sheet</span>`;
+                        rateBadgeHtml = `<span class="px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 font-black text-[10px] border border-emerald-200 font-mono flex items-center gap-1"><i class="fa-solid fa-tags text-[9px] text-emerald-600"></i> Selling: ₹${minRate.toFixed(2)} – ₹${maxRate.toFixed(2)} / Sheet</span>`;
                     }
                 }
 
@@ -5903,6 +5918,7 @@ function saveToLocalStorage() {
                                         <span class="px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 font-extrabold text-[10px] border border-indigo-100 flex items-center gap-1">
                                             <i class="fa-solid fa-layer-group text-[9px]"></i> ${c.variants.length} Sizes Included
                                         </span>
+                                        ${costBadgeHtml}
                                         ${rateBadgeHtml}
                                     </div>
                                     <div>
@@ -6068,7 +6084,7 @@ function saveToLocalStorage() {
             dynamicRows.unshift({
                 id: dynamicRowNextId++,
                 product_code: v.product_code || '',
-                hsn_code: v.hsn_code || '39174000',
+                hsn_code: v.hsn_code || '',
                 product_name: rowName,
                 description: v.description || card.description || '',
                 size: v.size || 'Standard',
@@ -6151,7 +6167,7 @@ function saveToLocalStorage() {
                 dynamicRows.unshift({
                     id: dynamicRowNextId++,
                     product_code: v.product_code || '',
-                    hsn_code: v.hsn_code || '39174000',
+                    hsn_code: v.hsn_code || '',
                     product_name: v.product_name || card.parent_name,
                     description: card.description || v.description || '',
                     size: v.size || 'Standard',
@@ -6199,7 +6215,7 @@ function saveToLocalStorage() {
                         dynamicRows.push({
                             id: dynamicRowNextId++,
                             product_code: v.product_code || '',
-                            hsn_code: v.hsn_code || '39174000',
+                            hsn_code: v.hsn_code || '',
                             product_name: v.product_name || card.parent_name,
                             description: card.description || v.description || '',
                             size: v.size || 'Standard',
@@ -6240,7 +6256,7 @@ function saveToLocalStorage() {
             const newVariant = {
                 id: dynamicRowNextId++,
                 product_code: '',
-                hsn_code: lastVar ? (lastVar.hsn_code || '39174000') : '39174000',
+                hsn_code: lastVar ? (lastVar.hsn_code || '') : '',
                 size: '',
                 packing_1: lastVar ? lastVar.packing_1 : '',
                 packing_2: lastVar ? lastVar.packing_2 : '',
@@ -6288,12 +6304,12 @@ function saveToLocalStorage() {
                 card.variants.push({
                     id: r.id,
                     product_code: r.product_code || '',
-                    hsn_code: r.hsn_code || '39174000',
+                    hsn_code: r.hsn_code || '',
                     size: r.size || 'Standard',
                     packing_1: r.packing_1 || '',
                     packing_2: r.packing_2 || '',
                     mrp: r.mrp,
-                    purchase_cost: r.purchase_cost,
+                    purchase_cost: (r.purchase_cost !== undefined && r.purchase_cost !== null && r.purchase_cost !== '') ? parseFloat(r.purchase_cost) : (parseFloat(r.cost_price || r.landing_cost) || 0),
                     cost_price_2: r.cost_price_2 || 0,
                     cost_price_3: r.cost_price_3 || 0,
                     retail_price: r.retail_price,
@@ -6990,11 +7006,15 @@ function saveToLocalStorage() {
             `;
 
             modal.classList.remove('hidden');
+            modal.style.display = 'flex';
         }
 
         function closeAutoFixSummaryModal() {
             const modal = document.getElementById('autoFixSummaryModal');
-            if (modal) modal.classList.add('hidden');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+            }
         }
 
         function copyAutoFixSummaryText() {
@@ -7207,7 +7227,7 @@ function saveToLocalStorage() {
             dynamicRows.push({
                 id: dynamicRowNextId++,
                 product_code: '',
-                hsn_code: '39174000',
+                hsn_code: '',
                 product_name: 'New Product Item',
                 size: 'Standard',
                 packing_1: '',
@@ -7638,7 +7658,7 @@ function saveToLocalStorage() {
                 dynamicRows.push({
                     id: dynamicRowNextId++,
                     product_code: item.sku || `ITM-${100 + idx}`,
-                    hsn_code: '39174000',
+                    hsn_code: '',
                     product_name: item.name,
                     size: item.size,
                     packing_1: item.pack1 || '',
@@ -8745,7 +8765,7 @@ With Pattam - 30% extra
                             <input type="text" value="${escapeHtml(r.item_code || r.product_code || '')}" placeholder="Item Code" oninput="updateDynamicRowField(${r.id}, 'product_code', this.value); updateDynamicRowField(${r.id}, 'item_code', this.value);" class="w-24 text-[11px] font-mono text-gray-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" title="Product / Item Code (SKU)">
                         </td>
                         <td class="p-3">
-                            <input type="text" value="${escapeHtml(r.hsn_code || '39174000')}" placeholder="39174000" oninput="updateDynamicRowField(${r.id}, 'hsn_code', this.value)" class="w-20 text-[11px] font-mono text-indigo-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" title="HSN / SAC Code">
+                            <input type="text" value="${escapeHtml(r.hsn_code || '39174000')}" placeholder="HSN Code" oninput="updateDynamicRowField(${r.id}, 'hsn_code', this.value)" class="w-20 text-[11px] font-mono text-indigo-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" title="HSN / SAC Code">
                             <div class="flex items-center gap-0.5 mt-0.5" title="GST Rate % (Item par kitna % GST hai, e.g. 0%, 5%, 12%, 18%)">
                                 <span class="text-[9px] text-gray-400 font-bold">GST:</span>
                                 <input type="number" step="1" value="${r.gst_percent !== undefined ? r.gst_percent : 18}" oninput="updateDynamicRowField(${r.id}, 'gst_percent', parseFloat(this.value) || 0)" class="w-10 text-[10px] font-mono font-bold text-emerald-700 border border-transparent hover:border-emerald-300 focus:border-emerald-600 focus:bg-white rounded px-0.5 bg-transparent">
@@ -9138,7 +9158,7 @@ With Pattam - 30% extra
 
                     alert(data.message || `🎉 "${targetCategory}" ke products live store me successfully publish ho gaye!`);
                     // Switch to Live Tab filtered by that category!
-                    window.location.href = "{{ route('seller.catalog.excel_mapper') }}?view=live&category=" + encodeURIComponent(targetCategory);
+                    window.location.href = "{{ route('home') }}";
                 } else {
                     alert(data.message || 'Error saving sheet.');
                     updatePublishButtonText();

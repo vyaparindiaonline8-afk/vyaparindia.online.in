@@ -407,7 +407,7 @@ class CatalogIngestionController extends Controller
                         'group_name' => $prodData['group_name'] ?? ($prodData['group_type'] ?? 'Plumbing'),
                         'slug' => Str::slug($prodData['name']) . '-' . Str::random(5),
                         'description' => $prodData['description'] ?? '',
-                        'hsn_code' => $prodHsn = ($prodData['hsn_code'] ?? '39174000'),
+                        'hsn_code' => $prodHsn = (!empty($prodData['hsn_code']) ? trim($prodData['hsn_code']) : null),
                         'image' => $prodData['image_url'] ?? null,
                         'purchase_price' => $basePurchase,
                         'wholesale_price' => $baseWholesale,
@@ -826,7 +826,7 @@ class CatalogIngestionController extends Controller
         }
 
         $prodName = trim($request->input('product_name') ?: $product->name);
-        $prodHsn = trim($request->input('hsn_code') ?: ($product->hsn_code ?: '39174000'));
+        $prodHsn = trim($request->input('hsn_code') ?: ($product->hsn_code ?: null));
         $variantsInput = $request->input('variants', []);
 
         DB::transaction(function () use ($product, $prodName, $prodHsn, $variantsInput) {
@@ -2887,7 +2887,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                         'size' => $v->size ?: $v->variant_name,
                         'product_code' => $v->sku,
                         'sku' => $v->sku,
-                        'hsn_code' => $p->hsn_code ?: '39174000',
+                        'hsn_code' => $p->hsn_code ?: '',
                         'mrp' => (float)($v->mrp ?: $p->mrp),
                         'retail_price' => (float)($v->retail_price ?: ($v->price ?: $p->price)),
                         'wholesale_price' => (float)($v->wholesale_price ?: $v->retail_price),
@@ -2906,7 +2906,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                     'size' => 'Standard',
                     'product_code' => $p->sku,
                     'sku' => $p->sku,
-                    'hsn_code' => $p->hsn_code ?: '39174000',
+                    'hsn_code' => $p->hsn_code ?: '',
                     'mrp' => (float)$p->mrp,
                     'retail_price' => (float)$p->price,
                     'wholesale_price' => (float)($p->wholesale_price ?: $p->price),
@@ -2925,7 +2925,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                 'group_type' => $p->group_name ?: ($p->category->name ?? 'Plumbing'),
                 'brand' => $p->brand ?: 'Plasto',
                 'image_url' => $p->image,
-                'hsn_code' => $p->hsn_code ?: '39174000',
+                'hsn_code' => $p->hsn_code ?: '',
                 'variants' => $variants,
             ];
         }
@@ -3237,14 +3237,14 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                 $vRetail = floatval($v['retail_price'] ?? ($vMrp * 0.85));
                 $vStock = isset($v['stock']) && $v['stock'] !== '' ? intval($v['stock']) : (isset($v['stock_quantity']) && $v['stock_quantity'] !== '' ? intval($v['stock_quantity']) : 0);
 
-                $vHsn = trim($v['hsn_code'] ?? '39174000');
+                $vHsn = !empty($v['hsn_code']) ? trim($v['hsn_code']) : '';
                 $vGst = isset($v['gst_percent']) ? floatval($v['gst_percent']) : (isset($card['gst_percent']) ? floatval($card['gst_percent']) : 18.0);
                 $cardVariants[] = [
                     'variant_name' => $vSize ?: 'Standard',
                     'size' => $vSize ?: 'Standard',
                     'sku' => $vCode ?: ('VAR-' . strtoupper(Str::random(6))),
                     'product_code' => $vCode,
-                    'hsn_code' => $vHsn ?: '39174000',
+                    'hsn_code' => $vHsn,
                     'gst_percent' => $vGst,
                     'packing_1' => $vPack1,
                     'packing_2' => $vPack2,
@@ -3268,7 +3268,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                     'group_type' => $groupType,
                     'image_url' => $img,
                     'effective_date' => $effectiveDate ?: null,
-                    'hsn_code' => $cardVariants[0]['hsn_code'] ?? '39174000',
+                    'hsn_code' => $cardVariants[0]['hsn_code'] ?? '',
                     'gst_percent' => isset($card['gst_percent']) ? floatval($card['gst_percent']) : ($cardVariants[0]['gst_percent'] ?? 18.0),
                     'variants' => $cardVariants,
                 ];
@@ -3281,7 +3281,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
             $prodName = trim($r['product_name'] ?? 'Product Item');
             $size = trim($r['size'] ?? 'Standard');
             $code = trim($r['product_code'] ?? ($r['sku'] ?? ''));
-            $hsn = trim($r['hsn_code'] ?? '39174000');
+            $hsn = !empty($r['hsn_code']) ? trim($r['hsn_code']) : '';
             $pack1 = trim($r['packing_1'] ?? '');
             $pack2 = trim($r['packing_2'] ?? '');
             $mrp = floatval($r['mrp'] ?? 100);
@@ -3303,7 +3303,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                     'group_type' => $groupType,
                     'image_url' => $img,
                     'effective_date' => $effectiveDate ?: null,
-                    'hsn_code' => $hsn ?: '39174000',
+                    'hsn_code' => $hsn,
                     'gst_percent' => isset($r['gst_percent']) ? floatval($r['gst_percent']) : 18.0,
                     'variants' => [],
                 ];
@@ -3318,7 +3318,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                 'size' => $size ?: 'Standard',
                 'sku' => $code ?: ('VAR-' . strtoupper(Str::random(6))),
                 'product_code' => $code,
-                'hsn_code' => $hsn ?: '39174000',
+                'hsn_code' => $hsn,
                 'gst_percent' => isset($r['gst_percent']) ? floatval($r['gst_percent']) : 18.0,
                 'packing_1' => $pack1,
                 'packing_2' => $pack2,
@@ -3422,8 +3422,8 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
 
         $publishedCount = $this->performDirectPublish($job, $products, $userId);
 
-        return redirect()->route('seller.inventory.index')
-            ->with('success', "🎉 Mubarakan! {$publishedCount} grouped products live store me successfully publish ho gaye hain!");
+        return redirect()->route('home')
+            ->with('success', "🎉 Mubarakan! {$publishedCount} grouped products live marketplace par successfully publish ho gaye hain!");
     }
 
     /**
@@ -3472,7 +3472,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                     $cost2 = floatval($firstVar['cost_price_2'] ?? 0);
                     $cost3 = floatval($firstVar['cost_price_3'] ?? 0);
 
-                    $prodHsn = !empty($prodData['hsn_code']) ? $prodData['hsn_code'] : (!empty($firstVar['hsn_code']) ? $firstVar['hsn_code'] : '39174000');
+                    $prodHsn = !empty($prodData['hsn_code']) ? $prodData['hsn_code'] : (!empty($firstVar['hsn_code']) ? $firstVar['hsn_code'] : null);
                     $prodBrand = !empty($prodData['brand']) ? trim($prodData['brand']) : (
                         stripos($prodName, 'Yorker') !== false ? 'Yorker' : (
                             stripos($prodName, 'Astral') !== false ? 'Astral' : (

@@ -228,7 +228,7 @@ def process_pdf(pdf_path, output_dir, job_id, skip_images=False, page_range="all
                     "base_price": price_found,
                     "mrp": round(price_found * 1.35, 2),
                     "image_url": matched_img,
-                    "hsn_code": "39174000",
+                    "hsn_code": "",
                     "sku": f"PRD-{re.sub(r'[^A-Za-z0-9]', '', block_text)[:8].upper()}-{len(products)+1}",
                     "variants": [],
                     "stock_quantity": None  # Optional
