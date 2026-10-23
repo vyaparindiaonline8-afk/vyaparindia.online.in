@@ -172,7 +172,11 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                    <div id="pdfImportAlertActions" class="hidden flex items-center gap-2">
+                    <div id="pdfImportAlertActions" class="hidden flex flex-wrap items-center gap-2">
+                        <button type="button" onclick="clearOldDraftAndKeepOnlyNewPdf()" class="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black transition flex items-center gap-1.5 shadow-sm cursor-pointer" title="Purana electric tools/hardware data hatakar sirf abhi ke naye PDF items par kaam karein">
+                            <i class="fa-solid fa-broom text-xs"></i>
+                            <span>🧹 Purana Saaf Karein (Sirf Naya PDF)</span>
+                        </button>
                         <button type="button" onclick="mergeWithPreviousDraft()" class="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-gray-950 text-xs font-black transition flex items-center gap-1.5 shadow-sm cursor-pointer" title="Purane draft ko is naye PDF data ke sath jod dein">
                             <i class="fa-solid fa-code-merge text-xs"></i>
                             <span>Purane Draft me Jodein (Merge)</span>
@@ -1675,17 +1679,14 @@
                     <p class="text-[10px] text-gray-400 mt-1">Preset chunein ya apna category naam likhein.</p>
                 </div>
 
-                <!-- Quick Preset Pills -->
-                <div class="space-y-1.5">
-                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider">Quick Presets:</label>
-                    <div class="flex flex-wrap gap-1.5">
-                        <button type="button" onclick="setBulkCategoryInput('CPVC')" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold border border-amber-200">CPVC</button>
-                        <button type="button" onclick="setBulkCategoryInput('UPVC')" class="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-bold border border-blue-200">UPVC</button>
-                        <button type="button" onclick="setBulkCategoryInput('Pipes & Fittings')" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs font-bold border border-emerald-200">Pipes & Fittings</button>
-                        <button type="button" onclick="setBulkCategoryInput('SWR & Drainage')" class="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-900 text-xs font-bold border border-purple-200">SWR & Drainage</button>
-                        <button type="button" onclick="setBulkCategoryInput('Sanitaryware')" class="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-900 text-xs font-bold border border-teal-200">Sanitaryware</button>
-                        <button type="button" onclick="setBulkCategoryInput('General Hardware')" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold">General Hardware</button>
-                        <button type="button" onclick="setBulkCategoryInput('Electrical & Wiring')" class="px-2.5 py-1 rounded-lg bg-yellow-50 hover:bg-yellow-100 text-yellow-900 text-xs font-bold border border-yellow-200">Electrical</button>
+                <!-- Dynamic Category Selector & Quick Preset Pills -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider">Existing & Available Categories:</label>
+                        <span class="text-[10px] text-amber-800 bg-amber-100 font-bold px-2 py-0.5 rounded-full" id="bulkCategoryCountPill">Categories</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1.5 bg-slate-50 rounded-2xl border border-gray-200" id="bulkCategoryPresetPillsContainer">
+                        <!-- Populated dynamically with all store, photo folder & draft categories -->
                     </div>
                 </div>
 
@@ -4392,6 +4393,11 @@
                     const sku = itemCode || (r.sku && r.sku !== '-' ? r.sku.trim() : '');
                     const mrp = isNaN(parseFloat(r.mrp)) ? 0 : parseFloat(r.mrp);
                     const price = isNaN(parseFloat(r.price)) ? mrp : parseFloat(r.price);
+                    const pack1 = (r.packing_1 && r.packing_1 !== '-') ? r.packing_1.trim() : (r.unit || '');
+                    const pack2 = (r.packing_2 && r.packing_2 !== '-') ? r.packing_2.trim() : '';
+                    const desc = (r.description && r.description !== '-') ? r.description.trim() : (r.specifications || '');
+                    const hsn = (r.hsn_code && r.hsn_code !== '-') ? r.hsn_code.trim() : '';
+
                     let category = (r.category && r.category !== '-') ? r.category.trim() : targetCategory;
                     if (!r.category || r.category === 'General' || r.category === 'General Hardware') {
                         const combined = ((name || '') + ' ' + (desc || '') + ' ' + (size || '')).toUpperCase();
@@ -4404,10 +4410,6 @@
                         else if (/HARDWARE|PLYWOOD/i.test(combined)) category = 'HARDWARE PLYWOOD';
                         else if (/ELECTRIC|TOOL/i.test(combined)) category = 'ELECTRIC TOOLS';
                     }
-                    const pack1 = (r.packing_1 && r.packing_1 !== '-') ? r.packing_1.trim() : (r.unit || '');
-                    const pack2 = (r.packing_2 && r.packing_2 !== '-') ? r.packing_2.trim() : '';
-                    const desc = (r.description && r.description !== '-') ? r.description.trim() : (r.specifications || '');
-                    const hsn = (r.hsn_code && r.hsn_code !== '-') ? r.hsn_code.trim() : '';
 
                     dynamicRows.push({
                         id: dynamicRowNextId++,
@@ -7038,6 +7040,65 @@
         // ==========================================
         // ⚡ BULK CATEGORY CHANGER FUNCTIONS
         // ==========================================
+        function getAllKnownCategories() {
+            const catsSet = new Set();
+
+            // 1. Photo Bank Folders
+            const folderSelect = document.getElementById('onPageFolderSelect');
+            if (folderSelect) {
+                Array.from(folderSelect.options).forEach(opt => {
+                    const v = (opt.value || '').trim();
+                    if (v && v !== 'ALL') catsSet.add(v);
+                });
+            }
+
+            // 2. Datalist categories from database
+            const dl = document.getElementById('allCategoriesList');
+            if (dl) {
+                Array.from(dl.options).forEach(opt => {
+                    const v = (opt.value || '').trim();
+                    if (v) catsSet.add(v);
+                });
+            }
+
+            // 3. Dynamic Rows
+            if (Array.isArray(dynamicRows)) {
+                dynamicRows.forEach(r => {
+                    const c = (r.group_type || r.category || '').trim();
+                    if (c) catsSet.add(c);
+                });
+            }
+
+            // 4. Grouped Cards
+            if (Array.isArray(groupedProductCards)) {
+                groupedProductCards.forEach(card => {
+                    const c = (card.category || card.group_type || '').trim();
+                    if (c) catsSet.add(c);
+                });
+            }
+
+            // Standards
+            ['Florex Ptmt & Bath Fittings', 'CPVC PIPES&FITTINGS', 'UPVC PIPE&FITTINGS', 'SWR PIPES&FITTINGS', 'BATH PVC&PTMT FITTINGS', 'AGRI PIPES&FITTINGS', 'General Hardware', 'Electrical & Wiring'].forEach(c => catsSet.add(c));
+
+            return Array.from(catsSet).filter(c => c && c.length > 0).sort((a, b) => a.localeCompare(b));
+        }
+
+        function clearOldDraftAndKeepOnlyNewPdf() {
+            if (confirm('Kya aap purana bacha hua data (purane cards ya purane items) hatakar SIRF abhi ke naye PDF items table me rakhna chahte hain?')) {
+                groupedProductCards = [];
+                localStorage.removeItem('vyapar_grouped_cards');
+                localStorage.removeItem('vyapar_grouped_cards_backup');
+                localStorage.removeItem('vyapar_grouped_next_id');
+                saveToLocalStorage();
+                renderDynamicRows();
+                renderGroupedProductCards();
+                refreshCategoryFilterTabs();
+                showToastNotification('✅ Purana data saaf ho gaya! Ab workspace me sirf aapke naye PDF items hain.');
+                const alertEl = document.getElementById('pdfImportSuccessAlert');
+                if (alertEl) alertEl.classList.add('hidden');
+            }
+        }
+
         function openBulkCategoryModal() {
             const modal = document.getElementById('bulkCategoryModal');
             if (!modal) return;
@@ -7053,6 +7114,38 @@
                 radios.forEach(r => { if (r.value === 'selected') r.checked = true; });
             } else {
                 radios.forEach(r => { if (r.value === 'all') r.checked = true; });
+            }
+
+            // Populate all known categories dynamically as clickable preset pills
+            const allCats = getAllKnownCategories();
+            const container = document.getElementById('bulkCategoryPresetPillsContainer');
+            const countPill = document.getElementById('bulkCategoryCountPill');
+            if (countPill) countPill.innerText = `${allCats.length} Categories Available`;
+
+            if (container) {
+                const currentVal = (document.getElementById('bulkCategoryInput')?.value || '').trim();
+                container.innerHTML = allCats.map(cat => {
+                    const safeCat = escapeHtml(cat);
+                    const isSelected = currentVal === cat;
+                    return `
+                        <button type="button" onclick="setBulkCategoryInput('${safeCat}')" class="px-2.5 py-1 rounded-xl text-xs font-bold border transition active:scale-95 cursor-pointer ${isSelected ? 'bg-amber-500 text-gray-950 border-amber-600 shadow-xs' : 'bg-white hover:bg-amber-50 hover:text-amber-900 text-slate-800 border-slate-200'}">
+                            <span>${safeCat}</span>
+                        </button>
+                    `;
+                }).join('');
+            }
+
+            // Ensure datalist also has all categories for autocomplete
+            const dl = document.getElementById('allCategoriesList');
+            if (dl) {
+                const existing = new Set(Array.from(dl.options).map(o => o.value));
+                allCats.forEach(cat => {
+                    if (!existing.has(cat)) {
+                        const opt = document.createElement('option');
+                        opt.value = cat;
+                        dl.appendChild(opt);
+                    }
+                });
             }
 
             modal.classList.remove('hidden');
