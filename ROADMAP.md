@@ -88,3 +88,99 @@ flowchart TD
 * **Zero Graphic/Video Editing Skills Required:** Chhota dukandar ya wholesale dealer bina kisi video editor ke apne products ka professional promo video 10 second me bana lega.
 * **5x Higher Engagement on WhatsApp:** Static excel sheet ya 30 alag photos bhejne ke bajaye 1 compact reel video bhejna buyers ko zyada pasand aata hai.
 * **Instant Category Exploration:** Buyer ko poori category ke saare best products 1 minute ke video me dikh jayenge.
+
+---
+
+## 🌐 [Main Consumer & Buyer App Architecture] Hyperlocal Proximity Discovery, Multi-Quotation RFQ & Modular Algorithm Engine
+
+> **Document Type:** Core Architecture Specification & Modular Algorithm Roadmap  
+> **Target Scope:** Customer & Buyer Facing Marketplace (Web, Android & iOS Native App)  
+> **Key USP:** Hyperlocal GPS Proximity, Single-Store Cart Consolidation, AI Hardware Photo RFQ & Quotation Monetization
+
+---
+
+### 1. Architectural Philosophy: Decoupled & Modular Algorithm Engine
+Aapke nirdesh anusaar, jab main customer application ka launch hoga, to saare ranking, distance calculation, seller scoring, aur quotation pricing rules **ek alag modular algorithm file/service layer** (`app/Services/Algorithms/MarketplaceAlgorithmEngine.php` aur `config/marketplace_algorithm.php`) me rakhe jayenge.
+* **Zero Hardcoding:** Kisi bhi radius, distance multiplier, discount weight ya quotation fee ko hardcode nahi kiya jayega.
+* **Admin Tunable:** Admin Dashboard se dynamic parameters (jaise ₹100 for 5 quotations ya ₹25 per quotation, search radius 5km/15km/50km) ko kisi bhi waqt bina code badle adjust kiya ja sakega.
+
+---
+
+### 2. Core Modules & User Journeys (मुख्य फीचर्स व कार्यप्रणाली)
+
+#### 📍 Module A: Live GPS-Based Location Engine & Buyer Profile
+1. **Accurate GPS Geo-tagging:**
+   * Jab buyer app kholega, system HTML5 Geolocation / Native GPS se device ki live `latitude`, `longitude`, `city`, `pincode`, aur `locality` capture karke buyer profile me store karega.
+   * Buyer ko multi-address capability milegi: *Current GPS Location*, *Saved Site/Godown Address*, ya *City Selector*.
+2. **City-Wise Top Businesses Showcase:**
+   * Buyer ke GPS location ke hisab se home screen par uski specific city/market ke **Top Verified Businesses & Wholesale Hubs** highlight honge.
+   * Ranking metrics: *Verified GST badge*, *Stock Volume*, *Fulfillment Rate*, aur *Customer Rating*.
+
+#### 🔍 Module B: Hyperlocal Nearest Product Search (सबसे करीब की दुकान पहले)
+1. **Geospatial Proximity Query:**
+   * Jab buyer kisi product ko search karega (jaise *"1 inch CPVC Tee"*, *"Wall Mixer"*, *"Polycab 2.5mm Wire"*), algorithm search index me matching items search karega.
+   * Result sorting formula:
+     $$\text{Final Score} = w_1 \times \frac{1}{\text{Distance (km)}} + w_2 \times \text{In-Stock Status} + w_3 \times \text{Price Competitiveness} + w_4 \times \text{Seller Rating}$$
+   * Sabse kareeb (nearest shop within 2km, 5km, 15km) jahan wo item stock me uplabdh hai, wo sabse upar dikhega.
+2. **Seamless Store Profile & Cart Consolidation:**
+   * Jaise hi buyer us product card par click karega, wo seedha **us specific business ke full profile/catalog page** par land karega.
+   * **Single-Store Cart Benefit:** B2B aur hardware buyers alag-alag 10 dukano se 1-1 item mangwane ke bajaye ek hi dukan se poora order lena chahte hain taaki local delivery/tempo ek hi baar me ho sake. Buyer usi seller ki profile se baaki fitting aur items cart me jod sakega.
+
+#### 📝 Module C: Hardware & Custom Photo Parchi Order / Multi-Quotation RFQ Engine
+1. **Photo / Handwritten Slip Upload:**
+   * Hardware, electrical, plumbing aur sanitary me aksar mistri ya customer parchi par pencil se saman likhte hain ya site ki photo bhejte hain.
+   * Buyer apni handwritten parchi ya item photo app me upload karega.
+   * OCR / AI Vision us parchi ko ek neat itemized bill / request for quotation (RFQ) me convert karega.
+2. **Direct Business Routing:**
+   * Buyer apni pasandida local shop ko ye quotation list direct bhej sakega.
+3. **5-Shop Multi-Quotation Matchmaker (Revenue & Monetization Engine):**
+   * Jaise hi list banegi, system buyer ko ek smart prompt dega:
+     > *"💡 Kya aap chahte hain ki ye quotation aapke area ke 5 aur verified wholesale dukaano ko bhejkar sabse sasta rate compare karwaya jaye?"*
+   * **Flexible Quotation Pricing Engine:**
+     - Option A: **Flat Slab Pack:** e.g. ₹100 me 5 Verified Quotations.
+     - Option B: **Per-Quotation Micro-fee:** e.g. ₹25 per extra quotation.
+   * Sellers ko notification aayega, wo apna best quotation rate submit karenge, aur buyer ko 1 comparison table me sabhi ke rates dikhenge jahan se wo sabse saste seller ko order confirm kar sakega.
+
+#### 🎥 Module D: Seller Social Profile & Video Reels Integration
+1. **YouTube Shorts & Instagram Reels Embedding:**
+   * Seller apne dashboard se apne showroom, factory, ya new product stock ke **YouTube Shorts URLs** ya **Instagram Reels URLs** paste kar sakega.
+2. **Engaging Video Showcase on Business Profile:**
+   * Seller ke public profile par ek stylish **"Watch Store Reels"** tab dikhega.
+   * Buyer bina YouTube ya Instagram app khole VyaparIndia app ke andar hi full-screen vertical swipe format me unke product video demos dekh sakega aur direct video ke neeche se item add-to-cart kar sakega.
+
+---
+
+### 3. Algorithm Engine Flow Diagram
+
+```mermaid
+flowchart TD
+    U["Buyer App Opened"] --> GPS["Capture Live GPS & Store in Profile"]
+    GPS --> Home["Show Top Verified Businesses in City"]
+    
+    GPS --> S["Buyer Searches Product"]
+    S --> PAlgo["Hyperlocal Proximity Algorithm Engine (Distance + Stock + Rating)"]
+    PAlgo --> SResults["Rank Nearest Available Shops First"]
+    SResults --> StoreProf["Navigate to Single Business Profile (Single-Store Cart Consolidation)"]
+    
+    GPS --> RFQ["Buyer Uploads Handwritten Slip / Site Photo"]
+    RFQ --> Vision["AI Digitizes Items List"]
+    Vision --> Choice{"Comparison Prompt"}
+    Choice -->|"Single Direct"| D1["Send to Chosen Local Business"]
+    Choice -->|"Multi-Quotation"| Pricing["Algorithm Rate Engine: ₹100 for 5 Quotes / ₹25 per Quote"]
+    Pricing --> Broad["Broadcast RFQ to 5 Nearest Verified Sellers"]
+    Broad --> Compare["Rate Comparison Dashboard for Buyer"]
+    
+    StoreProf --> Reels["Interactive YouTube / Instagram Video Reels Drawer"]
+```
+
+---
+
+### 4. Implementation Phasing Strategy
+
+| Milestone | Target Component | Key Deliverables |
+|---|---|---|
+| **Phase 1** | **Modular Algorithm Core** | `config/marketplace_algorithm.php` + `MarketplaceAlgorithmEngine.php` with dynamic weights, radius filters, and quotation pricing constants. |
+| **Phase 2** | **Buyer GPS & Proximity Search** | Live geolocation capture, spatial database indexing, nearest-shop-first search query API, and business profile deep-linking. |
+| **Phase 3** | **Hardware Parchi & Multi-Quotation Engine** | Image/parchi upload UI, AI digitization, 5-shop quotation broadcast workflow, and ₹100/₹25 payment/credit trigger. |
+| **Phase 4** | **Seller Video Reels Showcase** | Seller dashboard reel URL manager (YouTube Shorts & IG Reels) + consumer-facing vertical reel player with instant order buttons. |
+
