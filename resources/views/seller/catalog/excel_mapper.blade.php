@@ -7145,7 +7145,6 @@ function saveToLocalStorage() {
                 }
             }
         }
-        }
 
         function loadLinesIntoDynamicRows(lines) {
             dynamicRows = [];
