@@ -510,47 +510,43 @@
                         <span class="text-xs text-gray-500" id="dynamicTableSubtitle">(Select 6-8 lines to link photo or group into 1 card)</span>
                     </div>
                     <div class="flex items-center gap-2 text-xs flex-wrap">
-                        <span class="text-gray-500 font-semibold">Quick Select:</span>
-                        <button type="button" onclick="selectNDynamicRows(4)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700" title="Top ke 4 rows select karein">Next 4</button>
-                        <button type="button" onclick="selectNDynamicRows(6)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700" title="Top ke 6 rows select karein">Next 6</button>
-                        <button type="button" onclick="selectNDynamicRows(8)" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 font-bold text-gray-700" title="Top ke 8 rows select karein">Next 8</button>
-                        <button type="button" onclick="selectSameDynamicFamily()" class="px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 font-bold text-blue-700" title="Ek hi item ke sabhi sizes ek sath select karein">Same Family</button>
-                        <button type="button" onclick="clearDynamicRowSelection()" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-600" title="Selected checkboxes uncheck karein">Clear</button>
-                        <button type="button" onclick="openBulkItemNameModal()" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-extrabold text-xs border border-indigo-300 flex items-center gap-1 transition" title="Selected rows ka Product Name ek sath set karein">
+                        <div class="inline-flex items-center bg-gray-100 rounded-xl p-0.5 border border-gray-200 shadow-2xs">
+                            <span class="text-[11px] text-gray-500 font-bold px-2">Select:</span>
+                            <button type="button" onclick="selectNDynamicRows(4)" class="px-2 py-1 rounded-lg hover:bg-white text-gray-700 font-bold text-xs transition" title="Top ke 4 rows select karein">4</button>
+                            <button type="button" onclick="selectNDynamicRows(6)" class="px-2 py-1 rounded-lg hover:bg-white text-gray-700 font-bold text-xs transition" title="Top ke 6 rows select karein">6</button>
+                            <button type="button" onclick="selectNDynamicRows(8)" class="px-2 py-1 rounded-lg hover:bg-white text-gray-700 font-bold text-xs transition" title="Top ke 8 rows select karein">8</button>
+                            <button type="button" onclick="selectSameDynamicFamily()" class="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-xs hover:bg-blue-100 transition border-l border-gray-200" title="Ek hi item ke sabhi sizes ek sath select karein">Same Family</button>
+                            <button type="button" onclick="clearDynamicRowSelection()" class="px-2 py-1 rounded-lg text-gray-500 hover:text-gray-800 font-bold text-xs transition" title="Selection clear karein">✕</button>
+                        </div>
+
+                        <button type="button" onclick="openBulkItemNameModal()" class="px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-extrabold text-xs border border-indigo-200 flex items-center gap-1 transition" title="Selected rows ka Product Name ek sath set karein">
                             <i class="fa-solid fa-pen-to-square text-indigo-600"></i>
-                            <span>Set Item Name</span>
+                            <span>Set Name</span>
                         </button>
-                        <button type="button" onclick="openBulkCategoryModal()" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 font-extrabold text-xs border border-amber-300 flex items-center gap-1 transition" title="Sabhi rows ka Category 1 click me badlein">
-                            <i class="fa-solid fa-tags text-amber-600"></i>
-                            <span>Bulk Category</span>
-                        </button>
-                        <button type="button" onclick="clearOnlyPendingRows()" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-300 flex items-center gap-1 transition" title="Bache huye pending rows ko saaf karein (Aapke cards surakshit rahenge)">
-                            <i class="fa-solid fa-eraser text-slate-600"></i>
-                            <span>Clear Pending List</span>
-                        </button>
-                        <button type="button" onclick="resetDynamicTable()" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 flex items-center gap-1 transition" title="Purane sabhi rows aur cards dono ko delete karein">
-                            <i class="fa-solid fa-trash-can"></i>
-                            <span>Reset Everything</span>
-                        </button>
-                        <button type="button" onclick="openColumnMapperModal()" id="btnOpenColumnMapper" class="px-3 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-extrabold text-xs border border-teal-200 flex items-center gap-1.5 transition ml-1" title="Excel Sheet ke columns ko dobara map karein">
-                            <i class="fa-solid fa-table-columns text-teal-600"></i>
-                            <span>Map Columns</span>
-                        </button>
-                        <button type="button" onclick="autoGroupAllDynamicRowsIntoCards()" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition ml-1" title="Sabhi rows ko unki family ke alag-alag cards me distribute karein">
+
+                        <button type="button" onclick="autoGroupAllDynamicRowsIntoCards()" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition active:scale-95" title="Sabhi rows ko unki family ke alag-alag cards me auto-group karein">
                             <i class="fa-solid fa-bolt text-amber-300"></i>
                             <span>Auto-Distribute Cards</span>
                         </button>
-                        <button type="button" onclick="ungroupAllCardsToTable()" class="px-3.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-extrabold text-xs border border-amber-200 flex items-center gap-1.5 transition active:scale-95 shadow-2xs" title="Sabhi cards ko dismantle karke sare items wapas Table Listing me bhejein taaki aap apni marzi se rows select karke cards bana sakein">
-                            <i class="fa-solid fa-arrow-rotate-left text-amber-600"></i>
-                            <span>↩️ Wapas Sabhi Cards List Me Kholein</span>
-                        </button>
-                        <button type="button" onclick="autoFixAllExistingCards()" class="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition ml-1 active:scale-95" title="Bina manual mehnat ke Cards ke Titles, Descriptions aur Sizes ko dynamic rules se auto-fix karein">
-                            <i class="fa-solid fa-wand-magic-sparkles text-yellow-200"></i>
-                            <span>Auto-Fix Cards</span>
-                        </button>
-                        <button type="button" onclick="saveSelectedIntoCardAndRemove()" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition ml-1 active:scale-95" title="Selected rows ko 1 card me group karke table se hata do taaki next items samne aa sakein">
+
+                        <button type="button" onclick="saveSelectedIntoCardAndRemove()" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition active:scale-95" title="Selected rows ko 1 card me group karke table se hata do">
                             <i class="fa-solid fa-floppy-disk"></i>
-                            <span>Save Card & Next &rarr;</span>
+                            <span>Save Selected & Next &rarr;</span>
+                        </button>
+
+                        <button type="button" onclick="ungroupAllCardsToTable()" class="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs border border-amber-200 flex items-center gap-1.5 transition" title="Cards kholkar wapas table listing me layein">
+                            <i class="fa-solid fa-arrow-rotate-left text-amber-600"></i>
+                            <span>Ungroup Cards</span>
+                        </button>
+
+                        <button type="button" onclick="openColumnMapperModal()" id="btnOpenColumnMapper" class="px-2.5 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-xs border border-teal-200 flex items-center gap-1 transition" title="Excel Sheet ke columns dobara map karein">
+                            <i class="fa-solid fa-table-columns text-teal-600"></i>
+                            <span>Map Columns</span>
+                        </button>
+
+                        <button type="button" onclick="clearOnlyPendingRows()" class="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs border border-slate-200 flex items-center gap-1 transition" title="Pending unmapped rows ko clear karein">
+                            <i class="fa-solid fa-eraser text-slate-500"></i>
+                            <span>Clear Pending</span>
                         </button>
                     </div>
                 </div>
