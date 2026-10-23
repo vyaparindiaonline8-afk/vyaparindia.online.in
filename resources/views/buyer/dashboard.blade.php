@@ -222,5 +222,6 @@
         </div>
     </footer>
 
+    @include('components.ai-copilot-widget')
 </body>
 </html>

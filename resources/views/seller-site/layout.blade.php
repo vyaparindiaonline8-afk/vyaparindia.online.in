@@ -728,5 +728,6 @@
 
     </script>
     @stack('scripts')
+    @include('components.ai-copilot-widget')
 </body>
 </html>

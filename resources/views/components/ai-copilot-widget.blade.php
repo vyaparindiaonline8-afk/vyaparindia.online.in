@@ -63,8 +63,17 @@
         <div id="ai-quick-pills" class="px-4 py-2 bg-white border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             @auth
                 @if(Auth::user()->is_seller())
+                    <button onclick="aiSendQuick('Mera live inventory dikhao')" class="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full whitespace-nowrap transition border border-emerald-200">
+                        📦 Mera Inventory
+                    </button>
+                    <button onclick="aiSendQuick('Kitne orders pending hain?')" class="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full whitespace-nowrap transition border border-amber-200">
+                        🛒 Pending Orders
+                    </button>
+                    <button onclick="aiSendQuick('Catalog tools aur PDF studio dikhao')" class="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full whitespace-nowrap transition border border-blue-200">
+                        📄 Catalog & PDF Tools
+                    </button>
                     <button onclick="aiSendQuick('Naya product photo se list karo')" class="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full whitespace-nowrap transition border border-indigo-200">
-                        📦 Naya Product List Karo
+                        ✨ Naya Item List Karo
                     </button>
                     <button onclick="aiSendQuick('Mera profile Mini-Website me upgrade karo')" class="px-3 py-1 bg-violet-50 hover:bg-violet-100 text-violet-700 text-[10px] font-bold rounded-full whitespace-nowrap transition border border-violet-200">
                         ⭐ Mini-Website Upgrade
@@ -216,7 +225,140 @@
         let imgHtml = image ? `<img src="${image}" class="w-28 h-28 object-cover rounded-xl mb-2 border border-slate-200 shadow-xs">` : '';
         let actionCardHtml = '';
 
-        if (action === 'product_draft_created' && actionData) {
+        if (action === 'inventory_summary' && actionData) {
+            actionCardHtml = `
+                <div class="mt-3 p-3.5 rounded-2xl bg-slate-900 text-white space-y-3 shadow-md">
+                    <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                        <span class="text-xs font-black text-white flex items-center gap-1.5">
+                            <i class="fa-solid fa-boxes-stacked text-emerald-400"></i> Live Inventory
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-extrabold text-[10px] border border-emerald-500/30">
+                            ${actionData.total_products} Products
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-[11px]">
+                        <div class="bg-white/5 p-2 rounded-xl border border-white/5">
+                            <span class="text-slate-400 block text-[9px] uppercase font-bold">Low Stock (≤5)</span>
+                            <span class="font-black text-amber-300 text-sm">${actionData.low_stock_count} items</span>
+                        </div>
+                        <div class="bg-white/5 p-2 rounded-xl border border-white/5">
+                            <span class="text-slate-400 block text-[9px] uppercase font-bold">Out of Stock</span>
+                            <span class="font-black text-rose-400 text-sm">${actionData.out_of_stock_count} items</span>
+                        </div>
+                    </div>
+                    ${actionData.recent_items && actionData.recent_items.length ? `
+                        <div class="space-y-1.5 pt-1">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Recent Products:</span>
+                            ${actionData.recent_items.map(it => `
+                                <div class="flex items-center justify-between text-[11px] bg-white/5 p-1.5 px-2.5 rounded-lg">
+                                    <span class="font-bold text-white truncate max-w-[170px]">${it.name}</span>
+                                    <span class="font-black text-emerald-300">${it.price}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    <a href="${actionData.inventory_url}" class="block text-center py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs shadow-md transition">
+                        📦 Open Inventory Management &rarr;
+                    </a>
+                </div>
+            `;
+        } else if (action === 'orders_summary' && actionData) {
+            actionCardHtml = `
+                <div class="mt-3 p-3.5 rounded-2xl bg-indigo-950 text-white space-y-3 shadow-md border border-indigo-800">
+                    <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                        <span class="text-xs font-black text-white flex items-center gap-1.5">
+                            <i class="fa-solid fa-cart-shopping text-amber-400"></i> Orders & Sales
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-extrabold text-[10px] border border-amber-500/30">
+                            ${actionData.pending_orders} Pending
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-[11px]">
+                        <div class="bg-white/5 p-2 rounded-xl border border-white/5">
+                            <span class="text-indigo-200 block text-[9px] uppercase font-bold">Total Orders</span>
+                            <span class="font-black text-white text-sm">${actionData.total_orders} Orders</span>
+                        </div>
+                        <div class="bg-white/5 p-2 rounded-xl border border-white/5">
+                            <span class="text-indigo-200 block text-[9px] uppercase font-bold">Total Sales</span>
+                            <span class="font-black text-emerald-300 text-sm">${actionData.total_sales}</span>
+                        </div>
+                    </div>
+                    ${actionData.recent_orders && actionData.recent_orders.length ? `
+                        <div class="space-y-1.5 pt-1">
+                            <span class="text-[9px] font-bold text-indigo-300 uppercase tracking-wider block">Recent Orders:</span>
+                            ${actionData.recent_orders.map(o => `
+                                <a href="${o.url}" class="flex items-center justify-between text-[11px] bg-white/5 hover:bg-white/10 p-1.5 px-2.5 rounded-lg transition block">
+                                    <div>
+                                        <span class="font-bold text-white block">#${o.order_number} - ${o.customer_name}</span>
+                                        <span class="text-[9px] text-indigo-300">${o.created_at}</span>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="font-black text-amber-300 block">${o.total_price}</span>
+                                        <span class="text-[8px] uppercase font-extrabold text-emerald-400">${o.status}</span>
+                                    </div>
+                                </a>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    <a href="${actionData.orders_url}" class="block text-center py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl text-xs shadow-md transition">
+                        📑 View All Orders Dashboard &rarr;
+                    </a>
+                </div>
+            `;
+        } else if (action === 'seller_products_found' && actionData && actionData.items && actionData.items.length) {
+            actionCardHtml = `
+                <div class="mt-3 space-y-2">
+                    ${actionData.items.map(p => `
+                        <div class="p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-2">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="font-bold text-slate-900 text-xs truncate max-w-[200px]" title="${p.name}">${p.name}</span>
+                                <span class="text-[10px] text-slate-500 font-mono">Stock: ${p.stock}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                                <div class="flex items-center gap-1">
+                                    <span class="text-[10px] text-slate-500 font-bold">Rate: ₹</span>
+                                    <input type="number" id="inline_price_${p.id}" value="${p.price}" step="0.5" class="w-16 px-1.5 py-0.5 rounded border border-slate-300 text-xs font-black text-slate-900 bg-slate-50 focus:bg-white">
+                                </div>
+                                <button type="button" onclick="aiUpdateProductPriceInline(${p.id}, 'inline_price_${p.id}', this)" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[10px] rounded-lg transition active:scale-95 shadow-2xs">
+                                    Update Rate
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else if (action === 'price_updated' && actionData) {
+            actionCardHtml = `
+                <div class="mt-2.5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs space-y-1.5">
+                    <div class="font-black flex items-center gap-1.5 text-emerald-800">
+                        <i class="fa-solid fa-circle-check text-emerald-600"></i> Rate Updated Successfully!
+                    </div>
+                    <div class="text-[11px] font-bold text-slate-800">${actionData.name}</div>
+                    <div class="flex items-center gap-2 text-xs font-mono">
+                        <span class="line-through text-slate-400">${actionData.old_price}</span>
+                        <span>&rarr;</span>
+                        <span class="font-black text-emerald-700">${actionData.new_price}</span>
+                    </div>
+                </div>
+            `;
+        } else if (action === 'navigation_card' && actionData && actionData.links) {
+            actionCardHtml = `
+                <div class="mt-3 p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                    <div class="text-[11px] font-black text-slate-800">${actionData.title}</div>
+                    <div class="grid grid-cols-1 gap-1.5">
+                        ${actionData.links.map(l => `
+                            <a href="${l.url}" class="flex items-center justify-between p-2 rounded-xl bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 transition text-xs font-bold text-slate-800 group">
+                                <span class="flex items-center gap-2">
+                                    <i class="fa-solid ${l.icon} text-indigo-600 group-hover:scale-110 transition"></i>
+                                    <span>${l.name}</span>
+                                </span>
+                                <span class="text-slate-400 group-hover:text-indigo-600">&rarr;</span>
+                            </a>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        } else if (action === 'product_draft_created' && actionData) {
             actionCardHtml = `
                 <div class="mt-3 p-3 rounded-xl bg-indigo-50 border border-indigo-200 space-y-2">
                     <div class="flex items-center justify-between">
@@ -370,5 +512,45 @@
         };
 
         recognition.start();
+    }
+
+    async function aiUpdateProductPriceInline(productId, inputId, btn) {
+        const input = document.getElementById(inputId);
+        const newPrice = parseFloat(input ? input.value : 0);
+        if (!newPrice || newPrice <= 0) {
+            alert('Kripya valid rate daalein');
+            return;
+        }
+
+        const origHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        try {
+            const res = await fetch('{{ route("copilot.update_price") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ product_id: productId, price: newPrice })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                btn.className = 'px-2.5 py-1 bg-emerald-600 text-white font-black rounded-lg text-[10px]';
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Updated';
+                appendChatBubble('ai', `✅ Safaltapoorvak update ho gaya! **${data.product.name}** ka rate ab **₹${data.product.new_price}** set hai.`);
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+                alert(data.message || 'Error updating price');
+            }
+        } catch(e) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+            alert('Network error while updating price.');
+        }
     }
 </script>

@@ -9855,5 +9855,6 @@ With Pattam - 30% extra
             } catch (e) {}
         });
     </script>
+    @include('components.ai-copilot-widget')
 </body>
 </html>

@@ -113,6 +113,48 @@ class AICopilotController extends Controller
     }
 
     /**
+     * Direct Price / Rate Update requested via AI Chat inline action.
+     */
+    public function updatePrice(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user || !$user->is_seller()) {
+            return response()->json(['success' => false, 'message' => 'Only sellers can update product rates.'], 403);
+        }
+
+        $request->validate([
+            'product_id' => 'required|integer',
+            'price' => 'required|numeric|min:0.01',
+        ]);
+
+        $productId = $request->input('product_id');
+        $newPrice = floatval($request->input('price'));
+
+        $product = Product::where('id', $productId)->where('user_id', $user->id)->first();
+        if (!$product) {
+            return response()->json(['success' => false, 'message' => 'Product nahi mila ya aapke store ka nahi hai.'], 404);
+        }
+
+        $oldPrice = $product->price;
+        $product->price = $newPrice;
+        $product->wholesale_price = $newPrice;
+        $product->retail_price = $newPrice * 1.15;
+        $product->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => "✓ '{$product->name}' ka rate ₹{$newPrice} set ho gaya!",
+            'product' => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'old_price' => $oldPrice,
+                'new_price' => $newPrice,
+                'url' => route('product.show', $product->slug),
+            ]
+        ]);
+    }
+
+    /**
      * Future-Ready AI Voice Calling Webhook (Twilio / Retell AI / Vapi / Bland.ai).
      */
     public function voiceWebhook(Request $request)

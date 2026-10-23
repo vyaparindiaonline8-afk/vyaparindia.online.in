@@ -49,6 +49,7 @@ Route::prefix('order-verify')->name('verification.')->group(function () {
 Route::prefix('ai-copilot')->name('copilot.')->group(function () {
     Route::post('/chat', [\App\Http\Controllers\AICopilotController::class, 'chat'])->name('chat');
     Route::post('/publish-draft', [\App\Http\Controllers\AICopilotController::class, 'publishDraft'])->name('publish_draft');
+    Route::post('/update-price', [\App\Http\Controllers\AICopilotController::class, 'updatePrice'])->name('update_price');
     Route::match(['GET', 'POST'], '/voice-webhook', [\App\Http\Controllers\AICopilotController::class, 'voiceWebhook'])->name('voice_webhook');
 });
 
