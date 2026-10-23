@@ -7084,16 +7084,69 @@
         }
 
         function clearOldDraftAndKeepOnlyNewPdf() {
-            if (confirm('Kya aap purana bacha hua data (purane cards ya purane items) hatakar SIRF abhi ke naye PDF items table me rakhna chahte hain?')) {
+            // 1. Check for latest PDF data from PDF Studio
+            const rawStored = localStorage.getItem('vyapar_custom_excel_lines');
+            let pdfData = null;
+            let newItemsCount = 0;
+            let pageNum = 1;
+
+            if (rawStored) {
+                try {
+                    pdfData = JSON.parse(rawStored);
+                    newItemsCount = (pdfData.structured_rows && pdfData.structured_rows.length) || (pdfData.lines && pdfData.lines.length) || 0;
+                    pageNum = pdfData.page || 1;
+                } catch(e) {}
+            }
+
+            // Fallback: check vyapar_staged_excel_rows from PDF Studio
+            if (newItemsCount === 0) {
+                try {
+                    const staged = JSON.parse(localStorage.getItem('vyapar_staged_excel_rows') || '[]');
+                    if (staged.length > 0) {
+                        pdfData = { structured_rows: staged, page: staged[0]?.page || 1, category: staged[0]?.category || 'General Hardware' };
+                        newItemsCount = staged.length;
+                        pageNum = pdfData.page;
+                    }
+                } catch(e) {}
+            }
+
+            // SAFETY CHECK: If no PDF data exists at all, DO NOT delete anything!
+            if (newItemsCount === 0) {
+                alert('🛡️ Suraksha Alert: Koi naya PDF extracted data nahi mila.\n\nAapka koi bhi data delete nahi kiya gaya hai.\n\nKripya pehle PDF Studio me jakar "Open in Excel Multi-Row Mapper" dabayein.');
+                return;
+            }
+
+            const confirmMsg = `🛡️ 100% DATA SURAKSHA CONFIRMATION:\n\n` +
+                               `• Naya PDF Data (Page ${pageNum}): ${newItemsCount} Items TABLE ME SURAKSHIT RAHENGE!\n` +
+                               `• Sirf purane session ke cards (jaise Electric Tools wagairah) ko workspace se hataya jayega.\n\n` +
+                               `Kya aap purana draft hatakar sirf ye ${newItemsCount} naye PDF items par kaam karna chahte hain?`;
+
+            if (confirm(confirmMsg)) {
+                // Permanently save a safety backup of current workspace just in case
+                try {
+                    localStorage.setItem('vyapar_safety_vault_backup', JSON.stringify({
+                        cards: groupedProductCards,
+                        rows: dynamicRows,
+                        saved_at: new Date().toISOString()
+                    }));
+                } catch(e) {}
+
+                // Clear old cards
                 groupedProductCards = [];
                 localStorage.removeItem('vyapar_grouped_cards');
                 localStorage.removeItem('vyapar_grouped_cards_backup');
                 localStorage.removeItem('vyapar_grouped_next_id');
+
+                // Load guaranteed new PDF items into dynamicRows
+                loadPdfExtractedDataIntoDynamicRows(pdfData);
+
                 saveToLocalStorage();
                 renderDynamicRows();
                 renderGroupedProductCards();
                 refreshCategoryFilterTabs();
-                showToastNotification('✅ Purana data saaf ho gaya! Ab workspace me sirf aapke naye PDF items hain.');
+                toggleDynamicMode(true);
+
+                showToastNotification(`✅ Shabaash! Purana data saaf ho gaya. Table me sirf ${dynamicRows.length} naye PDF items hain!`);
                 const alertEl = document.getElementById('pdfImportSuccessAlert');
                 if (alertEl) alertEl.classList.add('hidden');
             }
