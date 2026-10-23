@@ -338,6 +338,10 @@
                             <i class="fa-solid fa-cloud-arrow-up"></i>
                             <span>Upload Photo</span>
                         </button>
+                        <button type="button" onclick="aiAutoMatchPhotosAndRefineCards()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer" title="In photos ko product cards ke sath AI se auto-link karein">
+                            <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                            <span>Auto-Link with Cards</span>
+                        </button>
                         <button type="button" onclick="openGalleryDrawer('browse', null)" class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 flex items-center gap-1.5 transition">
                             <i class="fa-solid fa-expand"></i>
                             <span>Full View Drawer</span>
@@ -596,9 +600,9 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap">
-                        <button type="button" onclick="aiFixAllCardDescriptions()" id="btnAiFixDescriptions" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs shadow-md hover:shadow-lg flex items-center gap-2 transition active:scale-95" title="Bina names ya codes badle sirf descriptions ko AI se har product ke sahi hisab se set karein">
-                            <i class="fa-solid fa-wand-magic-sparkles text-yellow-300"></i>
-                            <span>🪄 AI Fix Descriptions Only</span>
+                        <button type="button" onclick="aiAutoMatchPhotosAndRefineCards()" id="btnAiAutoMatchAndRefine" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-black text-xs shadow-md hover:shadow-lg flex items-center gap-2 transition active:scale-95 cursor-pointer" title="AI sabhi banaye gaye cards ko dekhega, Photo Bank ki sahi images auto-link karega, aur descriptions/sizes ko refine karega">
+                            <i class="fa-solid fa-camera-retro text-amber-300"></i>
+                            <span>🤖 1-Click AI Auto-Match Photos & Refine Cards</span>
                         </button>
                         <button type="button" onclick="autoFixAllExistingCards()" id="btnAutoFixAllCards" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-indigo-600 hover:from-amber-600 hover:to-indigo-700 text-white font-black text-xs shadow-md hover:shadow-lg flex items-center gap-2 transition active:scale-95" title="Bina manual mehnat ke Cards ke Titles, Descriptions aur Sizes ko dynamic rules se auto-fix karein">
                             <i class="fa-solid fa-wand-magic-sparkles text-yellow-200"></i>
@@ -2221,6 +2225,51 @@
                 </button>
                 <button type="button" onclick="closeAutoFixSummaryModal()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs transition active:scale-95 cursor-pointer shadow-md shadow-indigo-600/20">
                     Theek Hai (Done)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 🤖 AI AUTO-MATCH & CARD REFINE REVIEW MODAL -->
+    <!-- ========================================== -->
+    <div id="aiMatchReviewModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] hidden items-center justify-center p-4" style="display: none;" onclick="closeAiMatchReviewModal()">
+        <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-scale-up" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 text-white flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-lg shadow-xs">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black tracking-wide">AI Auto-Match & Card Refine Review</h3>
+                        <p class="text-[11px] text-emerald-100 font-medium">Photos linked, descriptions enriched & variant sizes standardized</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAiMatchReviewModal()" class="h-8 w-8 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 flex items-center justify-center text-xs transition cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="bg-slate-50 px-6 py-3 border-b border-gray-200 flex flex-wrap items-center gap-3 justify-between text-xs shrink-0" id="aiMatchStatsBar">
+                <!-- Dynamically populated via JS -->
+            </div>
+
+            <!-- Cards Review Scrollable List -->
+            <div class="flex-1 overflow-y-auto p-6 space-y-3" id="aiMatchCardsList">
+                <!-- Dynamically populated list of processed cards -->
+            </div>
+
+            <!-- Modal Footer with 2 Action Buttons -->
+            <div class="p-4 px-6 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                <button type="button" onclick="reviewCardsInPlace()" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-2 transition active:scale-95 cursor-pointer border border-slate-300">
+                    <i class="fa-solid fa-magnifying-glass text-indigo-600"></i>
+                    <span>👀 Check & Edit Cards (Pehle Review Karein)</span>
+                </button>
+                <button type="button" onclick="confirmAndPublishLiveFromModal()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs flex items-center gap-2 transition active:scale-95 cursor-pointer shadow-lg shadow-emerald-600/30">
+                    <i class="fa-solid fa-rocket text-amber-300"></i>
+                    <span>🚀 All Good - Publish to Live Store Now &rarr;</span>
                 </button>
             </div>
         </div>
@@ -5782,8 +5831,12 @@ function saveToLocalStorage() {
 
             let html = '';
             groupedProductCards.forEach((c) => {
+                const aiBadge = c.ai_matched
+                    ? `<span class="absolute -top-1 -right-1 z-10 bg-emerald-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full shadow-xs flex items-center gap-0.5" title="AI Linked: ${escapeHtml(c.ai_photo_name || 'Photo')}"><i class="fa-solid fa-link text-[7px]"></i> AI</span>`
+                    : '';
+
                 const imgThumb = (c.asset_url || c.image_url)
-                    ? `<img src="${c.asset_url || c.image_url}" class="max-h-full max-w-full object-contain">`
+                    ? `${aiBadge}<img src="${c.asset_url || c.image_url}" class="max-h-full max-w-full object-contain">`
                     : `<div class="text-center text-gray-400 group-hover:text-indigo-600"><i class="fa-solid fa-camera text-base"></i><p class="text-[9px] font-bold mt-0.5">Attach Photo</p></div>`;
 
                 let variantRowsHtml = '';
@@ -7162,6 +7215,393 @@ function saveToLocalStorage() {
                     btn.innerHTML = origHtml;
                 }
             }
+        }
+
+        // ==========================================
+        // 🤖 AI AUTO-MATCH PHOTOS & SMART REFINE CARDS
+        // ==========================================
+        function calculateImageProductMatchScore(cardTitle, cardCategory, cardVariants, img) {
+            const cleanCard = (cardTitle || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+            const cleanCat = (cardCategory || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+            const cleanImg = (img.name || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+            const cleanFolder = (img.folder || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+            const urlPath = (img.url || '').toLowerCase();
+
+            let score = 0;
+
+            // 1. Material / Series Check
+            const materials = ['cpvc', 'upvc', 'pvc', 'swr', 'agri', 'brass', 'hdpe', 'ppr', 'gi'];
+            for (const mat of materials) {
+                const cardHas = cleanCard.includes(mat) || cleanCat.includes(mat);
+                const imgHas = cleanImg.includes(mat) || cleanFolder.includes(mat) || urlPath.includes(mat);
+                if (cardHas && imgHas) {
+                    score += 25;
+                } else if (cardHas && !imgHas && (cleanImg.includes('cpvc') || cleanImg.includes('upvc') || cleanImg.includes('swr'))) {
+                    score -= 20; // Material mismatch penalty
+                }
+            }
+
+            // 2. Hardware / Tools special check
+            if (cleanCard.includes('tape') || cleanCat.includes('tape')) {
+                if (cleanImg.includes('tape') || cleanFolder.includes('tape') || urlPath.includes('tape')) score += 35;
+                else score -= 30;
+            }
+
+            // 3. Core Product Types
+            const productTypes = [
+                'elbow', 'bend', 'tee', 'socket', 'coupler', 'union', 'reducer', 'bush',
+                'end cap', 'cap', 'ball valve', 'valve', 'mta', 'fta', 'tank', 'trap',
+                'nahani', 'plug', 'flange', 'nipple', 'clamp', 'pipe'
+            ];
+
+            for (const pt of productTypes) {
+                const cardHasType = cleanCard.includes(pt);
+                const imgHasType = cleanImg.includes(pt) || urlPath.includes(pt);
+                if (cardHasType && imgHasType) {
+                    score += 30;
+                } else if (cardHasType && !imgHasType && productTypes.some(other => other !== pt && cleanImg.includes(other))) {
+                    score -= 25; // Different product type penalty
+                }
+            }
+
+            // 4. Angle / Degrees (90, 45, 87)
+            const angles = ['90', '45', '87'];
+            for (const ang of angles) {
+                if (cleanCard.includes(ang) && (cleanImg.includes(ang) || urlPath.includes(ang))) {
+                    score += 15;
+                }
+            }
+
+            // 5. Shared Token Overlap
+            const cardTokens = cleanCard.split(/\s+/).filter(w => w.length > 2);
+            const imgTokens = cleanImg.split(/\s+/).filter(w => w.length > 2);
+            cardTokens.forEach(t => {
+                if (['the', 'and', 'for', 'with', 'pvc', 'isi', 'standard', 'heavy', 'duty'].includes(t)) return;
+                if (imgTokens.includes(t)) score += 8;
+                else if (cleanImg.includes(t)) score += 5;
+            });
+
+            // 6. Folder / Category match
+            if (cleanCat && cleanFolder && (cleanCat.includes(cleanFolder) || cleanFolder.includes(cleanCat))) {
+                score += 10;
+            }
+
+            return score;
+        }
+
+        async function aiAutoMatchPhotosAndRefineCards() {
+            if (!Array.isArray(groupedProductCards) || groupedProductCards.length === 0) {
+                alert('⚠️ Abhi tak koi Product Card nahi bana hai.\n\nPehle Spreadsheet Table se rows ko "Auto-Distribute Cards" karein ya rows select karke "Save Selected & Next" karein.');
+                return;
+            }
+
+            const btn = document.getElementById('btnAiAutoMatchAndRefine');
+            let origHtml = '';
+            if (btn) {
+                origHtml = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-amber-300"></i> AI Matching Photos & Cards...`;
+            }
+
+            try {
+                // 1. Gather all candidate images
+                let candidateImages = [];
+
+                // A. From localStorage cached crops
+                try {
+                    const cached = JSON.parse(localStorage.getItem('vyapar_cached_crops') || '[]');
+                    if (Array.isArray(cached)) {
+                        cached.forEach(c => {
+                            if (c && (c.url || c.asset_url)) {
+                                candidateImages.push({
+                                    url: c.url || c.asset_url,
+                                    asset_url: c.asset_url || c.url,
+                                    name: c.name || 'Catalog Crop',
+                                    folder: c.folder || c.category || 'General',
+                                    source: 'Crop',
+                                    id: c.id
+                                });
+                            }
+                        });
+                    }
+                } catch(e) {}
+
+                // B. From DOM (Photo Bank tray & Drawer)
+                document.querySelectorAll('#onPagePhotoGrid .on-page-photo-card, #drawerImagesGrid .drawer-img-card').forEach(el => {
+                    const name = el.getAttribute('data-name') || el.querySelector('h5')?.innerText || '';
+                    const folder = el.getAttribute('data-raw-folder') || el.getAttribute('data-folder') || 'General';
+                    const imgEl = el.querySelector('img');
+                    const assetUrl = imgEl ? imgEl.getAttribute('src') : '';
+                    const imgKey = el.getAttribute('data-img-key');
+                    if (assetUrl && !candidateImages.some(ci => (ci.asset_url === assetUrl || (imgKey && ci.url && ci.url.includes(imgKey))))) {
+                        candidateImages.push({
+                            url: assetUrl,
+                            asset_url: assetUrl,
+                            name: name,
+                            folder: folder,
+                            source: el.querySelector('span')?.innerText || 'Gallery'
+                        });
+                    }
+                });
+
+                // C. Fallback: If candidate images is empty, load from gallery JSON
+                if (candidateImages.length === 0) {
+                    try {
+                        const res = await fetch("{{ route('seller.catalog.gallery_json') }}");
+                        const data = await res.json();
+                        if (data && data.success && Array.isArray(data.images)) {
+                            data.images.forEach(img => {
+                                candidateImages.push({
+                                    url: img.url || img.asset_url,
+                                    asset_url: img.asset_url || img.url,
+                                    name: img.name || 'Catalog Item',
+                                    folder: img.folder || 'General',
+                                    source: img.source || 'Gallery'
+                                });
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('Gallery JSON fetch fallback error:', e);
+                    }
+                }
+
+                // Deduplicate candidates by asset_url
+                const uniqueCandidateImages = [];
+                const seenUrls = new Set();
+                candidateImages.forEach(img => {
+                    const k = img.asset_url || img.url;
+                    if (k && !seenUrls.has(k)) {
+                        seenUrls.add(k);
+                        uniqueCandidateImages.push(img);
+                    }
+                });
+
+                let photosLinkedCount = 0;
+                let descriptionsEnrichedCount = 0;
+                let sizesStandardizedCount = 0;
+                const processedCards = [];
+
+                const inchMap = {
+                    '15': '1/2"', '20': '3/4"', '25': '1"', '32': '1-1/4"',
+                    '40': '1-1/2"', '50': '2"', '65': '2-1/2"', '80': '3"',
+                    '90': '3-1/2"', '100': '4"', '110': '4-1/2"', '160': '6"'
+                };
+
+                const usedImageUrls = new Set();
+
+                groupedProductCards.forEach((card, idx) => {
+                    let cardPhotoChanged = false;
+                    let cardDescChanged = false;
+                    let cardSizesChanged = false;
+
+                    // 1. Clean Title: strip trailing punctuation, multiple spaces
+                    let cleanTitle = (card.parent_name || '').replace(/[-–—_\s]+$/, '').replace(/\s+/g, ' ').trim();
+                    if (cleanTitle && cleanTitle !== card.parent_name) {
+                        card.parent_name = cleanTitle;
+                    }
+
+                    // 2. Standardize Variant Sizes & gather unique sizes
+                    const sizeList = [];
+                    if (Array.isArray(card.variants)) {
+                        card.variants.forEach(v => {
+                            const oldSize = (v.size || '').trim();
+                            if (!oldSize || oldSize === 'Standard' || oldSize === 'Default' || oldSize === '-') {
+                                const combo = `${v.product_code || ''} ${v.model_no || ''} ${card.parent_name}`;
+                                const match = combo.match(/\b(15|20|25|32|40|50|65|75|80|90|100|110|160)\s*(?:mm)?\b/i);
+                                if (match) {
+                                    const mm = match[1];
+                                    v.size = inchMap[mm] ? `${mm}mm (${inchMap[mm]})` : `${mm}mm`;
+                                    sizesStandardizedCount++;
+                                    cardSizesChanged = true;
+                                }
+                            } else {
+                                const mmMatch = oldSize.match(/^(\d{2,3})\s*(?:mm)?$/i);
+                                if (mmMatch && inchMap[mmMatch[1]]) {
+                                    v.size = `${mmMatch[1]}mm (${inchMap[mmMatch[1]]})`;
+                                    sizesStandardizedCount++;
+                                    cardSizesChanged = true;
+                                }
+                            }
+                            if (v.size && !sizeList.includes(v.size)) {
+                                sizeList.push(v.size);
+                            }
+                        });
+                    }
+
+                    // 3. AI Smart Description Enrichment
+                    const smartBaseDesc = getSmartAiDescriptionForProduct(card.parent_name, card.category);
+                    let finalDesc = (card.description || '').trim();
+                    if (!finalDesc || finalDesc.length < 20 || finalDesc.includes('High grade')) {
+                        finalDesc = smartBaseDesc;
+                        if (sizeList.length > 0) {
+                            finalDesc += `\n• Available Sizes: ${sizeList.slice(0, 8).join(', ')}`;
+                        }
+                        card.description = finalDesc;
+                        descriptionsEnrichedCount++;
+                        cardDescChanged = true;
+                    }
+                    if (Array.isArray(card.variants)) {
+                        card.variants.forEach(v => {
+                            if (!v.description || v.description.length < 20) {
+                                v.description = card.description;
+                            }
+                        });
+                    }
+
+                    // 4. Match Photo with Product Card
+                    let matchedImg = null;
+                    let bestScore = 0;
+
+                    if (uniqueCandidateImages.length > 0) {
+                        uniqueCandidateImages.forEach(cImg => {
+                            const score = calculateImageProductMatchScore(card.parent_name, card.category, card.variants, cImg);
+                            if (score > bestScore) {
+                                bestScore = score;
+                                matchedImg = cImg;
+                            }
+                        });
+
+                        // Threshold for keyword match
+                        if (bestScore >= 12 && matchedImg) {
+                            card.image_url = matchedImg.url;
+                            card.asset_url = matchedImg.asset_url;
+                            card.ai_matched = true;
+                            card.ai_photo_name = matchedImg.name;
+                            usedImageUrls.add(matchedImg.asset_url);
+                            photosLinkedCount++;
+                            cardPhotoChanged = true;
+                        } else if (!card.image_url && uniqueCandidateImages[idx] && !usedImageUrls.has(uniqueCandidateImages[idx].asset_url)) {
+                            // Sequential positional fallback if user cropped images in order
+                            const fallbackImg = uniqueCandidateImages[idx];
+                            card.image_url = fallbackImg.url;
+                            card.asset_url = fallbackImg.asset_url;
+                            card.ai_matched = true;
+                            card.ai_photo_name = fallbackImg.name || `Photo #${idx + 1}`;
+                            usedImageUrls.add(fallbackImg.asset_url);
+                            photosLinkedCount++;
+                            cardPhotoChanged = true;
+                        }
+                    }
+
+                    processedCards.push({
+                        card_id: card.card_id,
+                        title: card.parent_name,
+                        category: card.category || 'General',
+                        image_url: card.asset_url || card.image_url,
+                        ai_matched: card.ai_matched || false,
+                        ai_photo_name: card.ai_photo_name || '',
+                        sizesCount: (card.variants || []).length,
+                        description: card.description || ''
+                    });
+                });
+
+                // 5. Persist updates
+                saveToLocalStorage();
+                autoSaveDraftToBackend();
+                renderGroupedProductCards();
+                refreshCategoryFilterTabs();
+
+                // 6. Open Review Modal
+                openAiMatchReviewModal({
+                    totalCards: groupedProductCards.length,
+                    photosLinkedCount,
+                    descriptionsEnrichedCount,
+                    sizesStandardizedCount,
+                    cards: processedCards
+                });
+
+                showToastNotification(`🤖 AI Process Complete: ${photosLinkedCount} Photos Linked, ${descriptionsEnrichedCount} Descriptions Refined!`);
+
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                }
+            }
+        }
+
+        function openAiMatchReviewModal(data) {
+            const modal = document.getElementById('aiMatchReviewModal');
+            const statsBar = document.getElementById('aiMatchStatsBar');
+            const cardsList = document.getElementById('aiMatchCardsList');
+            if (!modal || !statsBar || !cardsList) return;
+
+            statsBar.innerHTML = `
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="px-2.5 py-1 rounded-xl bg-emerald-100 text-emerald-800 font-extrabold flex items-center gap-1.5">
+                        <i class="fa-solid fa-camera text-emerald-600"></i> ${data.photosLinkedCount} / ${data.totalCards} Photos Linked
+                    </span>
+                    <span class="px-2.5 py-1 rounded-xl bg-indigo-100 text-indigo-800 font-extrabold flex items-center gap-1.5">
+                        <i class="fa-solid fa-align-left text-indigo-600"></i> ${data.descriptionsEnrichedCount} Descriptions Refined
+                    </span>
+                    <span class="px-2.5 py-1 rounded-xl bg-purple-100 text-purple-800 font-extrabold flex items-center gap-1.5">
+                        <i class="fa-solid fa-ruler-combined text-purple-600"></i> ${data.sizesStandardizedCount} Sizes Standardized
+                    </span>
+                </div>
+                <div class="text-[11px] text-gray-500 font-bold">
+                    All ${data.totalCards} Product Cards Ready for Review
+                </div>
+            `;
+
+            let cardsHtml = '';
+            data.cards.forEach((c, idx) => {
+                const photoHtml = c.image_url
+                    ? `<div class="h-16 w-16 rounded-2xl bg-white border border-emerald-300 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs relative">
+                         <img src="${c.image_url}" class="max-h-full max-w-full object-contain">
+                         <span class="absolute -top-1 -right-1 bg-emerald-500 text-white text-[7px] font-black px-1 rounded-full"><i class="fa-solid fa-check"></i></span>
+                       </div>`
+                    : `<div class="h-16 w-16 rounded-2xl bg-gray-100 border border-dashed border-gray-300 p-1 flex flex-col items-center justify-center shrink-0 text-gray-400">
+                         <i class="fa-solid fa-image text-base"></i>
+                         <span class="text-[8px] mt-0.5">No photo</span>
+                       </div>`;
+
+                const statusBadge = c.image_url
+                    ? `<span class="px-2 py-0.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-black flex items-center gap-1"><i class="fa-solid fa-link text-emerald-600"></i> Photo Linked: ${escapeHtml(c.ai_photo_name || 'Matched')}</span>`
+                    : `<span class="px-2 py-0.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold">Photo Pending (Optional)</span>`;
+
+                cardsHtml += `
+                    <div class="p-3.5 rounded-2xl border border-gray-200 bg-white hover:border-indigo-300 transition flex items-center gap-3.5 shadow-2xs">
+                        ${photoHtml}
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-2 flex-wrap mb-1">
+                                <h4 class="text-xs font-black text-gray-900 truncate">${escapeHtml(c.title)}</h4>
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-100">${escapeHtml(c.category)}</span>
+                                    <span class="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 text-[10px] font-bold">${c.sizesCount} Sizes</span>
+                                    ${statusBadge}
+                                </div>
+                            </div>
+                            <p class="text-[11px] text-gray-600 line-clamp-1 italic">${escapeHtml(c.description || 'No description')}</p>
+                        </div>
+                    </div>
+                `;
+            });
+
+            cardsList.innerHTML = cardsHtml;
+            modal.classList.remove('hidden');
+            modal.style.display = 'flex';
+        }
+
+        function closeAiMatchReviewModal() {
+            const modal = document.getElementById('aiMatchReviewModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+            }
+        }
+
+        function reviewCardsInPlace() {
+            closeAiMatchReviewModal();
+            const target = document.getElementById('groupedCardsSection') || document.getElementById('groupedCardsListContainer');
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            showToastNotification('👀 Aap sabhi cards ko review aur edit kar sakte hain. Jab sab sahi lage, "Save & Publish" dabayein!');
+        }
+
+        function confirmAndPublishLiveFromModal() {
+            closeAiMatchReviewModal();
+            saveDynamicSheetToBackend(true);
         }
 
         function loadLinesIntoDynamicRows(lines) {
