@@ -3238,12 +3238,14 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                 $vStock = isset($v['stock']) && $v['stock'] !== '' ? intval($v['stock']) : (isset($v['stock_quantity']) && $v['stock_quantity'] !== '' ? intval($v['stock_quantity']) : 0);
 
                 $vHsn = trim($v['hsn_code'] ?? '39174000');
+                $vGst = isset($v['gst_percent']) ? floatval($v['gst_percent']) : (isset($card['gst_percent']) ? floatval($card['gst_percent']) : 18.0);
                 $cardVariants[] = [
                     'variant_name' => $vSize ?: 'Standard',
                     'size' => $vSize ?: 'Standard',
                     'sku' => $vCode ?: ('VAR-' . strtoupper(Str::random(6))),
                     'product_code' => $vCode,
                     'hsn_code' => $vHsn ?: '39174000',
+                    'gst_percent' => $vGst,
                     'packing_1' => $vPack1,
                     'packing_2' => $vPack2,
                     'grade' => 'Industrial',
@@ -3267,6 +3269,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                     'image_url' => $img,
                     'effective_date' => $effectiveDate ?: null,
                     'hsn_code' => $cardVariants[0]['hsn_code'] ?? '39174000',
+                    'gst_percent' => isset($card['gst_percent']) ? floatval($card['gst_percent']) : ($cardVariants[0]['gst_percent'] ?? 18.0),
                     'variants' => $cardVariants,
                 ];
             }
@@ -3301,6 +3304,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                     'image_url' => $img,
                     'effective_date' => $effectiveDate ?: null,
                     'hsn_code' => $hsn ?: '39174000',
+                    'gst_percent' => isset($r['gst_percent']) ? floatval($r['gst_percent']) : 18.0,
                     'variants' => [],
                 ];
             }
@@ -3315,6 +3319,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                 'sku' => $code ?: ('VAR-' . strtoupper(Str::random(6))),
                 'product_code' => $code,
                 'hsn_code' => $hsn ?: '39174000',
+                'gst_percent' => isset($r['gst_percent']) ? floatval($r['gst_percent']) : 18.0,
                 'packing_1' => $pack1,
                 'packing_2' => $pack2,
                 'grade' => 'Industrial',
@@ -3454,7 +3459,7 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                         $categoriesCache[$catName] = $category->id;
                     }
                     $catId = $categoriesCache[$catName];
-                    $gst = 18;
+                    $gst = isset($prodData['gst_percent']) ? floatval($prodData['gst_percent']) : (isset($firstVar['gst_percent']) ? floatval($firstVar['gst_percent']) : 18.0);
                     $variants = $prodData['variants'] ?? [];
                     $hasMultipleVariants = count($variants) > 1;
 

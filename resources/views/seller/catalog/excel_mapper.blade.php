@@ -1936,14 +1936,22 @@
                         </div>
 
                         <!-- GST % -->
-                        <div id="formulaGstFieldBox" class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/80">
-                            <label class="block text-[10px] font-black text-emerald-300 uppercase mb-1 flex items-center justify-between">
-                                <span>2. GST Rate</span>
-                                <span class="text-gray-400 font-normal">%</span>
-                            </label>
-                            <div class="flex items-center gap-1 mt-2.5">
-                                <input type="number" step="1" id="formulaGstPercent" value="18" oninput="recalculateRawFormulaRates()" placeholder="18" class="w-full bg-slate-950 px-2 py-1 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-emerald-400">
-                                <span class="text-gray-400 text-xs font-bold">% GST</span>
+                        <div id="formulaGstFieldBox" class="bg-slate-800/80 p-2 rounded-xl border border-slate-700/80 flex flex-col justify-between">
+                            <div class="flex items-center justify-between mb-0.5">
+                                <label class="text-[10px] font-black text-emerald-300 uppercase">2. GST Rate %</label>
+                                <span class="text-[8px] text-emerald-400 font-bold font-mono" id="formulaGstBoxStatusText">Active</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <input type="number" step="1" id="formulaGstPercent" value="18" oninput="recalculateRawFormulaRates()" placeholder="18" class="w-full bg-slate-950 px-1.5 py-0.5 rounded-lg border border-slate-700 text-white font-mono font-black text-xs focus:ring-1 focus:ring-emerald-400" title="GST Rate % (Item par kitna % GST hai, e.g. 0%, 5%, 12%, 18%)">
+                                <span class="text-gray-400 text-xs font-bold">%</span>
+                            </div>
+                            <!-- Quick GST Presets: 0% (Exempt), 5%, 12%, 18%, 28% -->
+                            <div class="flex items-center gap-1 mt-1 text-[8px] font-mono">
+                                <button type="button" onclick="setFormulaGstPreset(0)" class="px-1 py-0.5 rounded bg-slate-900 hover:bg-slate-700 text-rose-300 font-bold border border-slate-700 transition" title="Item me GST nahi lagta (0% Exempt)">0% (No GST)</button>
+                                <button type="button" onclick="setFormulaGstPreset(5)" class="px-1 py-0.5 rounded bg-slate-900 hover:bg-slate-700 text-gray-300 font-bold border border-slate-700 transition">5%</button>
+                                <button type="button" onclick="setFormulaGstPreset(12)" class="px-1 py-0.5 rounded bg-slate-900 hover:bg-slate-700 text-gray-300 font-bold border border-slate-700 transition">12%</button>
+                                <button type="button" onclick="setFormulaGstPreset(18)" class="px-1 py-0.5 rounded bg-slate-900 hover:bg-slate-700 text-emerald-400 font-bold border border-emerald-600/50 transition">18%</button>
+                                <button type="button" onclick="setFormulaGstPreset(28)" class="px-1 py-0.5 rounded bg-slate-900 hover:bg-slate-700 text-gray-300 font-bold border border-slate-700 transition">28%</button>
                             </div>
                         </div>
 
@@ -5717,6 +5725,7 @@ function saveToLocalStorage() {
                     product_code: r.product_code || '',
                     product_name: r.product_name || parentTitle,
                     hsn_code: r.hsn_code || '39174000',
+                    gst_percent: (r.gst_percent !== undefined) ? r.gst_percent : 18,
                     size: r.size || 'Standard',
                     description: r.description || '',
                     packing_1: r.packing_1 || '',
@@ -8154,15 +8163,19 @@ With Pattam - 30% extra
         /**
          * 🧮 Live Pricing Formula Engine: Recalculates Less, Bhada, Selling Rates & Sheet Sizes
          */
+        function setFormulaGstPreset(val) {
+            const el = document.getElementById('formulaGstPercent');
+            if (el) {
+                el.value = val;
+                recalculateRawFormulaRates();
+            }
+        }
+
         function toggleGstModeUI() {
             const mode = document.getElementById('formulaGstMode')?.value || 'without_gst';
-            const gstBox = document.getElementById('formulaGstFieldBox');
-            if (gstBox) {
-                if (mode === 'with_gst') {
-                    gstBox.classList.add('opacity-40', 'pointer-events-none');
-                } else {
-                    gstBox.classList.remove('opacity-40', 'pointer-events-none');
-                }
+            const statusText = document.getElementById('formulaGstBoxStatusText');
+            if (statusText) {
+                statusText.innerText = (mode === 'with_gst') ? 'Rate me Shamil' : 'Alag se Judega';
             }
             const formulaDesc = document.getElementById('formulaSummaryRuleDesc');
             if (formulaDesc) {
@@ -8178,7 +8191,7 @@ With Pattam - 30% extra
         function updateFormulaLiveExampleStrip() {
             const gstMode = document.getElementById('formulaGstMode')?.value || 'without_gst';
             const lessPct = parseFloat(document.getElementById('formulaLessPercent')?.value) || 0;
-            const gstPct = (gstMode === 'without_gst') ? (parseFloat(document.getElementById('formulaGstPercent')?.value) || 0) : 0;
+            const gstPct = parseFloat(document.getElementById('formulaGstPercent')?.value) || 0;
             const freightMode = document.getElementById('formulaFreightMode')?.value || 'flat';
             const freightVal = parseFloat(document.getElementById('formulaFreightPerUnit')?.value) || 0;
 
@@ -8188,7 +8201,23 @@ With Pattam - 30% extra
 
             const freightText = freightVal > 0 ? (freightMode === 'percent' ? ` + ${freightVal}% Bhada` : ` + ₹${freightVal} Bhada`) : '';
 
-            if (gstMode === 'without_gst') {
+            if (gstPct === 0) {
+                if (badge) {
+                    badge.className = 'px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-rose-950 text-rose-300 border border-rose-600/60 flex items-center gap-1.5';
+                    badge.innerHTML = '<i class="fa-solid fa-shield-halved text-rose-400"></i><span>0% GST (Tax Exempt / Nil GST)</span>';
+                }
+                const sampleBase = 100;
+                const afterLess = sampleBase * (1 - lessPct / 100);
+                const freightAmt = freightMode === 'percent' ? (sampleBase * freightVal / 100) : freightVal;
+                const totalCost = (afterLess + freightAmt).toFixed(2);
+
+                if (exEl) {
+                    exEl.innerHTML = `Maan lijiye <b>₹100</b> Rate (0% GST): ₹100 &minus; ${lessPct}% Less = ₹${afterLess.toFixed(2)}${freightText} ➔ <b>Cost Price: ₹${totalCost}</b> &nbsp;|&nbsp; <span class="text-rose-300 font-bold">Bill me ₹0 GST lagega</span>`;
+                }
+                if (tip) {
+                    tip.innerText = '0% GST set hai: Bill banate waqt customer se koi extra GST nahi liya jayega!';
+                }
+            } else if (gstMode === 'without_gst') {
                 if (badge) {
                     badge.className = 'px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-emerald-950 text-emerald-300 border border-emerald-600/60 flex items-center gap-1.5';
                     badge.innerHTML = '<i class="fa-solid fa-calculator text-emerald-400"></i><span>Without GST Less Active</span>';
@@ -8216,10 +8245,10 @@ With Pattam - 30% extra
                 const totalCost = (afterLess + freightAmt).toFixed(2);
 
                 if (exEl) {
-                    exEl.innerHTML = `Maan lijiye <b>₹100</b> Rate (GST Shamil): ₹100 &minus; ${lessPct}% Less = ₹${afterLess.toFixed(2)}${freightText} ➔ <b>Cost Price: ₹${totalCost}</b> (No extra GST)`;
+                    exEl.innerHTML = `Maan lijiye <b>₹100</b> Rate (${gstPct}% GST Shamil): ₹100 &minus; ${lessPct}% Less = ₹${afterLess.toFixed(2)}${freightText} ➔ <b>Cost Price: ₹${totalCost}</b> [Bill me se ${gstPct}% GST alag dikhega]`;
                 }
                 if (tip) {
-                    tip.innerText = 'Rate me GST pehle se shamil hai — discount direct full rate par kategi';
+                    tip.innerText = `Rate me ${gstPct}% GST pehle se shamil hai — Bill me Taxable + ${gstPct}% GST split hoke aayega`;
                 }
             }
         }
@@ -8496,6 +8525,7 @@ With Pattam - 30% extra
                     packing_2: '',
                     group_type: item.category,
                     category: item.category,
+                    gst_percent: (item.gst_pct !== undefined) ? item.gst_pct : 18,
                     description: item.notes ? `${item.notes} | [${item.gst_mode === 'without_gst' ? `Less ${item.less_pct}% + ${item.gst_pct}% GST` : `Less ${item.less_pct}% with GST`}]` : `[${item.gst_mode === 'without_gst' ? `Less ${item.less_pct}% + ${item.gst_pct}% GST` : `Less ${item.less_pct}% with GST`}]`,
                     mrp: item.base_rate,
                     purchase_cost: item.landing_cost,
@@ -8716,7 +8746,12 @@ With Pattam - 30% extra
                             <input type="text" value="${escapeHtml(r.item_code || r.product_code || '')}" placeholder="Item Code" oninput="updateDynamicRowField(${r.id}, 'product_code', this.value); updateDynamicRowField(${r.id}, 'item_code', this.value);" class="w-24 text-[11px] font-mono text-gray-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" title="Product / Item Code (SKU)">
                         </td>
                         <td class="p-3">
-                            <input type="text" value="${escapeHtml(r.hsn_code || '39174000')}" placeholder="39174000" oninput="updateDynamicRowField(${r.id}, 'hsn_code', this.value)" class="w-20 text-[11px] font-mono text-indigo-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" title="HSN / SAC Code (Default: 39174000)">
+                            <input type="text" value="${escapeHtml(r.hsn_code || '39174000')}" placeholder="39174000" oninput="updateDynamicRowField(${r.id}, 'hsn_code', this.value)" class="w-20 text-[11px] font-mono text-indigo-700 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" title="HSN / SAC Code">
+                            <div class="flex items-center gap-0.5 mt-0.5" title="GST Rate % (Item par kitna % GST hai, e.g. 0%, 5%, 12%, 18%)">
+                                <span class="text-[9px] text-gray-400 font-bold">GST:</span>
+                                <input type="number" step="1" value="${r.gst_percent !== undefined ? r.gst_percent : 18}" oninput="updateDynamicRowField(${r.id}, 'gst_percent', parseFloat(this.value) || 0)" class="w-10 text-[10px] font-mono font-bold text-emerald-700 border border-transparent hover:border-emerald-300 focus:border-emerald-600 focus:bg-white rounded px-0.5 bg-transparent">
+                                <span class="text-[9px] text-gray-400 font-bold">%</span>
+                            </div>
                         </td>
                         <td class="p-3">
                             <input type="text" value="${escapeHtml(r.size || 'Standard')}" placeholder="Standard" oninput="updateDynamicRowField(${r.id}, 'size', this.value)" class="w-20 text-xs font-mono font-bold text-gray-800 border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded-lg p-1 transition bg-transparent" title="Size / Dimension">
