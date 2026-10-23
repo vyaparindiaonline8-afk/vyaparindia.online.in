@@ -161,7 +161,7 @@
         <!-- ========================================== -->
         <div id="dynamicSheetContainer" class="space-y-4">
             <!-- ⚡ PDF Import Success Alert Banner -->
-            <div id="pdfImportSuccessAlert" class="hidden p-4 rounded-3xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg flex items-center justify-between gap-3 animate-fade-in border border-emerald-400">
+            <div id="pdfImportSuccessAlert" class="hidden p-4 rounded-3xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg flex flex-wrap items-center justify-between gap-3 animate-fade-in border border-emerald-400">
                 <div class="flex items-center gap-3">
                     <div class="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center text-lg shrink-0">
                         <i class="fa-solid fa-file-excel text-amber-300"></i>
@@ -171,9 +171,21 @@
                         <p class="text-[11px] text-emerald-100" id="pdfImportAlertDesc">Niche spreadsheet table me sabhi rows taiyar hain. Ab aap kisi bhi row ko select karke photo jod sakte hain ya direct publish kar sakte hain.</p>
                     </div>
                 </div>
-                <button type="button" onclick="document.getElementById('pdfImportSuccessAlert').classList.add('hidden')" class="px-3.5 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition shrink-0">
-                    Samajh Gaya (Dismiss)
-                </button>
+                <div class="flex items-center gap-2 shrink-0">
+                    <div id="pdfImportAlertActions" class="hidden flex items-center gap-2">
+                        <button type="button" onclick="mergeWithPreviousDraft()" class="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-gray-950 text-xs font-black transition flex items-center gap-1.5 shadow-sm cursor-pointer" title="Purane draft ko is naye PDF data ke sath jod dein">
+                            <i class="fa-solid fa-code-merge text-xs"></i>
+                            <span>Purane Draft me Jodein (Merge)</span>
+                        </button>
+                        <button type="button" onclick="restoreDraftCardsAndRows()" class="px-3.5 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer" title="Purana draft wapas laayein">
+                            <i class="fa-solid fa-rotate-left text-xs"></i>
+                            <span>Sirf Purana Draft Dekhein</span>
+                        </button>
+                    </div>
+                    <button type="button" onclick="document.getElementById('pdfImportSuccessAlert').classList.add('hidden')" class="px-3.5 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition shrink-0 cursor-pointer">
+                        ✕ Samajh Gaya
+                    </button>
+                </div>
             </div>
 
             <!-- Dynamic Controls Header -->
@@ -4380,7 +4392,18 @@
                     const sku = itemCode || (r.sku && r.sku !== '-' ? r.sku.trim() : '');
                     const mrp = isNaN(parseFloat(r.mrp)) ? 0 : parseFloat(r.mrp);
                     const price = isNaN(parseFloat(r.price)) ? mrp : parseFloat(r.price);
-                    const category = (r.category && r.category !== '-') ? r.category.trim() : targetCategory;
+                    let category = (r.category && r.category !== '-') ? r.category.trim() : targetCategory;
+                    if (!r.category || r.category === 'General' || r.category === 'General Hardware') {
+                        const combined = ((name || '') + ' ' + (desc || '') + ' ' + (size || '')).toUpperCase();
+                        if (/CPVC/i.test(combined)) category = 'CPVC PIPES&FITTINGS';
+                        else if (/UPVC/i.test(combined)) category = 'UPVC PIPE&FITTINGS';
+                        else if (/SWR|DRAIN/i.test(combined)) category = 'SWR PIPES&FITTINGS';
+                        else if (/PTMT|FLOREX|TAP|FAUCET|COCK|SHOWER/i.test(combined)) category = 'Florex Ptmt & Bath Fittings';
+                        else if (/BATH|SANITARY|PARRYWARE/i.test(combined)) category = 'BATH PVC&PTMT FITTINGS';
+                        else if (/AGRI|SOLVENT/i.test(combined)) category = 'AGRI PIPES&FITTINGS';
+                        else if (/HARDWARE|PLYWOOD/i.test(combined)) category = 'HARDWARE PLYWOOD';
+                        else if (/ELECTRIC|TOOL/i.test(combined)) category = 'ELECTRIC TOOLS';
+                    }
                     const pack1 = (r.packing_1 && r.packing_1 !== '-') ? r.packing_1.trim() : (r.unit || '');
                     const pack2 = (r.packing_2 && r.packing_2 !== '-') ? r.packing_2.trim() : '';
                     const desc = (r.description && r.description !== '-') ? r.description.trim() : (r.specifications || '');
@@ -4521,11 +4544,64 @@
                 } catch (e) {}
             }
 
-            // ALWAYS restore existing saved cards & rows from localStorage first!
+            // ALWAYS restore existing saved cards & rows from localStorage first into memory
             loadFromLocalStorage();
-
-            // 1. TOP PRIORITY: If we have existing saved dynamic spreadsheet rows or grouped cards in localStorage, PRESERVE THEM!
             initIndustryModules();
+
+            // 🌟 PRIORITY 1: IF COMING DIRECTLY FROM PDF STUDIO (source=pdf_lines), LOAD NEW PDF ITEMS!
+            if (isFromPdf) {
+                const rawStored = localStorage.getItem('vyapar_custom_excel_lines');
+                if (rawStored) {
+                    try {
+                        const parsed = JSON.parse(rawStored);
+                        const prevRowCount = dynamicRows.length;
+                        const prevCardCount = groupedProductCards.length;
+
+                        // Backup previous draft before loading newly extracted PDF lines
+                        if (prevRowCount > 0 || prevCardCount > 0) {
+                            localStorage.setItem('vyapar_dynamic_rows_backup', JSON.stringify(dynamicRows));
+                            localStorage.setItem('vyapar_grouped_cards_backup', JSON.stringify(groupedProductCards));
+                            window.previousDraftRowCount = prevRowCount;
+                        }
+
+                        if (loadPdfExtractedDataIntoDynamicRows(parsed)) {
+                            // If previous items existed, show merge & restore buttons in alert banner
+                            const alertDesc = document.getElementById('pdfImportAlertDesc');
+                            const alertActions = document.getElementById('pdfImportAlertActions');
+                            if (prevRowCount > 0) {
+                                if (alertDesc) {
+                                    alertDesc.innerHTML = `PDF Page ${parsed.page || 1} se <b>${dynamicRows.length} naye items</b> sheet me load ho gaye hain.<br><span class="opacity-90">Aapka purana draft (<b>${prevRowCount} items</b>) backup me surakshit hai.</span>`;
+                                }
+                                if (alertActions) {
+                                    alertActions.classList.remove('hidden');
+                                }
+                            } else {
+                                if (alertActions) alertActions.classList.add('hidden');
+                            }
+
+                            // Clean source=pdf_lines from URL so F5/Refresh doesn't re-trigger
+                            if (window.history && window.history.replaceState) {
+                                const cleanUrl = window.location.pathname + (window.location.search.replace(/[?&]source=pdf_lines(&|$)/, '$1').replace(/[?&]$/, ''));
+                                window.history.replaceState({}, document.title, cleanUrl || window.location.pathname);
+                            }
+                            toggleDynamicMode(true);
+                            return;
+                        }
+                    } catch (e) {
+                        console.error('Error loading PDF custom lines:', e);
+                    }
+                }
+            }
+
+            // Clean source=pdf_lines from URL if still present
+            if (isFromPdf && window.history && window.history.replaceState) {
+                try {
+                    const cleanUrl = window.location.pathname + (window.location.search.replace(/[?&]source=pdf_lines(&|$)/, '$1').replace(/[?&]$/, ''));
+                    window.history.replaceState({}, document.title, cleanUrl || window.location.pathname);
+                } catch (e) {}
+            }
+
+            // PRIORITY 2: If we have existing saved dynamic spreadsheet rows or grouped cards in localStorage, PRESERVE THEM!
             if (groupedProductCards.length > 0 || dynamicRows.length > 0) {
                 renderDynamicRows();
                 renderGroupedProductCards();
@@ -4536,7 +4612,7 @@
 
             const rawStored = localStorage.getItem('vyapar_custom_excel_lines');
 
-            // 2. PRIORITY 2: If workspace was empty and we have raw PDF lines from PDF Studio, load them!
+            // PRIORITY 3: If workspace was empty and we have raw PDF lines from PDF Studio, load them!
             if (rawStored) {
                 try {
                     const parsed = JSON.parse(rawStored);
@@ -4568,6 +4644,33 @@
         }
 
         // 🔄 1-Click Recovery function to restore any lost cards or draft
+        function mergeWithPreviousDraft() {
+            try {
+                const bRows = localStorage.getItem('vyapar_dynamic_rows_backup');
+                if (!bRows) {
+                    alert('Koi purana draft backup me nahi mila.');
+                    return;
+                }
+                const parsed = JSON.parse(bRows);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    let maxId = dynamicRows.reduce((max, r) => Math.max(max, r.id || 0), 0);
+                    parsed.forEach(r => {
+                        maxId++;
+                        dynamicRows.push({ ...r, id: maxId });
+                    });
+                    dynamicRowNextId = maxId + 1;
+                    saveToLocalStorage();
+                    renderDynamicRows();
+                    refreshCategoryFilterTabs();
+                    showToastNotification(`✅ Purane draft ke ${parsed.length} items safalta-purvak merge ho gaye! Kul: ${dynamicRows.length} items`);
+                    const alertEl = document.getElementById('pdfImportSuccessAlert');
+                    if (alertEl) alertEl.classList.add('hidden');
+                }
+            } catch(e) {
+                alert('Draft merge karne me truti hui: ' + e.message);
+            }
+        }
+
         function restoreDraftCardsAndRows() {
             let restoredCards = 0;
             let restoredRows = 0;
