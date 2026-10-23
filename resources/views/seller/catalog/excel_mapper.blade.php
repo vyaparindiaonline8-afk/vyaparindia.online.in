@@ -3546,7 +3546,8 @@
             // Apply to Dynamic Rows
             let updatedCount = 0;
             g.rows.forEach(r => {
-                const base = parseFloat(r.raw_rate || r.purchase_cost || r.cost_price || r.mrp || 100);
+                if (!r.original_mrp && r.mrp) r.original_mrp = parseFloat(r.mrp);
+                const base = parseFloat(r.original_mrp || r.mrp || r.raw_rate || 100);
                 const afterLess = base * (1 - (lessPct / 100));
                 const freightAmt = (freightMode === 'percent') ? (base * (freightVal / 100)) : freightVal;
                 const landing = Math.round((afterLess + freightAmt) * 100) / 100;
@@ -3562,7 +3563,8 @@
             // Apply to Grouped Cards variants
             g.cardVariants.forEach(cv => {
                 const v = cv.variant;
-                const base = parseFloat(v.raw_rate || v.purchase_cost || v.mrp || 100);
+                if (!v.original_mrp && v.mrp) v.original_mrp = parseFloat(v.mrp);
+                const base = parseFloat(v.original_mrp || v.mrp || v.raw_rate || 100);
                 const afterLess = base * (1 - (lessPct / 100));
                 const freightAmt = (freightMode === 'percent') ? (base * (freightVal / 100)) : freightVal;
                 const landing = Math.round((afterLess + freightAmt) * 100) / 100;
@@ -5812,7 +5814,7 @@ function saveToLocalStorage() {
                                 <div class="flex items-center"><span class="text-gray-400 mr-0.5">₹</span><input type="number" step="0.5" value="${(v.purchase_cost !== undefined && v.purchase_cost !== null && v.purchase_cost !== '') ? v.purchase_cost : (v.cost_price || 0)}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'purchase_cost', parseFloat(this.value) || 0)" class="w-16 text-xs text-gray-600 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent"></div>
                             </td>
                             <td class="p-2 font-mono">
-                                <div class="flex items-center"><span class="text-gray-400 mr-0.5">₹</span><input type="number" step="0.5" value="${v.retail_price}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'retail_price', parseFloat(this.value) || 0)" class="w-16 text-xs font-bold text-emerald-700 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent"></div>
+                                <div class="flex items-center"><span class="text-gray-400 mr-0.5">₹</span><input type="number" step="0.5" value="${parseFloat(v.retail_price !== undefined && v.retail_price !== null && v.retail_price !== '' ? v.retail_price : 0) || 0}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'retail_price', parseFloat(this.value) || 0)" class="w-16 text-xs font-bold text-emerald-700 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent"></div>
                             </td>
                             <td class="p-2 font-mono">
                                 <input type="number" value="${(v.stock !== undefined && v.stock !== null && v.stock !== '') ? v.stock : 0}" oninput="updateGroupedVariantField(${c.card_id}, ${v.id}, 'stock', parseInt(this.value) || 0)" class="w-14 text-xs font-mono text-gray-700 border border-transparent hover:border-gray-300 focus:border-indigo-600 rounded p-1 bg-transparent">

@@ -3464,10 +3464,10 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                     $hasMultipleVariants = count($variants) > 1;
 
                     $firstVar = $variants[0] ?? [];
-                    $basePurchase = floatval($firstVar['raw_rate'] ?? 0);
-                    $baseWholesale = floatval($firstVar['wholesale_price'] ?? ($basePurchase * 1.15));
-                    $baseRetail = floatval($firstVar['retail_price'] ?? ($basePurchase * 1.35));
-                    $baseMrp = floatval($firstVar['mrp'] ?? ($basePurchase * 1.60));
+                    $baseRetail = floatval($firstVar['retail_price'] ?? ($firstVar['price'] ?? ($firstVar['selling_price'] ?? 0)));
+                    $basePurchase = floatval($firstVar['raw_rate'] ?? ($firstVar['purchase_cost'] ?? ($firstVar['purchase_price'] ?? ($baseRetail * 0.7))));
+                    $baseWholesale = floatval($firstVar['wholesale_price'] ?? ($firstVar['cost_price_2'] ?? round($basePurchase * 1.15, 2)));
+                    $baseMrp = floatval($firstVar['mrp'] ?? ($baseRetail > 0 ? round($baseRetail * 1.25, 2) : 100));
                     $effectiveDate = $prodData['effective_date'] ?? ($firstVar['price_effective_date'] ?? ($job->effective_date ?? null));
                     $cost2 = floatval($firstVar['cost_price_2'] ?? 0);
                     $cost3 = floatval($firstVar['cost_price_3'] ?? 0);
@@ -3523,10 +3523,10 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
                     $variantRecords = [];
                     $now = now();
                     foreach ($variants as $v) {
-                        $rawRate = floatval($v['raw_rate'] ?? 0);
-                        $wPrice = floatval($v['wholesale_price'] ?? ($rawRate * 1.15));
-                        $rPrice = floatval($v['retail_price'] ?? ($rawRate * 1.35));
-                        $vMrp = floatval($v['mrp'] ?? ($rawRate * 1.60));
+                        $rPrice = floatval($v['retail_price'] ?? ($v['price'] ?? ($v['selling_price'] ?? 0)));
+                        $rawRate = floatval($v['raw_rate'] ?? ($v['purchase_cost'] ?? ($v['purchase_price'] ?? ($rPrice * 0.7))));
+                        $wPrice = floatval($v['wholesale_price'] ?? ($v['cost_price_2'] ?? round($rawRate * 1.15, 2)));
+                        $vMrp = floatval($v['mrp'] ?? ($rPrice > 0 ? round($rPrice * 1.25, 2) : 100));
                         $vSku = !empty($v['product_code']) ? $v['product_code'] : (!empty($v['sku']) ? $v['sku'] : ('VAR-' . strtoupper(Str::random(7))));
                         $vCost2 = floatval($v['cost_price_2'] ?? 0);
                         $vCost3 = floatval($v['cost_price_3'] ?? 0);
