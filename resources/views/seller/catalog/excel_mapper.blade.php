@@ -2011,6 +2011,23 @@
                         </div>
                     </div>
 
+                    <!-- 💡 Live Calculation Breakdown Indicator (Zero-Confusion Strip) -->
+                    <div id="formulaLiveExampleStrip" class="mt-2.5 pt-2 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-emerald-950 text-emerald-300 border border-emerald-600/60 flex items-center gap-1.5" id="formulaLiveModeBadge">
+                                <i class="fa-solid fa-calculator text-emerald-400"></i>
+                                <span>Without GST Less Active</span>
+                            </span>
+                            <span class="text-[11px] text-gray-200 font-mono" id="formulaLiveCalculationExample">
+                                Maan lijiye ₹100 Rate: ₹100 &minus; 0% Less = ₹100 ➔ +18% GST = ₹118.00 ➔ Cost Price: ₹118.00
+                            </span>
+                        </div>
+                        <div class="text-[10px] text-amber-300 font-bold flex items-center gap-1">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span id="formulaLiveHelpTip">Discount pehle kategi, phir 18% GST judega</span>
+                        </div>
+                    </div>
+
                     <!-- Size Selection Pills & Presets (Visible when Sheet Multiplier is checked) -->
                     <div id="formulaSheetSizesConfigRow" class="hidden mt-2.5 pt-2 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
                         <div class="flex flex-wrap items-center gap-1.5">
@@ -8155,6 +8172,56 @@ With Pattam - 30% extra
                     formulaDesc.innerHTML = 'Landing = (Base &minus; Less%) + GST + Bhada &nbsp;|&nbsp; 3 Margins: Rate A (Retail), Rate B (Wholesale), Rate C (Special)';
                 }
             }
+            updateFormulaLiveExampleStrip();
+        }
+
+        function updateFormulaLiveExampleStrip() {
+            const gstMode = document.getElementById('formulaGstMode')?.value || 'without_gst';
+            const lessPct = parseFloat(document.getElementById('formulaLessPercent')?.value) || 0;
+            const gstPct = (gstMode === 'without_gst') ? (parseFloat(document.getElementById('formulaGstPercent')?.value) || 0) : 0;
+            const freightMode = document.getElementById('formulaFreightMode')?.value || 'flat';
+            const freightVal = parseFloat(document.getElementById('formulaFreightPerUnit')?.value) || 0;
+
+            const badge = document.getElementById('formulaLiveModeBadge');
+            const exEl = document.getElementById('formulaLiveCalculationExample');
+            const tip = document.getElementById('formulaLiveHelpTip');
+
+            const freightText = freightVal > 0 ? (freightMode === 'percent' ? ` + ${freightVal}% Bhada` : ` + ₹${freightVal} Bhada`) : '';
+
+            if (gstMode === 'without_gst') {
+                if (badge) {
+                    badge.className = 'px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-emerald-950 text-emerald-300 border border-emerald-600/60 flex items-center gap-1.5';
+                    badge.innerHTML = '<i class="fa-solid fa-calculator text-emerald-400"></i><span>Without GST Less Active</span>';
+                }
+                const sampleBase = 100;
+                const afterLess = sampleBase * (1 - lessPct / 100);
+                const afterGst = afterLess * (1 + gstPct / 100);
+                const freightAmt = freightMode === 'percent' ? (sampleBase * freightVal / 100) : freightVal;
+                const totalCost = (afterGst + freightAmt).toFixed(2);
+
+                if (exEl) {
+                    exEl.innerHTML = `Maan lijiye <b>₹100</b> Rate: ₹100 &minus; ${lessPct}% Less = ₹${afterLess.toFixed(2)} ➔ <b>+${gstPct}% GST</b> = ₹${afterGst.toFixed(2)}${freightText} ➔ <b>Cost Price: ₹${totalCost}</b>`;
+                }
+                if (tip) {
+                    tip.innerText = `Discount pehle kategi, phir ${gstPct}% GST judega (Without GST Less)`;
+                }
+            } else {
+                if (badge) {
+                    badge.className = 'px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-cyan-950 text-cyan-300 border border-cyan-600/60 flex items-center gap-1.5';
+                    badge.innerHTML = '<i class="fa-solid fa-calculator text-cyan-400"></i><span>With GST Less Active</span>';
+                }
+                const sampleBase = 100;
+                const afterLess = sampleBase * (1 - lessPct / 100);
+                const freightAmt = freightMode === 'percent' ? (sampleBase * freightVal / 100) : freightVal;
+                const totalCost = (afterLess + freightAmt).toFixed(2);
+
+                if (exEl) {
+                    exEl.innerHTML = `Maan lijiye <b>₹100</b> Rate (GST Shamil): ₹100 &minus; ${lessPct}% Less = ₹${afterLess.toFixed(2)}${freightText} ➔ <b>Cost Price: ₹${totalCost}</b> (No extra GST)`;
+                }
+                if (tip) {
+                    tip.innerText = 'Rate me GST pehle se shamil hai — discount direct full rate par kategi';
+                }
+            }
         }
 
         function recalculateRawFormulaRates() {
@@ -8173,6 +8240,7 @@ With Pattam - 30% extra
             if (freightPrefix) {
                 freightPrefix.innerText = (freightMode === 'percent') ? '%' : '₹';
             }
+            updateFormulaLiveExampleStrip();
 
             const rateAMode = document.getElementById('formulaRateAMode')?.value || 'percent';
             const rateAVal = parseFloat(document.getElementById('formulaRateAValue')?.value) || 0;
@@ -8252,7 +8320,7 @@ With Pattam - 30% extra
                             rate_a: Math.round(rA * area * 100) / 100,
                             rate_b: Math.round(rB * area * 100) / 100,
                             rate_c: Math.round(rC * area * 100) / 100,
-                            notes: item.notes ? `${item.notes} | Base: ₹${base}/sqft` : `Base: ₹${base}/sqft`
+                            gst_mode: gstMode, less_pct: lessPct, gst_pct: gstPct, notes: item.notes ? `${item.notes} | Base: ₹${base}/sqft` : `Base: ₹${base}/sqft`
                         });
                     });
                 } else {
@@ -8267,6 +8335,9 @@ With Pattam - 30% extra
                         rate_a: rA,
                         rate_b: rB,
                         rate_c: rC,
+                        gst_mode: gstMode,
+                        less_pct: lessPct,
+                        gst_pct: gstPct,
                         notes: item.notes || ''
                     });
                 }
@@ -8336,7 +8407,12 @@ With Pattam - 30% extra
                                 <input type="number" step="0.25" value="${row.base_rate}" oninput="updateRawPreviewItemRate(${i}, parseFloat(this.value) || 0)" class="w-16 font-mono text-gray-800 bg-transparent border border-transparent hover:border-gray-300 focus:border-emerald-600 focus:bg-white rounded p-1 transition text-xs" title="Edit Base Rate">
                             </div>
                         </td>
-                        <td class="p-2 font-mono font-bold text-amber-700 bg-amber-50/40" id="landing_cell_${i}">₹${row.landing_cost.toFixed(2)}</td>
+                        <td class="p-2 font-mono bg-amber-50/50 border-r border-amber-100" id="landing_cell_${i}">
+                            <div class="font-black text-amber-900 text-xs">₹${row.landing_cost.toFixed(2)}</div>
+                            <div class="text-[9px] font-bold leading-tight ${row.gst_mode === 'without_gst' ? 'text-emerald-700' : 'text-cyan-700'}">
+                                ${row.gst_mode === 'without_gst' ? `Less: ${row.less_pct}% + ${row.gst_pct}% GST` : `Less: ${row.less_pct}% (incl GST)`}
+                            </div>
+                        </td>
                         <td class="p-2 font-mono bg-emerald-50/40">
                             <div class="flex items-center">
                                 <span class="text-gray-400 text-xs mr-0.5">₹</span>
@@ -8420,7 +8496,7 @@ With Pattam - 30% extra
                     packing_2: '',
                     group_type: item.category,
                     category: item.category,
-                    description: item.notes || '',
+                    description: item.notes ? `${item.notes} | [${item.gst_mode === 'without_gst' ? `Less ${item.less_pct}% + ${item.gst_pct}% GST` : `Less ${item.less_pct}% with GST`}]` : `[${item.gst_mode === 'without_gst' ? `Less ${item.less_pct}% + ${item.gst_pct}% GST` : `Less ${item.less_pct}% with GST`}]`,
                     mrp: item.base_rate,
                     purchase_cost: item.landing_cost,
                     retail_price: item.rate_a,
