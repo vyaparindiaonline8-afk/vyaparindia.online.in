@@ -475,37 +475,6 @@
                 </div>
             </div>
 
-            <!-- ⚡ SMART CATEGORY SUB-GROUP MULTI-MARGIN & FREIGHT ENGINE -->
-            <div id="smartSubGroupRuleCard" class="hidden bg-slate-900 border border-indigo-800/80 rounded-3xl p-4 sm:p-5 text-white shadow-xl space-y-3.5 transition-all">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                    <div class="flex items-center gap-3">
-                        <div class="h-10 w-10 rounded-2xl bg-indigo-600/30 text-indigo-400 flex items-center justify-center text-lg border border-indigo-500/30 shrink-0">
-                            <i class="fa-solid fa-sliders"></i>
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <h4 class="text-xs font-black uppercase tracking-wider text-indigo-300">Category Multi-Margin & Freight Engine</h4>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/30 text-indigo-200 font-mono font-bold" id="smartSubGroupActiveCatBadge">Category</span>
-                            </div>
-                            <p class="text-[11px] text-gray-400">
-                                Pipes me alag margin, plain fittings me alag aur brass fittings me alag margin & bhada 1-click me set karein
-                            </p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button type="button" onclick="applyAllSubGroupRules()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer">
-                            <i class="fa-solid fa-bolt-lightning text-amber-300"></i>
-                            <span>⚡ Apply All Sub-Groups</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Sub-Group Rows Container (Populated dynamically) -->
-                <div class="space-y-2.5" id="smartSubGroupRowsContainer">
-                    <!-- Dynamic Sub-Group rows rendered here -->
-                </div>
-            </div>
-
             <!-- Dynamic Table Card -->
             <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden" id="dynamicTableCard">
                 <div class="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/70">

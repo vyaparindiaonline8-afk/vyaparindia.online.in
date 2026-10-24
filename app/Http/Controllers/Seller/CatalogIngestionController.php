@@ -552,13 +552,21 @@ class CatalogIngestionController extends Controller
 
         $sellerCategories = Category::whereHas('products', function ($q) use ($sellerId) {
             $q->where('user_id', $sellerId);
-        })->get();
+        })->with(['products' => function($q) use ($sellerId) {
+            $q->where('user_id', $sellerId)->with('variants');
+        }])->get();
+
+        $pendingJobs = CatalogIngestionJob::where('user_id', $sellerId)
+            ->whereIn('status', ['pending', 'processing', 'completed'])
+            ->latest()
+            ->take(5)
+            ->get();
 
         $sellerPage = Auth::user()->sellerPage;
 
         $galleryImages = self::getAllGalleryImages($sellerId);
 
-        return view('seller.inventory.index', compact('products', 'totalCatalogItems', 'lowStockCount', 'outOfStockCount', 'sellerCategories', 'sellerPage', 'galleryImages'));
+        return view('seller.inventory.index', compact('products', 'totalCatalogItems', 'lowStockCount', 'outOfStockCount', 'sellerCategories', 'pendingJobs', 'sellerPage', 'galleryImages'));
     }
 
     /**
@@ -3652,6 +3660,129 @@ OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown fences, no explanation):
             'healed_products_count' => $healedProductsCount,
             'healed_variants_count' => $healedVariantsCount,
             'message' => "Zabardast! {$healedProductsCount} Products aur {$healedVariantsCount} Variant Sizes database me auto-heal ho gaye!",
+        ]);
+    }
+
+    /**
+     * Category-wise 1-Click Bulk Margin, Less & Rates Engine (Sale A, B, C)
+     */
+    public function categoryBulkMargin(Request $request)
+    {
+        $sellerId = Auth::id();
+        $request->validate([
+            'category_id' => 'required',
+            'less_percent' => 'nullable|numeric|min:0|max:100',
+            'gst_percent' => 'nullable|numeric|min:0|max:100',
+            'gst_mode' => 'nullable|in:included,extra',
+            'margin_percent' => 'nullable|numeric|min:-100|max:1000',
+            'wholesale_margin_percent' => 'nullable|numeric|min:-100|max:1000',
+            'dealer_margin_percent' => 'nullable|numeric|min:-100|max:1000',
+            'freight_amount' => 'nullable|numeric|min:0',
+        ]);
+
+        $catId = $request->input('category_id');
+        $less = floatval($request->input('less_percent', 0));
+        $gst = floatval($request->input('gst_percent', 18));
+        $gstMode = $request->input('gst_mode', 'included');
+        $retailMargin = floatval($request->input('margin_percent', 15));
+        $wholesaleMargin = floatval($request->input('wholesale_margin_percent', 10));
+        $dealerMargin = floatval($request->input('dealer_margin_percent', 5));
+        $freight = floatval($request->input('freight_amount', 0));
+
+        $products = Product::where('user_id', $sellerId)
+            ->where(function ($q) use ($catId) {
+                if (is_numeric($catId)) {
+                    $q->where('category_id', $catId);
+                } else {
+                    $q->where('group_name', $catId);
+                }
+            })
+            ->with('variants')
+            ->get();
+
+        if ($products->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'इस कैटेगरी में कोई प्रोडक्ट्स नहीं मिले।'], 404);
+        }
+
+        $updatedProductsCount = 0;
+        $updatedVariantsCount = 0;
+
+        DB::transaction(function () use ($products, $less, $gst, $gstMode, $retailMargin, $wholesaleMargin, $dealerMargin, $freight, &$updatedProductsCount, &$updatedVariantsCount) {
+            foreach ($products as $prod) {
+                $hasVariants = $prod->variants->count() > 0;
+                $lowestRetail = null;
+                $lowestWholesale = null;
+
+                if ($hasVariants) {
+                    foreach ($prod->variants as $var) {
+                        $basePrice = floatval($var->purchase_price ?: ($var->mrp ?: ($prod->mrp ?: ($prod->price ?: 100))));
+
+                        // 1. Apply Less (Trade Discount)
+                        $discountAmount = $basePrice * ($less / 100);
+                        $discounted = $basePrice - $discountAmount;
+
+                        // 2. Apply GST
+                        if ($gstMode === 'included') {
+                            $taxable = $discounted / (1 + ($gst / 100));
+                            $gstAmount = $discounted - $taxable;
+                            $landingCost = $discounted + $freight;
+                        } else {
+                            $gstAmount = $discounted * ($gst / 100);
+                            $landingCost = $discounted + $gstAmount + $freight;
+                        }
+
+                        // 3. Selling Rates (A: Counter/Retail, B: Wholesale, C: Dealer)
+                        $saleA = round($landingCost * (1 + ($retailMargin / 100)), 2);
+                        $saleB = round($landingCost * (1 + ($wholesaleMargin / 100)), 2);
+                        $saleC = round($landingCost * (1 + ($dealerMargin / 100)), 2);
+
+                        $var->trade_discount_percent = $less;
+                        $var->gst_percent = $gst;
+                        $var->net_landing_cost = round($landingCost, 2);
+                        $var->retail_price = $saleA;
+                        $var->wholesale_price = $saleB;
+                        $var->cost_price_2 = $saleC;
+                        $var->save();
+                        $updatedVariantsCount++;
+
+                        if ($lowestRetail === null || $saleA < $lowestRetail) {
+                            $lowestRetail = $saleA;
+                        }
+                        if ($lowestWholesale === null || $saleB < $lowestWholesale) {
+                            $lowestWholesale = $saleB;
+                        }
+                    }
+                } else {
+                    $basePrice = floatval($prod->mrp ?: ($prod->price ?: 100));
+                    $discountAmount = $basePrice * ($less / 100);
+                    $discounted = $basePrice - $discountAmount;
+
+                    if ($gstMode === 'included') {
+                        $landingCost = $discounted + $freight;
+                    } else {
+                        $landingCost = $discounted + ($discounted * ($gst / 100)) + $freight;
+                    }
+
+                    $lowestRetail = round($landingCost * (1 + ($retailMargin / 100)), 2);
+                    $lowestWholesale = round($landingCost * (1 + ($wholesaleMargin / 100)), 2);
+                }
+
+                if ($lowestRetail !== null) {
+                    $prod->price = $lowestRetail;
+                }
+                if ($lowestWholesale !== null) {
+                    $prod->wholesale_price = $lowestWholesale;
+                }
+                $prod->save();
+                $updatedProductsCount++;
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'updated_products' => $updatedProductsCount,
+            'updated_variants' => $updatedVariantsCount,
+            'message' => "कैटेगरी के सभी {$updatedProductsCount} प्रोडक्ट्स और {$updatedVariantsCount} साइज़ वेरिएंट्स पर नए रेट्स (Sale A, B, C) और मार्जिन सफलतापूर्वक लागू हो गए!",
         ]);
     }
 }

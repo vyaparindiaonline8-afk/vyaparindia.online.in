@@ -107,6 +107,338 @@
             </div>
         </div>
 
+        
+        <!-- ======================================================== -->
+        <!-- 🏷️ CATEGORY WISE MARGIN, LESS & RATES MANAGEMENT HUB     -->
+        <!-- (Two Primary Buttons: Listed vs Pending Drafts)          -->
+        <!-- ======================================================== -->
+        <div class="bg-white rounded-3xl border border-gray-200 shadow-sm p-6 space-y-6">
+            <!-- Header Row with Dual Mode Switcher -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <div class="h-12 w-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center text-xl shadow-md shadow-indigo-600/30 shrink-0">
+                        <i class="fa-solid fa-calculator"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-base sm:text-lg font-black text-gray-900 tracking-tight">
+                                कैटेगरी मार्जिन & रेट्स मैनेजर (Rates, Cost & Margin Hub)
+                            </h2>
+                            <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider border border-emerald-200">
+                                1-क्लिक ऑटो कैलकुलेटर
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-0.5">
+                            हर कैटेगरी का <strong>Less %</strong>, <strong>GST</strong>, <strong>Landing Cost</strong> और <strong>Sale A, B, C भाव</strong> सिर्फ यहीं से तय करें और 1-क्लिक में बल्क में लागू करें।
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 🎛️ Dual Workspace Switcher: LISTED vs PENDING -->
+                <div class="inline-flex items-center bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shrink-0">
+                    <button type="button" onclick="switchCategoryView('listed')" id="btnTabListed" class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-indigo-600 shadow-2xs cursor-pointer">
+                        <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                        <span>🟢 लिस्टेड कैटेगरीज (Listed)</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-extrabold">{{ count($sellerCategories ?? []) }}</span>
+                    </button>
+                    <button type="button" onclick="switchCategoryView('pending')" id="btnTabPending" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer">
+                        <span class="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
+                        <span>🟡 पेंडिंग कैटेगरीज (Pending Drafts)</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 font-extrabold">{{ count($pendingJobs ?? []) }}</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- VIEW 1: 🟢 LISTED CATEGORIES GRID -->
+            <div id="listedCategoriesView" class="space-y-5">
+                @if(isset($sellerCategories) && count($sellerCategories) > 0)
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        @foreach($sellerCategories as $cat)
+                            @php
+                                $catProducts = $cat->products ?? collect();
+                                $prodCount = $catProducts->count();
+                                $variantsCount = $catProducts->sum(function($p) { return ($p->variants && $p->variants->count() > 0) ? $p->variants->count() : 1; });
+                                $firstProd = $catProducts->first();
+                                $sampleVar = $firstProd ? ($firstProd->variants->first() ?? null) : null;
+                                
+                                $initBase = $sampleVar ? ($sampleVar->purchase_price ?: ($sampleVar->mrp ?: ($firstProd->price ?: 100))) : ($firstProd ? ($firstProd->price ?: 100) : 100);
+                                $initLess = $sampleVar ? ($sampleVar->trade_discount_percent ?: 30) : 30;
+                                $initGst = $sampleVar ? ($sampleVar->gst_percent ?: 18) : 18;
+                                $initMargin = 15;
+                                $catKey = $cat->id;
+                            @endphp
+                            <div class="bg-gradient-to-b from-gray-50/70 to-white rounded-2xl border border-gray-200 p-5 shadow-2xs hover:border-indigo-300 transition space-y-4" id="cat-card-{{ $catKey }}">
+                                <!-- Category Header -->
+                                <div class="flex items-start justify-between gap-3 pb-3 border-b border-gray-100">
+                                    <div class="flex items-center gap-3">
+                                        <div class="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center text-lg font-black border border-indigo-100 shrink-0">
+                                            <i class="fa-solid fa-layer-group"></i>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-black text-gray-900 text-sm flex items-center gap-2">
+                                                <span>{{ $cat->name }}</span>
+                                                <span class="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800 text-[10px] font-extrabold font-mono">ID: #{{ $cat->id }}</span>
+                                            </h3>
+                                            <p class="text-[11px] text-gray-500">
+                                                <strong>{{ $prodCount }}</strong> मुख्य प्रोडक्ट्स &bull; कुल <strong>{{ $variantsCount }}</strong> साइज़ वेरिएंट्स
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                                        <i class="fa-solid fa-check text-[9px]"></i> लाइव लिस्टेड
+                                    </span>
+                                </div>
+
+                                <!-- Costing Input Matrix: Less %, GST %, Margin % -->
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                                    <!-- Base MRP (Ref) -->
+                                    <div class="bg-white p-2.5 rounded-xl border border-gray-200">
+                                        <span class="text-[10px] font-bold text-gray-400 block">औसत बेस/MRP (Ref)</span>
+                                        <div class="flex items-center gap-1 mt-1">
+                                            <span class="text-xs text-gray-400">₹</span>
+                                            <input type="number" step="0.5" id="base_mrp_{{ $catKey }}" value="{{ $initBase }}" oninput="recalcCategoryRates('{{ $catKey }}')" class="w-full font-black text-gray-800 text-xs focus:outline-none">
+                                        </div>
+                                    </div>
+
+                                    <!-- Less % (Trade Discount) -->
+                                    <div class="bg-white p-2.5 rounded-xl border border-amber-200 bg-amber-50/20">
+                                        <span class="text-[10px] font-black text-amber-800 block">Less / डिस्काउंट (%)</span>
+                                        <div class="flex items-center gap-1 mt-1">
+                                            <input type="number" step="0.5" id="less_pct_{{ $catKey }}" value="{{ $initLess }}" oninput="recalcCategoryRates('{{ $catKey }}')" class="w-full font-black text-amber-900 text-xs focus:outline-none bg-transparent">
+                                            <span class="text-xs font-bold text-amber-700">%</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- GST % & Mode -->
+                                    <div class="bg-white p-2.5 rounded-xl border border-gray-200">
+                                        <span class="text-[10px] font-bold text-gray-500 block">GST %</span>
+                                        <div class="flex items-center gap-1 mt-1">
+                                            <select id="gst_pct_{{ $catKey }}" onchange="recalcCategoryRates('{{ $catKey }}')" class="w-full font-bold text-gray-800 text-xs focus:outline-none bg-transparent cursor-pointer">
+                                                <option value="18" {{ $initGst == 18 ? 'selected' : '' }}>18%</option>
+                                                <option value="12" {{ $initGst == 12 ? 'selected' : '' }}>12%</option>
+                                                <option value="5" {{ $initGst == 5 ? 'selected' : '' }}>5%</option>
+                                                <option value="0" {{ $initGst == 0 ? 'selected' : '' }}>0% (Nil)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Margin % -->
+                                    <div class="bg-white p-2.5 rounded-xl border border-emerald-200 bg-emerald-50/20">
+                                        <span class="text-[10px] font-black text-emerald-800 block">मुनाफा / मार्जिन (%)</span>
+                                        <div class="flex items-center gap-1 mt-1">
+                                            <input type="number" step="0.5" id="margin_pct_{{ $catKey }}" value="{{ $initMargin }}" oninput="recalcCategoryRates('{{ $catKey }}')" class="w-full font-black text-emerald-900 text-xs focus:outline-none bg-transparent">
+                                            <span class="text-xs font-bold text-emerald-700">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- GST Mode Toggle: With GST vs Without GST -->
+                                <div class="flex items-center justify-between text-xs px-1">
+                                    <span class="text-[11px] font-bold text-gray-500">जीएसटी गणना का तरीका:</span>
+                                    <div class="inline-flex items-center bg-gray-100 p-0.5 rounded-xl border border-gray-200 text-[10px] font-bold">
+                                        <label class="px-2 py-0.5 rounded-lg cursor-pointer transition has-checked:bg-indigo-600 has-checked:text-white text-gray-700">
+                                            <input type="radio" name="gst_mode_{{ $catKey }}" value="included" checked onchange="recalcCategoryRates('{{ $catKey }}')" class="hidden">
+                                            With GST (टैक्स सहित)
+                                        </label>
+                                        <label class="px-2 py-0.5 rounded-lg cursor-pointer transition has-checked:bg-indigo-600 has-checked:text-white text-gray-700">
+                                            <input type="radio" name="gst_mode_{{ $catKey }}" value="extra" onchange="recalcCategoryRates('{{ $catKey }}')" class="hidden">
+                                            Without GST (टैक्स अलग से)
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Real-Time Calculated Rates Showcase (P.Cost, Sale A, Sale B, Sale C) -->
+                                <div class="bg-slate-900 text-white rounded-xl p-3.5 space-y-2">
+                                    <div class="flex items-center justify-between text-[11px] text-slate-400 pb-1.5 border-b border-slate-800">
+                                        <span>ऑटो-कैलकुलेटेड फाइनल रेट्स (Sample Live Preview):</span>
+                                        <span class="font-mono text-emerald-400 font-bold" id="lbl_pcost_{{ $catKey }}">P.Cost: ₹0.00</span>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-2 text-center">
+                                        <div class="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
+                                            <span class="text-[9px] font-bold uppercase text-amber-300 block">Rate A (काउंटर / रिटेल)</span>
+                                            <span class="text-sm font-black text-white font-mono" id="lbl_rate_a_{{ $catKey }}">₹0.00</span>
+                                        </div>
+                                        <div class="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
+                                            <span class="text-[9px] font-bold uppercase text-emerald-300 block">Rate B (थोक / Wholesale)</span>
+                                            <span class="text-sm font-black text-white font-mono" id="lbl_rate_b_{{ $catKey }}">₹0.00</span>
+                                        </div>
+                                        <div class="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
+                                            <span class="text-[9px] font-bold uppercase text-blue-300 block">Rate C (डीलर / ठेकेदार)</span>
+                                            <span class="text-sm font-black text-white font-mono" id="lbl_rate_c_{{ $catKey }}">₹0.00</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Action Button: 1-Click Apply to Entire Category -->
+                                <button type="button" onclick="applyCategoryMargin('{{ $catKey }}', '{{ addslashes($cat->name) }}')" id="btn_apply_{{ $catKey }}" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer">
+                                    <i class="fa-solid fa-bolt-lightning text-amber-300"></i>
+                                    <span>🚀 इस पूरी कैटेगरी पर 1-क्लिक में लागू करें ({{ $prodCount }} Items & {{ $variantsCount }} Sizes)</span>
+                                </button>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="p-8 text-center bg-gray-50 rounded-2xl border border-gray-200">
+                        <i class="fa-solid fa-folder-open text-gray-300 text-3xl mb-2"></i>
+                        <p class="text-xs text-gray-500">अभी कोई लिस्टेड कैटेगरी उपलब्ध नहीं है। एक्सेल या पीडीएफ अपलोड करके प्रोडक्ट्स जोड़ें।</p>
+                    </div>
+                @endif
+            </div>
+
+            <!-- VIEW 2: 🟡 PENDING DRAFT CATEGORIES -->
+            <div id="pendingCategoriesView" class="hidden space-y-4">
+                @if(isset($pendingJobs) && count($pendingJobs) > 0)
+                    <div class="space-y-3">
+                        @foreach($pendingJobs as $job)
+                            <div class="p-4 rounded-2xl border border-amber-200 bg-amber-50/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="h-10 w-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center text-lg font-black shrink-0">
+                                        <i class="fa-solid fa-file-invoice text-amber-600"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-extrabold text-xs text-gray-900 flex items-center gap-2">
+                                            <span>Job #{{ $job->id }}: {{ $job->filename ?? 'Uploaded Catalog' }}</span>
+                                            <span class="px-2 py-0.5 rounded-md bg-amber-200 text-amber-900 text-[10px] font-bold uppercase">{{ $job->status }}</span>
+                                        </h4>
+                                        <p class="text-[11px] text-gray-500">
+                                            Uploaded: {{ $job->created_at->diffForHumans() }} &bull; फाइल साइज: {{ round(($job->file_size ?? 0) / 1024, 1) }} KB
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <a href="{{ route('seller.catalog.excel_mapper', ['job_id' => $job->id]) }}" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-xs transition flex items-center gap-1.5">
+                                        <i class="fa-solid fa-table-columns text-amber-300"></i>
+                                        <span>एक्सेल मैपर में खोलें व पब्लिश करें &rarr;</span>
+                                    </a>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="p-8 text-center bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
+                        <i class="fa-solid fa-clock-rotate-left text-gray-300 text-3xl"></i>
+                        <p class="text-xs text-gray-500">कोई पेंडिंग कैटलॉग ड्राफ्ट नहीं है। सभी आइटम्स लाइव स्टोर पर पब्लिश हो चुके हैं।</p>
+                        <a href="{{ route('seller.catalog.upload') }}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-xs transition">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <span>नया PDF / एक्सेल कैटलॉग अपलोड करें</span>
+                        </a>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        <script>
+            // Switcher: Listed vs Pending
+            function switchCategoryView(mode) {
+                const listedView = document.getElementById('listedCategoriesView');
+                const pendingView = document.getElementById('pendingCategoriesView');
+                const btnListed = document.getElementById('btnTabListed');
+                const btnPending = document.getElementById('btnTabPending');
+
+                if (mode === 'listed') {
+                    listedView.classList.remove('hidden');
+                    pendingView.classList.add('hidden');
+                    btnListed.className = "px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-indigo-600 shadow-2xs cursor-pointer";
+                    btnPending.className = "px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer";
+                } else {
+                    listedView.classList.add('hidden');
+                    pendingView.classList.remove('hidden');
+                    btnPending.className = "px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-amber-700 shadow-2xs cursor-pointer";
+                    btnListed.className = "px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer";
+                }
+            }
+
+            // Real-Time Rates Calculation for a Category
+            function recalcCategoryRates(catKey) {
+                const base = parseFloat(document.getElementById(`base_mrp_${catKey}`)?.value) || 100;
+                const less = parseFloat(document.getElementById(`less_pct_${catKey}`)?.value) || 0;
+                const gst = parseFloat(document.getElementById(`gst_pct_${catKey}`)?.value) || 18;
+                const margin = parseFloat(document.getElementById(`margin_pct_${catKey}`)?.value) || 15;
+                const gstMode = document.querySelector(`input[name="gst_mode_${catKey}"]:checked`)?.value || 'included';
+
+                const disc = base * (less / 100);
+                const discounted = Math.max(0, base - disc);
+
+                let landing = discounted;
+                if (gstMode === 'extra') {
+                    landing = discounted + (discounted * (gst / 100));
+                }
+
+                const rateA = Math.round(landing * (1 + (margin / 100)) * 100) / 100;
+                const rateB = Math.round(landing * (1 + ((margin - 5) / 100)) * 100) / 100;
+                const rateC = Math.round(landing * (1 + ((margin - 10) / 100)) * 100) / 100;
+
+                const pcostEl = document.getElementById(`lbl_pcost_${catKey}`);
+                const rateAEl = document.getElementById(`lbl_rate_a_${catKey}`);
+                const rateBEl = document.getElementById(`lbl_rate_b_${catKey}`);
+                const rateCEl = document.getElementById(`lbl_rate_c_${catKey}`);
+
+                if (pcostEl) pcostEl.innerText = `P.Cost: ₹${landing.toFixed(2)}`;
+                if (rateAEl) rateAEl.innerText = `₹${rateA.toFixed(2)}`;
+                if (rateBEl) rateBEl.innerText = `₹${rateB.toFixed(2)}`;
+                if (rateCEl) rateCEl.innerText = `₹${rateC.toFixed(2)}`;
+            }
+
+            // Apply Margin & Rates in Bulk to Entire Category
+            function applyCategoryMargin(catKey, catName) {
+                const btn = document.getElementById(`btn_apply_${catKey}`);
+                const origHtml = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> लागू हो रहा है...`;
+
+                const less = parseFloat(document.getElementById(`less_pct_${catKey}`)?.value) || 0;
+                const gst = parseFloat(document.getElementById(`gst_pct_${catKey}`)?.value) || 18;
+                const margin = parseFloat(document.getElementById(`margin_pct_${catKey}`)?.value) || 15;
+                const gstMode = document.querySelector(`input[name="gst_mode_${catKey}"]:checked`)?.value || 'included';
+                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+                fetch("{{ route('seller.inventory.category_bulk_margin') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token
+                    },
+                    body: JSON.stringify({
+                        category_id: catKey,
+                        less_percent: less,
+                        gst_percent: gst,
+                        gst_mode: gstMode,
+                        margin_percent: margin,
+                        wholesale_margin_percent: margin - 5,
+                        dealer_margin_percent: margin - 10,
+                        freight_amount: 0
+                    })
+                })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        alert(`✅ शानदार! ${catName} के ${res.updated_products} प्रोडक्ट्स और ${res.updated_variants} साइज़ वेरिएंट्स पर नए रेट्स और मार्जिन 1-क्लिक में लागू हो गए!`);
+                        location.reload();
+                    } else {
+                        alert(res.message || 'त्रुटि हुई। कृपया दोबारा प्रयास करें।');
+                    }
+                })
+                .catch(err => {
+                    alert('नेटवर्क एरर। कृपया दोबारा प्रयास करें।');
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                });
+            }
+
+            // Initialize all categories on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                @if(isset($sellerCategories))
+                    @foreach($sellerCategories as $cat)
+                        recalcCategoryRates('{{ $cat->id }}');
+                    @endforeach
+                @endif
+            });
+        </script>
+
+
         <!-- 📂 Category Filter & Instant WhatsApp Share Bar -->
         <div class="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs space-y-4">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">

@@ -188,6 +188,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/restock', [CatalogIngestionController::class, 'restock'])->name('restock');
         Route::post('/quick-update-rates', [CatalogIngestionController::class, 'quickUpdateRates'])->name('quick_update_rates');
         Route::post('/bulk-rate-update', [CatalogIngestionController::class, 'bulkRateUpdate'])->name('bulk_rate_update');
+        Route::post('/category-bulk-margin', [CatalogIngestionController::class, 'categoryBulkMargin'])->name('category_bulk_margin');
         Route::get('/export-price-template', [CatalogIngestionController::class, 'exportPriceTemplate'])->name('export_price_template');
     });
 
