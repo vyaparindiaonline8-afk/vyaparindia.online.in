@@ -7461,8 +7461,8 @@ function saveToLocalStorage() {
                             }
                         });
 
-                        // Threshold for keyword match
-                        if (bestScore >= 12 && matchedImg) {
+                        // Strict rule: Only link if there is a genuine high-confidence keyword match. Never guess or assign positional images blindly.
+                        if (bestScore >= 18 && matchedImg) {
                             card.image_url = matchedImg.url;
                             card.asset_url = matchedImg.asset_url;
                             card.ai_matched = true;
@@ -7470,16 +7470,14 @@ function saveToLocalStorage() {
                             usedImageUrls.add(matchedImg.asset_url);
                             photosLinkedCount++;
                             cardPhotoChanged = true;
-                        } else if (!card.image_url && uniqueCandidateImages[idx] && !usedImageUrls.has(uniqueCandidateImages[idx].asset_url)) {
-                            // Sequential positional fallback if user cropped images in order
-                            const fallbackImg = uniqueCandidateImages[idx];
-                            card.image_url = fallbackImg.url;
-                            card.asset_url = fallbackImg.asset_url;
-                            card.ai_matched = true;
-                            card.ai_photo_name = fallbackImg.name || `Photo #${idx + 1}`;
-                            usedImageUrls.add(fallbackImg.asset_url);
-                            photosLinkedCount++;
-                            cardPhotoChanged = true;
+                        } else {
+                            // No confident match found: strictly leave empty. Do not guess or auto-assign random photos.
+                            if (!card.image_url) {
+                                card.image_url = '';
+                                card.asset_url = '';
+                                card.ai_matched = false;
+                                card.ai_photo_name = '';
+                            }
                         }
                     }
 

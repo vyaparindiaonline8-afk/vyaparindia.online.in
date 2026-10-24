@@ -83,33 +83,7 @@ def parse_page_range(range_str, total_pages):
     return res if res else list(range(total_pages))
 
 def get_fallback_item_photo(product_name):
-    if not product_name:
-        return None
-    n = product_name.upper()
-    if 'BRASS' in n and 'ELBOW' in n: return 'images/catalog/plasto/items/brass_elbow.jpg'
-    if 'BRASS' in n and 'TEE' in n: return 'images/catalog/plasto/items/brass_tee.jpg'
-    if 'BRASS' in n and 'MTA' in n: return 'images/catalog/plasto/items/brass_mta.jpg'
-    if 'BRASS' in n and 'FTA' in n: return 'images/catalog/plasto/items/brass_fta.jpg'
-    if 'VALVE' in n: return 'images/catalog/plasto/items/cpvc_ball_valve.jpg'
-    if 'CPVC' in n:
-        if 'ELBOW' in n or 'BEND' in n: return 'images/catalog/plasto/items/cpvc_elbow.jpg'
-        if 'TEE' in n: return 'images/catalog/plasto/items/cpvc_tee.jpg'
-        if 'COUPLER' in n or 'SOCKET' in n: return 'images/catalog/plasto/items/cpvc_coupler.jpg'
-        if 'UNION' in n: return 'images/catalog/plasto/items/cpvc_union.jpg'
-        if 'PIPE' in n: return 'images/catalog/plasto/items/cpvc_pipe.jpg'
-        if 'MTA' in n: return 'images/catalog/plasto/items/cpvc_mta.jpg'
-        if 'FTA' in n: return 'images/catalog/plasto/items/cpvc_fta.jpg'
-    if 'UPVC' in n:
-        if 'ELBOW' in n or 'BEND' in n: return 'images/catalog/plasto/items/upvc_elbow.jpg'
-        if 'TEE' in n: return 'images/catalog/plasto/items/upvc_tee.jpg'
-        if 'COUPLER' in n or 'SOCKET' in n: return 'images/catalog/plasto/items/upvc_coupler.jpg'
-        if 'MTA' in n: return 'images/catalog/plasto/items/upvc_mta.jpg'
-    if 'END CAP' in n or 'PLUG' in n: return 'images/catalog/plasto/items/end_cap.jpg'
-    if 'GARDEN' in n: return 'images/catalog/plasto/items/garden_pipe.jpg'
-    if 'TANK' in n and 'LID' in n: return 'images/catalog/plasto/items/water_tank_lid.jpg'
-    if 'ELBOW' in n: return 'images/catalog/plasto/items/upvc_elbow.jpg'
-    if 'TEE' in n: return 'images/catalog/plasto/items/upvc_tee.jpg'
-    if 'COUPLER' in n: return 'images/catalog/plasto/items/upvc_coupler.jpg'
+    # Strict rule: Do not assign hardcoded or guessed photos. If no matching photo exists, return None.
     return None
 
 def process_pdf(pdf_path, output_dir, job_id, skip_images=False, page_range="all"):
@@ -214,7 +188,7 @@ def process_pdf(pdf_path, output_dir, job_id, skip_images=False, page_range="all
                     prods_on_this_page = sum(1 for p in products if p.get("catalog_page") == f"Page {page_idx + 1}")
                     matched_img = page_imgs[min(prods_on_this_page, len(page_imgs) - 1)]["relative_url"]
                 if not matched_img:
-                    matched_img = get_fallback_item_photo(block_text)
+                    matched_img = None
 
                 if current_product and (current_product["name"] != block_text):
                     products.append(current_product)
@@ -243,7 +217,7 @@ def process_pdf(pdf_path, output_dir, job_id, skip_images=False, page_range="all
     # Fallback if no specific products isolated
     if not products:
         default_name = os.path.splitext(os.path.basename(pdf_path))[0].replace("_", " ").title()
-        default_img = extracted_images[0]["relative_url"] if extracted_images else get_fallback_item_photo(default_name)
+        default_img = None
         first_page_num = (selected_pages[0] + 1) if selected_pages else 1
         products.append({
             "name": default_name,
@@ -253,7 +227,7 @@ def process_pdf(pdf_path, output_dir, job_id, skip_images=False, page_range="all
             "base_price": 299.0,
             "mrp": 399.0,
             "image_url": default_img,
-            "hsn_code": "85176290",
+            "hsn_code": "",
             "sku": f"CAT-{job_id}-01",
             "variants": [
                 {"variant_name": "Standard Option", "raw_rate": 299.0, "sku": f"SKU-{job_id}-01", "stock_quantity": None}

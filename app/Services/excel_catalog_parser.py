@@ -38,63 +38,8 @@ def extract_base_name(name):
     return clean if len(clean) >= 2 else name
 
 def get_image_for_product(name, category):
-    n = name.upper()
-    cat = (category or "").upper()
-    
-    if 'AGRI SOLVENT' in n:
-        return 'images/catalog/plasto/items/agri_solvent.jpg', 22
-    if 'SOLVENT' in n or 'CEMENT' in n:
-        return 'images/catalog/plasto/items/solvent_cement.jpg', 21
-    if 'SWR PIPE' in n or ('SWR' in cat and 'PIPE' in n):
-        return 'images/catalog/plasto/items/swr_pipe.jpg', 15
-    if any(k in n for k in ['SINGALE TEE', 'SINGLE TEE', 'DOUBALE TEE', 'DOUBLE TEE', 'REDUSING TEE']):
-        return 'images/catalog/plasto/items/swr_single_tee.jpg', 16
-    if any(k in n for k in ['BEND 87.5', 'SHOE BEND', 'LONG BEND']):
-        return 'images/catalog/plasto/items/swr_bend.jpg', 16
-    if 'VENT COWL' in n:
-        return 'images/catalog/plasto/items/swr_vent_cowl.jpg', 17
-    if any(k in n for k in ['TRAP', 'NAHANI', 'FLOOR TRAP']):
-        return 'images/catalog/plasto/items/nahani_trap.jpg', 17
-    if 'RUBBER RING' in n:
-        return 'images/catalog/plasto/items/circuit_plug.jpg', 18
-
-    # Brass
-    if 'BRASS ELBOW' in n:
-        return 'images/catalog/plasto/items/brass_elbow.jpg', 7
-    if 'BRASS TEE' in n:
-        return 'images/catalog/plasto/items/brass_tee.jpg', 7
-    if 'BRASS FTA' in n or 'HEXA BRASS FTA' in n:
-        return 'images/catalog/plasto/items/brass_fta.jpg', 7
-    if 'BRASS MTA' in n or 'HEXA BRASS MTA' in n:
-        return 'images/catalog/plasto/items/brass_mta.jpg', 7
-    if '3 IN 1' in n:
-        return 'images/catalog/plasto/items/brass_tee.jpg', 7
-
-    # Valves
-    if 'BALL VALVE' in n and 'UPVC' in n:
-        return 'images/catalog/plasto/items/upvc_ball_valve.jpg', 11
-    if 'BALL VALVE' in n or 'VALVE' in n:
-        return 'images/catalog/plasto/items/cpvc_ball_valve.jpg', 6
-
-    # Pipes
-    if 'CPVC PIPE' in n or ('CPVC' in cat and 'PIPE' in n):
-        return 'images/catalog/plasto/items/cpvc_pipe.jpg', 5
-    if 'UPVC PIPE' in n or ('UPVC' in cat and 'PIPE' in n):
-        return 'images/catalog/plasto/items/upvc_pipe.jpg', 2
-
-    # Fittings
-    if 'PIPE CLIP' in n:
-        return 'images/catalog/plasto/items/pipe_clip.jpg', 12
-    if 'TANK NIPPALE' in n or 'TANK NIPPLE' in n:
-        return 'images/catalog/plasto/items/cpvc_tank_nipple.jpg', 6
-    if 'UNION' in n:
-        return 'images/catalog/plasto/items/cpvc_union.jpg', 6
-    if 'END CAP' in n:
-        return 'images/catalog/plasto/items/end_cap.jpg', 6
-    if 'ELBOW' in n or '90*' in n:
-        if 'CPVC' in cat or 'CPVC' in n:
-            return 'images/catalog/plasto/items/cpvc_elbow.jpg', 6
-        return 'images/catalog/plasto/items/upvc_elbow.jpg', 3
+    # Strict rule: Do not assign hardcoded or guessed photos. If no matching photo exists, return None.
+    return None, None
     if 'TEE' in n:
         if 'CPVC' in cat or 'CPVC' in n:
             return 'images/catalog/plasto/items/cpvc_tee.jpg', 6
