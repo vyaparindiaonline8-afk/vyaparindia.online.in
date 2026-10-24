@@ -15,7 +15,7 @@ use App\Http\Controllers\HomeController;
 */
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
-Route::match(['GET', 'POST', 'HEAD'], '/index.php', [HomeController::class, 'index']);
+Route::any('/index.php', [HomeController::class, 'index']);
 Route::get('/favicon.ico', fn() => response('', 204));
 Route::get('/health', fn() => response('OK', 200)->header('Content-Type', 'text/plain'));
 Route::get('/up', fn() => response('OK', 200)->header('Content-Type', 'text/plain'));

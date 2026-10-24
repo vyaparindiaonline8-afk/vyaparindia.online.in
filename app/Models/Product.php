@@ -236,19 +236,29 @@ class Product extends Model
     {
         if (!empty($this->image)) {
             $img = trim($this->image);
-            if (filter_var($img, FILTER_VALIDATE_URL)) {
+            if (filter_var($img, FILTER_VALIDATE_URL) || str_starts_with($img, '//') || str_starts_with($img, 'data:image')) {
                 return $img;
             }
+
             $cleanPath = ltrim($img, '/\\');
+
+            // If it already starts with storage/
+            if (str_starts_with($cleanPath, 'storage/')) {
+                return asset($cleanPath);
+            }
+
+            // If it starts with images/
+            if (str_starts_with($cleanPath, 'images/')) {
+                return asset($cleanPath);
+            }
+
+            // Check public/ directly
             if (file_exists(public_path($cleanPath))) {
                 return asset($cleanPath);
             }
-            if (file_exists(public_path('storage/' . $cleanPath))) {
-                return asset('storage/' . $cleanPath);
-            }
-            if (file_exists(public_path('images/' . $cleanPath))) {
-                return asset('images/' . $cleanPath);
-            }
+
+            // Standard storage asset for uploads
+            return asset('storage/' . $cleanPath);
         }
 
         // Smart Category / Product Name auto-match from high-res verified catalog library

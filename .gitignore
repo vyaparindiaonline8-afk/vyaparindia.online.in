@@ -14,3 +14,12 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+/storage/framework/views/*
+!/storage/framework/views/.gitignore
+/storage/framework/cache/*
+!/storage/framework/cache/.gitignore
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+/storage/logs/*.log
+__pycache__/
+*.pyc

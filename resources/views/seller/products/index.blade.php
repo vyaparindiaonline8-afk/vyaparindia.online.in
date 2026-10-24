@@ -578,19 +578,18 @@
                                      id="product-card-img-box-{{ $product->id }}"
                                      onclick="openQuickImageModal({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->image_url ?? '' }}')"
                                      title="फोटो बदलें या गैलरी से चुनें">
-                                    @if($product->image_url)
-                                        <img src="{{ $product->image_url }}" alt="{{ $product->name }}" id="product-card-img-{{ $product->id }}" class="h-full w-full object-contain" onerror="this.style.display='none'; var p = document.getElementById('product-card-img-placeholder-{{ $product->id }}'); if(p){ p.classList.remove('hidden'); p.classList.add('flex'); }">
-                                        <div id="product-card-img-placeholder-{{ $product->id }}" class="hidden flex-col items-center justify-center text-gray-300 group-hover/img:text-indigo-600 transition">
-                                            <i class="fa-solid fa-camera text-xl"></i>
-                                            <span class="text-[9px] font-bold mt-0.5 text-gray-400 group-hover/img:text-indigo-600">+फोटो</span>
-                                        </div>
-                                    @else
-                                        <div id="product-card-img-placeholder-{{ $product->id }}" class="flex flex-col items-center justify-center text-gray-300 group-hover/img:text-indigo-600 transition">
-                                            <i class="fa-solid fa-camera text-xl"></i>
-                                            <span class="text-[9px] font-bold mt-0.5 text-gray-400 group-hover/img:text-indigo-600">+फोटो</span>
-                                        </div>
-                                        <img src="" alt="{{ $product->name }}" id="product-card-img-{{ $product->id }}" class="h-full w-full object-contain hidden" onerror="this.style.display='none';">
-                                    @endif
+                                    <img src="{{ $product->image_url ?? '' }}" 
+                                         alt="{{ $product->name }}" 
+                                         id="product-card-img-{{ $product->id }}" 
+                                         class="h-full w-full object-contain {{ !empty($product->image_url) ? '' : 'hidden' }}" 
+                                         style="{{ !empty($product->image_url) ? 'display: block;' : 'display: none;' }}" 
+                                         onerror="this.style.display='none'; var p = document.getElementById('product-card-img-placeholder-{{ $product->id }}'); if(p){ p.style.display='flex'; p.classList.remove('hidden'); }">
+                                    <div id="product-card-img-placeholder-{{ $product->id }}" 
+                                         class="{{ !empty($product->image_url) ? 'hidden' : 'flex' }} flex-col items-center justify-center text-gray-300 group-hover/img:text-indigo-600 transition" 
+                                         style="{{ !empty($product->image_url) ? 'display: none;' : 'display: flex;' }}">
+                                        <i class="fa-solid fa-camera text-xl"></i>
+                                        <span class="text-[9px] font-bold mt-0.5 text-gray-400 group-hover/img:text-indigo-600">+फोटो</span>
+                                    </div>
                                     <div class="absolute inset-0 bg-indigo-950/70 text-white flex flex-col items-center justify-center opacity-0 group-hover/img:opacity-100 transition rounded-2xl text-[10px] font-bold">
                                         <i class="fa-solid fa-images text-sm mb-0.5 text-amber-300"></i>
                                         <span>बदलें</span>
@@ -803,12 +802,14 @@
                                 <td class="py-3 px-4">
                                     <div class="flex items-center gap-3">
                                         <div class="h-10 w-10 rounded-xl bg-gray-100 overflow-hidden flex items-center justify-center shrink-0 border border-gray-100">
-                                            @if($product->image_url)
-                                                <img src="{{ $product->image_url }}" class="h-full w-full object-contain" onerror="this.style.display='none'; if(this.nextElementSibling){ this.nextElementSibling.style.display='inline-block'; }">
-                                                <i class="fa-solid fa-cube text-gray-300" style="display:none;"></i>
-                                            @else
-                                                <i class="fa-solid fa-cube text-gray-300"></i>
-                                            @endif
+                                            <img src="{{ $product->image_url ?? '' }}" 
+                                                 id="product-table-img-{{ $product->id }}" 
+                                                 class="h-full w-full object-contain {{ !empty($product->image_url) ? '' : 'hidden' }}" 
+                                                 style="{{ !empty($product->image_url) ? 'display: block;' : 'display: none;' }}" 
+                                                 onerror="this.style.display='none'; var p = document.getElementById('product-table-placeholder-{{ $product->id }}'); if(p){ p.style.display='inline-block'; p.classList.remove('hidden'); }">
+                                            <i id="product-table-placeholder-{{ $product->id }}" 
+                                               class="fa-solid fa-cube text-gray-300 {{ !empty($product->image_url) ? 'hidden' : '' }}" 
+                                               style="{{ !empty($product->image_url) ? 'display: none;' : 'display: inline-block;' }}"></i>
                                         </div>
                                         <div>
                                             <div class="font-extrabold text-gray-900 text-sm">{{ $product->name }}</div>
@@ -1926,9 +1927,12 @@
                     if (cardImg) {
                         cardImg.src = data.image_url;
                         cardImg.classList.remove('hidden');
+                        cardImg.style.display = 'block';
                     }
                     if (cardPlaceholder) {
                         cardPlaceholder.classList.add('hidden');
+                        cardPlaceholder.classList.remove('flex');
+                        cardPlaceholder.style.display = 'none';
                     }
 
                     // 2. Update Table row image
@@ -1937,9 +1941,17 @@
                     if (tableImg) {
                         tableImg.src = data.image_url;
                         tableImg.classList.remove('hidden');
+                        tableImg.style.display = 'block';
                     }
                     if (tablePlaceholder) {
                         tablePlaceholder.classList.add('hidden');
+                        tablePlaceholder.style.display = 'none';
+                    }
+
+                    // 3. Update onclick on card box
+                    const cardBox = document.getElementById(`product-card-img-box-${currentModalProductId}`);
+                    if (cardBox) {
+                        cardBox.setAttribute('onclick', `openQuickImageModal(${currentModalProductId}, '', '${data.image_url}')`);
                     }
 
                     // 3. Show instant floating Toast

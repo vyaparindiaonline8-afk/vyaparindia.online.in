@@ -242,14 +242,14 @@ class ProductController extends Controller
         }
 
         $request->validate([
-            'name' => 'required|string|max:255|unique:products,name,' . $product->id,
-            'description' => 'required|string',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
             'price' => 'required|numeric',
             'category_id' => 'nullable|exists:categories,id',
             'new_category_name' => 'nullable|string|max:100',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:8192',
             'existing_image_url' => 'nullable|string|max:1000',
-            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:8192',
             'video_url' => 'nullable|url|max:500',
         ]);
 
@@ -314,13 +314,13 @@ class ProductController extends Controller
      */
     public function quickImageUpdate(Request $request, Product $product)
     {
-        if (Auth::id() !== $product->user_id) {
+        if (Auth::id() !== $product->user_id && !Auth::user()->isOwnerOrAdmin()) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
         $request->validate([
             'image_url' => 'nullable|string',
-            'image_file' => 'nullable|image|max:4096',
+            'image_file' => 'nullable|image|max:8192',
         ]);
 
         $imageUrl = $request->input('image_url');
@@ -332,12 +332,37 @@ class ProductController extends Controller
             return response()->json(['success' => false, 'message' => 'No image provided'], 422);
         }
 
-        $product->update(['image' => $imageUrl]);
+        $product->image = $imageUrl;
+        $product->save();
+
+        // Also sync or create primary image in product_images gallery table
+        try {
+            $primaryImg = $product->images()->where('is_primary', true)->first();
+            if ($primaryImg) {
+                $primaryImg->update(['image_path' => $imageUrl]);
+            } elseif ($product->images()->count() > 0) {
+                $firstImg = $product->images()->first();
+                $firstImg->update(['image_path' => $imageUrl, 'is_primary' => true]);
+            } else {
+                $product->images()->create([
+                    'image_path' => $imageUrl,
+                    'is_primary' => true,
+                    'sort_order' => 1,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('ProductImage sync warning: ' . $e->getMessage());
+        }
+
+        $resolvedUrl = $product->image_url ?: $imageUrl;
+        if (!empty($resolvedUrl) && !str_starts_with($resolvedUrl, 'http://') && !str_starts_with($resolvedUrl, 'https://') && !str_starts_with($resolvedUrl, 'data:')) {
+            $resolvedUrl = asset(ltrim($resolvedUrl, '/'));
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Product image updated successfully!',
-            'image_url' => $product->image_url,
+            'image_url' => $resolvedUrl,
         ]);
     }
 
