@@ -143,6 +143,22 @@ class ChannelController extends Controller
         ]);
     }
 
+    // AJAX: AI Market Intelligence & Professional Listing Copy with Studio Image Prompt
+    public function aiMarketIntelligence(Request $request, AIProductService $aiService)
+    {
+        $request->validate([
+            'keyword' => 'required|string|min:2|max:255',
+        ]);
+
+        $keyword = $request->input('keyword');
+        $data = $aiService->generateProductDetails($keyword);
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
+    }
+
     // Universal Product Publisher View
     public function publisher()
     {

@@ -499,6 +499,218 @@
             </div>
         </div>
 
+        
+        <!-- ======================================================== -->
+        <!-- 🤖 AI MARKET OPPORTUNITY EXPLORER & STUDIO PHOTO PROMPT  -->
+        <!-- (Analyze Market Size, Best Selling Rates & Image Prompts)-->
+        <!-- ======================================================== -->
+        <div class="bg-white rounded-3xl border border-indigo-200 shadow-md p-6 sm:p-7 space-y-6 relative overflow-hidden">
+            <div class="absolute -right-12 -top-12 w-44 h-44 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <div class="h-11 w-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-600 text-white flex items-center justify-center text-lg font-black shadow-md shadow-indigo-600/30 shrink-0">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-base font-black text-gray-900">
+                                AI मार्केट इंटेलिजेंस & प्रोफेशनल लिस्टिंग जनरेटर
+                            </h2>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-800 border border-purple-200 uppercase">
+                                Amazon & Meesho Opportunity Engine
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-0.5">
+                            किसी भी प्रोडक्ट (उदा. <strong>PTMT Nal</strong>, <strong>CPVC Brass Tee</strong>, <strong>Wall Tiles</strong>) का मार्केट साइज, बिकने वाला सही भाव और AI फोटो प्रॉम्प्ट तुरंत निकालें।
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Box -->
+            <div class="flex flex-col sm:flex-row items-stretch gap-2.5">
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="text" id="aiMarketKeywordInput" placeholder="प्रोडक्ट का नाम लिखें (उदा: PTMT Nal, CPVC Brass Elbow, Double Charge Tile, Asian Primer)..." value="PTMT Nal" class="w-full pl-9 pr-4 py-2.5 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 text-xs font-semibold outline-none transition">
+                </div>
+                <button type="button" onclick="analyzeMarketWithAi()" id="btnAnalyzeMarketAi" class="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer shrink-0">
+                    <i class="fa-solid fa-bolt-lightning text-amber-300"></i>
+                    <span>⚡ मार्केट डेटा & लिस्टिंग बनाएं</span>
+                </button>
+            </div>
+
+            <!-- Dynamic AI Results Container -->
+            <div id="aiMarketResultsBox" class="space-y-5">
+                <!-- 1. Market Size & Demand Summary Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs">
+                    <div class="bg-indigo-50/70 p-3.5 rounded-2xl border border-indigo-100 space-y-1">
+                        <span class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">मंथली डिमांड (सर्च वॉल्यूम)</span>
+                        <div class="font-black text-sm text-indigo-950" id="aiResSearchVolume">65,000+ मंथली सर्च (Amazon & Meesho)</div>
+                        <span class="text-[10px] text-indigo-600">अत्यधिक मांग वाला रोज़मर्रा का सामान</span>
+                    </div>
+
+                    <div class="bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-100 space-y-1">
+                        <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">सबसे ज़्यादा बिकने वाला भाव (Sweet Spot)</span>
+                        <div class="font-black text-sm text-emerald-950" id="aiResSweetSpot">₹149 - ₹249 (Pack of 1 या 2)</div>
+                        <span class="text-[10px] text-emerald-600">इस रेट पर सबसे तेज़ आर्डर्स आते हैं</span>
+                    </div>
+
+                    <div class="bg-amber-50/70 p-3.5 rounded-2xl border border-amber-100 space-y-1">
+                        <span class="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">सुझाया गया HSN कोड व GST</span>
+                        <div class="font-black text-sm text-amber-950" id="aiResHsnCode">HSN: 39229000 (18% GST)</div>
+                        <span class="text-[10px] text-amber-700">Sanitaryware & Taps (B2B Tax Credit)</span>
+                    </div>
+
+                    <div class="bg-purple-50/70 p-3.5 rounded-2xl border border-purple-100 space-y-1">
+                        <span class="text-[10px] font-bold text-purple-800 uppercase tracking-wider block">मार्केट कॉम्पिटिशन स्तर</span>
+                        <div class="font-black text-sm text-purple-950" id="aiResDemandLevel">High Demand (Low Return Rate)</div>
+                        <span class="text-[10px] text-purple-700">पैकिंग कम्बो (Pack of 2) में 3x बिक्री</span>
+                    </div>
+                </div>
+
+                <!-- 2. Professional Listing Copy & AI Studio Photography Prompt -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 text-xs">
+                    <!-- Left: Professional Title & Bullet Points -->
+                    <div class="bg-gray-50/80 rounded-2xl p-4 border border-gray-200 space-y-3">
+                        <div class="flex items-center justify-between pb-2 border-b border-gray-200">
+                            <span class="font-black text-gray-900 text-xs flex items-center gap-1.5">
+                                <i class="fa-brands fa-amazon text-amber-600"></i>
+                                <span>प्रोफेशनल मार्केटप्लेस टाइटल & डिस्क्रिप्शन</span>
+                            </span>
+                            <button type="button" onclick="copyAiListingCopy()" class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[10px] transition flex items-center gap-1 shadow-2xs cursor-pointer">
+                                <i class="fa-regular fa-copy"></i>
+                                <span id="btnCopyListingText">कॉपी करें</span>
+                            </button>
+                        </div>
+
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-400 block mb-0.5">हाई-कन्वर्टिंग SEO टाइटल:</span>
+                            <div class="p-2.5 bg-white rounded-xl border border-gray-200 font-bold text-gray-800 leading-snug text-xs" id="aiResTitle">
+                                Heavy Duty Unbreakable PTMT Bib Cock Tap (15mm / 1/2 Inch) with Wall Flange - Anti-Drip Foam Flow for Bathroom & Kitchen
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-400 block mb-0.5">5 बुलेट पॉइंट्स & टेक्निकल स्पेसिफिकेशन्स:</span>
+                            <div class="p-2.5 bg-white rounded-xl border border-gray-200 text-gray-700 whitespace-pre-line text-[11px] leading-relaxed max-h-48 overflow-y-auto" id="aiResDesc">
+✨ **Upgrade your bathroom & kitchen fittings with the heavy-duty unbreakable PTMT Bib Cock Tap.**
+
+• **Material & Grade:** 100% Virgin Food-Grade PTMT Polymer (Unbreakable & Corrosion-Free)
+• **Flow & Aerator:** German-engineered foam flow aerator saves water while ensuring smooth splash-free stream
+• **Cartridge:** Heavy-duty ceramic disc quarter-turn spindle tested for 5,00,000+ on/off cycles
+• **Fitting Size:** Standard 15mm (1/2 Inch BSP Thread) suitable for all Indian bathroom connections
+• **Package Contents:** 1 Unit PTMT Tap + 1 Heavy Matching Wall Flange
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: AI Studio Photography Prompt Generator -->
+                    <div class="bg-gradient-to-b from-indigo-950 to-slate-900 text-white rounded-2xl p-4 border border-indigo-900 space-y-3">
+                        <div class="flex items-center justify-between pb-2 border-b border-indigo-800">
+                            <span class="font-black text-amber-400 text-xs flex items-center gap-1.5">
+                                <i class="fa-solid fa-camera-retro"></i>
+                                <span>AI इमेज जनरेटर प्रॉम्प्ट (Studio Photography)</span>
+                            </span>
+                            <button type="button" onclick="copyAiImagePrompt()" class="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-[10px] transition flex items-center gap-1 shadow-2xs cursor-pointer">
+                                <i class="fa-regular fa-copy"></i>
+                                <span id="btnCopyPromptText">प्रॉम्प्ट कॉपी करें</span>
+                            </button>
+                        </div>
+
+                        <p class="text-[11px] text-slate-300">
+                            अगर आपके पास अच्छी फोटो नहीं है, तो नीचे दिया गया <strong>AI Studio Prompt</strong> कॉपी करें और किसी भी इमेज AI (Midjourney, Flux, Google Imagen या ChatGPT) में अपने साधारण मोबाइल फोटो के साथ डालें — यह उसे तुरंत 3D शोरूम स्टूडियो फोटो में बदल देगा!
+                        </p>
+
+                        <div class="p-3 bg-white/5 rounded-xl border border-white/10 font-mono text-[11px] text-indigo-200 leading-relaxed max-h-40 overflow-y-auto" id="aiResImagePrompt">
+Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Tap with chrome accent, installed on an elegant dark grey textured tile wall in a luxury contemporary Indian bathroom. Crisp water stream flowing smoothly into a modern wash basin, tiny natural water droplets on the matte surface. Professional studio softbox lighting, soft rim light, clean 45-degree angle advertising shot, 8k resolution, Hasselblad 100mm lens, photorealistic product catalogue quality --ar 1:1 --v 6.0
+                        </div>
+
+                        <div class="p-2.5 bg-amber-400/10 border border-amber-400/20 rounded-xl text-[10px] text-amber-300 flex items-center gap-2">
+                            <i class="fa-solid fa-lightbulb text-amber-400 text-xs shrink-0"></i>
+                            <span><strong>टिप:</strong> अमेज़न व मीशो पर सफेद बैकग्राउंड (Pure White Background) और बाथरूम में लगी हुई (Lifestyle) फोटो लगाने पर 3x ज़्यादा बिक्री होती है।</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Analyze Market With AI via AJAX
+            function analyzeMarketWithAi() {
+                const keyword = document.getElementById('aiMarketKeywordInput')?.value.trim();
+                if (!keyword) {
+                    alert('कृपया किसी प्रोडक्ट का नाम लिखें (उदा. PTMT Nal)');
+                    return;
+                }
+
+                const btn = document.getElementById('btnAnalyzeMarketAi');
+                const origHtml = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-amber-300"></i> विश्लेषण हो रहा है...`;
+
+                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+                fetch("{{ route('seller.channels.aiMarketIntelligence') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token
+                    },
+                    body: JSON.stringify({ keyword: keyword })
+                })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success && res.data) {
+                        const d = res.data;
+                        const mi = d.market_intelligence || {};
+
+                        document.getElementById('aiResSearchVolume').innerText = mi.search_volume || '50,000+ मंथली सर्च';
+                        document.getElementById('aiResSweetSpot').innerText = mi.sweet_spot_price || `₹${d.suggested_price} - ₹${d.suggested_mrp}`;
+                        document.getElementById('aiResHsnCode').innerText = `HSN: ${d.hsn_code} (${d.category_label || 'Standard'})`;
+                        document.getElementById('aiResDemandLevel').innerText = mi.demand_level || 'High Demand';
+
+                        document.getElementById('aiResTitle').innerText = d.enhanced_title;
+                        document.getElementById('aiResDesc').innerText = d.description;
+                        document.getElementById('aiResImagePrompt').innerText = d.image_prompt;
+
+                        document.getElementById('aiMarketResultsBox').scrollIntoView({ behavior: 'smooth' });
+                    }
+                })
+                .catch(err => {
+                    alert('एनालिटिक्स लोड करने में त्रुटि हुई। कृपया दोबारा प्रयास करें।');
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                });
+            }
+
+            // Copy AI Listing Copy
+            function copyAiListingCopy() {
+                const title = document.getElementById('aiResTitle')?.innerText || '';
+                const desc = document.getElementById('aiResDesc')?.innerText || '';
+                const fullText = `Title:\n${title}\n\nDescription & Highlights:\n${desc}`;
+                navigator.clipboard.writeText(fullText).then(() => {
+                    const btnSpan = document.getElementById('btnCopyListingText');
+                    btnSpan.innerText = '✅ कॉपीड!';
+                    setTimeout(() => { btnSpan.innerText = 'कॉपी करें'; }, 2000);
+                });
+            }
+
+            // Copy AI Studio Image Prompt
+            function copyAiImagePrompt() {
+                const prompt = document.getElementById('aiResImagePrompt')?.innerText || '';
+                navigator.clipboard.writeText(prompt).then(() => {
+                    const btnSpan = document.getElementById('btnCopyPromptText');
+                    btnSpan.innerText = '✅ प्रॉम्प्ट कॉपीड!';
+                    setTimeout(() => { btnSpan.innerText = 'प्रॉम्प्ट कॉपी करें'; }, 2000);
+                });
+            }
+        </script>
+
+
         <!-- ======================================================== -->
         <!-- 💡 MARKETPLACE SALES & INQUIRY INTELLIGENCE CARD        -->
         <!-- ======================================================== -->
