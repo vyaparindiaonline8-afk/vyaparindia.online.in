@@ -108,6 +108,8 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/{channel}/toggle', [ChannelController::class, 'toggleChannel'])->name('toggle');
         Route::post('/ai-generate', [ChannelController::class, 'aiGenerate'])->name('aiGenerate');
         Route::post('/ai-market-intelligence', [ChannelController::class, 'aiMarketIntelligence'])->name('aiMarketIntelligence');
+        Route::post('/ai-scan-shop', [ChannelController::class, 'aiScanShop'])->name('aiScanShop');
+        Route::post('/ai-apply-optimized-listings', [ChannelController::class, 'aiApplyOptimizedListings'])->name('aiApplyOptimizedListings');
         Route::get('/publisher', [ChannelController::class, 'publisher'])->name('publisher');
         Route::post('/publish', [ChannelController::class, 'publishProduct'])->name('publish');
         Route::post('/bulk-publish', [ChannelController::class, 'bulkPublishToChannel'])->name('bulkPublish');

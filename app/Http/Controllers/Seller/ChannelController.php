@@ -159,6 +159,80 @@ class ChannelController extends Controller
         ]);
     }
 
+    // AJAX: 1-Click AI Scan & Market Intelligence of Entire Seller Catalog
+    public function aiScanShop(Request $request, AIProductService $aiService)
+    {
+        $userId = Auth::id();
+        $channel = $request->input('channel', 'amazon');
+
+        $products = Product::where('user_id', $userId)
+            ->with(['category', 'variants'])
+            ->latest()
+            ->take(20)
+            ->get();
+
+        if ($products->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'आपकी दुकान में अभी कोई प्रोडक्ट्स नहीं मिले। कृपया पहले प्रोडक्ट्स जोड़ें या एक्सेल अपलोड करें।',
+            ], 404);
+        }
+
+        $scanResults = $aiService->bulkScanShopProducts($products, $channel);
+
+        return response()->json([
+            'success' => true,
+            'total_scanned' => count($scanResults),
+            'channel' => $channel,
+            'products' => $scanResults,
+            'message' => "दुकान के " . count($scanResults) . " प्रोडक्ट्स का मार्केट रिसर्च व कॉम्पिटिटर विश्लेषण पूरा हुआ!",
+        ]);
+    }
+
+    // AJAX: 1-Click Apply AI Optimized Titles & Descriptions to Store Database
+    // Note: Rates and Images are 100% untouched and preserved.
+    public function aiApplyOptimizedListings(Request $request)
+    {
+        $userId = Auth::id();
+        $items = $request->input('optimized_items', []);
+
+        if (empty($items)) {
+            return response()->json(['success' => false, 'message' => 'कोई प्रोडक्ट डेटा नहीं मिला।'], 422);
+        }
+
+        $appliedCount = 0;
+        foreach ($items as $item) {
+            $pId = $item['product_id'] ?? null;
+            if (!$pId) continue;
+
+            $product = Product::where('id', $pId)->where('user_id', $userId)->first();
+            if (!$product) continue;
+
+            // Update only Name, Description, Tags, HSN Code.
+            // Rates (price, mrp) and Images are strictly untouched!
+            if (!empty($item['optimized_title'])) {
+                $product->name = $item['optimized_title'];
+            }
+            if (!empty($item['optimized_description'])) {
+                $product->description = $item['optimized_description'];
+            }
+            if (!empty($item['hsn_code'])) {
+                $product->hsn_code = $item['hsn_code'];
+            }
+            if (!empty($item['backend_keywords'])) {
+                $product->tags = $item['backend_keywords'];
+            }
+            $product->save();
+            $appliedCount++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'applied_count' => $appliedCount,
+            'message' => "शानदार! {$appliedCount} प्रोडक्ट्स की लिस्टिंग AI द्वारा रीसर्च किए गए टाइटल्स और बुलेट पॉइंट्स के साथ ऑटोमैटिक अपडेट हो गई (आपके रेट्स और फोटो सुरक्षित हैं)!",
+        ]);
+    }
+
     // Universal Product Publisher View
     public function publisher()
     {

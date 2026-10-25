@@ -528,6 +528,35 @@
                 </div>
             </div>
 
+            
+            <!-- 🔍 1-Click Shop Audit & Marketplace Auto-Optimizer Bar -->
+            <div class="p-4 bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 text-white rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-indigo-700/60 shadow-md">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center text-lg font-black shrink-0">
+                        <i class="fa-solid fa-radar text-base"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-xs sm:text-sm font-black text-white">
+                                पूरी दुकान स्कैन करें & मार्केट रिसर्च से ऑटो-लिस्ट करें (1-Click Shop AI Audit)
+                            </h3>
+                            <span class="px-2 py-0.5 rounded-full text-[9px] bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">Zero Copy-Paste</span>
+                        </div>
+                        <p class="text-[11px] text-slate-300 mt-0.5">
+                            AI आपकी दुकान के सभी प्रोडक्ट्स को स्कैन करके अमेज़न/मीशो के कॉम्पिटिटर्स के टाइटल्स, स्टार रेटिंग्स, सबसे ज़्यादा मांग वाले राज्य व रिटर्न रेट्स निकालेगा — <strong>रेट्स और फोटो सुरक्षित रहेंगे</strong>।
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" onclick="startFullShopAiScan('amazon')" id="btnStartShopScan" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-slate-950 font-black text-xs shadow-md transition active:scale-95 cursor-pointer flex items-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass-chart"></i>
+                        <span>🔍 पूरी दुकान का मार्केट स्कैन करें</span>
+                    </button>
+                </div>
+            </div>
+
+
             <!-- Input Box -->
             <div class="flex flex-col sm:flex-row items-stretch gap-2.5">
                 <div class="relative flex-1">
@@ -913,5 +942,236 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
         setInterval(updatePickupTimers, 1000);
         document.addEventListener('DOMContentLoaded', updatePickupTimers);
     </script>
+
+    <!-- ======================================================== -->
+    <!-- 🏢 FULL SHOP AI MARKET AUDIT & LISTING REVIEW MODAL      -->
+    <!-- ======================================================== -->
+    <div id="shop-scan-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="min-h-screen px-4 py-8 text-center flex items-center justify-center">
+            <div class="fixed inset-0 bg-gray-900/75 backdrop-blur-xs transition-opacity" onclick="closeShopScanModal()"></div>
+
+            <div class="inline-block bg-white rounded-3xl p-6 sm:p-7 text-left overflow-hidden shadow-2xl transform transition-all max-w-5xl w-full relative z-10 space-y-5 max-h-[90vh] flex flex-col">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between pb-3 border-b border-gray-100 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center text-lg font-black">
+                            <i class="fa-solid fa-brain"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-black text-base text-gray-900 flex items-center gap-2">
+                                <span>AI दुकान स्कैन & कॉम्पिटिटर मार्केट रिपोर्ट</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-100 text-indigo-800 font-extrabold" id="shopScanCountBadge">0 Products</span>
+                            </h3>
+                            <p class="text-[11px] text-gray-500">
+                                AI ने मार्केट रिसर्च करके टाइटल्स, बुलेट पॉइंट्स व कॉम्बो सुझाव तैयार किए हैं। आपके <strong>रेट्स और फोटो 100% सुरक्षित</strong> रहेंगे।
+                            </p>
+                        </div>
+                    </div>
+                    <button onclick="closeShopScanModal()" class="text-gray-400 hover:text-gray-600 text-xl p-1">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Live Loading State -->
+                <div id="shopScanLoadingBox" class="py-12 text-center space-y-3">
+                    <div class="inline-block animate-spin text-indigo-600 text-3xl">
+                        <i class="fa-solid fa-circle-notch"></i>
+                    </div>
+                    <h4 class="font-black text-sm text-gray-900">आपकी दुकान के प्रोडक्ट्स का अमेज़न & मीशो पर विश्लेषण हो रहा है...</h4>
+                    <p class="text-xs text-gray-500 max-w-md mx-auto">
+                        कॉम्पिटिटर्स के बेस्ट-सेलिंग टाइटल्स, 4+ स्टार रेटिंग्स, खरीदारों के सर्च कीवर्ड्स और राज्यों की मांग निकाली जा रही है।
+                    </p>
+                </div>
+
+                <!-- Scanned Products Results Table / Cards -->
+                <div id="shopScanResultsBox" class="hidden overflow-y-auto space-y-4 flex-1 pr-1">
+                    <!-- Dynamic Rows Populated via JS -->
+                </div>
+
+                <!-- Modal Footer / Action Bar -->
+                <div id="shopScanFooterBar" class="hidden pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 bg-gray-50/80 -mx-6 -mb-6 p-4 px-6 rounded-b-3xl">
+                    <div class="text-xs text-gray-600">
+                        <span class="font-bold text-gray-900" id="shopScanReadyCount">0</span> प्रोडक्ट्स तैयार हैं। रेट्स और फोटो में कोई बदलाव नहीं होगा।
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="closeShopScanModal()" class="px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-xs transition">
+                            रद्द करें (Cancel)
+                        </button>
+                        <button type="button" onclick="applyAllAiOptimizedListings()" id="btnApplyAllOptimized" class="px-6 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md transition active:scale-95 cursor-pointer flex items-center gap-2">
+                            <i class="fa-solid fa-bolt-lightning text-amber-300"></i>
+                            <span>🚀 1-क्लिक में सभी लिस्टिंग्स पर लागू करें (No Copy-Paste)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentScannedOptimizedItems = [];
+
+        // Start Full Shop Scan
+        function startFullShopAiScan(channel = 'amazon') {
+            document.getElementById('shop-scan-modal').classList.remove('hidden');
+            document.getElementById('shopScanLoadingBox').classList.remove('hidden');
+            document.getElementById('shopScanResultsBox').classList.add('hidden');
+            document.getElementById('shopScanFooterBar').classList.add('hidden');
+
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            fetch("{{ route('seller.channels.aiScanShop') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': token
+                },
+                body: JSON.stringify({ channel: channel })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success && Array.isArray(res.products)) {
+                    currentScannedOptimizedItems = res.products;
+                    renderScannedProducts(res.products);
+                } else {
+                    alert(res.message || 'स्कैन करने में समस्या हुई।');
+                    closeShopScanModal();
+                }
+            })
+            .catch(err => {
+                alert('नेटवर्क एरर। कृपया दोबारा प्रयास करें।');
+                closeShopScanModal();
+            });
+        }
+
+        function closeShopScanModal() {
+            document.getElementById('shop-scan-modal').classList.add('hidden');
+        }
+
+        // Render Scanned Results in Modal
+        function renderScannedProducts(products) {
+            document.getElementById('shopScanLoadingBox').classList.add('hidden');
+            const container = document.getElementById('shopScanResultsBox');
+            container.innerHTML = '';
+            container.classList.remove('hidden');
+            document.getElementById('shopScanFooterBar').classList.remove('hidden');
+
+            document.getElementById('shopScanCountBadge').innerText = `${products.length} Products Scanned`;
+            document.getElementById('shopScanReadyCount').innerText = `${products.length}`;
+
+            products.forEach((p, idx) => {
+                const mi = p.market_intel || {};
+                const comp = mi.competitor_benchmark || {};
+
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs space-y-3 hover:border-indigo-300 transition text-xs";
+                card.innerHTML = `
+                    <div class="flex flex-col md:flex-row md:items-start justify-between gap-3 pb-3 border-b border-gray-100">
+                        <div class="flex items-start gap-3">
+                            <div class="h-14 w-14 rounded-xl bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center shrink-0 p-1">
+                                ${p.current_image ? `<img src="${p.current_image}" class="h-full w-full object-contain">` : `<i class="fa-solid fa-cube text-gray-300 text-xl"></i>`}
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-gray-400 block font-mono">मूल नाम: ${p.original_name}</span>
+                                <h4 class="font-extrabold text-sm text-indigo-950 leading-snug mt-0.5">${p.optimized_title}</h4>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[10px] font-bold">रेट (सुरक्षित): ₹${Number(p.current_price).toFixed(2)}</span>
+                                    <span class="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 text-[10px] font-mono font-bold">HSN: ${p.hsn_code}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="shrink-0 text-right space-y-1">
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-50 text-amber-900 border border-amber-200 inline-block">
+                                ${comp.top_rating || '4.3 ⭐'}
+                            </span>
+                            <div class="text-[10px] text-gray-500">${comp.top_selling_format || 'Bestseller Pack'}</div>
+                        </div>
+                    </div>
+
+                    <!-- Market Insights Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px]">
+                        <div class="bg-indigo-50/60 p-2.5 rounded-xl border border-indigo-100">
+                            <span class="text-[9px] font-bold uppercase text-indigo-700 block">सर्च डिमांड & भाव</span>
+                            <div class="font-black text-indigo-900 mt-0.5">${mi.monthly_search_volume || '50,000+'}</div>
+                            <div class="text-[10px] text-indigo-600">औसत: ${mi.avg_market_price || ''}</div>
+                        </div>
+
+                        <div class="bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-100">
+                            <span class="text-[9px] font-bold uppercase text-emerald-700 block">टॉप डिमांड वाले राज्य</span>
+                            <div class="font-bold text-emerald-950 mt-0.5 leading-tight">${mi.top_demand_regions || 'ऑल इंडिया'}</div>
+                        </div>
+
+                        <div class="bg-amber-50/60 p-2.5 rounded-xl border border-amber-100">
+                            <span class="text-[9px] font-bold uppercase text-amber-800 block">रिटर्न दर विश्लेषण</span>
+                            <div class="font-bold text-amber-950 mt-0.5">${mi.return_risk_rate || 'कम रिटर्न'}</div>
+                            <div class="text-[10px] text-amber-700 leading-tight">${mi.return_tip || ''}</div>
+                        </div>
+                    </div>
+
+                    <!-- Combo Opportunity Note -->
+                    ${mi.combo_opportunity_note ? `
+                        <div class="p-2.5 bg-amber-400/10 border border-amber-300/40 rounded-xl text-[11px] text-amber-900 font-medium flex items-start gap-2">
+                            <i class="fa-solid fa-lightbulb text-amber-600 text-xs mt-0.5 shrink-0"></i>
+                            <div>${mi.combo_opportunity_note}</div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Competitor Reference URLs -->
+                    <div class="flex items-center justify-between text-[11px] pt-1">
+                        <span class="text-gray-400 font-bold">मार्केट कॉम्पिटिटर लाइव रिफ़्रेंस:</span>
+                        <div class="flex items-center gap-2">
+                            ${comp.amazon_url ? `<a href="${comp.amazon_url}" target="_blank" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-amber-100 text-amber-900 font-bold transition flex items-center gap-1"><i class="fa-brands fa-amazon text-[10px]"></i> Amazon रिफ़्रेंस &rarr;</a>` : ''}
+                            ${comp.meesho_url ? `<a href="${comp.meesho_url}" target="_blank" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-pink-100 text-pink-900 font-bold transition flex items-center gap-1"><i class="fa-solid fa-cart-shopping text-[10px]"></i> Meesho रिफ़्रेंस &rarr;</a>` : ''}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 🚀 1-Click Apply All AI Researched Listings Directly to Store
+        function applyAllAiOptimizedListings() {
+            if (!currentScannedOptimizedItems || currentScannedOptimizedItems.length === 0) {
+                alert('कोई डाटा उपलब्ध नहीं है।');
+                return;
+            }
+
+            const btn = document.getElementById('btnApplyAllOptimized');
+            const origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> लागू हो रहा है...`;
+
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            fetch("{{ route('seller.channels.aiApplyOptimizedListings') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': token
+                },
+                body: JSON.stringify({ optimized_items: currentScannedOptimizedItems })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    alert(`✅ ${res.message}`);
+                    closeShopScanModal();
+                    location.reload();
+                } else {
+                    alert(res.message || 'लागू करने में त्रुटि हुई।');
+                }
+            })
+            .catch(err => {
+                alert('नेटवर्क एरर। कृपया दोबारा प्रयास करें।');
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            });
+        }
+    </script>
+
 </body>
 </html>
