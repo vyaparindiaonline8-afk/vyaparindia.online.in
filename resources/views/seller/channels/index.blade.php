@@ -1173,5 +1173,6 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
         }
     </script>
 
+    @include('components.ai-copilot-widget')
 </body>
 </html>

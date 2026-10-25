@@ -26,13 +26,15 @@ class AICopilotController extends Controller
         $request->validate([
             'prompt' => 'required|string|max:2000',
             'image_data' => 'nullable|string',
+            'context' => 'nullable|array',
         ]);
 
         $prompt = trim($request->input('prompt'));
         $imageData = $request->input('image_data');
+        $context = $request->input('context', []);
         $user = Auth::user();
 
-        $response = $this->copilotService->handleMessage($prompt, $imageData, $user);
+        $response = $this->copilotService->handleMessage($prompt, $imageData, $user, $context);
 
         return response()->json([
             'success' => true,

@@ -1,7 +1,7 @@
 <!-- 🤖 VyaparIndia Universal AI Copilot Widget (Modular Store & Buyer Assistant) -->
 <div id="vyapar-ai-copilot" class="fixed bottom-6 right-6 z-50 font-sans" x-data="aiCopilotWidget()">
     <!-- Floating Trigger Button -->
-    <button @click="toggleChat()" 
+    <button @click="toggleChat()" onclick="toggleAiChat()" 
             class="group relative flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white rounded-full shadow-2xl hover:shadow-indigo-500/40 hover:scale-105 transition-all duration-300 focus:outline-none">
         <span class="relative flex h-3 w-3">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -59,32 +59,41 @@
             </div>
         </div>
 
-        <!-- Quick Suggestions Carousel -->
+                <!-- Quick Suggestions Carousel -->
         <div id="ai-quick-pills" class="px-4 py-2 bg-white border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             @auth
                 @if(Auth::user()->is_seller())
+                    <button onclick="aiSendQuick('Marketplace aur Channels status batao')" class="px-3 py-1 bg-violet-50 hover:bg-violet-100 text-violet-700 text-[10px] font-bold rounded-full whitespace-nowrap transition border border-violet-200">
+                        <i class="fa-solid fa-store mr-1 text-violet-600"></i> Channels Hub
+                    </button>
+                    <button onclick="aiSendQuick('Store views aur buyer analytics dikhao')" class="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full whitespace-nowrap transition border border-blue-200">
+                        <i class="fa-solid fa-chart-line mr-1 text-blue-600"></i> Views & Traffic
+                    </button>
+                    <button onclick="aiSendQuick('Is page ki jankari aur summary batao')" class="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full whitespace-nowrap transition border border-amber-200">
+                        <i class="fa-solid fa-circle-question mr-1 text-amber-600"></i> Is Page Ka Guide
+                    </button>
                     <button onclick="aiSendQuick('Mera live inventory dikhao')" class="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full whitespace-nowrap transition border border-emerald-200">
-                        📦 Mera Inventory
+                        <i class="fa-solid fa-boxes-stacked mr-1"></i> Inventory
                     </button>
                     <button onclick="aiSendQuick('Kitne orders pending hain?')" class="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full whitespace-nowrap transition border border-amber-200">
-                        🛒 Pending Orders
+                        <i class="fa-solid fa-cart-shopping mr-1"></i> Pending Orders
                     </button>
                     <button onclick="aiSendQuick('Catalog tools aur PDF studio dikhao')" class="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full whitespace-nowrap transition border border-blue-200">
-                        📄 Catalog & PDF Tools
+                        <i class="fa-solid fa-file-excel mr-1"></i> Catalog & PDF Tools
                     </button>
                     <button onclick="aiSendQuick('Naya product photo se list karo')" class="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full whitespace-nowrap transition border border-indigo-200">
-                        ✨ Naya Item List Karo
+                        <i class="fa-solid fa-camera mr-1"></i> Naya Item List Karo
                     </button>
                     <button onclick="aiSendQuick('Mera profile Mini-Website me upgrade karo')" class="px-3 py-1 bg-violet-50 hover:bg-violet-100 text-violet-700 text-[10px] font-bold rounded-full whitespace-nowrap transition border border-violet-200">
-                        ⭐ Mini-Website Upgrade
+                        <i class="fa-solid fa-crown mr-1"></i> Mini-Website Upgrade
                     </button>
                 @endif
             @endauth
             <button onclick="aiSendQuick('Top wholesale plywood and fittings rates')" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-full whitespace-nowrap transition">
-                💰 Wholesale Rates
+                <i class="fa-solid fa-tag mr-1"></i> Wholesale Rates
             </button>
             <button onclick="aiSendQuick('B2B wholesale quotation estimate kaise banayein?')" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-full whitespace-nowrap transition">
-                📑 Quotation Help
+                <i class="fa-solid fa-file-invoice mr-1"></i> Quotation Help
             </button>
         </div>
 
@@ -198,7 +207,12 @@
                 },
                 body: JSON.stringify({
                     prompt: text || 'Please inspect this attached product photo and list it.',
-                    image_data: imgToSend
+                    image_data: imgToSend,
+                    context: {
+                        url: window.location.href,
+                        pathname: window.location.pathname,
+                        title: document.title
+                    }
                 })
             });
 
@@ -225,7 +239,81 @@
         let imgHtml = image ? `<img src="${image}" class="w-28 h-28 object-cover rounded-xl mb-2 border border-slate-200 shadow-xs">` : '';
         let actionCardHtml = '';
 
-        if (action === 'inventory_summary' && actionData) {
+        if (action === 'channels_summary' && actionData) {
+            actionCardHtml = `
+                <div class="mt-3 p-3.5 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white space-y-3 shadow-lg border border-indigo-500/30">
+                    <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                        <span class="text-xs font-black text-white flex items-center gap-1.5">
+                            <i class="fa-solid fa-globe text-cyan-400"></i> Omnichannel Marketplace
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-black text-[10px] border border-emerald-500/30">
+                            ${actionData.published_count} Live / ${actionData.pending_count} Pending
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-4 gap-1.5 text-center">
+                        <div class="bg-white/5 p-1.5 rounded-xl border border-white/5">
+                            <span class="text-[9px] text-amber-300 font-bold block">Amazon</span>
+                            <span class="font-black text-xs text-white">${actionData.amazon_count}</span>
+                        </div>
+                        <div class="bg-white/5 p-1.5 rounded-xl border border-white/5">
+                            <span class="text-[9px] text-pink-400 font-bold block">Meesho</span>
+                            <span class="font-black text-xs text-white">${actionData.meesho_count}</span>
+                        </div>
+                        <div class="bg-white/5 p-1.5 rounded-xl border border-white/5">
+                            <span class="text-[9px] text-blue-400 font-bold block">Flipkart</span>
+                            <span class="font-black text-xs text-white">${actionData.flipkart_count}</span>
+                        </div>
+                        <div class="bg-white/5 p-1.5 rounded-xl border border-white/5">
+                            <span class="text-[9px] text-yellow-400 font-bold block">Blinkit</span>
+                            <span class="font-black text-xs text-white">${actionData.blinkit_count}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between bg-amber-500/10 border border-amber-500/30 p-2 rounded-xl text-[11px]">
+                        <span class="text-amber-200 font-bold flex items-center gap-1.5">
+                            <i class="fa-solid fa-clock text-amber-400 animate-pulse"></i> Pickup Pending:
+                        </span>
+                        <span class="font-black text-amber-300">${actionData.pending_orders} Orders (24h SLA)</span>
+                    </div>
+                    <a href="${actionData.channels_url}" class="block text-center py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black rounded-xl text-xs shadow-md transition">
+                        ⚡ Open Channels Hub & 1-Click AI Scan &rarr;
+                    </a>
+                </div>
+            `;
+        } else if (action === 'analytics_summary' && actionData) {
+            actionCardHtml = `
+                <div class="mt-3 p-3.5 rounded-2xl bg-slate-900 text-white space-y-3 shadow-lg border border-blue-500/30">
+                    <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                        <span class="text-xs font-black text-white flex items-center gap-1.5">
+                            <i class="fa-solid fa-chart-line text-blue-400"></i> Views & Traffic
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-black text-[10px] border border-blue-500/30">
+                            ${actionData.conversion_rate} Conv. Rate
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <div class="bg-white/5 p-2 rounded-xl border border-white/5">
+                            <span class="text-[9px] text-slate-400 font-bold block uppercase">Total Views</span>
+                            <span class="font-black text-sm text-cyan-300">${actionData.total_views}</span>
+                        </div>
+                        <div class="bg-white/5 p-2 rounded-xl border border-white/5">
+                            <span class="text-[9px] text-slate-400 font-bold block uppercase">Today</span>
+                            <span class="font-black text-sm text-emerald-400">${actionData.today_views}</span>
+                        </div>
+                        <div class="bg-white/5 p-2 rounded-xl border border-white/5">
+                            <span class="text-[9px] text-slate-400 font-bold block uppercase">This Month</span>
+                            <span class="font-black text-sm text-purple-300">${actionData.month_views}</span>
+                        </div>
+                    </div>
+                    <div class="bg-white/5 p-2 rounded-xl text-[10px] text-slate-300 border border-white/5">
+                        <span class="text-slate-400 block font-bold">Top Viewed Item:</span>
+                        <span class="font-bold text-white truncate block">${actionData.top_product_name}</span>
+                    </div>
+                    <a href="${actionData.analytics_url}" class="block text-center py-2 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl text-xs shadow-md transition">
+                        📈 View Full Analytics & Inquiries &rarr;
+                    </a>
+                </div>
+            `;
+        } else if (action === 'inventory_summary' && actionData) {
             actionCardHtml = `
                 <div class="mt-3 p-3.5 rounded-2xl bg-slate-900 text-white space-y-3 shadow-md">
                     <div class="flex items-center justify-between border-b border-white/10 pb-2">

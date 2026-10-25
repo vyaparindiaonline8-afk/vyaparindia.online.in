@@ -591,5 +591,6 @@
 
     </main>
 
+    @include('components.ai-copilot-widget')
 </body>
 </html>
