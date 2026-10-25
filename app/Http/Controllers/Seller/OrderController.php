@@ -82,6 +82,8 @@ class OrderController extends Controller
             'amazon' => (clone $baseCountQuery)->where('order_source', 'amazon')->count(),
             'meesho' => (clone $baseCountQuery)->where('order_source', 'meesho')->count(),
             'flipkart' => (clone $baseCountQuery)->where('order_source', 'flipkart')->count(),
+            'myntra' => (clone $baseCountQuery)->where('order_source', 'myntra')->count(),
+            'blinkit' => (clone $baseCountQuery)->where('order_source', 'blinkit')->count(),
         ];
 
         // Metrics for today's orders
