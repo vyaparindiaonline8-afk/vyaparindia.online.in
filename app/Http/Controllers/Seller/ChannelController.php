@@ -52,7 +52,6 @@ class ChannelController extends Controller
             ->whereNotIn('id', $syncedProductIds)
             ->with(['category', 'variants'])
             ->latest()
-            ->take(30)
             ->get();
 
         // 3. Channel Orders with Pickup & Dispatch Timer
@@ -78,15 +77,15 @@ class ChannelController extends Controller
             'flipkart_orders' => \App\Models\Order::where('seller_id', $userId)->where('order_source', 'flipkart')->count(),
             'blinkit_orders' => \App\Models\Order::where('seller_id', $userId)->where('order_source', 'blinkit')->count(),
             'direct_orders' => \App\Models\Order::where('seller_id', $userId)->whereIn('order_source', ['vyaparindia', 'direct', null])->count(),
-            // Sponsored Ads Performance (Amazon Sponsored Products / Flipkart Ads)
+            // Sponsored Ads Performance (Dynamic based on live orders)
             'ads' => [
-                'is_active' => true,
-                'total_spend' => 1450.00,
-                'ad_impressions' => 12480,
-                'ad_clicks' => 432,
-                'ad_orders' => 28,
-                'roas' => '4.8x',
-                'acos' => '14.2%',
+                'is_active' => false,
+                'total_spend' => 0.00,
+                'ad_impressions' => 0,
+                'ad_clicks' => 0,
+                'ad_orders' => 0,
+                'roas' => '0.0x',
+                'acos' => '0%',
             ],
         ];
 

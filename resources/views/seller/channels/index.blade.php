@@ -561,7 +561,7 @@
             <div class="flex flex-col sm:flex-row items-stretch gap-2.5">
                 <div class="relative flex-1">
                     <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                    <input type="text" id="aiMarketKeywordInput" placeholder="प्रोडक्ट का नाम लिखें (उदा: PTMT Nal, CPVC Brass Elbow, Double Charge Tile, Asian Primer)..." value="PTMT Nal" class="w-full pl-9 pr-4 py-2.5 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 text-xs font-semibold outline-none transition">
+                    <input type="text" id="aiMarketKeywordInput" placeholder="जिस प्रोडक्ट का मार्केट डेटा देखना है उसका नाम लिखें (उदा. अपने प्रोडक्ट का नाम)..." value="{{ $pendingProducts->first()->name ?? '' }}" class="w-full pl-9 pr-4 py-2.5 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 text-xs font-semibold outline-none transition">
                 </div>
                 <button type="button" onclick="analyzeMarketWithAi()" id="btnAnalyzeMarketAi" class="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer shrink-0">
                     <i class="fa-solid fa-bolt-lightning text-amber-300"></i>
@@ -570,7 +570,7 @@
             </div>
 
             <!-- Dynamic AI Results Container -->
-            <div id="aiMarketResultsBox" class="space-y-5">
+            <div id="aiMarketResultsBox" class="space-y-5 {{ !empty($pendingProducts) && $pendingProducts->count() > 0 ? '' : 'hidden' }}">
                 <!-- 1. Market Size & Demand Summary Grid -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs">
                     <div class="bg-indigo-50/70 p-3.5 rounded-2xl border border-indigo-100 space-y-1">
