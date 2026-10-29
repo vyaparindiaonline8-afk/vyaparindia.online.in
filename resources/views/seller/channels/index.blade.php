@@ -59,6 +59,20 @@
             </div>
         @endif
 
+        @if($errors->any())
+            <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold space-y-1 shadow-xs">
+                <div class="flex items-center gap-2 text-rose-700 font-black">
+                    <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                    <span>कृपया नीचे दी गई जानकारी चेक करें:</span>
+                </div>
+                <ul class="list-disc pl-5 text-[11px] font-normal space-y-0.5">
+                    @foreach($errors->all() as $err)
+                        <li>{{ $err }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <!-- 📊 TOP METRICS OVERVIEW & ADS STATUS -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Active Channels -->
@@ -470,6 +484,13 @@
                                 <p class="text-[11px] text-gray-500 mt-0.5">
                                     {{ $connected ? 'Store: ' . $connected->store_name : '24x7 ऑटो इन्वेंटरी, रेट्स व आर्डर वेबहुक सिंक।' }}
                                 </p>
+                                @if($connected && $connected->store_url)
+                                    <div class="text-[10px] text-emerald-800 font-mono font-bold mt-1 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-key text-[9px] text-emerald-600"></i>
+                                        <span>Token: {{ Str::limit($connected->store_url, 18) }}</span>
+                                        <span class="text-[9px] text-emerald-600 font-extrabold ml-auto">✓ Saved</span>
+                                    </div>
+                                @endif
                                 <span class="inline-block mt-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
                                     पिकअप SLA: {{ $info['sla'] }}
                                 </span>
@@ -816,6 +837,13 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 <form action="{{ route('seller.channels.store') }}" method="POST" class="space-y-4 text-xs">
                     @csrf
                     <input type="hidden" name="channel_name" id="channel-name-input">
+
+                    <div class="p-3 rounded-2xl bg-indigo-50/80 border border-indigo-200 text-indigo-950 text-[11px] flex items-start gap-2.5">
+                        <i class="fa-solid fa-circle-check text-indigo-600 text-sm shrink-0 mt-0.5"></i>
+                        <span class="leading-relaxed">
+                            <strong>सब कुछ एक साथ भरना ज़रूरी नहीं है!</strong> आप अभी सिर्फ अपना स्टोर नाम और मर्चेंट टोकन डालकर सेव कर सकते हैं। बाकी API Keys बाद में कभी भी जोड़ें, आपका डेटा हमेशा सुरक्षित सेव रहेगा।
+                        </span>
+                    </div>
 
                     <div>
                         <label class="block font-bold text-gray-700 mb-1">सेलर / स्टोर का नाम <span class="text-rose-500">*</span></label>

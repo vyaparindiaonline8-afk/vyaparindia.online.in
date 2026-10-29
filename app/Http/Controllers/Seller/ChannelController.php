@@ -92,31 +92,55 @@ class ChannelController extends Controller
         return view('seller.channels.index', compact('channels', 'supportedChannels', 'allListings', 'channelListingCounts', 'pendingProducts', 'channelOrders', 'analytics'));
     }
 
-    // Connect or Update a Channel
+    // Connect or Update a Channel (Supports Partial Saves - fill 1 or 2 fields now, rest later)
     public function storeChannel(Request $request)
     {
         $validated = $request->validate([
             'channel_name' => 'required|in:shopify,woocommerce,amazon,flipkart,meesho,myntra,blinkit',
-            'store_name' => 'required|string|max:255',
-            'store_url' => 'nullable|url|max:255',
+            'store_name' => 'nullable|string|max:255',
+            'store_url' => 'nullable|string|max:255', // Accepts both URL and alphanumeric Merchant Token (e.g. A2XYZEXAMPLE)
             'api_key' => 'nullable|string|max:255',
             'api_secret' => 'nullable|string',
             'access_token' => 'nullable|string',
         ]);
 
-        Channel::updateOrCreate(
-            [
-                'user_id' => Auth::id(),
-                'channel_name' => $validated['channel_name'],
-            ],
-            array_merge($validated, [
-                'is_active' => true,
-                'auto_sync_inventory' => true,
-                'last_synced_at' => now(),
-            ])
-        );
+        $channelName = $validated['channel_name'];
+        $channel = Channel::firstOrNew([
+            'user_id' => Auth::id(),
+            'channel_name' => $channelName,
+        ]);
 
-        return back()->with('success', ucfirst($validated['channel_name']) . ' integration connected successfully!');
+        // 1. Store Name (Defaults gracefully if blank)
+        if (!empty($validated['store_name'])) {
+            $channel->store_name = trim($validated['store_name']);
+        } elseif (empty($channel->store_name)) {
+            $channel->store_name = (Auth::user()->name ?: 'My') . ' ' . ucfirst($channelName) . ' Store';
+        }
+
+        // 2. Merchant Token / Store URL
+        if ($request->has('store_url')) {
+            $channel->store_url = trim($request->input('store_url', ''));
+        }
+
+        // 3. API Key / Client ID
+        if ($request->has('api_key')) {
+            $channel->api_key = trim($request->input('api_key', ''));
+        }
+
+        // 4. API Secret / Refresh Token
+        if ($request->has('api_secret') && !empty($request->input('api_secret'))) {
+            $channel->api_secret = trim($request->input('api_secret'));
+        }
+        if ($request->has('access_token') && !empty($request->input('access_token'))) {
+            $channel->access_token = trim($request->input('access_token'));
+        }
+
+        $channel->is_active = true;
+        $channel->auto_sync_inventory = true;
+        $channel->last_synced_at = now();
+        $channel->save();
+
+        return back()->with('success', ucfirst($channelName) . ' की जानकारी सफलतापूर्वक सेव हो गई है! आप बाकी जानकारी बाद में भी कभी भी भर सकते हैं।');
     }
 
     // Toggle Channel Status
