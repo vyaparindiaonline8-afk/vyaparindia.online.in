@@ -356,8 +356,29 @@ class ChannelController extends Controller
             })
             ->get();
 
+        if ($connectedChannels->isEmpty() && !empty($channelNames)) {
+            foreach ($channelNames as $cName) {
+                Channel::firstOrCreate(
+                    [
+                        'user_id' => $userId,
+                        'channel_name' => $cName,
+                    ],
+                    [
+                        'store_name' => (Auth::user()->name ?: 'My') . ' ' . ucfirst($cName) . ' Store',
+                        'is_active' => true,
+                        'auto_sync_inventory' => true,
+                        'last_synced_at' => now(),
+                    ]
+                );
+            }
+            $connectedChannels = Channel::where('user_id', $userId)
+                ->where('is_active', true)
+                ->whereIn('channel_name', $channelNames)
+                ->get();
+        }
+
         if ($connectedChannels->isEmpty()) {
-            return back()->with('error', 'कोई एक्टिव चैनल कनेक्ट नहीं है। कृपया पहले Amazon या Meesho की API Key सेव करें।');
+            return back()->with('error', 'Kripya kam se kam ek channel (Amazon ya Meesho) chunein!');
         }
 
         $syncedCount = 0;

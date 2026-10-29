@@ -1092,6 +1092,12 @@
                 <span>फोल्डर में जोड़ें</span>
             </button>
 
+            <!-- Push to Multi-Channel (Amazon, Meesho, etc.) -->
+            <button type="button" onclick="openMultiChannelPushModalForSelected()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs transition flex items-center gap-1.5 shadow-xs">
+                <i class="fa-solid fa-share-nodes text-amber-300"></i>
+                <span>Multi-Channel (Amazon / Meesho) Push</span>
+            </button>
+
             <!-- Clear Selection -->
             <button type="button" onclick="clearAllProductSelections()" class="h-7 w-7 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-xs transition" title="Clear selection">
                 <i class="fa-solid fa-xmark"></i>
@@ -1981,7 +1987,27 @@
                 setTimeout(() => toast.remove(), 500);
             }, 3000);
         }
-    </script>
+            function openMultiChannelPushModalForSelected() {
+            const ids = getSelectedProductIds();
+            if (ids.length === 0) {
+                alert('कृपया कम से कम एक प्रोडक्ट चुनें!');
+                return;
+            }
+            const modal = document.getElementById('multiChannelPushModal');
+            document.getElementById('multiChannelModalSubtitle').textContent = `${ids.length} प्रोडक्ट्स चुने गए हैं`;
+            const container = document.getElementById('multiChannelHiddenInputsContainer');
+            container.innerHTML = ids.map(id => `<input type="hidden" name="product_ids[]" value="${id}">`).join('');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeMultiChannelPushModal() {
+            const modal = document.getElementById('multiChannelPushModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+</script>
 
     <!-- 🗑️ Clear All Products Confirmation Modal -->
     <div id="clearAllModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-4" onclick="closeClearAllModal()">
@@ -2157,6 +2183,68 @@
 
         </div>
     </div>
+    <!-- 🌐 Multi-Channel Bulk Push Modal -->
+    <div id="multiChannelPushModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-4 overflow-y-auto" onclick="closeMultiChannelPushModal()">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in duration-200 my-auto" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold">
+                        <i class="fa-solid fa-share-nodes"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-900">Multi-Channel में भेजें</h3>
+                        <p class="text-[11px] text-gray-500" id="multiChannelModalSubtitle">चयनित प्रोडक्ट्स को मार्केटप्लेस पर पब्लिश करें</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeMultiChannelPushModal()" class="text-gray-400 hover:text-gray-600 p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form action="{{ route('seller.channels.bulkPublish') }}" method="POST" class="space-y-4 text-xs">
+                @csrf
+                <div id="multiChannelHiddenInputsContainer"></div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-2">किन-किन मार्केटप्लेस पर पब्लिश करना है?</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center justify-between p-3 rounded-2xl bg-amber-50/70 border border-amber-200 cursor-pointer hover:bg-amber-100/60 transition">
+                            <span class="flex items-center gap-2.5 font-extrabold text-amber-950">
+                                <i class="fa-brands fa-amazon text-base text-amber-600"></i>
+                                <span>Amazon India (SP-API)</span>
+                            </span>
+                            <input type="checkbox" name="channels[]" value="amazon" checked class="rounded text-amber-600 h-4 w-4">
+                        </label>
+                        <label class="flex items-center justify-between p-3 rounded-2xl bg-pink-50/70 border border-pink-200 cursor-pointer hover:bg-pink-100/60 transition">
+                            <span class="flex items-center gap-2.5 font-extrabold text-pink-950">
+                                <i class="fa-solid fa-cart-shopping text-base text-pink-600"></i>
+                                <span>Meesho Supplier Portal</span>
+                            </span>
+                            <input type="checkbox" name="channels[]" value="meesho" checked class="rounded text-pink-600 h-4 w-4">
+                        </label>
+                        <label class="flex items-center justify-between p-3 rounded-2xl bg-blue-50/70 border border-blue-200 cursor-pointer hover:bg-blue-100/60 transition">
+                            <span class="flex items-center gap-2.5 font-extrabold text-blue-950">
+                                <i class="fa-solid fa-bolt text-base text-blue-600"></i>
+                                <span>Flipkart Marketplace</span>
+                            </span>
+                            <input type="checkbox" name="channels[]" value="flipkart" class="rounded text-blue-600 h-4 w-4">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-2 border-t border-gray-100">
+                    <button type="button" onclick="closeMultiChannelPushModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition">
+                        रद्द करें
+                    </button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black shadow-md transition flex items-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-cloud-arrow-up text-amber-300"></i>
+                        <span>मार्केटप्लेस पर 1-Click पब्लिश करें</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     @include('components.ai-copilot-widget')
 </body>
 </html>
