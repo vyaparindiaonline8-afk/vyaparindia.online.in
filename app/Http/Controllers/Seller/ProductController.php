@@ -321,48 +321,76 @@ class ProductController extends Controller
         $request->validate([
             'image_url' => 'nullable|string',
             'image_file' => 'nullable|image|max:8192',
+            'image_files' => 'nullable|array',
+            'image_files.*' => 'nullable|image|max:8192',
         ]);
 
-        $imageUrl = $request->input('image_url');
-        if ($request->hasFile('image_file')) {
-            $imageUrl = CloudinaryService::upload($request->file('image_file'), 'vyaparindia/products');
+        $uploadedUrls = [];
+
+        // 1. Handle Multiple File Uploads
+        if ($request->hasFile('image_files')) {
+            foreach ($request->file('image_files') as $file) {
+                if ($file && $file->isValid()) {
+                    $u = CloudinaryService::upload($file, 'vyaparindia/products');
+                    if ($u) $uploadedUrls[] = $u;
+                }
+            }
         }
 
-        if (empty($imageUrl)) {
+        // 2. Handle Single File Upload
+        if ($request->hasFile('image_file')) {
+            $u = CloudinaryService::upload($request->file('image_file'), 'vyaparindia/products');
+            if ($u) $uploadedUrls[] = $u;
+        }
+
+        // 3. Handle URL Input
+        if ($request->filled('image_url')) {
+            $uploadedUrls[] = $request->input('image_url');
+        }
+
+        if (empty($uploadedUrls)) {
             return response()->json(['success' => false, 'message' => 'No image provided'], 422);
         }
 
-        $product->image = $imageUrl;
-        $product->save();
-
-        // Also sync or create primary image in product_images gallery table
-        try {
-            $primaryImg = $product->images()->where('is_primary', true)->first();
-            if ($primaryImg) {
-                $primaryImg->update(['image_path' => $imageUrl]);
-            } elseif ($product->images()->count() > 0) {
-                $firstImg = $product->images()->first();
-                $firstImg->update(['image_path' => $imageUrl, 'is_primary' => true]);
-            } else {
-                $product->images()->create([
-                    'image_path' => $imageUrl,
-                    'is_primary' => true,
-                    'sort_order' => 1,
-                ]);
-            }
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('ProductImage sync warning: ' . $e->getMessage());
+        // Set main product image if empty or requested
+        if (empty($product->image) || !$request->boolean('is_secondary_only')) {
+            $product->image = $uploadedUrls[0];
+            $product->save();
         }
 
-        $resolvedUrl = $product->image_url ?: $imageUrl;
+        // Append to ProductImage gallery
+        $currentMaxSort = (int)$product->images()->max('sort_order');
+        foreach ($uploadedUrls as $idx => $imgUrl) {
+            try {
+                $product->images()->create([
+                    'image_path' => $imgUrl,
+                    'is_primary' => ($idx === 0 && empty($product->image)),
+                    'sort_order' => $currentMaxSort + $idx + 1,
+                ]);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('ProductImage gallery insert: ' . $e->getMessage());
+            }
+        }
+
+        $allGalleryImages = $product->images()->orderBy('sort_order')->get()->map(function($img) {
+            return [
+                'id' => $img->id,
+                'url' => $img->url,
+                'is_primary' => $img->is_primary,
+            ];
+        });
+
+        $resolvedUrl = $product->image_url ?: $uploadedUrls[0];
         if (!empty($resolvedUrl) && !str_starts_with($resolvedUrl, 'http://') && !str_starts_with($resolvedUrl, 'https://') && !str_starts_with($resolvedUrl, 'data:')) {
             $resolvedUrl = asset(ltrim($resolvedUrl, '/'));
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Product image updated successfully!',
+            'message' => count($uploadedUrls) . ' फ़ोटो सफलतापूर्वक जुड़ गई!',
             'image_url' => $resolvedUrl,
+            'gallery_count' => $product->images()->count(),
+            'gallery' => $allGalleryImages,
         ]);
     }
 

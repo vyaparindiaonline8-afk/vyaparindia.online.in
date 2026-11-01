@@ -115,6 +115,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/bulk-publish', [ChannelController::class, 'bulkPublishToChannel'])->name('bulkPublish');
         Route::get('/inventory', [ChannelController::class, 'inventory'])->name('inventory');
         Route::post('/products/{product}/sync-stock', [ChannelController::class, 'syncStock'])->name('syncStock');
+        Route::post('/products/{product}/save-costing', [ChannelController::class, 'saveProductCosting'])->name('saveProductCosting');
         Route::post('/simulate-order', [\App\Http\Controllers\Seller\ChannelWebhookController::class, 'simulateOrder'])->name('simulateOrder');
     });
 

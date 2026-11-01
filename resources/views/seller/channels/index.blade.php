@@ -409,51 +409,95 @@
                         </div>
                     </div>
 
-                    <!-- Pending Products List: 1. CARDS VIEW -->
+                                        <!-- Pending Products List: 1. CARDS VIEW -->
                     <div id="pendingCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                         @forelse($pendingProducts ?? [] as $p)
-                            <div class="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs hover:border-indigo-300 transition flex items-start gap-3">
-                                <input type="checkbox" name="product_ids[]" value="{{ $p->id }}" class="pending-prod-chk rounded text-indigo-600 h-4 w-4 mt-1 cursor-pointer">
-                                <div class="relative group/pendingimg h-14 w-14 rounded-xl bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center shrink-0 p-1 cursor-pointer hover:border-indigo-500 hover:ring-2 hover:ring-indigo-200 transition"
-                                     onclick="triggerDirectImageUpload({{ $p->id }}, '{{ addslashes($p->name) }}')"
-                                     title="फ़ोटो जोड़ें या बदलें (1-Click Upload)">
-                                    <img src="{{ $p->image_url ?? '' }}" 
-                                         alt="{{ $p->name }}" 
-                                         id="pending-prod-img-{{ $p->id }}" 
-                                         class="h-full w-full object-contain {{ !empty($p->image_url) ? '' : 'hidden' }}"
-                                         onerror="this.style.display='none'; var ph = document.getElementById('pending-prod-img-ph-{{ $p->id }}'); if(ph) ph.classList.remove('hidden');">
+                            @php
+                                $imgCount = $p->images ? $p->images->count() : 0;
+                                if ($imgCount === 0 && !empty($p->image)) $imgCount = 1;
+                                $pCost = (float)($p->purchase_price ?: round($p->price * 0.70, 2));
+                                $ue = $p->attributes['unit_economics'] ?? [];
+                                $packCost = (float)($ue['packaging'] ?? 15);
+                                $shipCost = (float)($ue['shipping'] ?? 45);
+                                $feePct = (float)($ue['platform_fee_pct'] ?? 12);
+                                $adsCost = (float)($ue['ads'] ?? 10);
+                                $otherCost = (float)($ue['others'] ?? 5);
+                                $totalExp = round($packCost + $shipCost + ($p->price * ($feePct / 100)) + $adsCost + $otherCost, 2);
+                                $netMargin = round($p->price - $pCost - $totalExp, 2);
+                            @endphp
+                            <div class="bg-white rounded-3xl border border-gray-200 p-4 shadow-2xs hover:border-indigo-400 hover:shadow-md transition space-y-3.5" id="pending-card-box-{{ $p->id }}">
+                                <div class="flex items-start gap-3">
+                                    <input type="checkbox" name="product_ids[]" value="{{ $p->id }}" class="pending-prod-chk rounded text-indigo-600 h-4 w-4 mt-1 cursor-pointer">
                                     
-                                    <div id="pending-prod-img-ph-{{ $p->id }}" class="{{ !empty($p->image_url) ? 'hidden' : 'flex' }} flex-col items-center justify-center text-gray-300 group-hover/pendingimg:text-indigo-600 transition">
-                                        <i class="fa-solid fa-camera text-base"></i>
-                                        <span class="text-[8px] font-bold mt-0.5 text-gray-400 group-hover/pendingimg:text-indigo-600">+फ़ोटो</span>
+                                    <!-- Photo Block with Multi-Image Support -->
+                                    <div class="relative group/pendingimg h-16 w-16 rounded-2xl bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center shrink-0 p-1 cursor-pointer hover:border-indigo-500 hover:ring-2 hover:ring-indigo-200 transition"
+                                         onclick="triggerMultipleImageUpload({{ $p->id }}, '{{ addslashes($p->name) }}')"
+                                         title="फ़ोटो बदलें या और फ़ोटो जोड़ें">
+                                        <img src="{{ $p->image_url ?? '' }}" 
+                                             alt="{{ $p->name }}" 
+                                             id="pending-prod-img-{{ $p->id }}" 
+                                             class="h-full w-full object-contain {{ !empty($p->image_url) ? '' : 'hidden' }}"
+                                             onerror="this.style.display='none'; var ph = document.getElementById('pending-prod-img-ph-{{ $p->id }}'); if(ph) ph.classList.remove('hidden');">
+                                        
+                                        <div id="pending-prod-img-ph-{{ $p->id }}" class="{{ !empty($p->image_url) ? 'hidden' : 'flex' }} flex-col items-center justify-center text-gray-300 group-hover/pendingimg:text-indigo-600 transition">
+                                            <i class="fa-solid fa-camera text-base"></i>
+                                            <span class="text-[8px] font-bold mt-0.5 text-gray-400 group-hover/pendingimg:text-indigo-600">+फ़ोटो</span>
+                                        </div>
+
+                                        <div class="absolute inset-0 bg-indigo-950/80 text-white flex flex-col items-center justify-center opacity-0 group-hover/pendingimg:opacity-100 transition rounded-2xl text-[9px] font-bold">
+                                            <i class="fa-solid fa-images text-xs mb-0.5 text-amber-300"></i>
+                                            <span>+फ़ोटो</span>
+                                        </div>
+
+                                        <span id="pending-img-badge-{{ $p->id }}" class="absolute bottom-1 right-1 bg-slate-900/90 text-white text-[8px] font-black px-1.5 py-0.2 rounded-md shadow-2xs">
+                                            {{ $imgCount }} फ़ोटो
+                                        </span>
                                     </div>
 
-                                    <div class="absolute inset-0 bg-indigo-950/75 text-white flex flex-col items-center justify-center opacity-0 group-hover/pendingimg:opacity-100 transition rounded-xl text-[9px] font-bold">
-                                        <i class="fa-solid fa-camera text-xs mb-0.5 text-amber-300"></i>
-                                        <span>बदलें</span>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center justify-between gap-1">
+                                            <span class="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
+                                                {{ $p->category->name ?? 'General' }}
+                                            </span>
+                                            <button type="button" onclick="triggerMultipleImageUpload({{ $p->id }}, '{{ addslashes($p->name) }}')" class="text-[10px] font-extrabold text-indigo-600 hover:text-indigo-800 transition inline-flex items-center gap-1">
+                                                <i class="fa-solid fa-plus-circle"></i> फ़ोटो जोड़ें
+                                            </button>
+                                        </div>
+                                        <h4 class="font-black text-xs text-gray-900 truncate mt-1" title="{{ $p->name }}">
+                                            {{ $p->name }}
+                                        </h4>
+                                        <div class="text-[10px] text-gray-400 font-mono mt-0.5">
+                                            SKU: {{ $p->sku ?: 'STD' }}
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="flex-1 min-w-0">
-                                    <span class="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
-                                        {{ $p->category->name ?? 'General' }}
-                                    </span>
-                                    <h4 class="font-black text-xs text-gray-900 truncate mt-1" title="{{ $p->name }}">
-                                        {{ $p->name }}
-                                    </h4>
-                                    <div class="flex items-center justify-between text-xs mt-1">
-                                        <span class="font-mono font-bold text-gray-900">₹{{ number_format($p->price, 2) }}</span>
-                                        <span class="text-[10px] text-gray-400 font-mono">SKU: {{ $p->sku ?: 'STD' }}</span>
+
+                                <!-- Unit Economics Breakdown Badge -->
+                                <div class="p-2.5 bg-slate-50 rounded-2xl border border-gray-100 text-[11px] space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-500 font-medium">खरीद लागत (P.Cost):</span>
+                                        <span class="font-bold text-gray-800 font-mono">₹{{ number_format($pCost, 2) }}</span>
                                     </div>
-                                    <div class="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between gap-1.5">
-                                        <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }})" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-black transition flex items-center gap-1">
-                                            <i class="fa-solid fa-calculator"></i>
-                                            <span>लागत & मार्जिन चेक</span>
-                                        </button>
-                                        <a href="/seller/products/{{ $p->id }}/pricing-tiers" target="_blank" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-black transition flex items-center gap-1" title="2 पीस, 4 पीस, 6 पीस पैक रेट सेट करें">
-                                            <i class="fa-solid fa-layer-group text-emerald-600"></i>
-                                            <span>2/4/6 पीस स्लैब</span>
-                                        </a>
+                                    <div class="flex items-center justify-between text-gray-500 text-[10px]">
+                                        <span>खर्चे (पैकिंग+कूरियर+फ़ी+ऐड्स):</span>
+                                        <span class="font-mono font-bold text-amber-700">+₹{{ number_format($totalExp, 2) }}</span>
                                     </div>
+                                    <div class="flex items-center justify-between pt-1 border-t border-gray-200">
+                                        <span class="font-extrabold text-gray-900">फाइनल सेलिंग रेट:</span>
+                                        <span class="font-black text-emerald-700 text-xs font-mono">₹{{ number_format($p->price, 2) }}</span>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="pt-1 flex items-center justify-between gap-2">
+                                    <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="flex-1 py-1.5 px-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-black transition flex items-center justify-center gap-1 shadow-2xs">
+                                        <i class="fa-solid fa-calculator"></i>
+                                        <span>खर्च & रेट कैलकुलेटर</span>
+                                    </button>
+                                    <a href="/seller/products/{{ $p->id }}/pricing-tiers" target="_blank" class="py-1.5 px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-black transition flex items-center gap-1" title="2 पीस, 4 पीस, 6 पीस पैक रेट सेट करें">
+                                        <i class="fa-solid fa-layer-group text-emerald-600"></i>
+                                        <span>2/4/6 पीस स्लैब</span>
+                                    </a>
                                 </div>
                             </div>
                         @empty
@@ -465,71 +509,141 @@
                     </div>
 
                     <!-- Pending Products List: 2. SPREADSHEET TABLE GRID VIEW (Unicommerce / EasyEcom Style) -->
-                    <div id="pendingTableContainer" class="hidden mt-4 overflow-x-auto bg-white rounded-2xl border border-gray-200 shadow-xs">
-                        <table class="w-full text-left text-xs divide-y divide-gray-100">
-                            <thead class="bg-gray-50 text-[10px] font-black uppercase text-gray-500 tracking-wider">
+                    <div id="pendingTableContainer" class="hidden mt-4 overflow-x-auto bg-white rounded-3xl border border-gray-200 shadow-sm">
+                        <table class="w-full text-left text-xs divide-y divide-gray-200">
+                            <thead class="bg-gray-100 text-[10px] font-black uppercase text-gray-600 tracking-wider">
                                 <tr>
                                     <th class="p-3 w-8 text-center">✓</th>
                                     <th class="p-3">फ़ोटो</th>
-                                    <th class="p-3">प्रोडक्ट का नाम</th>
-                                    <th class="p-3">कैटेगरी</th>
-                                    <th class="p-3">बेस खरीद/सेल (₹)</th>
-                                    <th class="p-3 text-center">लागत & मुनाफा (Calculator)</th>
-                                    <th class="p-3 text-center">2 / 4 / 6 पीस कॉम्बो स्लैब</th>
-                                    <th class="p-3 text-right">त्वरित एक्शन</th>
+                                    <th class="p-3 min-w-[180px]">प्रोडक्ट का नाम</th>
+                                    <th class="p-3 min-w-[100px]">खरीद लागत (P.Cost ₹)</th>
+                                    <th class="p-3 min-w-[75px]">पैकिंग (₹)</th>
+                                    <th class="p-3 min-w-[75px]">कूरियर (₹)</th>
+                                    <th class="p-3 min-w-[75px]">फ़ी (%)</th>
+                                    <th class="p-3 min-w-[75px]">ऐड्स (₹)</th>
+                                    <th class="p-3 min-w-[70px]">अन्य (₹)</th>
+                                    <th class="p-3 min-w-[120px] bg-amber-50 text-amber-950 font-black">फाइनल सेलिंग (₹)</th>
+                                    <th class="p-3 min-w-[130px] text-center">2 / 4 / 6 पीस कॉम्बो</th>
+                                    <th class="p-3 text-right min-w-[90px]">एक्शन</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100">
+                            <tbody class="divide-y divide-gray-100 text-[11px]" id="pendingTableTbody">
                                 @forelse($pendingProducts ?? [] as $p)
-                                    <tr class="hover:bg-indigo-50/30 transition">
+                                    @php
+                                        $imgCount = $p->images ? $p->images->count() : 0;
+                                        if ($imgCount === 0 && !empty($p->image)) $imgCount = 1;
+                                        $pCost = (float)($p->purchase_price ?: round($p->price * 0.70, 2));
+                                        $ue = $p->attributes['unit_economics'] ?? [];
+                                        $packCost = (float)($ue['packaging'] ?? 15);
+                                        $shipCost = (float)($ue['shipping'] ?? 45);
+                                        $feePct = (float)($ue['platform_fee_pct'] ?? 12);
+                                        $adsCost = (float)($ue['ads'] ?? 10);
+                                        $otherCost = (float)($ue['others'] ?? 5);
+                                    @endphp
+                                    <tr class="hover:bg-indigo-50/20 transition group" id="table-row-{{ $p->id }}" data-id="{{ $p->id }}">
                                         <td class="p-3 text-center">
                                             <input type="checkbox" name="product_ids[]" value="{{ $p->id }}" class="pending-prod-chk rounded text-indigo-600 h-4 w-4 cursor-pointer">
                                         </td>
                                         <td class="p-2">
-                                            <div class="h-11 w-11 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center p-0.5 cursor-pointer hover:ring-2 hover:ring-indigo-300 relative group/tableimg"
-                                                 onclick="triggerDirectImageUpload({{ $p->id }}, '{{ addslashes($p->name) }}')"
-                                                 title="फ़ोटो बदलें">
-                                                <img src="{{ $p->image_url ?? '' }}" alt="{{ $p->name }}" class="h-full w-full object-contain {{ !empty($p->image_url) ? '' : 'hidden' }}">
-                                                <i class="fa-solid fa-camera text-gray-300 {{ !empty($p->image_url) ? 'hidden' : 'block' }}"></i>
-                                                <div class="absolute inset-0 bg-indigo-900/70 text-white flex items-center justify-center opacity-0 group-hover/tableimg:opacity-100 transition rounded-lg text-[8px] font-bold">
-                                                    +फ़ोटो
-                                                </div>
+                                            <div class="relative h-12 w-12 rounded-xl bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center p-0.5 cursor-pointer hover:ring-2 hover:ring-indigo-300 group/rowimg"
+                                                 onclick="triggerMultipleImageUpload({{ $p->id }}, '{{ addslashes($p->name) }}')"
+                                                 title="फ़ोटो बदलें या और फ़ोटो जोड़ें">
+                                                <img src="{{ $p->image_url ?? '' }}" alt="{{ $p->name }}" id="table-prod-img-{{ $p->id }}" class="h-full w-full object-contain {{ !empty($p->image_url) ? '' : 'hidden' }}">
+                                                <i class="fa-solid fa-camera text-gray-300 {{ !empty($p->image_url) ? 'hidden' : 'block' }}" id="table-prod-ph-{{ $p->id }}"></i>
+                                                <span class="absolute bottom-0.5 right-0.5 bg-slate-900/80 text-white text-[7px] font-bold px-1 rounded" id="table-img-badge-{{ $p->id }}">
+                                                    {{ $imgCount }} फ़ोटो
+                                                </span>
                                             </div>
                                         </td>
                                         <td class="p-3">
-                                            <span class="font-extrabold text-gray-900 block truncate max-w-xs" title="{{ $p->name }}">{{ $p->name }}</span>
-                                            <span class="text-[10px] text-gray-400 font-mono">SKU: {{ $p->sku ?: 'STD' }}</span>
+                                            <span class="font-extrabold text-gray-900 block truncate max-w-[200px]" title="{{ $p->name }}">{{ $p->name }}</span>
+                                            <div class="flex items-center gap-1.5 mt-0.5">
+                                                <span class="text-[9px] text-gray-400 font-mono">SKU: {{ $p->sku ?: 'STD' }}</span>
+                                                <button type="button" onclick="triggerMultipleImageUpload({{ $p->id }}, '{{ addslashes($p->name) }}')" class="text-[9px] font-bold text-indigo-600 hover:text-indigo-800">
+                                                    +फ़ोटो जोड़ें
+                                                </button>
+                                            </div>
                                         </td>
-                                        <td class="p-3">
-                                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold text-indigo-700 bg-indigo-50">
-                                                {{ $p->category->name ?? 'General' }}
-                                            </span>
+
+                                        <!-- 1. Purchase Cost (P. Cost) -->
+                                        <td class="p-2">
+                                            <div class="relative">
+                                                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">₹</span>
+                                                <input type="number" step="0.5" id="row-cost-{{ $p->id }}" value="{{ $pCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-20 pl-5 pr-1.5 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono font-bold text-gray-900 focus:border-indigo-500 focus:outline-none">
+                                            </div>
                                         </td>
-                                        <td class="p-3 font-mono font-black text-gray-900 text-sm">
-                                            ₹{{ number_format($p->price, 2) }}
+
+                                        <!-- 2. Packaging (₹) -->
+                                        <td class="p-2">
+                                            <input type="number" id="row-pack-{{ $p->id }}" value="{{ $packCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono text-gray-800 focus:border-indigo-500 focus:outline-none">
                                         </td>
-                                        <td class="p-3 text-center">
-                                            <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }})" class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-black text-[11px] transition inline-flex items-center gap-1 shadow-2xs">
-                                                <i class="fa-solid fa-calculator text-indigo-600"></i>
-                                                <span>खर्च & रेट कैलकुलेटर</span>
-                                            </button>
+
+                                        <!-- 3. Courier / Shipping (₹) -->
+                                        <td class="p-2">
+                                            <input type="number" id="row-ship-{{ $p->id }}" value="{{ $shipCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono text-gray-800 focus:border-indigo-500 focus:outline-none">
                                         </td>
-                                        <td class="p-3 text-center">
-                                            <a href="/seller/products/{{ $p->id }}/pricing-tiers" target="_blank" class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-black text-[11px] transition inline-flex items-center gap-1">
-                                                <i class="fa-solid fa-layer-group text-emerald-600"></i>
-                                                <span>2/4/6 पीस रेट</span>
-                                            </a>
+
+                                        <!-- 4. Marketplace Platform Fee (%) -->
+                                        <td class="p-2">
+                                            <div class="relative">
+                                                <input type="number" id="row-fee-{{ $p->id }}" value="{{ $feePct }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 pl-2 pr-4 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono text-gray-800 focus:border-indigo-500 focus:outline-none">
+                                                <span class="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">%</span>
+                                            </div>
                                         </td>
+
+                                        <!-- 5. Ads & Marketing (₹) -->
+                                        <td class="p-2">
+                                            <input type="number" id="row-ads-{{ $p->id }}" value="{{ $adsCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono text-gray-800 focus:border-indigo-500 focus:outline-none">
+                                        </td>
+
+                                        <!-- 6. Others (₹) -->
+                                        <td class="p-2">
+                                            <input type="number" id="row-others-{{ $p->id }}" value="{{ $otherCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-14 px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono text-gray-800 focus:border-indigo-500 focus:outline-none">
+                                        </td>
+
+                                        <!-- 7. Final Selling Price (₹) -->
+                                        <td class="p-2 bg-amber-50/50">
+                                            <div class="flex items-center gap-1.5">
+                                                <div class="relative">
+                                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-amber-600 font-bold text-[10px]">₹</span>
+                                                    <input type="number" step="1" id="row-price-{{ $p->id }}" value="{{ $p->price }}" class="w-20 pl-5 pr-1.5 py-1 bg-white border border-amber-300 rounded-lg text-xs font-mono font-black text-amber-950 focus:border-amber-500 focus:outline-none">
+                                                </div>
+                                                <button type="button" onclick="saveTableRowCosting({{ $p->id }}, this)" class="h-7 w-7 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition shadow-2xs cursor-pointer" title="इस रो का रेट सेव करें">
+                                                    <i class="fa-solid fa-floppy-disk text-xs"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+
+                                        <!-- 8. Real-Time Combo Previews (2/4/6 Pack) -->
+                                        <td class="p-2 text-center">
+                                            <div class="inline-flex items-center gap-1 font-mono text-[10px] font-extrabold text-slate-700 bg-gray-100 p-1 rounded-xl">
+                                                <span class="px-1.5 py-0.5 bg-white rounded-md shadow-2xs" id="row-combo2-{{ $p->id }}" title="2 पीस पैक रेट">
+                                                    2P: ₹{{ round($p->price * 1.8) }}
+                                                </span>
+                                                <span class="px-1.5 py-0.5 bg-white rounded-md shadow-2xs" id="row-combo4-{{ $p->id }}" title="4 पीस पैक रेट">
+                                                    4P: ₹{{ round($p->price * 3.5) }}
+                                                </span>
+                                                <span class="px-1.5 py-0.5 bg-white rounded-md shadow-2xs" id="row-combo6-{{ $p->id }}" title="6 पीस पैक रेट">
+                                                    6P: ₹{{ round($p->price * 5.0) }}
+                                                </span>
+                                            </div>
+                                        </td>
+
+                                        <!-- 9. Quick Actions -->
                                         <td class="p-3 text-right">
-                                            <button type="button" onclick="triggerDirectImageUpload({{ $p->id }}, '{{ addslashes($p->name) }}')" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-bold transition inline-flex items-center gap-1">
-                                                <i class="fa-solid fa-camera text-indigo-600"></i>
-                                                <span>+ फ़ोटो</span>
-                                            </button>
+                                            <div class="flex items-center justify-end gap-1">
+                                                <a href="/seller/products/{{ $p->id }}/pricing-tiers" target="_blank" class="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition" title="2/4/6 पीस स्लैब सेटिंग्स">
+                                                    <i class="fa-solid fa-layer-group text-xs"></i>
+                                                </a>
+                                                <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition" title="डिटेल कैलकुलेटर खोलें">
+                                                    <i class="fa-solid fa-calculator text-xs"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="8" class="p-8 text-center text-gray-400">
+                                        <td colspan="12" class="p-8 text-center text-gray-400">
                                             सभी प्रोडक्ट्स सिंक हो चुके हैं।
                                         </td>
                                     </tr>
@@ -537,9 +651,6 @@
                             </tbody>
                         </table>
                     </div>
-                </form>
-            </div>
-        </div>
 
         <!-- ======================================================== -->
         <!-- 🔌 MARKETPLACE API INTEGRATION CONFIGURATION CARDS       -->
@@ -1360,16 +1471,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             // Costing & Profit Live Calculator
         let activeCalcProductId = null;
 
-        function openCostCalculatorModal(prodId, prodName, basePrice) {
-            activeCalcProductId = prodId;
-            document.getElementById('calcModalProdName').textContent = prodName;
-            document.getElementById('calcCostPrice').value = Math.max(10, Math.round(basePrice * 0.70));
-            document.getElementById('calcSlabSetupDirectLink').href = `/seller/products/${prodId}/pricing-tiers`;
-            calculateLiveSellingPrice();
-            const modal = document.getElementById('costCalculatorModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
+
 
         function closeCostCalculatorModal() {
             const modal = document.getElementById('costCalculatorModal');
@@ -1497,6 +1599,184 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 toast.style.transition = 'opacity 0.4s';
                 setTimeout(() => toast.remove(), 400);
             }, 3000);
+        }
+
+        // Direct Multi-Image Upload Trigger (Select 1 or Multiple Photos)
+        let currentMultiUploadProdId = null;
+
+        function triggerMultipleImageUpload(prodId, prodName) {
+            currentMultiUploadProdId = prodId;
+            let fileInput = document.getElementById('directMultiProductImageFileInput');
+            if (!fileInput) {
+                fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.id = 'directMultiProductImageFileInput';
+                fileInput.accept = 'image/*';
+                fileInput.multiple = true; // Allows selecting multiple images at once!
+                fileInput.className = 'hidden';
+                fileInput.onchange = handleMultipleImageUploadChange;
+                document.body.appendChild(fileInput);
+            }
+            fileInput.click();
+        }
+
+        async function handleMultipleImageUploadChange(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0 || !currentMultiUploadProdId) return;
+
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) {
+                formData.append('image_files[]', files[i]);
+            }
+            formData.append('_token', '{{ csrf_token() }}');
+
+            showChannelToast(`${files.length} फ़ोटो अपलोड हो रही हैं, कृपया प्रतीक्षा करें...`);
+
+            try {
+                const res = await fetch(`/seller/products/${currentMultiUploadProdId}/quick-image-update`, {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' },
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const prodId = currentMultiUploadProdId;
+                    // Update main image in card & table
+                    if (data.image_url) {
+                        const cardImg = document.getElementById(`pending-prod-img-${prodId}`);
+                        const cardPh = document.getElementById(`pending-prod-img-ph-${prodId}`);
+                        if (cardImg) {
+                            cardImg.src = data.image_url;
+                            cardImg.style.display = 'block';
+                            cardImg.classList.remove('hidden');
+                        }
+                        if (cardPh) cardPh.classList.add('hidden');
+
+                        const tableImg = document.getElementById(`table-prod-img-${prodId}`);
+                        const tablePh = document.getElementById(`table-prod-ph-${prodId}`);
+                        if (tableImg) {
+                            tableImg.src = data.image_url;
+                            tableImg.style.display = 'block';
+                            tableImg.classList.remove('hidden');
+                        }
+                        if (tablePh) tablePh.classList.add('hidden');
+                    }
+
+                    // Update count badges
+                    const count = data.gallery_count || files.length;
+                    const cardBadge = document.getElementById(`pending-img-badge-${prodId}`);
+                    if (cardBadge) cardBadge.textContent = `${count} फ़ोटो`;
+                    const tableBadge = document.getElementById(`table-img-badge-${prodId}`);
+                    if (tableBadge) tableBadge.textContent = `${count} फ़ोटो`;
+
+                    showChannelToast(`✓ ${files.length} फ़ोटो सफलतापूर्वक जुड़ गईं!`);
+                } else {
+                    alert(data.message || 'फ़ोटो अपलोड करने में त्रुटि आई।');
+                }
+            } catch(e) {
+                alert('नेटवर्क त्रुटि: फ़ोटो अपलोड नहीं हो पाई।');
+            }
+            event.target.value = '';
+        }
+
+        // Real-Time Table Row Unit Economics Recalculator
+        function recalcTableRow(prodId) {
+            const cost = parseFloat(document.getElementById(`row-cost-${prodId}`).value) || 0;
+            const pack = parseFloat(document.getElementById(`row-pack-${prodId}`).value) || 0;
+            const ship = parseFloat(document.getElementById(`row-ship-${prodId}`).value) || 0;
+            const feePct = parseFloat(document.getElementById(`row-fee-${prodId}`).value) || 0;
+            const ads = parseFloat(document.getElementById(`row-ads-${prodId}`).value) || 0;
+            const others = parseFloat(document.getElementById(`row-others-${prodId}`).value) || 0;
+
+            const desiredProfit = cost * 0.25; // default 25% margin
+            const totalFixed = cost + desiredProfit + pack + ship + ads + others;
+            const multiplier = Math.max(0.1, 1 - (feePct / 100));
+            const finalRate = Math.ceil(totalFixed / multiplier);
+
+            document.getElementById(`row-price-${prodId}`).value = finalRate;
+
+            // Update combo previews
+            const c2 = Math.ceil(((cost * 2) + (desiredProfit * 1.8) + (pack * 1.3) + ship + (ads * 1.2)) / multiplier);
+            const c4 = Math.ceil(((cost * 4) + (desiredProfit * 3.5) + (pack * 1.6) + (ship * 1.2) + (ads * 1.5)) / multiplier);
+            const c6 = Math.ceil(((cost * 6) + (desiredProfit * 5.0) + (pack * 2.0) + (ship * 1.4) + (ads * 1.8)) / multiplier);
+
+            document.getElementById(`row-combo2-${prodId}`).textContent = `2P: ₹${c2}`;
+            document.getElementById(`row-combo4-${prodId}`).textContent = `4P: ₹${c4}`;
+            document.getElementById(`row-combo6-${prodId}`).textContent = `6P: ₹${c6}`;
+        }
+
+        // Save Inline Table Row Costing & Unit Economics
+        async function saveTableRowCosting(prodId, btn) {
+            const cost = parseFloat(document.getElementById(`row-cost-${prodId}`).value) || 0;
+            const price = parseFloat(document.getElementById(`row-price-${prodId}`).value) || 0;
+            const pack = parseFloat(document.getElementById(`row-pack-${prodId}`).value) || 0;
+            const ship = parseFloat(document.getElementById(`row-ship-${prodId}`).value) || 0;
+            const feePct = parseFloat(document.getElementById(`row-fee-${prodId}`).value) || 0;
+            const ads = parseFloat(document.getElementById(`row-ads-${prodId}`).value) || 0;
+            const others = parseFloat(document.getElementById(`row-others-${prodId}`).value) || 0;
+
+            if (price <= 0) {
+                alert('कृपया वैध फाइनल सेलिंग रेट डालें!');
+                return;
+            }
+
+            const origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i>';
+
+            try {
+                const res = await fetch(`/seller/channels/products/${prodId}/save-costing`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        purchase_price: cost,
+                        price: price,
+                        packaging: pack,
+                        shipping: ship,
+                        platform_fee_pct: feePct,
+                        ads: ads,
+                        others: others
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+                    btn.classList.add('bg-blue-600');
+                    btn.innerHTML = '<i class="fa-solid fa-check text-xs"></i>';
+                    showChannelToast('✓ लागत, खर्चे व नया फाइनल सेलिंग रेट सेव हो गया!');
+                    setTimeout(() => {
+                        btn.classList.remove('bg-blue-600');
+                        btn.classList.add('bg-emerald-600');
+                        btn.innerHTML = origHtml;
+                        btn.disabled = false;
+                    }, 2000);
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                    alert(data.message || 'सेव करने में त्रुटि आई।');
+                }
+            } catch(e) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+                alert('नेटवर्क त्रुटि: डेटा सेव नहीं हो पाया।');
+            }
+        }
+
+        // Updated openCostCalculatorModal with purchasePrice support
+        function openCostCalculatorModal(prodId, prodName, basePrice, purchasePrice = null) {
+            activeCalcProductId = prodId;
+            document.getElementById('calcModalProdName').textContent = prodName;
+            const costVal = (purchasePrice && purchasePrice > 0) ? purchasePrice : Math.max(10, Math.round(basePrice * 0.70));
+            document.getElementById('calcCostPrice').value = costVal;
+            document.getElementById('calcSlabSetupDirectLink').href = `/seller/products/${prodId}/pricing-tiers`;
+            calculateLiveSellingPrice();
+            const modal = document.getElementById('costCalculatorModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         }
 
 </script>

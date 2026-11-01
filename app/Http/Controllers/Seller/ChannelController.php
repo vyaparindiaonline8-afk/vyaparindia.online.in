@@ -50,7 +50,7 @@ class ChannelController extends Controller
         $syncedProductIds = $allListings->pluck('product_id')->unique()->toArray();
         $pendingProducts = Product::where('user_id', $userId)
             ->whereNotIn('id', $syncedProductIds)
-            ->with(['category', 'variants'])
+            ->with(['category', 'variants', 'images'])
             ->latest()
             ->get();
 
@@ -202,7 +202,7 @@ class ChannelController extends Controller
         $channel = $request->input('channel', 'amazon');
 
         $products = Product::where('user_id', $userId)
-            ->with(['category', 'variants'])
+            ->with(['category', 'variants', 'images'])
             ->latest()
             ->take(20)
             ->get();
@@ -445,5 +445,48 @@ class ChannelController extends Controller
         }
 
         return back()->with('success', "✅ {$syncedCount} प्रोडक्ट्स सफलतापूर्वक कनेक्टेड मार्केट्स (Amazon / Meesho / Flipkart) पर लाइव सिंक हो गए!");
+    }
+    // AJAX: Save Inline Product Costing & Unit Economics Breakdown
+    public function saveProductCosting(Request $request, Product $product)
+    {
+        if (Auth::id() !== $product->user_id && !Auth::user()->isOwnerOrAdmin()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'purchase_price' => 'nullable|numeric|min:0',
+            'price' => 'required|numeric|min:1',
+            'packaging' => 'nullable|numeric|min:0',
+            'shipping' => 'nullable|numeric|min:0',
+            'platform_fee_pct' => 'nullable|numeric|min:0|max:100',
+            'ads' => 'nullable|numeric|min:0',
+            'others' => 'nullable|numeric|min:0',
+        ]);
+
+        if ($request->has('purchase_price')) {
+            $product->purchase_price = $validated['purchase_price'];
+        }
+        $product->price = $validated['price'];
+
+        $attrs = $product->attributes ?? [];
+        $attrs['unit_economics'] = [
+            'purchase_cost' => (float)($validated['purchase_price'] ?? $product->purchase_price ?? 0),
+            'packaging' => (float)($validated['packaging'] ?? 15),
+            'shipping' => (float)($validated['shipping'] ?? 45),
+            'platform_fee_pct' => (float)($validated['platform_fee_pct'] ?? 12),
+            'ads' => (float)($validated['ads'] ?? 10),
+            'others' => (float)($validated['others'] ?? 5),
+            'updated_at' => now()->toIso8601String(),
+        ];
+        $product->attributes = $attrs;
+        $product->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'लागत, खर्चे व सेलिंग रेट सुरक्षित सेव हो गए!',
+            'price' => $product->price,
+            'purchase_price' => $product->purchase_price,
+            'unit_economics' => $attrs['unit_economics'],
+        ]);
     }
 }
