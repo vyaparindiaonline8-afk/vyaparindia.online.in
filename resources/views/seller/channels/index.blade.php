@@ -409,17 +409,29 @@
                         </div>
                     </div>
 
-                    <!-- Pending Products List -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                    <!-- Pending Products List: 1. CARDS VIEW -->
+                    <div id="pendingCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                         @forelse($pendingProducts ?? [] as $p)
                             <div class="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs hover:border-indigo-300 transition flex items-start gap-3">
                                 <input type="checkbox" name="product_ids[]" value="{{ $p->id }}" class="pending-prod-chk rounded text-indigo-600 h-4 w-4 mt-1 cursor-pointer">
-                                <div class="h-14 w-14 rounded-xl bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center shrink-0 p-1">
-                                    @if($p->image_url)
-                                        <img src="{{ $p->image_url }}" alt="{{ $p->name }}" class="h-full w-full object-contain">
-                                    @else
-                                        <i class="fa-solid fa-cube text-gray-300 text-lg"></i>
-                                    @endif
+                                <div class="relative group/pendingimg h-14 w-14 rounded-xl bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center shrink-0 p-1 cursor-pointer hover:border-indigo-500 hover:ring-2 hover:ring-indigo-200 transition"
+                                     onclick="triggerDirectImageUpload({{ $p->id }}, '{{ addslashes($p->name) }}')"
+                                     title="फ़ोटो जोड़ें या बदलें (1-Click Upload)">
+                                    <img src="{{ $p->image_url ?? '' }}" 
+                                         alt="{{ $p->name }}" 
+                                         id="pending-prod-img-{{ $p->id }}" 
+                                         class="h-full w-full object-contain {{ !empty($p->image_url) ? '' : 'hidden' }}"
+                                         onerror="this.style.display='none'; var ph = document.getElementById('pending-prod-img-ph-{{ $p->id }}'); if(ph) ph.classList.remove('hidden');">
+                                    
+                                    <div id="pending-prod-img-ph-{{ $p->id }}" class="{{ !empty($p->image_url) ? 'hidden' : 'flex' }} flex-col items-center justify-center text-gray-300 group-hover/pendingimg:text-indigo-600 transition">
+                                        <i class="fa-solid fa-camera text-base"></i>
+                                        <span class="text-[8px] font-bold mt-0.5 text-gray-400 group-hover/pendingimg:text-indigo-600">+फ़ोटो</span>
+                                    </div>
+
+                                    <div class="absolute inset-0 bg-indigo-950/75 text-white flex flex-col items-center justify-center opacity-0 group-hover/pendingimg:opacity-100 transition rounded-xl text-[9px] font-bold">
+                                        <i class="fa-solid fa-camera text-xs mb-0.5 text-amber-300"></i>
+                                        <span>बदलें</span>
+                                    </div>
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <span class="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
@@ -450,6 +462,80 @@
                                 सभी प्रोडक्ट्स सभी मार्केट्स पर पब्लिश हो चुके हैं। कोई नया पेंडिंग प्रोडक्ट नहीं है।
                             </div>
                         @endforelse
+                    </div>
+
+                    <!-- Pending Products List: 2. SPREADSHEET TABLE GRID VIEW (Unicommerce / EasyEcom Style) -->
+                    <div id="pendingTableContainer" class="hidden mt-4 overflow-x-auto bg-white rounded-2xl border border-gray-200 shadow-xs">
+                        <table class="w-full text-left text-xs divide-y divide-gray-100">
+                            <thead class="bg-gray-50 text-[10px] font-black uppercase text-gray-500 tracking-wider">
+                                <tr>
+                                    <th class="p-3 w-8 text-center">✓</th>
+                                    <th class="p-3">फ़ोटो</th>
+                                    <th class="p-3">प्रोडक्ट का नाम</th>
+                                    <th class="p-3">कैटेगरी</th>
+                                    <th class="p-3">बेस खरीद/सेल (₹)</th>
+                                    <th class="p-3 text-center">लागत & मुनाफा (Calculator)</th>
+                                    <th class="p-3 text-center">2 / 4 / 6 पीस कॉम्बो स्लैब</th>
+                                    <th class="p-3 text-right">त्वरित एक्शन</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                @forelse($pendingProducts ?? [] as $p)
+                                    <tr class="hover:bg-indigo-50/30 transition">
+                                        <td class="p-3 text-center">
+                                            <input type="checkbox" name="product_ids[]" value="{{ $p->id }}" class="pending-prod-chk rounded text-indigo-600 h-4 w-4 cursor-pointer">
+                                        </td>
+                                        <td class="p-2">
+                                            <div class="h-11 w-11 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center p-0.5 cursor-pointer hover:ring-2 hover:ring-indigo-300 relative group/tableimg"
+                                                 onclick="triggerDirectImageUpload({{ $p->id }}, '{{ addslashes($p->name) }}')"
+                                                 title="फ़ोटो बदलें">
+                                                <img src="{{ $p->image_url ?? '' }}" alt="{{ $p->name }}" class="h-full w-full object-contain {{ !empty($p->image_url) ? '' : 'hidden' }}">
+                                                <i class="fa-solid fa-camera text-gray-300 {{ !empty($p->image_url) ? 'hidden' : 'block' }}"></i>
+                                                <div class="absolute inset-0 bg-indigo-900/70 text-white flex items-center justify-center opacity-0 group-hover/tableimg:opacity-100 transition rounded-lg text-[8px] font-bold">
+                                                    +फ़ोटो
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="p-3">
+                                            <span class="font-extrabold text-gray-900 block truncate max-w-xs" title="{{ $p->name }}">{{ $p->name }}</span>
+                                            <span class="text-[10px] text-gray-400 font-mono">SKU: {{ $p->sku ?: 'STD' }}</span>
+                                        </td>
+                                        <td class="p-3">
+                                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold text-indigo-700 bg-indigo-50">
+                                                {{ $p->category->name ?? 'General' }}
+                                            </span>
+                                        </td>
+                                        <td class="p-3 font-mono font-black text-gray-900 text-sm">
+                                            ₹{{ number_format($p->price, 2) }}
+                                        </td>
+                                        <td class="p-3 text-center">
+                                            <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }})" class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-black text-[11px] transition inline-flex items-center gap-1 shadow-2xs">
+                                                <i class="fa-solid fa-calculator text-indigo-600"></i>
+                                                <span>खर्च & रेट कैलकुलेटर</span>
+                                            </button>
+                                        </td>
+                                        <td class="p-3 text-center">
+                                            <a href="/seller/products/{{ $p->id }}/pricing-tiers" target="_blank" class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-black text-[11px] transition inline-flex items-center gap-1">
+                                                <i class="fa-solid fa-layer-group text-emerald-600"></i>
+                                                <span>2/4/6 पीस रेट</span>
+                                            </a>
+                                        </td>
+                                        <td class="p-3 text-right">
+                                            <button type="button" onclick="triggerDirectImageUpload({{ $p->id }}, '{{ addslashes($p->name) }}')" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-bold transition inline-flex items-center gap-1">
+                                                <i class="fa-solid fa-camera text-indigo-600"></i>
+                                                <span>+ फ़ोटो</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="8" class="p-8 text-center text-gray-400">
+                                            सभी प्रोडक्ट्स सिंक हो चुके हैं।
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
                 </form>
             </div>
@@ -1321,6 +1407,96 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             const cost6 = (cost * 6) + (desiredProfit * 5.0) + (packing * 2.0) + (shipping * 1.4);
             const finalRate6 = Math.ceil(cost6 / multiplier);
             document.getElementById('calcCombo6Rate').textContent = '₹' + finalRate6.toFixed(2);
+        }
+
+        // Switch Pending Layout between Table Grid vs Cards
+        function switchPendingLayout(layout) {
+            const cards = document.getElementById('pendingCardsContainer');
+            const table = document.getElementById('pendingTableContainer');
+            const btnCards = document.getElementById('btnPendingViewCards');
+            const btnTable = document.getElementById('btnPendingViewTable');
+
+            if (layout === 'table') {
+                cards.classList.add('hidden');
+                table.classList.remove('hidden');
+                btnTable.className = "px-2.5 py-1 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer";
+                btnCards.className = "px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-gray-600 hover:text-gray-900 cursor-pointer";
+            } else {
+                table.classList.add('hidden');
+                cards.classList.remove('hidden');
+                btnCards.className = "px-2.5 py-1 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer";
+                btnTable.className = "px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-gray-600 hover:text-gray-900 cursor-pointer";
+            }
+        }
+
+        // Direct 1-Click Image Upload from Card / Table
+        let currentDirectUploadProdId = null;
+
+        function triggerDirectImageUpload(prodId, prodName) {
+            currentDirectUploadProdId = prodId;
+            let fileInput = document.getElementById('directProductImageFileInput');
+            if (!fileInput) {
+                fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.id = 'directProductImageFileInput';
+                fileInput.accept = 'image/*';
+                fileInput.className = 'hidden';
+                fileInput.onchange = handleDirectImageUploadChange;
+                document.body.appendChild(fileInput);
+            }
+            fileInput.click();
+        }
+
+        async function handleDirectImageUploadChange(event) {
+            const file = event.target.files[0];
+            if (!file || !currentDirectUploadProdId) return;
+
+            const formData = new FormData();
+            formData.append('image_file', file);
+            formData.append('_token', '{{ csrf_token() }}');
+
+            // Show instant feedback toast
+            showChannelToast('फ़ोटो अपलोड हो रही है, कृपया प्रतीक्षा करें...');
+
+            try {
+                const res = await fetch(`/seller/products/${currentDirectUploadProdId}/quick-image-update`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.success && data.image_url) {
+                    // Update image in card
+                    const imgEl = document.getElementById(`pending-prod-img-${currentDirectUploadProdId}`);
+                    const phEl = document.getElementById(`pending-prod-img-ph-${currentDirectUploadProdId}`);
+                    if (imgEl) {
+                        imgEl.src = data.image_url;
+                        imgEl.style.display = 'block';
+                        imgEl.classList.remove('hidden');
+                    }
+                    if (phEl) phEl.classList.add('hidden');
+                    showChannelToast('✓ फ़ोटो सफलतापूर्वक जुड़ गई और सेव हो गई!');
+                } else {
+                    alert(data.message || 'फ़ोटो अपलोड करने में त्रुटि आई।');
+                }
+            } catch(e) {
+                alert('नेटवर्क त्रुटि: फ़ोटो अपलोड नहीं हो पाई।');
+            }
+            event.target.value = '';
+        }
+
+        function showChannelToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-bold border border-slate-700 animate-in fade-in slide-in-from-bottom duration-300';
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i> <span>${msg}</span>`;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.4s';
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
         }
 
 </script>
