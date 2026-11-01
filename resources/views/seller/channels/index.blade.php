@@ -499,7 +499,7 @@
 
                         <div class="pt-3 border-t border-gray-100 flex items-center gap-2">
                             @if($connected)
-                                <button type="button" onclick="openConnectModal('{{ $channelKey }}', '{{ $info['name'] }}', '{{ $connected->store_name }}', '{{ $connected->store_url }}', '{{ $connected->api_key }}')" class="flex-1 py-2 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-extrabold text-xs transition">
+                                <button type="button" onclick="openConnectModal('{{ $channelKey }}', '{{ $info['name'] }}', '{{ $connected->store_name }}', '{{ $connected->store_url }}', '{{ $connected->api_key }}', '{{ $connected->api_secret }}', '{{ $connected->access_token }}')" class="flex-1 py-2 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-extrabold text-xs transition">
                                     API सेटिंग्स बदलें
                                 </button>
                                 <form action="{{ route('seller.channels.toggle', $connected->id) }}" method="POST">
@@ -924,12 +924,18 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
         }
 
         // Open API Connect Modal
-        function openConnectModal(channelKey, channelTitle, storeName = '', storeUrl = '', apiKey = '') {
+        function openConnectModal(channelKey, channelTitle, storeName = '', storeUrl = '', apiKey = '', apiSecret = '', accessToken = '') {
             document.getElementById('channel-name-input').value = channelKey;
             document.getElementById('modal-title').innerText = channelTitle + ' API Connect';
             document.getElementById('store-name-input').value = storeName || (channelTitle + ' Store');
             document.getElementById('store-url-input').value = storeUrl || '';
             document.getElementById('api-key-input').value = apiKey || '';
+            if (document.getElementById('api-secret-input')) {
+                document.getElementById('api-secret-input').value = apiSecret || '';
+            }
+            if (document.getElementById('access-token-input')) {
+                document.getElementById('access-token-input').value = accessToken || '';
+            }
             document.getElementById('connect-modal').classList.remove('hidden');
         }
 
