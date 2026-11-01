@@ -2232,13 +2232,17 @@
                     </div>
                 </div>
 
-                <div class="pt-2 flex items-center justify-end gap-2 border-t border-gray-100">
-                    <button type="button" onclick="closeMultiChannelPushModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition">
+                <div class="pt-2 flex flex-col sm:flex-row items-center justify-end gap-2 border-t border-gray-100">
+                    <button type="button" onclick="closeMultiChannelPushModal()" class="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition text-xs w-full sm:w-auto">
                         रद्द करें
                     </button>
-                    <button type="submit" class="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black shadow-md transition flex items-center gap-2 cursor-pointer">
+                    <button type="submit" formaction="{{ route('seller.channels.stageProducts') }}" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold transition text-xs flex items-center justify-center gap-1.5 shadow-2xs w-full sm:w-auto cursor-pointer" title="पहले लागत, खर्चे और कॉम्बो रेट्स चेक करने के लिए बास्केट में डालें">
+                        <i class="fa-solid fa-basket-shopping text-amber-100"></i>
+                        <span>चैनल बास्केट में जोड़ें (Review Rates)</span>
+                    </button>
+                    <button type="submit" formaction="{{ route('seller.channels.bulkPublish') }}" class="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black shadow-md transition text-xs flex items-center justify-center gap-2 w-full sm:w-auto cursor-pointer">
                         <i class="fa-solid fa-cloud-arrow-up text-amber-300"></i>
-                        <span>मार्केटप्लेस पर 1-Click पब्लिश करें</span>
+                        <span>🚀 तुरंत लाइव पब्लिश करें</span>
                     </button>
                 </div>
             </form>

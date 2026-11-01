@@ -272,9 +272,16 @@
                     <button type="button" onclick="switchMarketplaceTab('pending')" id="btnTabPendingMarketplaces" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer">
                         <span class="h-2 w-2 rounded-full bg-amber-500"></span>
                         <span>🟡 पेंडिंग प्रोडक्ट्स (Pending)</span>
-                        <span class="px-2 py-0.2 rounded-full text-[10px] bg-amber-100 text-amber-800 font-extrabold">{{ count($pendingProducts ?? []) }}</span>
+                        <span class="px-2 py-0.2 rounded-full text-[10px] bg-amber-100 text-amber-800 font-extrabold pending-count-badge">{{ count($pendingProducts ?? []) }}</span>
                     </button>
                 </div>
+
+                <!-- Add Products from Store Catalog Button -->
+                <button type="button" onclick="openStageProductsModal()" class="px-4 py-2 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-black text-xs shadow-md shadow-amber-500/25 flex items-center gap-2 transition active:scale-95 cursor-pointer">
+                    <i class="fa-solid fa-plus-circle text-amber-200 text-sm"></i>
+                    <span>+ दुकान से प्रोडक्ट्स चुनें</span>
+                    <span class="bg-black/20 text-white text-[10px] font-mono px-1.5 py-0.5 rounded-full">{{ count($allStoreProducts ?? []) }} उपलब्ध</span>
+                </button>
             </div>
 
             <!-- TAB 1: 🟢 PUBLISHED MARKETPLACES VIEW -->
@@ -402,6 +409,11 @@
                                 <span>Flipkart</span>
                             </label>
 
+                            <button type="button" onclick="openStageProductsModal()" class="px-3.5 py-2 rounded-xl bg-white border border-amber-300 hover:bg-amber-100 text-amber-950 font-extrabold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer">
+                                <i class="fa-solid fa-plus text-amber-600"></i>
+                                <span>+ दुकान से और जोड़ें</span>
+                            </button>
+
                             <button type="submit" class="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1.5">
                                 <i class="fa-solid fa-cloud-arrow-up text-amber-300"></i>
                                 <span>🚀 1-क्लिक में लाइव पब्लिश करें</span>
@@ -459,9 +471,14 @@
                                             <span class="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
                                                 {{ $p->category->name ?? 'General' }}
                                             </span>
-                                            <button type="button" onclick="triggerMultipleImageUpload({{ $p->id }}, '{{ addslashes($p->name) }}')" class="text-[10px] font-extrabold text-indigo-600 hover:text-indigo-800 transition inline-flex items-center gap-1">
-                                                <i class="fa-solid fa-plus-circle"></i> फ़ोटो जोड़ें
-                                            </button>
+                                            <div class="flex items-center gap-2">
+                                                <button type="button" onclick="triggerMultipleImageUpload({{ $p->id }}, '{{ addslashes($p->name) }}')" class="text-[10px] font-extrabold text-indigo-600 hover:text-indigo-800 transition inline-flex items-center gap-1">
+                                                    <i class="fa-solid fa-plus-circle"></i> फ़ोटो जोड़ें
+                                                </button>
+                                                <button type="button" onclick="unstageProductItem({{ $p->id }}, '{{ addslashes($p->name) }}')" class="h-6 w-6 rounded-lg bg-gray-100 hover:bg-rose-100 text-gray-400 hover:text-rose-600 flex items-center justify-center text-xs transition cursor-pointer" title="मार्केटप्लेस बास्केट से हटाएं (दुकान में सुरक्षित रहेगा)">
+                                                    <i class="fa-solid fa-xmark font-bold"></i>
+                                                </button>
+                                            </div>
                                         </div>
                                         <h4 class="font-black text-xs text-gray-900 truncate mt-1" title="{{ $p->name }}">
                                             {{ $p->name }}
@@ -501,9 +518,23 @@
                                 </div>
                             </div>
                         @empty
-                            <div class="col-span-full p-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-300 text-xs text-gray-500">
-                                <i class="fa-solid fa-circle-check text-emerald-500 text-2xl mb-1 block"></i>
-                                सभी प्रोडक्ट्स सभी मार्केट्स पर पब्लिश हो चुके हैं। कोई नया पेंडिंग प्रोडक्ट नहीं है।
+                            <div class="col-span-full p-8 sm:p-12 text-center bg-white rounded-3xl border-2 border-dashed border-amber-200/80 shadow-2xs space-y-4">
+                                <div class="h-16 w-16 mx-auto rounded-3xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl border border-amber-200 shadow-xs">
+                                    <i class="fa-solid fa-basket-shopping"></i>
+                                </div>
+                                <div class="space-y-1.5">
+                                    <h3 class="text-base font-extrabold text-gray-900">मार्केटप्लेस पेंडिंग बास्केट अभी खाली है</h3>
+                                    <p class="text-xs text-gray-600 max-w-lg mx-auto">
+                                        आपकी दुकान के <strong>{{ count($allStoreProducts ?? []) }} प्रोडक्ट्स</strong> आपके मुख्य स्टोर कैटलॉग में 100% सुरक्षित हैं। 
+                                        Amazon या Meesho पर केवल वही प्रोडक्ट्स जाएँगे जिन्हें आप खुद चुनेंगे।
+                                    </p>
+                                </div>
+                                <div class="pt-2">
+                                    <button type="button" onclick="openStageProductsModal()" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-black text-xs shadow-md shadow-amber-500/25 transition active:scale-95 cursor-pointer">
+                                        <i class="fa-solid fa-plus-circle text-amber-200"></i>
+                                        <span>+ दुकान से प्रोडक्ट्स चुनें (Select from Store)</span>
+                                    </button>
+                                </div>
                             </div>
                         @endforelse
                     </div>
@@ -638,13 +669,24 @@
                                                 <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition" title="डिटेल कैलकुलेटर खोलें">
                                                     <i class="fa-solid fa-calculator text-xs"></i>
                                                 </button>
+                                                <button type="button" onclick="unstageProductItem({{ $p->id }}, '{{ addslashes($p->name) }}')" class="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition cursor-pointer" title="मार्केटप्लेस बास्केट से हटाएं (दुकान में सुरक्षित रहेगा)">
+                                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="12" class="p-8 text-center text-gray-400">
-                                            सभी प्रोडक्ट्स सिंक हो चुके हैं।
+                                        <td colspan="12" class="p-12 text-center text-gray-500 bg-white">
+                                            <div class="max-w-md mx-auto space-y-3">
+                                                <i class="fa-solid fa-basket-shopping text-3xl text-amber-500"></i>
+                                                <p class="font-extrabold text-sm text-gray-900">मार्केटप्लेस पेंडिंग बास्केट खाली है</p>
+                                                <p class="text-xs text-gray-500">आपकी दुकान के <strong>{{ count($allStoreProducts ?? []) }} प्रोडक्ट्स</strong> आपके मुख्य स्टोर में 100% सुरक्षित हैं। Amazon / Meesho पर बेचने के लिए नीचे बटन से प्रोडक्ट्स चुनें:</p>
+                                                <button type="button" onclick="openStageProductsModal()" class="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs transition cursor-pointer">
+                                                    <i class="fa-solid fa-plus-circle text-amber-200"></i>
+                                                    <span>+ दुकान से प्रोडक्ट्स चुनें</span>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 @endforelse
@@ -1779,6 +1821,102 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             modal.classList.add('flex');
         }
 
+
+        // --- 🛒 MARKETPLACE BASKET STAGING & UNSTAGING JS ---
+        function openStageProductsModal() {
+            const m = document.getElementById('stageProductsModal');
+            if (m) {
+                m.classList.remove('hidden');
+                m.classList.add('flex');
+            }
+        }
+
+        function closeStageProductsModal() {
+            const m = document.getElementById('stageProductsModal');
+            if (m) {
+                m.classList.add('hidden');
+                m.classList.remove('flex');
+            }
+        }
+
+        function filterStageModalProducts() {
+            const q = (document.getElementById('stageModalSearchInput').value || '').trim().toLowerCase();
+            const items = document.querySelectorAll('.stage-modal-item');
+            items.forEach(item => {
+                const name = item.getAttribute('data-name') || '';
+                const sku = item.getAttribute('data-sku') || '';
+                if (!q || name.includes(q) || sku.includes(q)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function toggleSelectAllStageModal(checked) {
+            const visibleChks = document.querySelectorAll('.stage-modal-item:not([style*="display: none"]) .stage-modal-chk');
+            visibleChks.forEach(chk => {
+                chk.checked = checked;
+            });
+            updateStageModalSelectedCount();
+        }
+
+        function updateStageModalSelectedCount() {
+            const checked = document.querySelectorAll('.stage-modal-chk:checked').length;
+            const badge = document.getElementById('stageModalSelectedCountBadge');
+            if (badge) {
+                badge.textContent = `${checked} चुने गए`;
+            }
+        }
+
+        function unstageProductItem(productId, productName) {
+            if (!confirm(`क्या आप "${productName}" को Amazon/Meesho पेंडिंग बास्केट से हटाना चाहते हैं?\n(यह प्रोडक्ट आपकी दुकान के मुख्य कैटलॉग में 100% सुरक्षित रहेगा)`)) {
+                return;
+            }
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : '{{ csrf_token() }}';
+
+            fetch(`/seller/channels/products/${productId}/unstage`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove card
+                    const card = document.getElementById(`pending-card-box-${productId}`);
+                    if (card) card.remove();
+
+                    // Remove table row
+                    const row = document.getElementById(`table-row-${productId}`);
+                    if (row) row.remove();
+
+                    // Decrement counter badges
+                    const badges = document.querySelectorAll('.pending-count-badge');
+                    badges.forEach(b => {
+                        let c = parseInt(b.textContent.trim()) || 0;
+                        if (c > 0) b.textContent = c - 1;
+                    });
+
+                    // If no items remain, reload to show clean empty state
+                    const remaining = document.querySelectorAll('.pending-prod-chk');
+                    if (remaining.length === 0) {
+                        window.location.reload();
+                    }
+                } else {
+                    alert(data.message || 'त्रुटि हुई');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                window.location.reload();
+            });
+        }
+
 </script>
 
         <!-- 🧮 MARKETPLACE COSTING, EXPENSES & PROFIT CALCULATOR MODAL -->
@@ -1892,6 +2030,113 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+
+
+    <!-- 🛒 Add Products from Store Catalog to Marketplace Queue Modal -->
+    <div id="stageProductsModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-4 overflow-y-auto" onclick="closeStageProductsModal()">
+        <div class="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-gray-100 space-y-4 my-auto animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg border border-amber-200 font-bold">
+                        <i class="fa-solid fa-basket-shopping"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-900">दुकान से प्रोडक्ट्स चुनें (Amazon / Meesho बास्केट)</h3>
+                        <p class="text-[11px] text-gray-500">आपकी दुकान के कुल <strong>{{ count($allStoreProducts ?? []) }} प्रोडक्ट्स</strong> हैं। केवल वही चुनें जिन्हें आप मार्केटप्लेस पर बेचना चाहते हैं।</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeStageProductsModal()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-xl hover:bg-gray-100 transition cursor-pointer">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <form action="{{ route('seller.channels.stageProducts') }}" method="POST" class="space-y-4 flex-1 flex flex-col min-h-0">
+                @csrf
+                
+                <!-- Target Channels Selection -->
+                <div class="p-3 bg-amber-50/60 border border-amber-200 rounded-2xl flex flex-wrap items-center justify-between gap-2.5">
+                    <span class="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                        <i class="fa-solid fa-bullseye text-amber-600"></i>
+                        <span>किन मार्केट्स पर लिस्ट करना है?</span>
+                    </span>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs font-bold text-gray-700 flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-gray-200 cursor-pointer">
+                            <input type="checkbox" name="channels[]" value="amazon" checked class="rounded text-amber-600">
+                            <span>Amazon</span>
+                        </label>
+                        <label class="text-xs font-bold text-gray-700 flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-gray-200 cursor-pointer">
+                            <input type="checkbox" name="channels[]" value="meesho" checked class="rounded text-pink-600">
+                            <span>Meesho</span>
+                        </label>
+                        <label class="text-xs font-bold text-gray-700 flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-gray-200 cursor-pointer">
+                            <input type="checkbox" name="channels[]" value="flipkart" class="rounded text-blue-600">
+                            <span>Flipkart</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Search and Filters Bar -->
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                        <input type="text" id="stageModalSearchInput" oninput="filterStageModalProducts()" placeholder="🔍 नाम या SKU से सर्च करें..." class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-amber-500 text-xs font-semibold outline-none transition">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 text-xs font-bold text-gray-700 cursor-pointer">
+                            <input type="checkbox" id="selectAllStageModalChk" onchange="toggleSelectAllStageModal(this.checked)" class="rounded text-amber-600 h-4 w-4">
+                            <span>सभी चुनें (Select All)</span>
+                        </label>
+                        <span id="stageModalSelectedCountBadge" class="px-2.5 py-1.5 rounded-xl bg-amber-100 text-amber-800 text-xs font-black">
+                            0 चुने गए
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Products Table / List (Scrollable) -->
+                <div class="flex-1 overflow-y-auto border border-gray-200 rounded-2xl divide-y divide-gray-100 max-h-72">
+                    @forelse($allStoreProducts ?? [] as $sp)
+                        <label class="flex items-center justify-between p-3 hover:bg-amber-50/30 transition cursor-pointer stage-modal-item" data-name="{{ strtolower($sp->name) }}" data-sku="{{ strtolower($sp->sku ?? '') }}">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <input type="checkbox" name="product_ids[]" value="{{ $sp->id }}" onchange="updateStageModalSelectedCount()" class="stage-modal-chk rounded text-amber-600 h-4 w-4 shrink-0">
+                                <div class="h-10 w-10 rounded-xl bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center shrink-0">
+                                    <img src="{{ $sp->image_url ?? '' }}" alt="{{ $sp->name }}" class="h-full w-full object-contain {{ !empty($sp->image_url) ? '' : 'hidden' }}" onerror="this.style.display='none'">
+                                    <i class="fa-solid fa-box text-gray-300 text-xs {{ !empty($sp->image_url) ? 'hidden' : 'block' }}"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <span class="font-bold text-xs text-gray-900 block truncate" title="{{ $sp->name }}">{{ $sp->name }}</span>
+                                    <div class="flex items-center gap-2 text-[10px] text-gray-400 font-mono mt-0.5">
+                                        <span>SKU: {{ $sp->sku ?: 'STD' }}</span>
+                                        <span class="text-gray-300">•</span>
+                                        <span class="text-indigo-600 font-medium">{{ $sp->category->name ?? 'General' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0 pl-3">
+                                <div class="font-mono font-black text-xs text-gray-900">₹{{ number_format($sp->price, 2) }}</div>
+                                <span class="text-[10px] text-gray-400">स्टॉक: {{ $sp->stock_quantity ?? 0 }}</span>
+                            </div>
+                        </label>
+                    @empty
+                        <div class="p-8 text-center text-xs text-gray-400">
+                            आपकी दुकान में कोई प्रोडक्ट नहीं मिला। कृपया पहले प्रोडक्ट्स जोड़ें।
+                        </div>
+                    @endforelse
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="pt-3 border-t border-gray-100 flex items-center justify-end gap-2.5">
+                    <button type="button" onclick="closeStageProductsModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition cursor-pointer">
+                        रद्द करें
+                    </button>
+                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black text-xs shadow-md shadow-amber-500/25 transition active:scale-95 flex items-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-plus-circle text-amber-200"></i>
+                        <span>+ पेंडिंग बास्केट में जोड़ें (Add to Channel Queue)</span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 

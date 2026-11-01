@@ -31,9 +31,12 @@ class ChannelController extends Controller
             'woocommerce' => ['name' => 'WooCommerce (WordPress)', 'icon' => 'fa-brands fa-wordpress', 'color' => 'text-purple-600', 'bg' => 'bg-purple-50', 'sla' => 'Self Ship'],
         ];
 
-        // 1. Group Published Listings per Channel
+        // 1. Group Published Listings per Channel (sync_status = 'synced')
         $allListings = ChannelListing::whereHas('channel', function ($q) use ($userId) {
             $q->where('user_id', $userId);
+        })->where(function ($q) {
+            $q->where('sync_status', 'synced')
+              ->orWhereNull('sync_status');
         })->with(['channel', 'product.category'])->get();
 
         $channelListingCounts = [
@@ -46,11 +49,33 @@ class ChannelController extends Controller
             'woocommerce' => $allListings->where('channel.channel_name', 'woocommerce')->count(),
         ];
 
-        // 2. Pending Products (Listed on VyaparIndia but not yet synced to external marketplaces)
+        // 2. Pending Products (Explicitly staged by merchant for Amazon/Meesho sync)
         $syncedProductIds = $allListings->pluck('product_id')->unique()->toArray();
+
+        $stagedListingProductIds = ChannelListing::whereHas('channel', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        })->where('sync_status', 'pending')
+        ->pluck('product_id')
+        ->unique()
+        ->toArray();
+
+        $stagedAttrProductIds = Product::where('user_id', $userId)
+            ->whereJsonContains('attributes->channel_staged', true)
+            ->pluck('id')
+            ->toArray();
+
+        $allPendingIds = array_unique(array_merge($stagedListingProductIds, $stagedAttrProductIds));
+        $allPendingIds = array_values(array_diff($allPendingIds, $syncedProductIds));
+
         $pendingProducts = Product::where('user_id', $userId)
-            ->whereNotIn('id', $syncedProductIds)
+            ->whereIn('id', $allPendingIds)
             ->with(['category', 'variants', 'images'])
+            ->latest()
+            ->get();
+
+        // All store products for the "Add from Store Catalog" picker modal
+        $allStoreProducts = Product::where('user_id', $userId)
+            ->with(['category', 'images'])
             ->latest()
             ->get();
 
@@ -89,7 +114,7 @@ class ChannelController extends Controller
             ],
         ];
 
-        return view('seller.channels.index', compact('channels', 'supportedChannels', 'allListings', 'channelListingCounts', 'pendingProducts', 'channelOrders', 'analytics'));
+        return view('seller.channels.index', compact('channels', 'supportedChannels', 'allListings', 'channelListingCounts', 'pendingProducts', 'allStoreProducts', 'channelOrders', 'analytics'));
     }
 
     // Connect or Update a Channel (Supports Partial Saves - fill 1 or 2 fields now, rest later)
@@ -422,6 +447,14 @@ class ChannelController extends Controller
             $product = Product::where('id', $pId)->where('user_id', $userId)->first();
             if (!$product) continue;
 
+            // Clear staging attribute since it is now published
+            $attrs = $product->attributes ?? [];
+            if (isset($attrs['channel_staged'])) {
+                unset($attrs['channel_staged']);
+                $product->attributes = $attrs;
+                $product->save();
+            }
+
             foreach ($connectedChannels as $channel) {
                 $externalId = strtoupper($channel->channel_name) . '-' . rand(10000, 99999);
                 $listingUrl = $channel->store_url ? rtrim($channel->store_url, '/') . '/dp/' . $externalId : null;
@@ -488,5 +521,102 @@ class ChannelController extends Controller
             'purchase_price' => $product->purchase_price,
             'unit_economics' => $attrs['unit_economics'],
         ]);
+    }
+    // Add Selected Products to Marketplace Staging Queue (Channel Basket)
+    public function stageProducts(Request $request)
+    {
+        $userId = Auth::id();
+        $productIds = $request->input('product_ids', []);
+        $channelNames = $request->input('channels', ['amazon', 'meesho']);
+
+        if (empty($productIds)) {
+            return back()->with('error', 'कृपया कम से कम एक प्रोडक्ट चुनें।');
+        }
+
+        if (empty($channelNames)) {
+            $channelNames = ['amazon', 'meesho'];
+        }
+
+        // Ensure default channels exist
+        foreach ($channelNames as $cName) {
+            Channel::firstOrCreate(
+                [
+                    'user_id' => $userId,
+                    'channel_name' => $cName,
+                ],
+                [
+                    'store_name' => (Auth::user()->name ?: 'My') . ' ' . ucfirst($cName) . ' Store',
+                    'is_active' => true,
+                    'auto_sync_inventory' => true,
+                    'last_synced_at' => now(),
+                ]
+            );
+        }
+
+        $channels = Channel::where('user_id', $userId)
+            ->whereIn('channel_name', $channelNames)
+            ->get();
+
+        $stagedCount = 0;
+        foreach ($productIds as $pId) {
+            $product = Product::where('id', $pId)->where('user_id', $userId)->first();
+            if (!$product) continue;
+
+            $attrs = $product->attributes ?? [];
+            $attrs['channel_staged'] = true;
+            $product->attributes = $attrs;
+            $product->save();
+
+            foreach ($channels as $chan) {
+                ChannelListing::updateOrCreate(
+                    [
+                        'channel_id' => $chan->id,
+                        'product_id' => $product->id,
+                    ],
+                    [
+                        'sync_status' => 'pending',
+                        'channel_price' => $product->price,
+                        'synced_stock' => $product->stock_quantity ?? 50,
+                        'last_synced_at' => now(),
+                    ]
+                );
+            }
+            $stagedCount++;
+        }
+
+        return back()->with('success', "✅ {$stagedCount} प्रोडक्ट्स सफलतापूर्वक मार्केटप्लेस पेंडिंग बास्केट में जुड़ गए! अब आप इनकी खरीद लागत, खर्चे व कॉम्बो रेट्स चेक करके लाइव पब्लिश कर सकते हैं।");
+    }
+
+    // Remove Product from Marketplace Staging Queue (Keep in store, remove from pending)
+    public function unstageProduct(Request $request, Product $product)
+    {
+        if ($product->user_id !== Auth::id() && !Auth::user()->isOwnerOrAdmin()) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            return back()->with('error', 'Unauthorized');
+        }
+
+        // Delete any pending listing for this product
+        ChannelListing::where('product_id', $product->id)
+            ->where('sync_status', 'pending')
+            ->delete();
+
+        // Clear channel_staged attribute
+        $attrs = $product->attributes ?? [];
+        if (isset($attrs['channel_staged'])) {
+            unset($attrs['channel_staged']);
+            $product->attributes = $attrs;
+            $product->save();
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'प्रोडक्ट को मार्केटप्लेस बास्केट से हटा दिया गया है (आपकी दुकान में 100% सुरक्षित है)।',
+            ]);
+        }
+
+        return back()->with('success', 'प्रोडक्ट को मार्केटप्लेस बास्केट से हटा दिया गया है (आपकी दुकान में 100% सुरक्षित है)।');
     }
 }
