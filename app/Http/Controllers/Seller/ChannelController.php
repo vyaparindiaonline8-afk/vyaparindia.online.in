@@ -110,6 +110,19 @@ class ChannelController extends Controller
             'channel_name' => $channelName,
         ]);
 
+        // Handle Meesho direct mobile form inputs
+        if ($channelName === 'meesho') {
+            if ($request->filled('meesho_store_name')) {
+                $channel->store_name = trim($request->input('meesho_store_name'));
+            }
+            if ($request->filled('meesho_mobile')) {
+                $channel->store_url = trim($request->input('meesho_mobile'));
+            }
+            if ($request->filled('meesho_supplier_id')) {
+                $channel->api_key = trim($request->input('meesho_supplier_id'));
+            }
+        }
+
         // 1. Store Name (Defaults gracefully if blank)
         if (!empty($validated['store_name'])) {
             $channel->store_name = trim($validated['store_name']);

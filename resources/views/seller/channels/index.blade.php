@@ -838,31 +838,71 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                     @csrf
                     <input type="hidden" name="channel_name" id="channel-name-input">
 
-                    <div class="p-3 rounded-2xl bg-indigo-50/80 border border-indigo-200 text-indigo-950 text-[11px] flex items-start gap-2.5">
-                        <i class="fa-solid fa-circle-check text-indigo-600 text-sm shrink-0 mt-0.5"></i>
-                        <span class="leading-relaxed">
-                            <strong>सब कुछ एक साथ भरना ज़रूरी नहीं है!</strong> आप अभी सिर्फ अपना स्टोर नाम और मर्चेंट टोकन डालकर सेव कर सकते हैं। बाकी API Keys बाद में कभी भी जोड़ें, आपका डेटा हमेशा सुरक्षित सेव रहेगा।
-                        </span>
+                    <!-- MEESHO SPECIFIC VIEW (Mobile No + Supplier ID) -->
+                    <div id="meesho-view-box" class="hidden space-y-3">
+                        <div class="p-3.5 rounded-2xl bg-pink-50 border border-pink-200 text-pink-950 text-[11px] space-y-1">
+                            <div class="font-extrabold flex items-center gap-1.5 text-pink-900">
+                                <i class="fa-solid fa-cart-shopping text-pink-600"></i>
+                                <span>Meesho सप्लायर ऑटो-लिंक (सबसे आसान)</span>
+                            </div>
+                            <p class="text-pink-800">
+                                Meesho में कोई AWS/डेवलपर झंझट नहीं होता। सिर्फ अपना <strong>रजिस्टर्ड मोबाइल नंबर / ईमेल</strong> और दुकान का नाम डालकर सेव करें।
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-gray-700 mb-1">Meesho स्टोर / फ़र्म का नाम <span class="text-rose-500">*</span></label>
+                            <input type="text" name="meesho_store_name" id="meesho-store-name" placeholder="उदा. Ganesh Traders Meesho Shop" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-none font-semibold">
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-gray-700 mb-1">Meesho रजिस्टर्ड मोबाइल नंबर या ईमेल <span class="text-rose-500">*</span></label>
+                            <input type="text" name="meesho_mobile" id="meesho-mobile-input" placeholder="उदा. 98XXXXXXXX या vyaparindiaonline8@gmail.com" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-none font-bold text-pink-900">
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-gray-700 mb-1">Meesho Supplier ID / Password (वैकल्पिक)</label>
+                            <input type="text" name="meesho_supplier_id" id="meesho-supplier-input" placeholder="अगर मालूम हो (नहीं तो खाली छोड़ें)" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-none font-mono">
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="block font-bold text-gray-700 mb-1">सेलर / स्टोर का नाम <span class="text-rose-500">*</span></label>
-                        <input type="text" name="store_name" id="store-name-input" required placeholder="उदा. My Amazon Store / Meesho Shop" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-none font-semibold">
-                    </div>
+                    <!-- AMAZON / DEFAULT SPECIFIC VIEW -->
+                    <div id="amazon-view-box" class="space-y-3">
+                        <div class="p-3 rounded-2xl bg-indigo-50/80 border border-indigo-200 text-indigo-950 text-[11px] flex items-start gap-2.5">
+                            <i class="fa-solid fa-circle-check text-indigo-600 text-sm shrink-0 mt-0.5"></i>
+                            <span class="leading-relaxed">
+                                <strong>सब कुछ एक साथ भरना ज़रूरी नहीं है!</strong> आप अभी सिर्फ अपना स्टोर नाम और मर्चेंट टोकन डालकर सेव कर सकते हैं। बाकी Keys बाद में भी कभी भी भरें, डेटा हमेशा सुरक्षित रहेगा।
+                            </span>
+                        </div>
 
-                    <div>
-                        <label class="block font-bold text-gray-700 mb-1">सेलर आईडी / Merchant Token / Store URL</label>
-                        <input type="text" name="store_url" id="store-url-input" placeholder="उदा. A2XYZEXAMPLE या https://sellercentral.amazon.in" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-none">
-                    </div>
+                        <div>
+                            <label class="block font-bold text-gray-700 mb-1">दुकान / स्टोर का नाम <span class="text-rose-500">*</span></label>
+                            <input type="text" name="store_name" id="store-name-input" required placeholder="उदा. Ganesh tradersh sarangarh" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-none font-semibold">
+                        </div>
 
-                    <div>
-                        <label class="block font-bold text-gray-700 mb-1">API Key / Client ID / LWA App ID</label>
-                        <input type="text" name="api_key" id="api-key-input" placeholder="amzn.mws.xxxx या meesho_api_key_xxx" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-none font-mono">
-                    </div>
+                        <div>
+                            <label class="block font-bold text-gray-700 mb-1">Merchant Token (सेलर आईडी)</label>
+                            <input type="text" name="store_url" id="store-url-input" placeholder="उदा. A3OQB2A3359C" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-none font-mono font-bold text-indigo-700">
+                        </div>
 
-                    <div>
-                        <label class="block font-bold text-gray-700 mb-1">API Secret / Refresh Token / LWA Secret</label>
-                        <input type="password" name="access_token" id="access-token-input" placeholder="••••••••••••••••••••••••" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-none font-mono">
+                        <div>
+                            <label class="block font-bold text-gray-700 mb-1">LWA Client ID (App ID)</label>
+                            <input type="text" name="api_key" id="api-key-input" placeholder="amzn1.application-oa2-client.xxxx..." class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-none font-mono text-[11px]">
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div>
+                                <label class="block font-bold text-gray-700 mb-1">LWA Client Secret</label>
+                                <input type="text" name="api_secret" id="api-secret-input" placeholder="Secret Key" class="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:outline-none font-mono text-[11px]">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-emerald-800 mb-1 flex items-center gap-1">
+                                    <i class="fa-solid fa-key text-emerald-600"></i>
+                                    <span>Refresh Token</span>
+                                </label>
+                                <input type="text" name="access_token" id="access-token-input" placeholder="Atzr|... (Create Token से मिला)" class="w-full px-3.5 py-2.5 bg-emerald-50/60 border border-emerald-300 rounded-xl focus:bg-white focus:outline-none font-mono text-[11px] font-semibold text-emerald-950">
+                            </div>
+                        </div>
                     </div>
 
                     <button type="submit" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs shadow-md transition active:scale-95 cursor-pointer">
@@ -923,19 +963,35 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             });
         }
 
-        // Open API Connect Modal
+        // Open API Connect Modal (Smart View for Meesho vs Amazon)
         function openConnectModal(channelKey, channelTitle, storeName = '', storeUrl = '', apiKey = '', apiSecret = '', accessToken = '') {
             document.getElementById('channel-name-input').value = channelKey;
-            document.getElementById('modal-title').innerText = channelTitle + ' API Connect';
-            document.getElementById('store-name-input').value = storeName || (channelTitle + ' Store');
-            document.getElementById('store-url-input').value = storeUrl || '';
-            document.getElementById('api-key-input').value = apiKey || '';
-            if (document.getElementById('api-secret-input')) {
-                document.getElementById('api-secret-input').value = apiSecret || '';
+            document.getElementById('modal-title').innerText = channelTitle + (channelKey === 'meesho' ? ' डायरेक्ट लिंक' : ' API Connect');
+
+            const meeshoBox = document.getElementById('meesho-view-box');
+            const amazonBox = document.getElementById('amazon-view-box');
+
+            if (channelKey === 'meesho') {
+                if (meeshoBox) meeshoBox.classList.remove('hidden');
+                if (amazonBox) amazonBox.classList.add('hidden');
+                document.getElementById('meesho-store-name').value = storeName || 'My Meesho Shop';
+                document.getElementById('meesho-mobile-input').value = storeUrl || '';
+                document.getElementById('store-name-input').required = false;
+            } else {
+                if (meeshoBox) meeshoBox.classList.add('hidden');
+                if (amazonBox) amazonBox.classList.remove('hidden');
+                document.getElementById('store-name-input').required = true;
+                document.getElementById('store-name-input').value = storeName || (channelTitle + ' Store');
+                document.getElementById('store-url-input').value = storeUrl || '';
+                document.getElementById('api-key-input').value = apiKey || '';
+                if (document.getElementById('api-secret-input')) {
+                    document.getElementById('api-secret-input').value = apiSecret || '';
+                }
+                if (document.getElementById('access-token-input')) {
+                    document.getElementById('access-token-input').value = accessToken || '';
+                }
             }
-            if (document.getElementById('access-token-input')) {
-                document.getElementById('access-token-input').value = accessToken || '';
-            }
+
             document.getElementById('connect-modal').classList.remove('hidden');
         }
 
