@@ -432,6 +432,16 @@
                                         <span class="font-mono font-bold text-gray-900">₹{{ number_format($p->price, 2) }}</span>
                                         <span class="text-[10px] text-gray-400 font-mono">SKU: {{ $p->sku ?: 'STD' }}</span>
                                     </div>
+                                    <div class="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between gap-1.5">
+                                        <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }})" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-black transition flex items-center gap-1">
+                                            <i class="fa-solid fa-calculator"></i>
+                                            <span>लागत & मार्जिन चेक</span>
+                                        </button>
+                                        <a href="/seller/products/{{ $p->id }}/pricing-tiers" target="_blank" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-black transition flex items-center gap-1" title="2 पीस, 4 पीस, 6 पीस पैक रेट सेट करें">
+                                            <i class="fa-solid fa-layer-group text-emerald-600"></i>
+                                            <span>2/4/6 पीस स्लैब</span>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         @empty
@@ -1261,8 +1271,174 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 btn.innerHTML = origHtml;
             });
         }
-    </script>
+            // Costing & Profit Live Calculator
+        let activeCalcProductId = null;
 
-    @include('components.ai-copilot-widget')
+        function openCostCalculatorModal(prodId, prodName, basePrice) {
+            activeCalcProductId = prodId;
+            document.getElementById('calcModalProdName').textContent = prodName;
+            document.getElementById('calcCostPrice').value = Math.max(10, Math.round(basePrice * 0.70));
+            document.getElementById('calcSlabSetupDirectLink').href = `/seller/products/${prodId}/pricing-tiers`;
+            calculateLiveSellingPrice();
+            const modal = document.getElementById('costCalculatorModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeCostCalculatorModal() {
+            const modal = document.getElementById('costCalculatorModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function calculateLiveSellingPrice() {
+            const cost = parseFloat(document.getElementById('calcCostPrice').value) || 0;
+            const marginPct = parseFloat(document.getElementById('calcMarginPercent').value) || 0;
+            const packing = parseFloat(document.getElementById('calcPackingCost').value) || 0;
+            const shipping = parseFloat(document.getElementById('calcShippingCost').value) || 0;
+            const feePct = parseFloat(document.getElementById('calcPlatformFeePercent').value) || 0;
+
+            const desiredProfit = cost * (marginPct / 100);
+            const fixedCostSum = cost + desiredProfit + packing + shipping;
+            const multiplier = Math.max(0.1, 1 - (feePct / 100));
+            const finalRate = Math.ceil(fixedCostSum / multiplier);
+
+            document.getElementById('calcFinalSellingRate').textContent = '₹' + finalRate.toFixed(2);
+            document.getElementById('calcNetProfitInHand').textContent = '₹' + desiredProfit.toFixed(2);
+
+            // Combo calculations (Packaging and single shipping benefit)
+            // 2 PC: Cost x2, Profit x2, 1x Packing x1.3, 1x Shipping
+            const cost2 = (cost * 2) + (desiredProfit * 1.8) + (packing * 1.3) + shipping;
+            const finalRate2 = Math.ceil(cost2 / multiplier);
+            document.getElementById('calcCombo2Rate').textContent = '₹' + finalRate2.toFixed(2);
+
+            // 4 PC
+            const cost4 = (cost * 4) + (desiredProfit * 3.5) + (packing * 1.6) + (shipping * 1.2);
+            const finalRate4 = Math.ceil(cost4 / multiplier);
+            document.getElementById('calcCombo4Rate').textContent = '₹' + finalRate4.toFixed(2);
+
+            // 6 PC
+            const cost6 = (cost * 6) + (desiredProfit * 5.0) + (packing * 2.0) + (shipping * 1.4);
+            const finalRate6 = Math.ceil(cost6 / multiplier);
+            document.getElementById('calcCombo6Rate').textContent = '₹' + finalRate6.toFixed(2);
+        }
+
+</script>
+
+        <!-- 🧮 MARKETPLACE COSTING, EXPENSES & PROFIT CALCULATOR MODAL -->
+    <div id="costCalculatorModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-4 overflow-y-auto" onclick="closeCostCalculatorModal()">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in duration-200 my-auto" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                <div class="flex items-center gap-2">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-sm font-bold shadow-md">
+                        <i class="fa-solid fa-calculator"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-900">लागत, खर्चे व मुनाफा कैलकुलेटर</h3>
+                        <p class="text-[11px] text-gray-500 truncate max-w-[280px]" id="calcModalProdName">Product</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeCostCalculatorModal()" class="text-gray-400 hover:text-gray-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Interactive Pricing Simulator -->
+            <div class="space-y-3.5 text-xs">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-gray-50 p-3 rounded-2xl border border-gray-200">
+                        <label class="block font-bold text-gray-600 mb-1">आपकी खरीद लागत (Cost Price)</label>
+                        <div class="relative">
+                            <span class="absolute left-2.5 top-1/2 -translate-y-1/2 font-bold text-gray-400">₹</span>
+                            <input type="number" id="calcCostPrice" value="100" oninput="calculateLiveSellingPrice()" class="w-full pl-6 pr-2.5 py-1.5 rounded-xl border border-gray-300 bg-white font-mono font-bold text-gray-900">
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-3 rounded-2xl border border-gray-200">
+                        <label class="block font-bold text-gray-600 mb-1">आपका शुद्ध मुनाफा (Margin %)</label>
+                        <div class="relative">
+                            <input type="number" id="calcMarginPercent" value="25" oninput="calculateLiveSellingPrice()" class="w-full pr-6 pl-2.5 py-1.5 rounded-xl border border-gray-300 bg-white font-mono font-bold text-emerald-700">
+                            <span class="absolute right-2.5 top-1/2 -translate-y-1/2 font-bold text-gray-400">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Platform Expenses Breakdown -->
+                <div class="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-100 space-y-2.5">
+                    <span class="text-[10px] font-black uppercase text-indigo-900 tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-receipt text-indigo-600"></i>
+                        <span>मार्केटप्लेस खर्चे (अनुमानित 1 पीस के लिए)</span>
+                    </span>
+
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="text-[10px] text-gray-600 block">पैकिंग खर्च</label>
+                            <input type="number" id="calcPackingCost" value="15" oninput="calculateLiveSellingPrice()" class="w-full px-2 py-1 bg-white border border-indigo-200 rounded-lg font-mono font-semibold text-gray-800">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-600 block">शिपिंग / डिलीवरी</label>
+                            <input type="number" id="calcShippingCost" value="45" oninput="calculateLiveSellingPrice()" class="w-full px-2 py-1 bg-white border border-indigo-200 rounded-lg font-mono font-semibold text-gray-800">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-600 block">Amazon/Meesho फी (%)</label>
+                            <input type="number" id="calcPlatformFeePercent" value="12" oninput="calculateLiveSellingPrice()" class="w-full px-2 py-1 bg-white border border-indigo-200 rounded-lg font-mono font-semibold text-gray-800">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calculated Final Price Result Box -->
+                <div class="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white space-y-3 shadow-lg border border-indigo-500/30">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] uppercase font-bold text-indigo-300">सुझाया गया फाइनल सेलिंग रेट (Selling Price)</span>
+                            <div class="text-2xl font-black text-amber-300 font-mono mt-0.5" id="calcFinalSellingRate">₹199.00</div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] uppercase font-bold text-emerald-400">शुद्ध जेब में बचत (Net Profit)</span>
+                            <div class="text-lg font-black text-emerald-400 font-mono" id="calcNetProfitInHand">₹25.00</div>
+                        </div>
+                    </div>
+
+                    <!-- 2 PC, 4 PC, 6 PC COMBO PREVIEWS -->
+                    <div class="pt-2 border-t border-white/10 space-y-1.5">
+                        <span class="text-[10px] font-bold text-amber-200 flex items-center gap-1">
+                            <i class="fa-solid fa-boxes-packing"></i>
+                            <span>कॉम्बो पैक में शिपिंग बचने पर रेट्स (3x ज़्यादा बिकते हैं):</span>
+                        </span>
+                        <div class="grid grid-cols-3 gap-2 text-center text-[11px]">
+                            <div class="bg-white/10 p-1.5 rounded-xl border border-white/10">
+                                <span class="text-[9px] text-slate-300 block">2 पीस पैक</span>
+                                <span class="font-black text-white font-mono" id="calcCombo2Rate">₹359.00</span>
+                                <span class="text-[8px] text-emerald-300 block">₹179/pc</span>
+                            </div>
+                            <div class="bg-white/10 p-1.5 rounded-xl border border-white/10">
+                                <span class="text-[9px] text-slate-300 block">4 पीस पैक</span>
+                                <span class="font-black text-white font-mono" id="calcCombo4Rate">₹679.00</span>
+                                <span class="text-[8px] text-emerald-300 block">₹169/pc</span>
+                            </div>
+                            <div class="bg-white/10 p-1.5 rounded-xl border border-white/10">
+                                <span class="text-[9px] text-slate-300 block">6 पीस पैक</span>
+                                <span class="font-black text-white font-mono" id="calcCombo6Rate">₹959.00</span>
+                                <span class="text-[8px] text-emerald-300 block">₹159/pc</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <div class="pt-2 flex items-center justify-between gap-2 border-t border-gray-100">
+                    <a id="calcSlabSetupDirectLink" href="#" target="_blank" class="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-layer-group text-emerald-600"></i>
+                        <span>2/4/6 पीस स्लैब सेव करें &rarr;</span>
+                    </a>
+                    <button type="button" onclick="closeCostCalculatorModal()" class="px-4 py-2 rounded-xl bg-gray-900 text-white font-bold transition">
+                        ठीक है (Close)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+@include('components.ai-copilot-widget')
 </body>
 </html>
