@@ -16,6 +16,8 @@ class Product extends Model
         'tags',
         'price',
         'purchase_price',
+        'net_landing_cost',
+        'trade_discount_percent',
         'wholesale_price',
         'cost_price_2',
         'cost_price_3',

@@ -594,8 +594,9 @@ class CatalogIngestionController extends Controller
             'Group (ग्रुप)',
             'MRP (लिस्ट भाव)',
             'Less % (डिस्काउंट %)',
+            'Purchase Price Without GST (खरीद भाव - बिना GST)',
             'GST %',
-            'Purchase Price (खरीद भाव / Net Cost)',
+            'Purchase Price With GST (खरीद भाव - GST सहित)',
             'Selling Price (बिक्री भाव / Sale A)',
             'Wholesale Price (थोक भाव / Sale B)',
             'Dealer Price (डीलर भाव / Sale C)',
@@ -605,6 +606,20 @@ class CatalogIngestionController extends Controller
         foreach ($products as $p) {
             if ($p->variants->isNotEmpty()) {
                 foreach ($p->variants as $v) {
+                    $mrpVal = $v->mrp ?: ($p->mrp ?: $p->price);
+                    $lessVal = $v->trade_discount_percent ?: ($p->trade_discount_percent ?: '');
+                    $gstVal = $v->gst_percent ?: ($p->gst_percent ?: 18);
+
+                    $costWithoutGst = $v->purchase_price ?: ($p->purchase_price ?: '');
+                    if (($costWithoutGst === '' || $costWithoutGst <= 0) && $mrpVal > 0 && is_numeric($lessVal) && $lessVal > 0) {
+                        $costWithoutGst = round($mrpVal * (1 - (floatval($lessVal) / 100)), 2);
+                    }
+
+                    $costWithGst = $v->net_landing_cost ?: ($p->net_landing_cost ?: '');
+                    if (($costWithGst === '' || $costWithGst <= 0) && is_numeric($costWithoutGst) && $costWithoutGst > 0) {
+                        $costWithGst = round(floatval($costWithoutGst) * (1 + (floatval($gstVal) / 100)), 2);
+                    }
+
                     $csvData[] = [
                         $p->id,
                         $v->id,
@@ -613,10 +628,11 @@ class CatalogIngestionController extends Controller
                         $v->variant_name ?: ($v->size ?: 'Standard'),
                         $p->brand ?? '',
                         $p->group_name ?? '',
-                        $v->mrp ?: ($p->mrp ?: $p->price),
-                        $v->trade_discount_percent ?: '',
-                        $v->gst_percent ?: ($p->gst_percent ?: 18),
-                        $v->purchase_price ?: ($v->net_landing_cost ?: ($v->raw_rate ?: ($p->purchase_price ?: ''))),
+                        $mrpVal,
+                        $lessVal,
+                        $costWithoutGst,
+                        $gstVal,
+                        $costWithGst,
                         $v->retail_price ?: $p->price,
                         $v->wholesale_price ?: ($p->wholesale_price ?: $p->price),
                         $v->cost_price_2 ?: ($p->cost_price_2 ?: ''),
@@ -624,6 +640,20 @@ class CatalogIngestionController extends Controller
                     ];
                 }
             } else {
+                $mrpVal = $p->mrp ?: $p->price;
+                $lessVal = $p->trade_discount_percent ?: '';
+                $gstVal = $p->gst_percent ?: 18;
+
+                $costWithoutGst = $p->purchase_price ?: '';
+                if (($costWithoutGst === '' || $costWithoutGst <= 0) && $mrpVal > 0 && is_numeric($lessVal) && $lessVal > 0) {
+                    $costWithoutGst = round($mrpVal * (1 - (floatval($lessVal) / 100)), 2);
+                }
+
+                $costWithGst = $p->net_landing_cost ?: '';
+                if (($costWithGst === '' || $costWithGst <= 0) && is_numeric($costWithoutGst) && $costWithoutGst > 0) {
+                    $costWithGst = round(floatval($costWithoutGst) * (1 + (floatval($gstVal) / 100)), 2);
+                }
+
                 $csvData[] = [
                     $p->id,
                     '',
@@ -632,10 +662,11 @@ class CatalogIngestionController extends Controller
                     'Standard',
                     $p->brand ?? '',
                     $p->group_name ?? '',
-                    $p->mrp ?: $p->price,
-                    '',
-                    $p->gst_percent ?: 18,
-                    $p->purchase_price ?: '',
+                    $mrpVal,
+                    $lessVal,
+                    $costWithoutGst,
+                    $gstVal,
+                    $costWithGst,
                     $p->price,
                     $p->wholesale_price ?: $p->price,
                     $p->cost_price_2 ?: '',
@@ -748,6 +779,7 @@ class CatalogIngestionController extends Controller
                 }
 
                 $getVal = function(array $aliases) use ($normRow) {
+                    // Exact key match first
                     foreach ($aliases as $k) {
                         $clean = trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower($k)), '_');
                         if (isset($normRow[$clean]) && $normRow[$clean] !== '' && !is_null($normRow[$clean])) {
@@ -755,11 +787,13 @@ class CatalogIngestionController extends Controller
                             return is_numeric($num) ? floatval($num) : null;
                         }
                     }
+                    // Substring match: row key must contain alias (not vice versa!)
                     foreach ($normRow as $rk => $rv) {
                         if ($rv === '' || is_null($rv)) continue;
                         foreach ($aliases as $k) {
                             $clean = trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower($k)), '_');
-                            if (strlen($clean) >= 4 && (str_contains($rk, $clean) || str_contains($clean, $rk))) {
+                            if ($clean === 'gst' || $clean === 'tax') continue; // Prevent cost matching gst
+                            if (strlen($clean) >= 5 && str_contains($rk, $clean)) {
                                 $num = preg_replace('/[^0-9.]/', '', (string)$rv);
                                 return is_numeric($num) ? floatval($num) : null;
                             }
@@ -779,7 +813,7 @@ class CatalogIngestionController extends Controller
                         if (trim((string)$rv) === '') continue;
                         foreach ($aliases as $k) {
                             $clean = trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower($k)), '_');
-                            if (strlen($clean) >= 4 && (str_contains($rk, $clean) || str_contains($clean, $rk))) {
+                            if (strlen($clean) >= 4 && str_contains($rk, $clean)) {
                                 return trim((string)$rv);
                             }
                         }
@@ -799,17 +833,39 @@ class CatalogIngestionController extends Controller
                 $mrp = $getVal(['mrp', 'maximum_retail_price', 'mrp_list_bhaav']);
                 $less = $getVal(['less', 'less_percent', 'trade_discount_percent', 'discount']);
                 $gst = $getVal(['gst', 'gst_percent']);
+                $gstRate = (!is_null($gst) && $gst > 0) ? $gst : 18;
 
-                $cost = $getVal([
-                    'purchase_price', 'p_cost', 'cost', 'raw_rate', 'net_landing_cost', 'landing_cost',
-                    'purchase_price_net_cost', 'purchase_price_khariid_bhaav_net_cost', 'cost_1'
+                // 1. Without GST Cost
+                $costWithoutGst = $getVal([
+                    'purchase_price_without_gst', 'purchase_price_without_gst_khariid_bhaav_bina_gst',
+                    'purchase_price_bina_gst', 'basic_cost', 'basic_rate', 'raw_rate',
+                    'purchase_price_khariid_bhaav_bina_gst', 'cost_1'
                 ]);
 
-                // Auto-calculate purchase cost from MRP - Less% + GST% if purchase cost is left empty in Excel
-                if ((is_null($cost) || $cost <= 0) && (!is_null($mrp) && $mrp > 0) && (!is_null($less) && $less > 0)) {
-                    $discounted = $mrp * (1 - ($less / 100));
-                    $gstRate = (!is_null($gst) && $gst > 0) ? $gst : 18;
-                    $cost = round($discounted * (1 + ($gstRate / 100)), 2);
+                // 2. With GST Cost (Landing Cost)
+                $costWithGst = $getVal([
+                    'purchase_price_with_gst', 'purchase_price_with_gst_khariid_bhaav_gst_sahit',
+                    'purchase_price_gst_sahit', 'net_landing_cost', 'landing_cost', 'p_cost',
+                    'purchase_price_net_cost', 'purchase_price_khariid_bhaav_net_cost'
+                ]);
+
+                $legacyCost = $getVal(['purchase_price', 'purchase_price_cost', 'cost']);
+                if (is_null($costWithoutGst) && !is_null($legacyCost)) {
+                    $costWithoutGst = $legacyCost;
+                }
+
+                // ⚡ SMART FORMULAS: Complete 2-way with/without GST calculation
+                if ((is_null($costWithoutGst) || $costWithoutGst <= 0) && (!is_null($mrp) && $mrp > 0) && (!is_null($less) && $less > 0)) {
+                    $costWithoutGst = round($mrp * (1 - ($less / 100)), 2);
+                }
+                if ((is_null($costWithGst) || $costWithGst <= 0) && (!is_null($costWithoutGst) && $costWithoutGst > 0)) {
+                    $costWithGst = round($costWithoutGst * (1 + ($gstRate / 100)), 2);
+                }
+                if ((is_null($costWithoutGst) || $costWithoutGst <= 0) && (!is_null($costWithGst) && $costWithGst > 0)) {
+                    $costWithoutGst = round($costWithGst / (1 + ($gstRate / 100)), 2);
+                }
+                if ((is_null($less) || $less <= 0) && (!is_null($mrp) && $mrp > 0) && (!is_null($costWithoutGst) && $costWithoutGst > 0) && $mrp > $costWithoutGst) {
+                    $less = round((($mrp - $costWithoutGst) / $mrp) * 100, 2);
                 }
 
                 $retail = $getVal(['selling_price', 'sale_a', 'retail_price', 'price', 'rate_a', 'selling_price_sale_a']);
@@ -853,9 +909,12 @@ class CatalogIngestionController extends Controller
 
                 if ($matchedVariant) {
                     $updates = [];
-                    if (!is_null($cost) && $cost > 0) {
-                        $updates['raw_rate'] = $cost;
-                        $updates['purchase_price'] = $cost;
+                    if (!is_null($costWithoutGst) && $costWithoutGst > 0) {
+                        $updates['raw_rate'] = $costWithoutGst;
+                        $updates['purchase_price'] = $costWithoutGst;
+                    }
+                    if (!is_null($costWithGst) && $costWithGst > 0) {
+                        $updates['net_landing_cost'] = $costWithGst;
                     }
                     if (!is_null($retail) && $retail > 0) $updates['retail_price'] = $retail;
                     if (!is_null($wholesale) && $wholesale > 0) $updates['wholesale_price'] = $wholesale;
@@ -877,7 +936,9 @@ class CatalogIngestionController extends Controller
                         $updates['name'] = $pNameRaw;
                         $updates['slug'] = \Illuminate\Support\Str::slug($pNameRaw) ?: $pObj->slug;
                     }
-                    if (!is_null($cost) && $cost > 0) $updates['purchase_price'] = $cost;
+                    if (!is_null($costWithoutGst) && $costWithoutGst > 0) $updates['purchase_price'] = $costWithoutGst;
+                    if (!is_null($costWithGst) && $costWithGst > 0) $updates['net_landing_cost'] = $costWithGst;
+                    if (!is_null($less) && $less > 0) $updates['trade_discount_percent'] = $less;
                     if (!is_null($retail) && $retail > 0) $updates['price'] = $retail;
                     if (!is_null($wholesale) && $wholesale > 0) $updates['wholesale_price'] = $wholesale;
                     if (!is_null($dealer) && $dealer > 0) $updates['cost_price_2'] = $dealer;
@@ -899,6 +960,8 @@ class CatalogIngestionController extends Controller
                     $first = $p->variants->first();
                     $p->update([
                         'purchase_price' => $first->purchase_price ?: $first->raw_rate,
+                        'net_landing_cost' => $first->net_landing_cost ?: $p->net_landing_cost,
+                        'trade_discount_percent' => $first->trade_discount_percent ?: $p->trade_discount_percent,
                         'price' => $first->retail_price ?: $p->price,
                         'wholesale_price' => $first->wholesale_price ?: $p->wholesale_price,
                         'cost_price_2' => $first->cost_price_2 ?: $p->cost_price_2,

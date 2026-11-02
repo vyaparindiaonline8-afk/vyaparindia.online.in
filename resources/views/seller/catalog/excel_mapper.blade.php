@@ -4149,16 +4149,16 @@
                 return;
             }
             const sampleData = [
-                ["Product ID (Do Not Change)", "Variant ID (Optional)", "SKU / Code (आइटम कोड / बारकोड)", "Product Name (आइटम नाम)", "Size / Variant Name (साइज़ / प्रकार)", "Brand (कंपनी)", "Group (ग्रुप)", "MRP (लिस्ट भाव)", "Less % (डिस्काउंट %)", "GST %", "Purchase Price (खरीद भाव / Net Cost)", "Selling Price (बिक्री भाव / Sale A)", "Wholesale Price (थोक भाव / Sale B)", "Dealer Price (डीलर भाव / Sale C)", "Current Stock (स्टॉक संख्या)"],
-                ["", "", "UPVC-ELB-15", "UPVC Agri Elbow 90 Degree", "15 mm", "Plasto", "Fittings", 45.00, 47, 18, 22.00, 35.00, 30.00, 26.00, 250],
-                ["", "", "UPVC-ELB-20", "UPVC Agri Elbow 90 Degree", "20 mm", "Plasto", "Fittings", 55.00, 47, 18, 28.00, 42.00, 37.00, 32.00, 200],
-                ["", "", "UPVC-ELB-25", "UPVC Agri Elbow 90 Degree", "25 mm", "Plasto", "Fittings", 75.00, 47, 18, 38.00, 58.00, 50.00, 44.00, 150],
-                ["", "", "CPVC-BR-15", "CPVC Brass Elbow", "15 mm x 1/2\"", "Astral", "CPVC", 120.00, 40, 18, 62.00, 95.00, 82.00, 72.00, 100],
-                ["", "", "SWR-TRAP-110", "SWR Nahani Trap", "110 mm x 75 mm", "Supreme", "SWR", 180.00, 45, 18, 92.00, 140.00, 120.00, 105.00, 60],
-                ["", "", "SLV-HEAVY-250", "Heavy Duty UPVC Solvent Cement 250ml", "Standard", "Finolex", "Solvents", 185.00, 42, 18, 98.00, 155.00, 135.00, 115.00, 120],
-                ["", "", "TEF-TAPE-12", "PTFE Thread Seal Teflon Tape 12mm", "Standard", "Champion", "Hardware", 25.00, 50, 18, 11.00, 18.00, 15.00, 13.00, 500],
-                ["", "", "BP-WAL-01", "Berger Walmasta Exterior Antifungal Emulsion", "1 Ltr", "Berger", "Paints", 320.00, 35, 18, 195.00, 260.00, 235.00, 215.00, 40],
-                ["", "", "EL-SW-06A", "Anchor Roma 6A 1-Way Modular Switch", "1 Module", "Anchor", "Electrical", 38.00, 45, 18, 18.00, 28.00, 24.00, 21.00, 300]
+                ["Product ID (Do Not Change)", "Variant ID (Optional)", "SKU / Code (आइटम कोड / बारकोड)", "Product Name (आइटम नाम)", "Size / Variant Name (साइज़ / प्रकार)", "Brand (कंपनी)", "Group (ग्रुप)", "MRP (लिस्ट भाव)", "Less % (डिस्काउंट %)", "Purchase Price Without GST (खरीद भाव - बिना GST)", "GST %", "Purchase Price With GST (खरीद भाव - GST सहित)", "Selling Price (बिक्री भाव / Sale A)", "Wholesale Price (थोक भाव / Sale B)", "Dealer Price (डीलर भाव / Sale C)", "Current Stock (स्टॉक संख्या)"],
+                ["", "", "UPVC-ELB-15", "UPVC Agri Elbow 90 Degree", "15 mm", "Plasto", "Fittings", 45.00, 47, 23.85, 18, 28.14, 35.00, 30.00, 26.00, 250],
+                ["", "", "UPVC-ELB-20", "UPVC Agri Elbow 90 Degree", "20 mm", "Plasto", "Fittings", 55.00, 47, 29.15, 18, 34.40, 42.00, 37.00, 32.00, 200],
+                ["", "", "UPVC-ELB-25", "UPVC Agri Elbow 90 Degree", "25 mm", "Plasto", "Fittings", 75.00, 47, 39.75, 18, 46.90, 58.00, 50.00, 44.00, 150],
+                ["", "", "CPVC-BR-15", "CPVC Brass Elbow", "15 mm x 1/2\"", "Astral", "CPVC", 120.00, 40, 72.00, 18, 84.96, 95.00, 82.00, 72.00, 100],
+                ["", "", "SWR-TRAP-110", "SWR Nahani Trap", "110 mm x 75 mm", "Supreme", "SWR", 180.00, 45, 99.00, 18, 116.82, 140.00, 120.00, 105.00, 60],
+                ["", "", "SLV-HEAVY-250", "Heavy Duty UPVC Solvent Cement 250ml", "Standard", "Finolex", "Solvents", 185.00, 42, 107.30, 18, 126.61, 155.00, 135.00, 115.00, 120],
+                ["", "", "TEF-TAPE-12", "PTFE Thread Seal Teflon Tape 12mm", "Standard", "Champion", "Hardware", 25.00, 50, 12.50, 18, 14.75, 18.00, 15.00, 13.00, 500],
+                ["", "", "BP-WAL-01", "Berger Walmasta Exterior Antifungal Emulsion", "1 Ltr", "Berger", "Paints", 320.00, 35, 208.00, 18, 245.44, 260.00, 235.00, 215.00, 40],
+                ["", "", "EL-SW-06A", "Anchor Roma 6A 1-Way Modular Switch", "1 Module", "Anchor", "Electrical", 38.00, 45, 20.90, 18, 24.66, 28.00, 24.00, 21.00, 300]
             ];
             const ws = XLSX.utils.aoa_to_sheet(sampleData);
             const wb = XLSX.utils.book_new();
