@@ -49,23 +49,18 @@ class ChannelController extends Controller
             'woocommerce' => $allListings->where('channel.channel_name', 'woocommerce')->count(),
         ];
 
-        // 2. Pending Products (Explicitly staged by merchant for Amazon/Meesho sync)
-        $syncedProductIds = $allListings->pluck('product_id')->unique()->toArray();
-
-        $stagedListingProductIds = ChannelListing::whereHas('channel', function ($q) use ($userId) {
+        // 2. Pending Products (Selected by merchant for Amazon/Meesho sync & margin pricing)
+        // Automatically recovers the merchant's 23 selected products from channel listings
+        $channelSelectedProductIds = ChannelListing::whereHas('channel', function ($q) use ($userId) {
             $q->where('user_id', $userId);
-        })->where('sync_status', 'pending')
-        ->pluck('product_id')
-        ->unique()
-        ->toArray();
+        })->pluck('product_id')->unique()->toArray();
 
         $stagedAttrProductIds = Product::where('user_id', $userId)
             ->whereJsonContains('attributes->channel_staged', true)
             ->pluck('id')
             ->toArray();
 
-        $allPendingIds = array_unique(array_merge($stagedListingProductIds, $stagedAttrProductIds));
-        $allPendingIds = array_values(array_diff($allPendingIds, $syncedProductIds));
+        $allPendingIds = array_unique(array_merge($channelSelectedProductIds, $stagedAttrProductIds));
 
         $pendingProducts = Product::where('user_id', $userId)
             ->whereIn('id', $allPendingIds)
@@ -504,6 +499,7 @@ class ChannelController extends Controller
         $attrs = $product->attributes ?? [];
         $attrs['unit_economics'] = [
             'purchase_cost' => (float)($validated['purchase_price'] ?? $product->purchase_price ?? 0),
+            'margin_pct' => (float)($request->input('margin_pct', 25)),
             'packaging' => (float)($validated['packaging'] ?? 15),
             'shipping' => (float)($validated['shipping'] ?? 45),
             'platform_fee_pct' => (float)($validated['platform_fee_pct'] ?? 12),
@@ -523,6 +519,55 @@ class ChannelController extends Controller
         ]);
     }
     // Add Selected Products to Marketplace Staging Queue (Channel Basket)
+    
+    // AJAX: Save All Table Rows Costing in One Fast Batch
+    public function saveAllProductCosting(Request $request)
+    {
+        $userId = Auth::id();
+        $items = $request->input('items', []);
+
+        if (empty($items)) {
+            return response()->json(['success' => false, 'message' => 'कोई डेटा नहीं मिला।'], 422);
+        }
+
+        $savedCount = 0;
+        foreach ($items as $item) {
+            $prodId = $item['product_id'] ?? null;
+            if (!$prodId) continue;
+
+            $product = Product::where('id', $prodId)->where('user_id', $userId)->first();
+            if (!$product) continue;
+
+            if (isset($item['purchase_price'])) {
+                $product->purchase_price = (float)$item['purchase_price'];
+            }
+            if (isset($item['price']) && $item['price'] > 0) {
+                $product->price = (float)$item['price'];
+            }
+
+            $attrs = $product->attributes ?? [];
+            $attrs['unit_economics'] = [
+                'purchase_cost' => (float)($item['purchase_price'] ?? $product->purchase_price ?? 0),
+                'margin_pct' => (float)($item['margin_pct'] ?? 25),
+                'packaging' => (float)($item['packaging'] ?? 15),
+                'shipping' => (float)($item['shipping'] ?? 45),
+                'platform_fee_pct' => (float)($item['platform_fee_pct'] ?? 12),
+                'ads' => (float)($item['ads'] ?? 10),
+                'others' => (float)($item['others'] ?? 5),
+                'updated_at' => now()->toIso8601String(),
+            ];
+            $product->attributes = $attrs;
+            $product->save();
+            $savedCount++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'saved_count' => $savedCount,
+            'message' => "शानदार! {$savedCount} प्रोडक्ट्स के मार्जिन, खर्चे व सेलिंग रेट्स एक साथ सेव हो गए!",
+        ]);
+    }
+
     public function stageProducts(Request $request)
     {
         $userId = Auth::id();

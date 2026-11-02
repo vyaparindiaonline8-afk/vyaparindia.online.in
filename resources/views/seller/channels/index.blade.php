@@ -421,7 +421,38 @@
                         </div>
                     </div>
 
-                                        <!-- Pending Products List: 1. CARDS VIEW -->
+                                        <!-- 🎛️ VIEW MODE SWITCHER & BULK ACTIONS TOOLBAR -->
+                    <div class="mt-4 p-3 bg-slate-900 text-white rounded-2xl shadow-md flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs font-black text-slate-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-layer-group text-amber-400"></i>
+                                <span>व्यू मोड चुनें:</span>
+                            </span>
+                            <div class="inline-flex items-center bg-white/10 p-1 rounded-xl border border-white/20">
+                                <button type="button" onclick="switchPendingLayout('cards')" id="btnPendingViewCards" class="px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer">
+                                    <i class="fa-solid fa-grip"></i>
+                                    <span>🎴 फ़ोटो कार्ड मोड</span>
+                                </button>
+                                <button type="button" onclick="switchPendingLayout('table')" id="btnPendingViewTable" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-300 hover:text-white cursor-pointer">
+                                    <i class="fa-solid fa-table-cells text-emerald-400"></i>
+                                    <span>📊 एक्सेल शीट / लिस्ट मोड (मार्जिन & खर्चे भरें)</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Bulk Actions -->
+                        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                            <button type="button" id="btnBulkSaveTable" onclick="saveAllTableRowsCosting()" class="hidden px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                                <i class="fa-solid fa-floppy-disk text-amber-200"></i>
+                                <span>💾 सभी रो एक साथ सेव करें (Save All)</span>
+                            </button>
+                            <span class="text-xs text-slate-300 font-semibold bg-white/10 px-2.5 py-1 rounded-lg">
+                                <strong class="text-amber-400 font-mono">{{ count($pendingProducts ?? []) }}</strong> प्रोडक्ट्स कतार में
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Pending Products List: 1. CARDS VIEW -->
                     <div id="pendingCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                         @forelse($pendingProducts ?? [] as $p)
                             @php
@@ -493,15 +524,19 @@
                                 <div class="p-2.5 bg-slate-50 rounded-2xl border border-gray-100 text-[11px] space-y-1">
                                     <div class="flex items-center justify-between">
                                         <span class="text-gray-500 font-medium">खरीद लागत (P.Cost):</span>
-                                        <span class="font-bold text-gray-800 font-mono">₹{{ number_format($pCost, 2) }}</span>
+                                        <span class="font-bold text-gray-800 font-mono" id="card-cost-{{ $p->id }}">₹{{ number_format($pCost, 2) }}</span>
                                     </div>
                                     <div class="flex items-center justify-between text-gray-500 text-[10px]">
                                         <span>खर्चे (पैकिंग+कूरियर+फ़ी+ऐड्स):</span>
-                                        <span class="font-mono font-bold text-amber-700">+₹{{ number_format($totalExp, 2) }}</span>
+                                        <span class="font-mono font-bold text-amber-700" id="card-exp-{{ $p->id }}">+₹{{ number_format($totalExp, 2) }}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-gray-500 text-[10px]">
+                                        <span>शुद्ध मुनाफा / मार्जिन:</span>
+                                        <span class="font-mono font-extrabold text-emerald-700" id="card-profit-{{ $p->id }}">₹{{ number_format($netMargin, 2) }} ({{ round(($netMargin / max(1, $pCost)) * 100) }}%)</span>
                                     </div>
                                     <div class="flex items-center justify-between pt-1 border-t border-gray-200">
                                         <span class="font-extrabold text-gray-900">फाइनल सेलिंग रेट:</span>
-                                        <span class="font-black text-emerald-700 text-xs font-mono">₹{{ number_format($p->price, 2) }}</span>
+                                        <span class="font-black text-emerald-700 text-xs font-mono" id="card-price-{{ $p->id }}">₹{{ number_format($p->price, 2) }}</span>
                                     </div>
                                 </div>
 
@@ -548,6 +583,7 @@
                                     <th class="p-3">फ़ोटो</th>
                                     <th class="p-3 min-w-[180px]">प्रोडक्ट का नाम</th>
                                     <th class="p-3 min-w-[100px]">खरीद लागत (P.Cost ₹)</th>
+                                    <th class="p-3 min-w-[90px] bg-indigo-50 text-indigo-950 font-black">मार्जिन (%)</th>
                                     <th class="p-3 min-w-[75px]">पैकिंग (₹)</th>
                                     <th class="p-3 min-w-[75px]">कूरियर (₹)</th>
                                     <th class="p-3 min-w-[75px]">फ़ी (%)</th>
@@ -604,6 +640,17 @@
                                             </div>
                                         </td>
 
+                                        <!-- 1.5 Your Profit Margin (%) -->
+                                        <td class="p-2 bg-indigo-50/40">
+                                            <div class="relative">
+                                                <input type="number" id="row-margin-{{ $p->id }}" value="{{ (float)($ue['margin_pct'] ?? 25) }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 pl-2 pr-4 py-1 bg-white border border-indigo-200 rounded-lg text-xs font-mono font-bold text-indigo-800 focus:border-indigo-500 focus:outline-none">
+                                                <span class="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">%</span>
+                                            </div>
+                                            <span id="row-margin-amt-{{ $p->id }}" class="text-[9px] text-emerald-700 font-bold block font-mono mt-0.5">
+                                                ₹{{ round($pCost * (((float)($ue['margin_pct'] ?? 25)) / 100)) }} लाभ
+                                            </span>
+                                        </td>
+
                                         <!-- 2. Packaging (₹) -->
                                         <td class="p-2">
                                             <input type="number" id="row-pack-{{ $p->id }}" value="{{ $packCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono text-gray-800 focus:border-indigo-500 focus:outline-none">
@@ -637,7 +684,7 @@
                                             <div class="flex items-center gap-1.5">
                                                 <div class="relative">
                                                     <span class="absolute left-2 top-1/2 -translate-y-1/2 text-amber-600 font-bold text-[10px]">₹</span>
-                                                    <input type="number" step="1" id="row-price-{{ $p->id }}" value="{{ $p->price }}" class="w-20 pl-5 pr-1.5 py-1 bg-white border border-amber-300 rounded-lg text-xs font-mono font-black text-amber-950 focus:border-amber-500 focus:outline-none">
+                                                    <input type="number" step="1" id="row-price-{{ $p->id }}" value="{{ $p->price }}" oninput="syncManualPriceToCard({{ $p->id }})" class="w-20 pl-5 pr-1.5 py-1 bg-white border border-amber-300 rounded-lg text-xs font-mono font-black text-amber-950 focus:border-amber-500 focus:outline-none">
                                                 </div>
                                                 <button type="button" onclick="saveTableRowCosting({{ $p->id }}, this)" class="h-7 w-7 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition shadow-2xs cursor-pointer" title="इस रो का रेट सेव करें">
                                                     <i class="fa-solid fa-floppy-disk text-xs"></i>
@@ -1559,17 +1606,28 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             const table = document.getElementById('pendingTableContainer');
             const btnCards = document.getElementById('btnPendingViewCards');
             const btnTable = document.getElementById('btnPendingViewTable');
+            const btnBulkSave = document.getElementById('btnBulkSaveTable');
 
             if (layout === 'table') {
-                cards.classList.add('hidden');
-                table.classList.remove('hidden');
-                btnTable.className = "px-2.5 py-1 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer";
-                btnCards.className = "px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-gray-600 hover:text-gray-900 cursor-pointer";
+                if (cards) cards.classList.add('hidden');
+                if (table) table.classList.remove('hidden');
+                if (btnBulkSave) btnBulkSave.classList.remove('hidden');
+                if (btnTable) {
+                    btnTable.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer";
+                }
+                if (btnCards) {
+                    btnCards.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-300 hover:text-white cursor-pointer";
+                }
             } else {
-                table.classList.add('hidden');
-                cards.classList.remove('hidden');
-                btnCards.className = "px-2.5 py-1 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer";
-                btnTable.className = "px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-gray-600 hover:text-gray-900 cursor-pointer";
+                if (table) table.classList.add('hidden');
+                if (cards) cards.classList.remove('hidden');
+                if (btnBulkSave) btnBulkSave.classList.add('hidden');
+                if (btnCards) {
+                    btnCards.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer";
+                }
+                if (btnTable) {
+                    btnTable.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-300 hover:text-white cursor-pointer";
+                }
             }
         }
 
@@ -1721,30 +1779,130 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             event.target.value = '';
         }
 
-        // Real-Time Table Row Unit Economics Recalculator
+        // Real-Time Table Row Unit Economics Recalculator with Margin % & Card Sync
         function recalcTableRow(prodId) {
-            const cost = parseFloat(document.getElementById(`row-cost-${prodId}`).value) || 0;
-            const pack = parseFloat(document.getElementById(`row-pack-${prodId}`).value) || 0;
-            const ship = parseFloat(document.getElementById(`row-ship-${prodId}`).value) || 0;
-            const feePct = parseFloat(document.getElementById(`row-fee-${prodId}`).value) || 0;
-            const ads = parseFloat(document.getElementById(`row-ads-${prodId}`).value) || 0;
-            const others = parseFloat(document.getElementById(`row-others-${prodId}`).value) || 0;
+            const cost = parseFloat(document.getElementById(`row-cost-${prodId}`)?.value) || 0;
+            const marginPct = parseFloat(document.getElementById(`row-margin-${prodId}`)?.value) || 25;
+            const pack = parseFloat(document.getElementById(`row-pack-${prodId}`)?.value) || 0;
+            const ship = parseFloat(document.getElementById(`row-ship-${prodId}`)?.value) || 0;
+            const feePct = parseFloat(document.getElementById(`row-fee-${prodId}`)?.value) || 0;
+            const ads = parseFloat(document.getElementById(`row-ads-${prodId}`)?.value) || 0;
+            const others = parseFloat(document.getElementById(`row-others-${prodId}`)?.value) || 0;
 
-            const desiredProfit = cost * 0.25; // default 25% margin
+            const desiredProfit = Math.round(cost * (marginPct / 100));
             const totalFixed = cost + desiredProfit + pack + ship + ads + others;
             const multiplier = Math.max(0.1, 1 - (feePct / 100));
             const finalRate = Math.ceil(totalFixed / multiplier);
 
-            document.getElementById(`row-price-${prodId}`).value = finalRate;
+            // Update row price input
+            const priceInput = document.getElementById(`row-price-${prodId}`);
+            if (priceInput) priceInput.value = finalRate;
 
-            // Update combo previews
+            // Update margin amount badge in table row
+            const marginAmtSpan = document.getElementById(`row-margin-amt-${prodId}`);
+            if (marginAmtSpan) marginAmtSpan.textContent = `₹${desiredProfit} लाभ`;
+
+            // Update combo previews in table row
             const c2 = Math.ceil(((cost * 2) + (desiredProfit * 1.8) + (pack * 1.3) + ship + (ads * 1.2)) / multiplier);
             const c4 = Math.ceil(((cost * 4) + (desiredProfit * 3.5) + (pack * 1.6) + (ship * 1.2) + (ads * 1.5)) / multiplier);
             const c6 = Math.ceil(((cost * 6) + (desiredProfit * 5.0) + (pack * 2.0) + (ship * 1.4) + (ads * 1.8)) / multiplier);
 
-            document.getElementById(`row-combo2-${prodId}`).textContent = `2P: ₹${c2}`;
-            document.getElementById(`row-combo4-${prodId}`).textContent = `4P: ₹${c4}`;
-            document.getElementById(`row-combo6-${prodId}`).textContent = `6P: ₹${c6}`;
+            const rC2 = document.getElementById(`row-combo2-${prodId}`);
+            if (rC2) rC2.textContent = `2P: ₹${c2}`;
+            const rC4 = document.getElementById(`row-combo4-${prodId}`);
+            if (rC4) rC4.textContent = `4P: ₹${c4}`;
+            const rC6 = document.getElementById(`row-combo6-${prodId}`);
+            if (rC6) rC6.textContent = `6P: ₹${c6}`;
+
+            // 🔄 INSTANT LIVE SYNC TO CORRESPONDING PHOTO CARD!
+            const cardPrice = document.getElementById(`card-price-${prodId}`);
+            if (cardPrice) cardPrice.textContent = `₹${finalRate.toFixed(2)}`;
+
+            const cardCost = document.getElementById(`card-cost-${prodId}`);
+            if (cardCost) cardCost.textContent = `₹${cost.toFixed(2)}`;
+
+            const totalExp = pack + ship + Math.round(finalRate * (feePct / 100)) + ads + others;
+            const cardExp = document.getElementById(`card-exp-${prodId}`);
+            if (cardExp) cardExp.textContent = `+₹${totalExp.toFixed(2)}`;
+
+            const cardProfit = document.getElementById(`card-profit-${prodId}`);
+            if (cardProfit) cardProfit.textContent = `₹${desiredProfit.toFixed(2)} (${marginPct}%)`;
+        }
+
+        function syncManualPriceToCard(prodId) {
+            const price = parseFloat(document.getElementById(`row-price-${prodId}`)?.value) || 0;
+            const cardPrice = document.getElementById(`card-price-${prodId}`);
+            if (cardPrice) cardPrice.textContent = `₹${price.toFixed(2)}`;
+        }
+
+        // Bulk Save All Table Rows Costing
+        async function saveAllTableRowsCosting() {
+            const rows = document.querySelectorAll('#pendingTableTbody tr[data-id]');
+            if (!rows.length) {
+                alert('कोई प्रोडक्ट मौजूद नहीं है!');
+                return;
+            }
+
+            const items = [];
+            rows.forEach(row => {
+                const id = row.getAttribute('data-id');
+                const cost = parseFloat(document.getElementById(`row-cost-${id}`)?.value) || 0;
+                const marginPct = parseFloat(document.getElementById(`row-margin-${id}`)?.value) || 25;
+                const price = parseFloat(document.getElementById(`row-price-${id}`)?.value) || 0;
+                const pack = parseFloat(document.getElementById(`row-pack-${id}`)?.value) || 0;
+                const ship = parseFloat(document.getElementById(`row-ship-${id}`)?.value) || 0;
+                const fee = parseFloat(document.getElementById(`row-fee-${id}`)?.value) || 0;
+                const ads = parseFloat(document.getElementById(`row-ads-${id}`)?.value) || 0;
+                const others = parseFloat(document.getElementById(`row-others-${id}`)?.value) || 0;
+
+                items.push({
+                    product_id: parseInt(id),
+                    purchase_price: cost,
+                    margin_pct: marginPct,
+                    price: price,
+                    packaging: pack,
+                    shipping: ship,
+                    platform_fee_pct: fee,
+                    ads: ads,
+                    others: others
+                });
+            });
+
+            const btn = document.getElementById('btnBulkSaveTable');
+            const origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>सेव हो रहा है...</span>';
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+                const res = await fetch('/seller/channels/save-all-costing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({ items: items })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showChannelToast(`✓ ${data.saved_count} प्रोडक्ट्स के मार्जिन व रेट्स सेव हो गए!`);
+                    btn.innerHTML = '<i class="fa-solid fa-check text-emerald-300"></i> <span>सफलतापूर्वक सेव हुआ!</span>';
+                    setTimeout(() => {
+                        btn.innerHTML = origHtml;
+                        btn.disabled = false;
+                    }, 2500);
+                } else {
+                    alert(data.message || 'सेव करने में त्रुटि आई।');
+                    btn.innerHTML = origHtml;
+                    btn.disabled = false;
+                }
+            } catch(e) {
+                console.error(e);
+                alert('नेटवर्क त्रुटि: सेव नहीं हो पाया।');
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+            }
         }
 
         // Save Inline Table Row Costing & Unit Economics
