@@ -638,9 +638,8 @@
                                 <tr>
                                     <th class="p-3 w-8 text-center">✓</th>
                                     <th class="p-3">फ़ोटो</th>
-                                    <th class="p-3 min-w-[170px]">प्रोडक्ट का नाम</th>
-                                    <th class="p-3 min-w-[75px]">HSN कोड</th>
-                                    <th class="p-3 min-w-[70px]">GST %</th>
+                                    <th class="p-3 min-w-[170px]">प्रोडक्ट का नाम & SKU</th>
+                                    <th class="p-3 min-w-[70px] text-center font-mono text-gray-500">ID</th>
                                     <th class="p-3 min-w-[95px]">खरीद लागत (₹)</th>
                                     <th class="p-3 min-w-[90px] bg-indigo-50 text-indigo-950 font-black">मार्जिन (%)</th>
                                     <th class="p-3 min-w-[85px] bg-rose-50 text-rose-950 font-black" title="रिटर्न/RTO नुकसान से सुरक्षा">🔄 रिटर्न बफ़र (₹)</th>
@@ -648,9 +647,11 @@
                                     <th class="p-3 min-w-[75px]">कूरियर (₹)</th>
                                     <th class="p-3 min-w-[75px]">फ़ी (%)</th>
                                     <th class="p-3 min-w-[75px]">ऐड्स (₹)</th>
-                                    <th class="p-3 min-w-[70px]">अन्य (₹)</th>
+                                    <th class="p-3 min-w-[75px] bg-purple-50 text-purple-950 font-black">HSN कोड</th>
+                                    <th class="p-3 min-w-[75px] bg-purple-50 text-purple-950 font-black">GST %</th>
                                     <th class="p-3 min-w-[120px] bg-amber-50 text-amber-950 font-black">फाइनल सेलिंग (₹)</th>
                                     <th class="p-3 min-w-[130px] text-center">2 / 4 / 6 पीस कॉम्बो</th>
+                                    <th class="p-3 min-w-[110px]" title="कस्टम बारकोड, रैक नंबर या आंतरिक नोट">बारकोड / नोट</th>
                                     <th class="p-3 text-right min-w-[90px]">एक्शन</th>
                                 </tr>
                             </thead>
@@ -692,20 +693,9 @@
                                             </div>
                                         </td>
 
-                                        <!-- HSN Code -->
-                                        <td class="p-2">
-                                            <input type="text" id="row-hsn-{{ $p->id }}" value="{{ $p->hsn_code ?: '6204' }}" class="w-16 px-1.5 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono font-bold text-gray-800 focus:border-indigo-500 focus:outline-none" placeholder="HSN">
-                                        </td>
-
-                                        <!-- GST % -->
-                                        <td class="p-2">
-                                            <select id="row-gst-{{ $p->id }}" onchange="recalcTableRow({{ $p->id }})" class="w-14 px-1 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono font-bold text-gray-800 focus:border-indigo-500 focus:outline-none">
-                                                <option value="18" {{ (!isset($p->gst_percent) || $p->gst_percent == 18) ? 'selected' : '' }}>18%</option>
-                                                <option value="12" {{ ($p->gst_percent == 12) ? 'selected' : '' }}>12%</option>
-                                                <option value="5" {{ ($p->gst_percent == 5) ? 'selected' : '' }}>5%</option>
-                                                <option value="0" {{ (isset($p->gst_percent) && $p->gst_percent == 0) ? 'selected' : '' }}>0%</option>
-                                                <option value="28" {{ ($p->gst_percent == 28) ? 'selected' : '' }}>28%</option>
-                                            </select>
+                                        <!-- Product ID -->
+                                        <td class="p-2 text-center font-mono text-xs font-extrabold text-gray-500">
+                                            #{{ $p->id }}
                                         </td>
 
                                         <!-- 1. Purchase Cost (P. Cost) -->
@@ -758,9 +748,20 @@
                                             <input type="number" id="row-ads-{{ $p->id }}" value="{{ $adsCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono text-gray-800 focus:border-indigo-500 focus:outline-none">
                                         </td>
 
-                                        <!-- 6. Others (₹) -->
-                                        <td class="p-2">
-                                            <input type="number" id="row-others-{{ $p->id }}" value="{{ $otherCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-14 px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono text-gray-800 focus:border-indigo-500 focus:outline-none">
+                                        <!-- HSN Code (Towards end before Selling Price) -->
+                                        <td class="p-2 bg-purple-50/30">
+                                            <input type="text" id="row-hsn-{{ $p->id }}" value="{{ $p->hsn_code ?: '6204' }}" class="w-16 px-1.5 py-1 bg-white border border-purple-200 rounded-lg text-xs font-mono font-bold text-gray-800 focus:border-purple-500 focus:outline-none" placeholder="HSN">
+                                        </td>
+
+                                        <!-- GST % (Towards end before Selling Price) -->
+                                        <td class="p-2 bg-purple-50/30">
+                                            <select id="row-gst-{{ $p->id }}" onchange="recalcTableRow({{ $p->id }})" class="w-16 px-1 py-1 bg-white border border-purple-200 rounded-lg text-xs font-mono font-bold text-gray-800 focus:border-purple-500 focus:outline-none">
+                                                <option value="18" {{ (!isset($p->gst_percent) || $p->gst_percent == 18) ? 'selected' : '' }}>18%</option>
+                                                <option value="12" {{ ($p->gst_percent == 12) ? 'selected' : '' }}>12%</option>
+                                                <option value="5" {{ ($p->gst_percent == 5) ? 'selected' : '' }}>5%</option>
+                                                <option value="0" {{ (isset($p->gst_percent) && $p->gst_percent == 0) ? 'selected' : '' }}>0% (Exempt)</option>
+                                                <option value="28" {{ ($p->gst_percent == 28) ? 'selected' : '' }}>28%</option>
+                                            </select>
                                         </td>
 
                                         <!-- 7. Final Selling Price (₹) -->
@@ -789,6 +790,11 @@
                                                     6P: ₹{{ round($p->price * 5.0) }}
                                                 </span>
                                             </div>
+                                        </td>
+
+                                        <!-- Custom Barcode / Note / Rack Column -->
+                                        <td class="p-2">
+                                            <input type="text" id="row-note-{{ $p->id }}" value="{{ $ue['custom_note'] ?? '' }}" placeholder="रैक / बारकोड" class="w-24 px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono text-gray-700 focus:border-indigo-500 focus:outline-none" title="कस्टम बारकोड या आंतरिक नोट">
                                         </td>
 
                                         <!-- 9. Quick Actions -->
@@ -1981,6 +1987,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 const others = parseFloat(document.getElementById(`row-others-${id}`)?.value) || 0;
                 const hsn = document.getElementById(`row-hsn-${id}`)?.value || '';
                 const gst = parseFloat(document.getElementById(`row-gst-${id}`)?.value) || 18;
+                const note = document.getElementById(`row-note-${id}`)?.value || '';
 
                 items.push({
                     product_id: parseInt(id),
@@ -1994,7 +2001,8 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                     ads: ads,
                     others: others,
                     hsn_code: hsn,
-                    gst_percent: gst
+                    gst_percent: gst,
+                    custom_note: note
                 });
             });
 
@@ -2048,6 +2056,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             const others = parseFloat(document.getElementById(`row-others-${prodId}`)?.value) || 0;
             const hsn = document.getElementById(`row-hsn-${prodId}`)?.value || '';
             const gst = parseFloat(document.getElementById(`row-gst-${prodId}`)?.value) || 18;
+            const note = document.getElementById(`row-note-${prodId}`)?.value || '';
 
             if (price <= 0) {
                 alert('कृपया वैध फाइनल सेलिंग रेट डालें!');
@@ -2077,7 +2086,8 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                         ads: ads,
                         others: others,
                         hsn_code: hsn,
-                        gst_percent: gst
+                        gst_percent: gst,
+                        custom_note: note
                     })
                 });
                 const data = await res.json();

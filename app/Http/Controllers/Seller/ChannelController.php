@@ -515,6 +515,7 @@ class ChannelController extends Controller
             'others' => (float)($validated['others'] ?? 5),
             'hsn_code' => $product->hsn_code,
             'gst_percent' => (float)$product->gst_percent,
+            'custom_note' => $request->input('custom_note', ''),
             'updated_at' => now()->toIso8601String(),
         ];
         $product->attributes = $attrs;
@@ -573,6 +574,7 @@ class ChannelController extends Controller
                 'others' => (float)($item['others'] ?? 5),
                 'hsn_code' => $product->hsn_code,
                 'gst_percent' => (float)$product->gst_percent,
+                'custom_note' => $item['custom_note'] ?? '',
                 'updated_at' => now()->toIso8601String(),
             ];
             $product->attributes = $attrs;
