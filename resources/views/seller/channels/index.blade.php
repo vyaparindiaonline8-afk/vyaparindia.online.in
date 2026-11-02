@@ -640,8 +640,9 @@
                                     <th class="p-3">फ़ोटो</th>
                                     <th class="p-3 min-w-[170px]">प्रोडक्ट का नाम & SKU</th>
                                     <th class="p-3 min-w-[70px] text-center font-mono text-gray-500">ID</th>
-                                    <th class="p-3 min-w-[95px]">खरीद लागत (₹)</th>
-                                    <th class="p-3 min-w-[90px] bg-indigo-50 text-indigo-950 font-black">मार्जिन (%)</th>
+                                    <th class="p-3 min-w-[105px] bg-slate-50 text-slate-900 font-extrabold" title="आपकी मूल खरीद कीमत">खरीद लागत (P.Cost ₹)</th>
+                                    <th class="p-3 min-w-[105px] bg-blue-50 text-blue-950 font-black" title="आपके VyaparIndia ऐप / स्टोर पर डाला गया मौजूदा रेट">ऐप सेलिंग रेट (Store ₹)</th>
+                                    <th class="p-3 min-w-[90px] bg-indigo-50 text-indigo-950 font-black" title="मार्केटप्लेस के लिए आपका मनपसंद मुनाफा %">मार्जिन (%)</th>
                                     <th class="p-3 min-w-[85px] bg-rose-50 text-rose-950 font-black" title="रिटर्न/RTO नुकसान से सुरक्षा">🔄 रिटर्न बफ़र (₹)</th>
                                     <th class="p-3 min-w-[70px]">पैकिंग (₹)</th>
                                     <th class="p-3 min-w-[75px]">कूरियर (₹)</th>
@@ -698,21 +699,33 @@
                                             #{{ $p->id }}
                                         </td>
 
-                                        <!-- 1. Purchase Cost (P. Cost) -->
-                                        <td class="p-2">
+                                        <!-- 1. Purchase Cost (P. Cost) - Editable -->
+                                        <td class="p-2 bg-slate-50/50">
                                             <div class="relative">
-                                                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">₹</span>
-                                                <input type="number" step="0.5" id="row-cost-{{ $p->id }}" value="{{ $pCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-18 pl-5 pr-1.5 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono font-bold text-gray-900 focus:border-indigo-500 focus:outline-none">
+                                                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-[10px]">₹</span>
+                                                <input type="number" step="0.5" id="row-cost-{{ $p->id }}" value="{{ $pCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-20 pl-5 pr-1.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-mono font-extrabold text-slate-900 focus:border-indigo-500 focus:outline-none" title="आपकी खरीद लागत">
                                             </div>
+                                        </td>
+
+                                        <!-- 1.2 Store / App Original Selling Price (Non-destructive Reference) -->
+                                        <td class="p-2 bg-blue-50/40 text-center">
+                                            <span class="inline-block px-2.5 py-1 bg-white border border-blue-200 rounded-lg font-mono font-black text-xs text-blue-900 shadow-2xs" title="ऐप/दुकान में डाला गया मूल सेलिंग रेट">
+                                                ₹{{ number_format($p->price, 2) }}
+                                            </span>
                                         </td>
 
                                         <!-- 1.5 Your Profit Margin (%) -->
                                         <td class="p-2 bg-indigo-50/40">
-                                            <div class="relative">
-                                                <input type="number" id="row-margin-{{ $p->id }}" value="{{ (float)($ue['margin_pct'] ?? 25) }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 pl-2 pr-4 py-1 bg-white border border-indigo-200 rounded-lg text-xs font-mono font-bold text-indigo-800 focus:border-indigo-500 focus:outline-none">
-                                                <span class="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">%</span>
+                                            <div class="flex items-center gap-1">
+                                                <div class="relative">
+                                                    <input type="number" id="row-margin-{{ $p->id }}" value="{{ (float)($ue['margin_pct'] ?? 25) }}" oninput="syncMarginToPreset({{ $p->id }})" class="w-16 pl-2 pr-4 py-1 bg-white border border-indigo-300 rounded-lg text-xs font-mono font-black text-indigo-800 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-300 focus:outline-none" title="मार्जिन % लिखें">
+                                                    <span class="absolute right-1 top-1/2 -translate-y-1/2 text-indigo-400 font-bold text-[10px]">%</span>
+                                                </div>
+                                                <button type="button" onclick="copyRowSettingsToAll({{ $p->id }})" class="h-6 w-6 rounded-md bg-indigo-100 hover:bg-indigo-600 text-indigo-700 hover:text-white flex items-center justify-center text-[10px] transition cursor-pointer shrink-0" title="इस रो का मार्जिन सभी में कॉपी करें (Apply to All)">
+                                                    <i class="fa-solid fa-copy"></i>
+                                                </button>
                                             </div>
-                                            <span id="row-margin-amt-{{ $p->id }}" class="text-[9px] text-emerald-700 font-bold block font-mono mt-0.5">
+                                            <span id="row-margin-amt-{{ $p->id }}" class="text-[9px] text-emerald-700 font-extrabold block font-mono mt-0.5">
                                                 ₹{{ round($pCost * (((float)($ue['margin_pct'] ?? 25)) / 100)) }} लाभ
                                             </span>
                                         </td>
@@ -1922,12 +1935,74 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             if (cardProfit) cardProfit.textContent = `₹${desiredProfit.toFixed(2)} (${marginPct}%)`;
         }
 
+        // Sync row margin to top preset input when edited so user knows it's ready to apply
+        function syncMarginToPreset(prodId) {
+            const val = parseFloat(document.getElementById(`row-margin-${prodId}`)?.value);
+            if (!isNaN(val) && val > 0) {
+                const presetInput = document.getElementById('bulkPresetMargin');
+                if (presetInput) presetInput.value = val;
+            }
+            recalcTableRow(prodId);
+        }
+
+        // 1-Click Copy a specific row's full settings (Margin, RTO, Courier, Pack, GST) to all rows
+        function copyRowSettingsToAll(sourceProdId) {
+            const margin = parseFloat(document.getElementById(`row-margin-${sourceProdId}`)?.value) || 25;
+            const rto = parseFloat(document.getElementById(`row-rto-${sourceProdId}`)?.value) || 20;
+            const ship = parseFloat(document.getElementById(`row-ship-${sourceProdId}`)?.value) || 45;
+            const pack = parseFloat(document.getElementById(`row-pack-${sourceProdId}`)?.value) || 15;
+            const fee = parseFloat(document.getElementById(`row-fee-${sourceProdId}`)?.value) || 12;
+            const gst = document.getElementById(`row-gst-${sourceProdId}`)?.value || '18';
+
+            // Also sync to top preset toolbar
+            if (document.getElementById('bulkPresetMargin')) document.getElementById('bulkPresetMargin').value = margin;
+            if (document.getElementById('bulkPresetRto')) document.getElementById('bulkPresetRto').value = rto;
+            if (document.getElementById('bulkPresetShip')) document.getElementById('bulkPresetShip').value = ship;
+            if (document.getElementById('bulkPresetPack')) document.getElementById('bulkPresetPack').value = pack;
+            if (document.getElementById('bulkPresetGst')) document.getElementById('bulkPresetGst').value = gst;
+
+            const rows = document.querySelectorAll('#pendingTableTbody tr[data-id]');
+            rows.forEach(row => {
+                const id = row.getAttribute('data-id');
+                const mInp = document.getElementById(`row-margin-${id}`);
+                if (mInp) mInp.value = margin;
+
+                const rInp = document.getElementById(`row-rto-${id}`);
+                if (rInp) rInp.value = rto;
+
+                const sInp = document.getElementById(`row-ship-${id}`);
+                if (sInp) sInp.value = ship;
+
+                const pInp = document.getElementById(`row-pack-${id}`);
+                if (pInp) pInp.value = pack;
+
+                const fInp = document.getElementById(`row-fee-${id}`);
+                if (fInp) fInp.value = fee;
+
+                const gSel = document.getElementById(`row-gst-${id}`);
+                if (gSel) gSel.value = gst;
+
+                recalcTableRow(id);
+            });
+
+            showChannelToast(`⚡ इस रो का ${margin}% मार्जिन, ₹${rto} रिटर्न, ₹${ship} कूरियर सभी ${rows.length} प्रोडक्ट्स पर लागू हो गया!`);
+        }
+
         // Apply Bulk Preset Values to All Rows (Excel-style Apply to All)
         function applyPresetToAllRows() {
-            const margin = parseFloat(document.getElementById('bulkPresetMargin')?.value) || 25;
-            const rto = parseFloat(document.getElementById('bulkPresetRto')?.value) || 20;
-            const ship = parseFloat(document.getElementById('bulkPresetShip')?.value) || 45;
-            const pack = parseFloat(document.getElementById('bulkPresetPack')?.value) || 15;
+            // Read exactly what user entered in the top preset box
+            const marginRaw = document.getElementById('bulkPresetMargin')?.value;
+            const margin = (marginRaw !== '' && !isNaN(parseFloat(marginRaw))) ? parseFloat(marginRaw) : 25;
+
+            const rtoRaw = document.getElementById('bulkPresetRto')?.value;
+            const rto = (rtoRaw !== '' && !isNaN(parseFloat(rtoRaw))) ? parseFloat(rtoRaw) : 20;
+
+            const shipRaw = document.getElementById('bulkPresetShip')?.value;
+            const ship = (shipRaw !== '' && !isNaN(parseFloat(shipRaw))) ? parseFloat(shipRaw) : 45;
+
+            const packRaw = document.getElementById('bulkPresetPack')?.value;
+            const pack = (packRaw !== '' && !isNaN(parseFloat(packRaw))) ? parseFloat(packRaw) : 15;
+
             const gst = document.getElementById('bulkPresetGst')?.value || '18';
 
             const rows = document.querySelectorAll('#pendingTableTbody tr[data-id]');
@@ -1956,7 +2031,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 recalcTableRow(id);
             });
 
-            showChannelToast(`⚡ ${rows.length} प्रोडक्ट्स पर मार्जिन (${margin}%), रिटर्न बफ़र (₹${rto}), डिलीवरी (₹${ship}) व GST (${gst}%) लागू हो गए!`);
+            showChannelToast(`⚡ सभी ${rows.length} प्रोडक्ट्स पर ${margin}% मार्जिन, ₹${rto} रिटर्न बफ़र, ₹${ship} कूरियर व ${gst}% GST लागू हो गया!`);
         }
 
         function syncManualPriceToCard(prodId) {
