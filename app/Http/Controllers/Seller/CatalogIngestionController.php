@@ -584,7 +584,21 @@ class CatalogIngestionController extends Controller
         $products = Product::where('user_id', $sellerId)->with('variants')->get();
 
         $csvData = [];
-        $csvData[] = ['Product ID', 'Variant ID', 'SKU / Code', 'Product Name', 'Size / Variant Name', 'Cost (Purchase Rate)', 'Wholesale Price (B2B)', 'Retail Price (D2C)', 'MRP', 'Current Stock'];
+        $csvData[] = [
+            'Product ID (Do Not Change)',
+            'Variant ID (Optional)',
+            'SKU / Code (आइटम कोड / बारकोड)',
+            'Product Name (आइटम नाम)',
+            'Size / Variant Name (साइज़ / प्रकार)',
+            'MRP (लिस्ट भाव)',
+            'Less % (डिस्काउंट %)',
+            'GST %',
+            'Purchase Price (खरीद भाव / Net Cost)',
+            'Selling Price (बिक्री भाव / Sale A)',
+            'Wholesale Price (थोक भाव / Sale B)',
+            'Dealer Price (डीलर भाव / Sale C)',
+            'Current Stock (स्टॉक संख्या)'
+        ];
 
         foreach ($products as $p) {
             if ($p->variants->isNotEmpty()) {
@@ -595,11 +609,14 @@ class CatalogIngestionController extends Controller
                         $v->sku ?: ($p->sku ?: "PRD-{$p->id}"),
                         $p->name,
                         $v->variant_name ?: ($v->size ?: 'Standard'),
-                        $v->purchase_price ?: $v->raw_rate,
-                        $v->wholesale_price,
+                        $v->mrp ?: ($p->mrp ?: $p->price),
+                        $v->trade_discount_percent ?: '',
+                        $v->gst_percent ?: ($p->gst_percent ?: 18),
+                        $v->purchase_price ?: ($v->net_landing_cost ?: ($v->raw_rate ?: ($p->purchase_price ?: ''))),
                         $v->retail_price ?: $p->price,
-                        $v->mrp ?: $p->mrp,
-                        $v->stock_quantity ?? $p->stock_quantity ?? 100,
+                        $v->wholesale_price ?: ($p->wholesale_price ?: $p->price),
+                        $v->cost_price_2 ?: ($p->cost_price_2 ?: ''),
+                        $v->stock_quantity ?? ($p->stock_quantity ?? 100),
                     ];
                 }
             } else {
@@ -609,10 +626,13 @@ class CatalogIngestionController extends Controller
                     $p->sku ?: "PRD-{$p->id}",
                     $p->name,
                     'Standard',
-                    $p->purchase_price,
-                    $p->wholesale_price,
+                    $p->mrp ?: $p->price,
+                    '',
+                    $p->gst_percent ?: 18,
+                    $p->purchase_price ?: '',
                     $p->price,
-                    $p->mrp,
+                    $p->wholesale_price ?: $p->price,
+                    $p->cost_price_2 ?: '',
                     $p->stock_quantity ?? 0,
                 ];
             }

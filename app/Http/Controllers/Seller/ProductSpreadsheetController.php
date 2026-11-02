@@ -58,6 +58,7 @@ class ProductSpreadsheetController extends Controller
             $headers = [
                 'Product ID (Do Not Change)',
                 'Variant ID (Optional)',
+                'SKU / Code (वर्तमान कोड)',
                 'Product Name (आइटम नाम)',
                 'Category (कैटेगरी)',
                 'Brand (कंपनी)',
@@ -71,7 +72,6 @@ class ProductSpreadsheetController extends Controller
                 'Dealer Price (डीलर भाव / Sale C)',
                 'Stock Quantity (स्टॉक)',
                 'Unit (इकाई)',
-                'Current SKU / Code (वर्तमान कोड)',
                 'New SKU / Code (नया कोड - केवल बदलने के लिए)',
                 'Description (विवरण)',
                 'Image URL',
@@ -84,6 +84,7 @@ class ProductSpreadsheetController extends Controller
                         $rows[] = [
                             $p->id,
                             $v->id,
+                            $v->sku ?: ($p->sku ?: "PRD-{$p->id}"),
                             $p->name,
                             $p->category->name ?? 'General',
                             $p->brand ?? '',
@@ -97,7 +98,6 @@ class ProductSpreadsheetController extends Controller
                             $v->cost_price_2 ?: ($p->cost_price_2 ?: ''),
                             $v->stock_quantity ?? ($p->stock_quantity ?? 100),
                             'Pcs',
-                            $v->sku ?: ($p->sku ?: "PRD-{$p->id}"),
                             '', // New Code column (empty by default, fill to migrate)
                             $p->description ?? '',
                             $p->image_url ?? '',
@@ -107,6 +107,7 @@ class ProductSpreadsheetController extends Controller
                     $rows[] = [
                         $p->id,
                         '',
+                        $p->sku ?: "PRD-{$p->id}",
                         $p->name,
                         $p->category->name ?? 'General',
                         $p->brand ?? '',
@@ -120,7 +121,6 @@ class ProductSpreadsheetController extends Controller
                         $p->cost_price_2 ?: '',
                         $p->stock_quantity ?? 0,
                         'Pcs',
-                        $p->sku ?: "PRD-{$p->id}",
                         '', // New Code column
                         $p->description ?? '',
                         $p->image_url ?? '',
