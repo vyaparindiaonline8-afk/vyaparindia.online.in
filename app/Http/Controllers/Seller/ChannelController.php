@@ -704,8 +704,13 @@ class ChannelController extends Controller
     }
 
 
-    /**
+/**
      * 📥 Export Multi-Channel Staged & Pending Products to Clean Excel/CSV
+     * Accurately supports:
+     * - Pending / Amazon Queue vs All Store Products
+     * - Purchase Price With GST & Purchase Price Without GST (no double GST!)
+     * - Selling Price 1 (Retail), Selling Price 2 (Wholesale), Selling Price 3 (Dealer)
+     * - Channel Selling Price & Combo Pack Rates 2, 4, 6
      */
     public function exportSheet(Request $request)
     {
@@ -714,17 +719,48 @@ class ChannelController extends Controller
 
         $query = Product::where('user_id', $userId)->with(['category', 'variants']);
 
-        if ($scope === 'pending') {
-            $query->where(function($q) {
-                $q->whereJsonContains('attributes->channel_staged', true)
-                  ->orWhereDoesntHave('channelListings');
-            });
+        // 1. Ticked items take precedence (e.g. ?items=145,146,147)
+        if ($request->filled('items')) {
+            $ids = array_filter(array_map('intval', explode(',', $request->query('items'))));
+            if (!empty($ids)) {
+                $query->whereIn('id', $ids);
+            }
+        } elseif ($scope === 'pending') {
+            // Find products staged for channels or in active channel listings (Amazon, Meesho, etc.)
+            $channelSelectedProductIds = ChannelListing::whereHas('channel', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })->pluck('product_id')->unique()->toArray();
+
+            $stagedAttrProductIds = Product::where('user_id', $userId)
+                ->whereJsonContains('attributes->channel_staged', true)
+                ->pluck('id')
+                ->toArray();
+
+            $allPendingIds = array_unique(array_merge($channelSelectedProductIds, $stagedAttrProductIds));
+
+            if (!empty($allPendingIds)) {
+                $query->whereIn('id', $allPendingIds);
+            }
+        }
+
+        // Category / Folder filter
+        if ($request->filled('category')) {
+            $cat = $request->query('category');
+            if (is_numeric($cat)) {
+                $query->where('category_id', intval($cat));
+            } else {
+                $catTerm = strtolower(trim($cat));
+                $query->whereHas('category', function($cq) use ($catTerm) {
+                    $cq->whereRaw('LOWER(name) = ?', [$catTerm])
+                       ->orWhereRaw('LOWER(slug) = ?', [$catTerm]);
+                });
+            }
         }
 
         $products = $query->orderBy('id', 'asc')->get();
 
-        // If pending queue is empty, fall back to all seller products so user always gets their products
-        if ($products->isEmpty() && $scope === 'pending') {
+        // If pending queue is truly empty and no items specified, fall back to all products so merchant gets template
+        if ($products->isEmpty() && !$request->filled('items') && $scope === 'pending') {
             $products = Product::where('user_id', $userId)->with(['category', 'variants'])->orderBy('id', 'asc')->get();
         }
 
@@ -735,9 +771,11 @@ class ChannelController extends Controller
             'SKU / Code (वर्तमान कोड)',
             'Product Name (आइटम नाम)',
             'Category (कैटेगरी)',
-            'Purchase Price Without GST (खरीद भाव - बिना GST)',
             'Purchase Price With GST (खरीद भाव - GST सहित)',
-            'App Selling Price (दुकान सेलिंग रेट ₹)',
+            'Purchase Price Without GST (खरीद भाव - बिना GST)',
+            'Selling Price 1 (दुकान / रिटेल रेट ₹)',
+            'Selling Price 2 (थोक / Wholesale भाव ₹)',
+            'Selling Price 3 (डीलर / बल्क भाव ₹)',
             'Target Margin % (मार्जिन %)',
             'RTO Buffer (रिटर्न बफ़र ₹)',
             'Packaging Cost (पैकिंग ₹)',
@@ -756,9 +794,31 @@ class ChannelController extends Controller
 
         foreach ($products as $p) {
             $ue = $p->attributes['unit_economics'] ?? [];
-            $pCost = (float)($p->purchase_price ?: 0);
-            $landingCost = (float)($p->net_landing_cost ?: ($pCost * (1 + (($p->gst_percent ?: 18) / 100))));
-            $storePrice = (float)($p->price ?: 0);
+            $gstPercent = (float)($p->gst_percent ?: 18);
+            $pCostRaw = (float)($p->purchase_price ?: 0);
+            $landingRaw = (float)($p->net_landing_cost ?: 0);
+
+            // Merchant listed products with purchase price as GST INCLUSIVE (With GST)
+            if ($landingRaw > 0 && $pCostRaw > 0 && abs($landingRaw - $pCostRaw) > 0.01) {
+                $costWithGst = $landingRaw;
+                $costWithoutGst = $pCostRaw;
+            } elseif ($landingRaw > 0) {
+                $costWithGst = $landingRaw;
+                $costWithoutGst = round($costWithGst / (1 + ($gstPercent / 100)), 2);
+            } elseif ($pCostRaw > 0) {
+                // The merchant's catalog purchase price was entered WITH GST:
+                $costWithGst = $pCostRaw;
+                $costWithoutGst = round($costWithGst / (1 + ($gstPercent / 100)), 2);
+            } else {
+                $costWithGst = '';
+                $costWithoutGst = '';
+            }
+
+            // Selling Prices 1, 2, 3
+            $sp1 = (float)($p->price ?: 0);
+            $sp2 = $p->wholesale_price ?: ($p->variants->where('wholesale_price', '>', 0)->min('wholesale_price') ?: '');
+            $sp3 = $p->cost_price_2 ?: ($p->variants->where('cost_price_2', '>', 0)->min('cost_price_2') ?: '');
+
             $marginPct = (float)($ue['margin_pct'] ?? 25);
             $rtoBuffer = (float)($ue['rto_buffer'] ?? 20);
             $packCost = (float)($ue['packaging'] ?? 15);
@@ -767,15 +827,20 @@ class ChannelController extends Controller
             $adsCost = (float)($ue['ads'] ?? 10);
             $otherCost = (float)($ue['others'] ?? 5);
 
-            $desiredProfit = round($pCost * ($marginPct / 100));
-            $totalFixed = $pCost + $desiredProfit + $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
+            // Calculation base: Use landing cost with GST, NEVER double-add GST!
+            $calcBaseCost = is_numeric($costWithGst) && $costWithGst > 0
+                ? (float)$costWithGst
+                : (is_numeric($costWithoutGst) && $costWithoutGst > 0 ? round((float)$costWithoutGst * (1 + ($gstPercent / 100)), 2) : 0);
+
+            $desiredProfit = round($calcBaseCost * ($marginPct / 100));
+            $totalFixed = $calcBaseCost + $desiredProfit + $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
             $multiplier = max(0.1, 1 - ($feePct / 100));
             $calcSellingPrice = ceil($totalFixed / $multiplier);
-            $finalSellingPrice = !empty($ue['marketplace_price']) ? (float)$ue['marketplace_price'] : max($calcSellingPrice, $storePrice);
+            $finalSellingPrice = !empty($ue['marketplace_price']) ? (float)$ue['marketplace_price'] : max($calcSellingPrice, $sp1);
 
-            $combo2 = ceil((($pCost * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $multiplier);
-            $combo4 = ceil((($pCost * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $multiplier);
-            $combo6 = ceil((($pCost * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $multiplier);
+            $combo2 = ceil((($calcBaseCost * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $multiplier);
+            $combo4 = ceil((($calcBaseCost * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $multiplier);
+            $combo6 = ceil((($calcBaseCost * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $multiplier);
 
             $rows[] = [
                 $p->id,
@@ -783,9 +848,11 @@ class ChannelController extends Controller
                 $p->sku ?: "PRD-{$p->id}",
                 $p->name,
                 $p->category->name ?? 'General',
-                $pCost > 0 ? $pCost : '',
-                $landingCost > 0 ? round($landingCost, 2) : '',
-                $storePrice,
+                $costWithGst !== '' ? $costWithGst : '',
+                $costWithoutGst !== '' ? $costWithoutGst : '',
+                $sp1 > 0 ? $sp1 : '',
+                $sp2 !== '' ? $sp2 : '',
+                $sp3 !== '' ? $sp3 : '',
                 $marginPct,
                 $rtoBuffer,
                 $packCost,
@@ -793,7 +860,7 @@ class ChannelController extends Controller
                 $feePct,
                 $adsCost,
                 $p->hsn_code ?: '',
-                $p->gst_percent ?: 18,
+                $gstPercent,
                 $finalSellingPrice,
                 $combo2,
                 $combo4,
@@ -803,7 +870,15 @@ class ChannelController extends Controller
         }
 
         $timestamp = date('Y_m_d_His');
-        $filename = "VyaparIndia_MultiChannel_Pricing_Sheet_{$timestamp}.csv";
+        $prefix = "VyaparIndia_MultiChannel";
+        if ($request->filled('items')) {
+            $prefix .= "_Selected_" . count($rows) . "_Items";
+        } elseif ($scope === 'pending') {
+            $prefix .= "_Amazon_Queue_" . (count($rows) - 1) . "_Items";
+        } else {
+            $prefix .= "_All_Products_" . (count($rows) - 1) . "_Items";
+        }
+        $filename = "{$prefix}_{$timestamp}.csv";
 
         $output = "\xEF\xBB\xBF";
         $handle = fopen('php://memory', 'r+');
@@ -824,70 +899,77 @@ class ChannelController extends Controller
     }
 
     /**
-     * 📤 Import edited Multi-Channel Sheet to update unit economics, margins, and marketplace selling rates
+     * 📤 Import & Sync Multi-Channel Pricing Spreadsheet
      */
     public function importSheet(Request $request)
     {
-        @set_time_limit(300);
-        $userId = Auth::id();
-        $rawRows = [];
+        $request->validate([
+            'sheet' => 'required|file',
+        ]);
 
-        if ($request->filled('sheet_rows')) {
-            $decoded = json_decode($request->input('sheet_rows'), true);
-            if (is_array($decoded)) {
-                $rawRows = $decoded;
-            }
-        } elseif ($request->hasFile('sheet_file')) {
-            $file = $request->file('sheet_file');
-            $path = $file->getRealPath();
-            if (($handle = fopen($path, 'r')) !== false) {
+        $file = $request->file('sheet');
+        $ext = strtolower($file->getClientOriginalExtension());
+        $path = $file->getRealPath();
+
+        $rows = [];
+        if ($ext === 'csv' || $ext === 'txt') {
+            $handle = fopen($path, 'r');
+            if ($handle !== false) {
                 $bom = fread($handle, 3);
                 if ($bom !== "\xEF\xBB\xBF") {
                     rewind($handle);
                 }
-                $header = null;
-                while (($data = fgetcsv($handle, 3000, ',')) !== false) {
-                    if (!$header) {
-                        $header = array_map(function ($h) {
-                            return trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower(trim($h))), '_');
-                        }, $data);
-                        continue;
-                    }
-                    if (count($data) >= 2) {
-                        $row = [];
-                        foreach ($header as $idx => $key) {
-                            $row[$key] = $data[$idx] ?? '';
-                        }
-                        $rawRows[] = $row;
-                    }
+                while (($data = fgetcsv($handle, 4096, ',')) !== false) {
+                    if (empty(array_filter($data, fn($v) => trim((string)$v) !== ''))) continue;
+                    $rows[] = $data;
                 }
                 fclose($handle);
             }
+        } elseif (in_array($ext, ['xlsx', 'xls'])) {
+            try {
+                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+                $worksheet = $spreadsheet->getActiveSheet();
+                $rows = $worksheet->toArray(null, true, true, false);
+            } catch (\Throwable $e) {
+                return back()->with('error', 'एक्सेल फाइल पढ़ने में समस्या आई: ' . $e->getMessage());
+            }
         }
 
-        if (empty($rawRows)) {
-            return back()->with('error', 'Kripya ek valid CSV ya Excel file upload karein jisme rows mojud hon.');
+        if (empty($rows) || count($rows) < 2) {
+            return back()->with('error', 'शीट में कोई डेटा नहीं मिला।');
+        }
+
+        $headers = array_shift($rows);
+        $normHeaders = [];
+        foreach ($headers as $idx => $h) {
+            $norm = trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower(trim((string)$h))), '_');
+            $normHeaders[$idx] = $norm;
+        }
+
+        $userId = Auth::id();
+        $sellerProducts = Product::where('user_id', $userId)->get()->keyBy('id');
+        $bySku = [];
+        foreach ($sellerProducts as $sp) {
+            if (!empty($sp->sku)) {
+                $bySku[strtolower(trim($sp->sku))] = $sp;
+            }
         }
 
         $updatedCount = 0;
-        DB::transaction(function() use ($rawRows, $userId, &$updatedCount) {
-            $sellerProducts = Product::where('user_id', $userId)->get()->keyBy('id');
-            $bySku = [];
-            foreach ($sellerProducts as $p) {
-                if ($p->sku) $bySku[strtolower(trim($p->sku))] = $p;
-            }
 
-            foreach ($rawRows as $originalRow) {
+        DB::transaction(function () use ($rows, $normHeaders, $sellerProducts, $bySku, &$updatedCount) {
+            foreach ($rows as $row) {
                 $normRow = [];
-                foreach ($originalRow as $k => $v) {
-                    $cleanK = trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower(trim((string)$k))), '_');
-                    $normRow[$cleanK] = $v;
+                foreach ($row as $i => $val) {
+                    if (isset($normHeaders[$i])) {
+                        $normRow[$normHeaders[$i]] = is_string($val) ? trim($val) : $val;
+                    }
                 }
 
                 $getVal = function(array $aliases) use ($normRow) {
                     foreach ($aliases as $k) {
                         $clean = trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower($k)), '_');
-                        if (isset($normRow[$clean]) && $normRow[$clean] !== '' && !is_null($normRow[$clean])) {
+                        if (isset($normRow[$clean]) && trim((string)$normRow[$clean]) !== '') {
                             $num = preg_replace('/[^0-9.]/', '', (string)$normRow[$clean]);
                             return is_numeric($num) ? floatval($num) : null;
                         }
@@ -896,6 +978,7 @@ class ChannelController extends Controller
                         if ($rv === '' || is_null($rv)) continue;
                         foreach ($aliases as $k) {
                             $clean = trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower($k)), '_');
+                            if ($clean === 'gst' || $clean === 'tax') continue;
                             if (strlen($clean) >= 5 && str_contains($rk, $clean)) {
                                 $num = preg_replace('/[^0-9.]/', '', (string)$rv);
                                 return is_numeric($num) ? floatval($num) : null;
@@ -927,8 +1010,14 @@ class ChannelController extends Controller
 
                 if (!$product) continue;
 
-                $pCostWithoutGst = $getVal(['purchase_price_without_gst', 'purchase_price_bina_gst', 'purchase_price', 'p_cost']);
-                $pCostWithGst = $getVal(['purchase_price_with_gst', 'purchase_price_gst_sahit', 'net_landing_cost']);
+                $pCostWithGst = $getVal(['purchase_price_with_gst', 'purchase_price_gst_sahit', 'net_landing_cost', 'cost_with_gst', 'p_cost']);
+                $pCostWithoutGst = $getVal(['purchase_price_without_gst', 'purchase_price_bina_gst', 'basic_cost', 'cost_without_gst']);
+                $legacyCost = $getVal(['purchase_price', 'cost']);
+
+                $sp1 = $getVal(['selling_price_1', 'selling_price_1_dukaan_riteel_ret', 'selling_price', 'price', 'retail_price', 'sale_a']);
+                $sp2 = $getVal(['selling_price_2', 'selling_price_2_thok_wholesale_bhaav', 'wholesale_price', 'sale_b', 'price_2']);
+                $sp3 = $getVal(['selling_price_3', 'selling_price_3_diilr_bulk_bhaav', 'dealer_price', 'cost_price_2', 'sale_c', 'price_3']);
+
                 $margin = $getVal(['target_margin', 'margin_pct', 'margin']);
                 $rto = $getVal(['rto_buffer', 'rto', 'return_buffer']);
                 $pack = $getVal(['packaging_cost', 'packaging']);
@@ -940,12 +1029,32 @@ class ChannelController extends Controller
                 $channelPrice = $getVal(['channel_selling_price', 'marketplace_price', 'final_selling']);
                 $note = $getString(['custom_barcode_note', 'custom_note', 'barcode_note', 'note']);
 
-                if (!is_null($pCostWithoutGst) && $pCostWithoutGst > 0) {
-                    $product->purchase_price = $pCostWithoutGst;
-                }
+                $gstRate = (!is_null($gst) && $gst > 0) ? $gst : ($product->gst_percent ?: 18);
+
+                // Two-way GST Cost Calculation
                 if (!is_null($pCostWithGst) && $pCostWithGst > 0) {
                     $product->net_landing_cost = $pCostWithGst;
+                    $product->purchase_price = round($pCostWithGst / (1 + ($gstRate / 100)), 2);
+                } elseif (!is_null($pCostWithoutGst) && $pCostWithoutGst > 0) {
+                    $product->purchase_price = $pCostWithoutGst;
+                    $product->net_landing_cost = round($pCostWithoutGst * (1 + ($gstRate / 100)), 2);
+                } elseif (!is_null($legacyCost) && $legacyCost > 0) {
+                    // Default merchant purchase prices are With GST
+                    $product->net_landing_cost = $legacyCost;
+                    $product->purchase_price = round($legacyCost / (1 + ($gstRate / 100)), 2);
                 }
+
+                // Update Selling Prices 1, 2, 3
+                if (!is_null($sp1) && $sp1 > 0) {
+                    $product->price = $sp1;
+                }
+                if (!is_null($sp2) && $sp2 > 0) {
+                    $product->wholesale_price = $sp2;
+                }
+                if (!is_null($sp3) && $sp3 > 0) {
+                    $product->cost_price_2 = $sp3;
+                }
+
                 if (!empty($hsn)) {
                     $product->hsn_code = $hsn;
                 }
@@ -955,7 +1064,7 @@ class ChannelController extends Controller
 
                 $attrs = $product->attributes ?? [];
                 $ue = $attrs['unit_economics'] ?? [];
-                if (!is_null($pCostWithoutGst)) $ue['purchase_cost'] = $pCostWithoutGst;
+                if (!is_null($product->net_landing_cost)) $ue['purchase_cost'] = $product->net_landing_cost;
                 if (!is_null($margin)) $ue['margin_pct'] = $margin;
                 if (!is_null($rto)) $ue['rto_buffer'] = $rto;
                 if (!is_null($pack)) $ue['packaging'] = $pack;
@@ -979,6 +1088,6 @@ class ChannelController extends Controller
             }
         });
 
-        return back()->with('success', "🎉 शानदार! मल्टी-चैनल एक्सेल शीट से {$updatedCount} प्रोडक्ट्स के रेट्स, खर्चे और मार्जिन सफलतापूर्वक अपडेट हो गए!");
+        return back()->with('success', "🎉 शानदार! मल्टी-चैनल एक्सेल शीट से {$updatedCount} प्रोडक्ट्स के सेलिंग रेट 1-2-3, खरीद लागत (With GST) व खर्चे सफलतापूर्वक अपडेट हो गए!");
     }
 }

@@ -30,9 +30,13 @@
                 </div>
 
                 <div class="flex items-center gap-2.5 flex-wrap">
-                    <a href="{{ route('seller.channels.export_sheet') }}" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="मल्टी-चैनल एक्सेल शीट डाउनलोड करें">
+                    <a href="{{ route('seller.channels.export_sheet', ['scope' => 'pending']) }}" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="अमेज़न/मार्केटप्लेस कतार वाले प्रोडक्ट्स की एक्सेल शीट डाउनलोड करें">
                         <i class="fa-solid fa-file-csv text-amber-300 text-sm"></i>
-                        <span>📥 एक्सेल शीट डाउनलोड (.csv)</span>
+                        <span>📥 कतार शीट ({{ count($pendingProducts ?? []) }} आइटम्स)</span>
+                    </a>
+                    <a href="{{ route('seller.channels.export_sheet', ['scope' => 'all']) }}" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="पूरी दुकान के सभी प्रोडक्ट्स की मल्टी-चैनल शीट">
+                        <i class="fa-solid fa-table-list text-emerald-400"></i>
+                        <span>पूरी कैटलॉग शीट</span>
                     </a>
                     <button type="button" onclick="document.getElementById('channelCsvUploadInput').click()" class="px-3.5 py-2 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-black text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="अपलोड करके मल्टी-चैनल रेट्स व खर्चे अपडेट करें">
                         <i class="fa-solid fa-file-arrow-up text-amber-300 text-sm"></i>
@@ -450,9 +454,17 @@
 
                         <!-- Bulk Actions -->
                         <div class="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
-                            <a href="{{ route('seller.channels.export_sheet') }}" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer" title="मल्टी-चैनल एक्सेल शीट डाउनलोड (.csv)">
+                            <a href="{{ route('seller.channels.export_sheet', ['scope' => 'pending']) }}" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer" title="अमेज़न कतार वाले प्रोडक्ट्स की एक्सेल शीट डाउनलोड (.csv)">
                                 <i class="fa-solid fa-file-excel text-amber-300"></i>
-                                <span>एक्सेल शीट डाउनलोड</span>
+                                <span>📥 कतार शीट ({{ count($pendingProducts ?? []) }})</span>
+                            </a>
+                            <button type="button" id="btnDownloadSelectedChannel" onclick="downloadSelectedChannelRows()" class="hidden px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer" title="केवल टिक किए हुए प्रोडक्ट्स डाउनलोड करें">
+                                <i class="fa-solid fa-check-double"></i>
+                                <span id="btnDownloadSelectedChannelText">चुने हुए डाउनलोड</span>
+                            </button>
+                            <a href="{{ route('seller.channels.export_sheet', ['scope' => 'all']) }}" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-slate-200 hover:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer" title="पूरी दुकान की मल्टी-चैनल शीट">
+                                <i class="fa-solid fa-layer-group text-emerald-400"></i>
+                                <span>पूरी कैटलॉग</span>
                             </a>
                             <button type="button" onclick="document.getElementById('channelCsvUploadInput').click()" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer" title="एक्सेल शीट अपलोड कर रेट्स अपडेट करें">
                                 <i class="fa-solid fa-file-arrow-up text-amber-300"></i>
@@ -664,8 +676,8 @@
                                     <th class="p-3">फ़ोटो</th>
                                     <th class="p-3 min-w-[170px]">प्रोडक्ट का नाम & SKU</th>
                                     <th class="p-3 min-w-[70px] text-center font-mono text-gray-500">ID</th>
-                                    <th class="p-3 min-w-[105px] bg-slate-50 text-slate-900 font-extrabold" title="आपकी मूल खरीद कीमत">खरीद लागत (P.Cost ₹)</th>
-                                    <th class="p-3 min-w-[105px] bg-blue-50 text-blue-950 font-black" title="आपके VyaparIndia ऐप / स्टोर पर डाला गया मौजूदा रेट">ऐप सेलिंग रेट (Store ₹)</th>
+                                    <th class="p-3 min-w-[105px] bg-slate-50 text-slate-900 font-extrabold" title="आपकी खरीद लागत (GST सहित)">खरीद लागत (With GST ₹)</th>
+                                    <th class="p-3 min-w-[105px] bg-blue-50 text-blue-950 font-black" title="दुकान / ऐप का रिटेल बिक्री भाव (Selling Price 1)">सेलिंग भाव 1 (दुकान ₹)</th>
                                     <th class="p-3 min-w-[90px] bg-indigo-50 text-indigo-950 font-black" title="मार्केटप्लेस के लिए आपका मनपसंद मुनाफा %">मार्जिन (%)</th>
                                     <th class="p-3 min-w-[85px] bg-rose-50 text-rose-950 font-black" title="रिटर्न/RTO नुकसान से सुरक्षा">🔄 रिटर्न बफ़र (₹)</th>
                                     <th class="p-3 min-w-[70px]">पैकिंग (₹)</th>
@@ -2570,3 +2582,32 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
 @include('components.ai-copilot-widget')
 </body>
 </html>
+<script>
+function downloadSelectedChannelRows() {
+    const chks = document.querySelectorAll('.pending-prod-chk:checked');
+    const ids = Array.from(chks).map(c => c.value).filter(Boolean);
+    if (ids.length === 0) {
+        alert('कृपया कम से कम एक प्रोडक्ट टिक करें।');
+        return;
+    }
+    window.location.href = "{{ route('seller.channels.export_sheet') }}?items=" + ids.join(',');
+}
+
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.classList.contains('pending-prod-chk')) {
+        const count = document.querySelectorAll('.pending-prod-chk:checked').length;
+        const btn = document.getElementById('btnDownloadSelectedChannel');
+        const btnText = document.getElementById('btnDownloadSelectedChannelText');
+        if (btn) {
+            if (count > 0) {
+                btn.classList.remove('hidden');
+                if (btnText) btnText.textContent = `चुने हुए (${count}) डाउनलोड`;
+            } else {
+                btn.classList.add('hidden');
+            }
+        }
+    }
+});
+</script>
+
+

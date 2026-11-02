@@ -130,12 +130,12 @@ class ProductSpreadsheetController extends Controller
                 'Group (ग्रुप)',
                 'MRP (लिस्ट भाव)',
                 'Less % (डिस्काउंट %)',
+                'Purchase Price With GST (खरीद भाव - GST सहित)',
                 'Purchase Price Without GST (खरीद भाव - बिना GST)',
                 'GST %',
-                'Purchase Price With GST (खरीद भाव - GST सहित)',
-                'Selling Price (बिक्री भाव / Sale A)',
-                'Wholesale Price (थोक भाव / Sale B)',
-                'Dealer Price (डीलर भाव / Sale C)',
+                'Selling Price 1 (दुकान / रिटेल रेट ₹)',
+                'Selling Price 2 (थोक / Wholesale भाव ₹)',
+                'Selling Price 3 (डीलर / बल्क भाव ₹)',
                 'Stock Quantity (स्टॉक)',
                 'Unit (इकाई)',
                 'New SKU / Code (नया कोड - केवल बदलने के लिए)',
@@ -151,16 +151,25 @@ class ProductSpreadsheetController extends Controller
                         $lessVal = $v->trade_discount_percent ?: ($p->trade_discount_percent ?: '');
                         $gstVal = $v->gst_percent ?: ($p->gst_percent ?: 18);
                         
-                        // Cost without GST
-                        $costWithoutGst = $v->purchase_price ?: ($p->purchase_price ?: '');
-                        if (($costWithoutGst === '' || $costWithoutGst <= 0) && $mrpVal > 0 && is_numeric($lessVal) && $lessVal > 0) {
-                            $costWithoutGst = round($mrpVal * (1 - (floatval($lessVal) / 100)), 2);
-                        }
+                        // Smart Cost Calculation (Merchant purchase prices are entered WITH GST)
+                        $vNetLanding = (float)($v->net_landing_cost ?: ($p->net_landing_cost ?: 0));
+                        $vCostRaw = (float)($v->purchase_price ?: ($p->purchase_price ?: 0));
 
-                        // Cost with GST (Landing Cost)
-                        $costWithGst = $v->net_landing_cost ?: ($p->net_landing_cost ?: '');
-                        if (($costWithGst === '' || $costWithGst <= 0) && is_numeric($costWithoutGst) && $costWithoutGst > 0) {
-                            $costWithGst = round(floatval($costWithoutGst) * (1 + (floatval($gstVal) / 100)), 2);
+                        if ($vNetLanding > 0 && $vCostRaw > 0 && abs($vNetLanding - $vCostRaw) > 0.01) {
+                            $costWithGst = $vNetLanding;
+                            $costWithoutGst = $vCostRaw;
+                        } elseif ($vNetLanding > 0) {
+                            $costWithGst = $vNetLanding;
+                            $costWithoutGst = round($costWithGst / (1 + ($gstVal / 100)), 2);
+                        } elseif ($vCostRaw > 0) {
+                            $costWithGst = $vCostRaw;
+                            $costWithoutGst = round($costWithGst / (1 + ($gstVal / 100)), 2);
+                        } elseif ($mrpVal > 0 && is_numeric($lessVal) && $lessVal > 0) {
+                            $costWithoutGst = round($mrpVal * (1 - (floatval($lessVal) / 100)), 2);
+                            $costWithGst = round($costWithoutGst * (1 + ($gstVal / 100)), 2);
+                        } else {
+                            $costWithGst = '';
+                            $costWithoutGst = '';
                         }
 
                         $rows[] = [
@@ -173,9 +182,9 @@ class ProductSpreadsheetController extends Controller
                             $p->group_name ?? '',
                             $mrpVal,
                             $lessVal,
+                            $costWithGst,
                             $costWithoutGst,
                             $gstVal,
-                            $costWithGst,
                             $v->retail_price ?: $p->price,
                             $v->wholesale_price ?: ($p->wholesale_price ?: $p->price),
                             $v->cost_price_2 ?: ($p->cost_price_2 ?: ''),
@@ -191,14 +200,24 @@ class ProductSpreadsheetController extends Controller
                     $lessVal = $p->trade_discount_percent ?: '';
                     $gstVal = $p->gst_percent ?: 18;
 
-                    $costWithoutGst = $p->purchase_price ?: '';
-                    if (($costWithoutGst === '' || $costWithoutGst <= 0) && $mrpVal > 0 && is_numeric($lessVal) && $lessVal > 0) {
-                        $costWithoutGst = round($mrpVal * (1 - (floatval($lessVal) / 100)), 2);
-                    }
+                    $pNetLanding = (float)($p->net_landing_cost ?: 0);
+                    $pCostRaw = (float)($p->purchase_price ?: 0);
 
-                    $costWithGst = $p->net_landing_cost ?: '';
-                    if (($costWithGst === '' || $costWithGst <= 0) && is_numeric($costWithoutGst) && $costWithoutGst > 0) {
-                        $costWithGst = round(floatval($costWithoutGst) * (1 + (floatval($gstVal) / 100)), 2);
+                    if ($pNetLanding > 0 && $pCostRaw > 0 && abs($pNetLanding - $pCostRaw) > 0.01) {
+                        $costWithGst = $pNetLanding;
+                        $costWithoutGst = $pCostRaw;
+                    } elseif ($pNetLanding > 0) {
+                        $costWithGst = $pNetLanding;
+                        $costWithoutGst = round($costWithGst / (1 + ($gstVal / 100)), 2);
+                    } elseif ($pCostRaw > 0) {
+                        $costWithGst = $pCostRaw;
+                        $costWithoutGst = round($costWithGst / (1 + ($gstVal / 100)), 2);
+                    } elseif ($mrpVal > 0 && is_numeric($lessVal) && $lessVal > 0) {
+                        $costWithoutGst = round($mrpVal * (1 - (floatval($lessVal) / 100)), 2);
+                        $costWithGst = round($costWithoutGst * (1 + ($gstVal / 100)), 2);
+                    } else {
+                        $costWithGst = '';
+                        $costWithoutGst = '';
                     }
 
                     $rows[] = [
@@ -211,9 +230,9 @@ class ProductSpreadsheetController extends Controller
                         $p->group_name ?? '',
                         $mrpVal,
                         $lessVal,
+                        $costWithGst,
                         $costWithoutGst,
                         $gstVal,
-                        $costWithGst,
                         $p->price,
                         $p->wholesale_price ?: $p->price,
                         $p->cost_price_2 ?: '',
@@ -238,12 +257,12 @@ class ProductSpreadsheetController extends Controller
                 'Group (ग्रुप)',
                 'MRP (लिस्ट भाव)',
                 'Less % (डिस्काउंट %)',
+                'Purchase Price With GST (खरीद भाव - GST सहित)',
                 'Purchase Price Without GST (खरीद भाव - बिना GST)',
                 'GST %',
-                'Purchase Price With GST (खरीद भाव - GST सहित)',
-                'Selling Price (बिक्री भाव / Sale A)',
-                'Wholesale Price (थोक भाव / Sale B)',
-                'Dealer Price (डीलर भाव / Sale C)',
+                'Selling Price 1 (दुकान / रिटेल रेट ₹)',
+                'Selling Price 2 (थोक / Wholesale भाव ₹)',
+                'Selling Price 3 (डीलर / बल्क भाव ₹)',
                 'Current Stock (स्टॉक संख्या)',
             ];
             $rows[] = $headers;
@@ -255,16 +274,25 @@ class ProductSpreadsheetController extends Controller
                         $lessVal = $v->trade_discount_percent ?: ($p->trade_discount_percent ?: '');
                         $gstVal = $v->gst_percent ?: ($p->gst_percent ?: 18);
 
-                        // Cost without GST
-                        $costWithoutGst = $v->purchase_price ?: ($p->purchase_price ?: '');
-                        if (($costWithoutGst === '' || $costWithoutGst <= 0) && $mrpVal > 0 && is_numeric($lessVal) && $lessVal > 0) {
-                            $costWithoutGst = round($mrpVal * (1 - (floatval($lessVal) / 100)), 2);
-                        }
+                        // Smart Cost Calculation (Merchant purchase prices are entered WITH GST)
+                        $vNetLanding = (float)($v->net_landing_cost ?: ($p->net_landing_cost ?: 0));
+                        $vCostRaw = (float)($v->purchase_price ?: ($p->purchase_price ?: 0));
 
-                        // Cost with GST (Landing Cost)
-                        $costWithGst = $v->net_landing_cost ?: ($p->net_landing_cost ?: '');
-                        if (($costWithGst === '' || $costWithGst <= 0) && is_numeric($costWithoutGst) && $costWithoutGst > 0) {
-                            $costWithGst = round(floatval($costWithoutGst) * (1 + (floatval($gstVal) / 100)), 2);
+                        if ($vNetLanding > 0 && $vCostRaw > 0 && abs($vNetLanding - $vCostRaw) > 0.01) {
+                            $costWithGst = $vNetLanding;
+                            $costWithoutGst = $vCostRaw;
+                        } elseif ($vNetLanding > 0) {
+                            $costWithGst = $vNetLanding;
+                            $costWithoutGst = round($costWithGst / (1 + ($gstVal / 100)), 2);
+                        } elseif ($vCostRaw > 0) {
+                            $costWithGst = $vCostRaw;
+                            $costWithoutGst = round($costWithGst / (1 + ($gstVal / 100)), 2);
+                        } elseif ($mrpVal > 0 && is_numeric($lessVal) && $lessVal > 0) {
+                            $costWithoutGst = round($mrpVal * (1 - (floatval($lessVal) / 100)), 2);
+                            $costWithGst = round($costWithoutGst * (1 + ($gstVal / 100)), 2);
+                        } else {
+                            $costWithGst = '';
+                            $costWithoutGst = '';
                         }
 
                         $rows[] = [
@@ -277,9 +305,9 @@ class ProductSpreadsheetController extends Controller
                             $p->group_name ?? '',
                             $mrpVal,
                             $lessVal,
+                            $costWithGst,
                             $costWithoutGst,
                             $gstVal,
-                            $costWithGst,
                             $v->retail_price ?: $p->price,
                             $v->wholesale_price ?: ($p->wholesale_price ?: $p->price),
                             $v->cost_price_2 ?: ($p->cost_price_2 ?: ''),
@@ -291,14 +319,24 @@ class ProductSpreadsheetController extends Controller
                     $lessVal = $p->trade_discount_percent ?: '';
                     $gstVal = $p->gst_percent ?: 18;
 
-                    $costWithoutGst = $p->purchase_price ?: '';
-                    if (($costWithoutGst === '' || $costWithoutGst <= 0) && $mrpVal > 0 && is_numeric($lessVal) && $lessVal > 0) {
-                        $costWithoutGst = round($mrpVal * (1 - (floatval($lessVal) / 100)), 2);
-                    }
+                    $pNetLanding = (float)($p->net_landing_cost ?: 0);
+                    $pCostRaw = (float)($p->purchase_price ?: 0);
 
-                    $costWithGst = $p->net_landing_cost ?: '';
-                    if (($costWithGst === '' || $costWithGst <= 0) && is_numeric($costWithoutGst) && $costWithoutGst > 0) {
-                        $costWithGst = round(floatval($costWithoutGst) * (1 + (floatval($gstVal) / 100)), 2);
+                    if ($pNetLanding > 0 && $pCostRaw > 0 && abs($pNetLanding - $pCostRaw) > 0.01) {
+                        $costWithGst = $pNetLanding;
+                        $costWithoutGst = $pCostRaw;
+                    } elseif ($pNetLanding > 0) {
+                        $costWithGst = $pNetLanding;
+                        $costWithoutGst = round($costWithGst / (1 + ($gstVal / 100)), 2);
+                    } elseif ($pCostRaw > 0) {
+                        $costWithGst = $pCostRaw;
+                        $costWithoutGst = round($costWithGst / (1 + ($gstVal / 100)), 2);
+                    } elseif ($mrpVal > 0 && is_numeric($lessVal) && $lessVal > 0) {
+                        $costWithoutGst = round($mrpVal * (1 - (floatval($lessVal) / 100)), 2);
+                        $costWithGst = round($costWithoutGst * (1 + ($gstVal / 100)), 2);
+                    } else {
+                        $costWithGst = '';
+                        $costWithoutGst = '';
                     }
 
                     $rows[] = [
@@ -311,9 +349,9 @@ class ProductSpreadsheetController extends Controller
                         $p->group_name ?? '',
                         $mrpVal,
                         $lessVal,
+                        $costWithGst,
                         $costWithoutGst,
                         $gstVal,
-                        $costWithGst,
                         $p->price,
                         $p->wholesale_price ?: $p->price,
                         $p->cost_price_2 ?: '',
@@ -705,7 +743,7 @@ class ProductSpreadsheetController extends Controller
                 $purchasePriceWithGst = $getFloat([
                     'purchase_price_with_gst', 'purchase_price_with_gst_khariid_bhaav_gst_sahit',
                     'purchase_price_gst_sahit', 'net_landing_cost', 'landing_cost', 'p_cost',
-                    'purchase_price_net_cost', 'purchase_price_khariid_bhaav_net_cost'
+                    'purchase_price_net_cost', 'purchase_price_khariid_bhaav_net_cost', 'cost_with_gst'
                 ]);
 
                 // Legacy generic purchase price alias fallback
@@ -713,26 +751,25 @@ class ProductSpreadsheetController extends Controller
                     'purchase_price', 'purchase_price_khariid_bhaav', 'purchase_price_cost', 'cost'
                 ]);
 
-                if (is_null($purchasePriceWithoutGst) && !is_null($legacyPurchasePrice)) {
-                    $purchasePriceWithoutGst = $legacyPurchasePrice;
-                }
-
-                // ⚡ SMART FORMULAS: Complete 2-way with/without GST calculation
                 $gstRate = (!is_null($gst) && $gst > 0) ? $gst : 18;
 
                 // Formula 1: If Without GST is empty, calculate from MRP - Less%
                 if ((is_null($purchasePriceWithoutGst) || $purchasePriceWithoutGst <= 0) && (!is_null($mrp) && $mrp > 0) && (!is_null($less) && $less > 0)) {
                     $purchasePriceWithoutGst = round($mrp * (1 - ($less / 100)), 2);
-                }
-
-                // Formula 2: If With GST is empty, calculate from Without GST + GST%
-                if ((is_null($purchasePriceWithGst) || $purchasePriceWithGst <= 0) && (!is_null($purchasePriceWithoutGst) && $purchasePriceWithoutGst > 0)) {
                     $purchasePriceWithGst = round($purchasePriceWithoutGst * (1 + ($gstRate / 100)), 2);
                 }
 
-                // Formula 3: If Without GST is empty but With GST is present, reverse calculate Without GST
-                if ((is_null($purchasePriceWithoutGst) || $purchasePriceWithoutGst <= 0) && (!is_null($purchasePriceWithGst) && $purchasePriceWithGst > 0)) {
-                    $purchasePriceWithoutGst = round($purchasePriceWithGst / (1 + ($gstRate / 100)), 2);
+                // Formula 2: If With GST is present, calculate Without GST (no double GST!)
+                if (!is_null($purchasePriceWithGst) && $purchasePriceWithGst > 0) {
+                    if (is_null($purchasePriceWithoutGst) || $purchasePriceWithoutGst <= 0) {
+                        $purchasePriceWithoutGst = round($purchasePriceWithGst / (1 + ($gstRate / 100)), 2);
+                    }
+                } elseif (!is_null($purchasePriceWithoutGst) && $purchasePriceWithoutGst > 0) {
+                    $purchasePriceWithGst = round($purchasePriceWithoutGst * (1 + ($gstRate / 100)), 2);
+                } elseif (!is_null($legacyPurchasePrice) && $legacyPurchasePrice > 0) {
+                    // Merchant purchase prices were entered WITH GST by default
+                    $purchasePriceWithGst = $legacyPurchasePrice;
+                    $purchasePriceWithoutGst = round($legacyPurchasePrice / (1 + ($gstRate / 100)), 2);
                 }
 
                 // Formula 4: If Less% is empty, auto-calculate: ((MRP - WithoutGST) / MRP) * 100
@@ -743,19 +780,19 @@ class ProductSpreadsheetController extends Controller
                 $purchasePrice = $purchasePriceWithoutGst;
 
                 [$sellingPrice, $spKey] = [
-                    $getFloat(['sale_a', 'selling_price', 'selling_price_bikrii_bhaav', 'retail_price', 'price', 'selling_price__bikrii_bhaav_', 'rate_a', 'sale_price', 'selling_price_bikrii_bhaav_sale_a', 'selling_price__bikrii_bhaav___sale_a_', 'selling_price_sale_a']),
-                    $getValWithKey(['sale_a', 'selling_price', 'retail_price', 'price', 'rate_a'])[1]
+                    $getFloat(['selling_price_1', 'selling_price_1_dukaan_riteel_ret', 'selling_price_1_dukaan_riteel_bikrii_bhaav', 'price_1', 'sale_a', 'selling_price', 'selling_price_bikrii_bhaav', 'retail_price', 'price', 'selling_price__bikrii_bhaav_', 'rate_a', 'sale_price', 'selling_price_bikrii_bhaav_sale_a', 'selling_price__bikrii_bhaav___sale_a_', 'selling_price_sale_a']),
+                    $getValWithKey(['selling_price_1', 'price_1', 'sale_a', 'selling_price', 'retail_price', 'price', 'rate_a'])[1]
                 ];
                 if ($spKey && !isset($detectedCols['Price A'])) $detectedCols['Price A'] = $spKey;
 
                 $wholesalePrice = $getFloat([
-                    'sale_b', 'wholesale_price', 'wholesale_price_thok_bhaav_b2b', 'wholesale_price_thok_bhaav',
+                    'selling_price_2', 'selling_price_2_thok_wholesale_bhaav', 'selling_price_2_thok_wholesale_ret', 'price_2', 'sale_b', 'wholesale_price', 'wholesale_price_thok_bhaav_b2b', 'wholesale_price_thok_bhaav',
                     'wholesale_price__thok_bhaav_b2b_', 'wholesale_price__thok_bhaav_', 'rate_b', 'b2b_price',
                     'wholesale_price_thok_bhaav_sale_b', 'wholesale_price__thok_bhaav___sale_b_', 'wholesale_price_sale_b'
                 ]);
 
                 $costPrice2 = $getFloat([
-                    'sale_c', 'dealer_price', 'cost_price_2', 'cost_price_2_khariid_bhaav_2', 'cost_2', 'purchase_price_2',
+                    'selling_price_3', 'selling_price_3_diilr_bulk_bhaav', 'selling_price_3_diilr_bulk_ret', 'price_3', 'sale_c', 'dealer_price', 'cost_price_2', 'cost_price_2_khariid_bhaav_2', 'cost_2', 'purchase_price_2',
                     'rate_c', 'dealer_price_diilr_bhaav_sale_c', 'dealer_price__diilr_bhaav___sale_c_', 'dealer_price_sale_c'
                 ]);
 
