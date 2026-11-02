@@ -275,15 +275,28 @@
 
                 <!-- Right: Clean Organized Action Buttons -->
                 <div class="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-stretch sm:items-center gap-2 shrink-0">
+                    @php
+                        $activeExportFilters = array_filter([
+                            'category' => (!empty($activeCategory) && $activeCategory !== 'all') ? $activeCategory : null,
+                            'folder' => (!empty($activeFolder) && $activeFolder !== 'all') ? $activeFolder : null,
+                            'search' => !empty($search) ? $search : null,
+                        ]);
+                    @endphp
                     <!-- Downloads Pill Group -->
                     <div class="flex items-center gap-1.5 bg-white/5 p-1 rounded-xl border border-white/10 backdrop-blur-xs">
-                        <a href="{{ route('seller.products.export_sheet', ['type' => 'rates']) }}" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-[11px] transition flex items-center gap-1.5" title="दैनिक भाव बदलने के लिए शीट">
+                        <a href="{{ route('seller.products.export_sheet', array_merge(['type' => 'rates'], $activeExportFilters)) }}" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-[11px] transition flex items-center gap-1.5" title="दैनिक भाव बदलने के लिए शीट">
                             <i class="fa-solid fa-file-invoice-dollar text-amber-400"></i>
                             <span>दैनिक भाव (.csv)</span>
+                            @if(!empty($activeExportFilters))
+                                <span class="bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded-full text-[9px] font-black tracking-tight ml-0.5">Filtered ({{ $products->count() }})</span>
+                            @endif
                         </a>
-                        <a href="{{ route('seller.products.export_sheet', ['type' => 'full']) }}" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-[11px] transition flex items-center gap-1.5" title="पूरा कैटलॉग मास्टर शीट">
+                        <a href="{{ route('seller.products.export_sheet', array_merge(['type' => 'full'], $activeExportFilters)) }}" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-[11px] transition flex items-center gap-1.5" title="पूरा कैटलॉग मास्टर शीट">
                             <i class="fa-solid fa-table-list text-emerald-400"></i>
                             <span>पूरा कैटलॉग (.csv)</span>
+                            @if(!empty($activeExportFilters))
+                                <span class="bg-emerald-400 text-slate-950 px-1.5 py-0.2 rounded-full text-[9px] font-black tracking-tight ml-0.5">({{ $products->count() }})</span>
+                            @endif
                         </a>
                     </div>
 
@@ -363,11 +376,17 @@
                     </div>
                 @endif
                 @if(!empty($activeCategory) && $activeCategory !== 'all')
-                    <span class="text-xs font-bold text-blue-900 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-200 flex items-center gap-1.5">
-                        <i class="fa-solid fa-layer-group text-blue-600 text-[10px]"></i>
-                        <span>Active Category: <strong>{{ $activeCategory }}</strong> ({{ $products->count() }} items)</span>
-                        <a href="{{ route('seller.products.index', array_filter(['folder' => $activeFolder, 'search' => $search])) }}" class="text-rose-600 hover:text-rose-800 ml-1 font-black text-xs" title="Clear Category Filter">&times;</a>
-                    </span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-blue-900 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-200 flex items-center gap-1.5">
+                            <i class="fa-solid fa-layer-group text-blue-600 text-[10px]"></i>
+                            <span>Active Category: <strong>{{ $activeCategory }}</strong> ({{ $products->count() }} items)</span>
+                            <a href="{{ route('seller.products.index', array_filter(['folder' => $activeFolder, 'search' => $search])) }}" class="text-rose-600 hover:text-rose-800 ml-1 font-black text-xs" title="Clear Category Filter">&times;</a>
+                        </span>
+                        <a href="{{ route('seller.products.export_sheet', ['type' => 'rates', 'category' => $activeCategory]) }}" class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-xs transition flex items-center gap-1.5" title="इस कैटेगरी के आइटम्स की रेट शीट डाउनलोड करें">
+                            <i class="fa-solid fa-download"></i>
+                            <span>इस कैटेगरी की रेट शीट ({{ $products->count() }})</span>
+                        </a>
+                    </div>
                 @endif
                 @if((!empty($activeFolder) && $activeFolder !== 'all') || (!empty($activeCategory) && $activeCategory !== 'all') || !empty($search))
                     <a href="{{ route('seller.products.index') }}" class="px-2.5 py-1 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-[11px] border border-rose-200 transition flex items-center gap-1" title="Reset all filters">
@@ -1053,11 +1072,11 @@
                             अपनी लाइव लिस्टिंग की शीट अभी डाउनलोड करें:
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
-                            <a href="{{ route('seller.products.export_sheet', ['type' => 'rates']) }}" class="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-black text-[11px] flex items-center gap-1 transition">
-                                <i class="fa-solid fa-download"></i> दैनिक भाव
+                            <a href="{{ route('seller.products.export_sheet', array_merge(['type' => 'rates'], $activeExportFilters ?? [])) }}" class="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-black text-[11px] flex items-center gap-1 transition">
+                                <i class="fa-solid fa-download"></i> दैनिक भाव @if(!empty($activeExportFilters)) ({{ $products->count() }}) @endif
                             </a>
-                            <a href="{{ route('seller.products.export_sheet', ['type' => 'full']) }}" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-black text-[11px] flex items-center gap-1 transition">
-                                <i class="fa-solid fa-download"></i> पूरा कैटलॉग
+                            <a href="{{ route('seller.products.export_sheet', array_merge(['type' => 'full'], $activeExportFilters ?? [])) }}" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-black text-[11px] flex items-center gap-1 transition">
+                                <i class="fa-solid fa-download"></i> पूरा कैटलॉग @if(!empty($activeExportFilters)) ({{ $products->count() }}) @endif
                             </a>
                         </div>
                     </div>

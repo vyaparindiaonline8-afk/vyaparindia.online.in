@@ -590,6 +590,8 @@ class CatalogIngestionController extends Controller
             'SKU / Code (आइटम कोड / बारकोड)',
             'Product Name (आइटम नाम)',
             'Size / Variant Name (साइज़ / प्रकार)',
+            'Brand (कंपनी)',
+            'Group (ग्रुप)',
             'MRP (लिस्ट भाव)',
             'Less % (डिस्काउंट %)',
             'GST %',
@@ -609,6 +611,8 @@ class CatalogIngestionController extends Controller
                         $v->sku ?: ($p->sku ?: "PRD-{$p->id}"),
                         $p->name,
                         $v->variant_name ?: ($v->size ?: 'Standard'),
+                        $p->brand ?? '',
+                        $p->group_name ?? '',
                         $v->mrp ?: ($p->mrp ?: $p->price),
                         $v->trade_discount_percent ?: '',
                         $v->gst_percent ?: ($p->gst_percent ?: 18),
@@ -626,6 +630,8 @@ class CatalogIngestionController extends Controller
                     $p->sku ?: "PRD-{$p->id}",
                     $p->name,
                     'Standard',
+                    $p->brand ?? '',
+                    $p->group_name ?? '',
                     $p->mrp ?: $p->price,
                     '',
                     $p->gst_percent ?: 18,
@@ -638,16 +644,22 @@ class CatalogIngestionController extends Controller
             }
         }
 
-        $filename = "VyaparIndia_RateList_Update_" . date('Y_m_d_His') . ".csv";
-        $handle = fopen('php://memory', 'w+');
+        $filename = "VyaparIndia_Daily_Rates_" . date('Y_m_d_His') . ".csv";
+        $output = "\xEF\xBB\xBF";
+        $handle = fopen('php://memory', 'r+');
         foreach ($csvData as $row) {
             fputcsv($handle, $row);
         }
-        fseek($handle, 0);
+        rewind($handle);
+        $output .= stream_get_contents($handle);
+        fclose($handle);
 
-        return response(stream_get_contents($handle), 200, [
-            'Content-Type' => 'text/csv',
+        return response($output, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
         ]);
     }
 
@@ -666,18 +678,26 @@ class CatalogIngestionController extends Controller
             if (is_array($decoded)) {
                 $rows = $decoded;
             }
-        } elseif ($request->hasFile('price_file')) {
+        } elseif ($request->hasFile('price_file') || $request->hasFile('spreadsheet_file')) {
             // Native CSV parser fallback
-            $file = $request->file('price_file');
+            $file = $request->file('price_file') ?: $request->file('spreadsheet_file');
             $path = $file->getRealPath();
             if (($handle = fopen($path, 'r')) !== false) {
+                // Strip possible UTF-8 BOM
+                $bom = fread($handle, 3);
+                if ($bom !== "\xEF\xBB\xBF") {
+                    rewind($handle);
+                }
                 $header = null;
-                while (($data = fgetcsv($handle, 2000, ',')) !== false) {
+                while (($data = fgetcsv($handle, 3000, ',')) !== false) {
                     if (!$header) {
-                        $header = array_map(fn($h) => strtolower(trim(preg_replace('/[^a-zA-Z0-9_]/', '', str_replace([' ', '/', '-'], '_', $h)))), $data);
+                        $header = array_map(function ($h) {
+                            $clean = preg_replace('/[^a-zA-Z0-9_]/', '', str_replace([' ', '/', '-', '(', ')', '%'], '_', strtolower(trim($h))));
+                            return trim($clean, '_');
+                        }, $data);
                         continue;
                     }
-                    if (count($data) >= 3) {
+                    if (count($data) >= 2) {
                         $row = [];
                         foreach ($header as $idx => $key) {
                             $row[$key] = $data[$idx] ?? '';
@@ -719,29 +739,83 @@ class CatalogIngestionController extends Controller
                 }
             }
 
-            foreach ($rows as $row) {
-                $rowProdId = intval($row['product_id'] ?? ($row['id'] ?? ($row['product_id_do_not_change'] ?? 0)));
-                $rowVarId = intval($row['variant_id'] ?? ($row['variant_id_optional'] ?? 0));
-                $sku = strtolower(trim($row['sku__code'] ?? ($row['sku_code'] ?? ($row['sku'] ?? ($row['product_code'] ?? '')))));
-                $pNameRaw = trim($row['product_name'] ?? ($row['name'] ?? ($row['item_name'] ?? '')));
-                $pName = strtolower($pNameRaw);
-                $vName = strtolower(trim($row['size__variant_name'] ?? ($row['size_variant_name'] ?? ($row['size'] ?? ($row['variant_name'] ?? ($row['variant'] ?? 'standard'))))));
+            foreach ($rows as $originalRow) {
+                // Build normalized map for every key in row for 100% collision-free matching
+                $normRow = [];
+                foreach ($originalRow as $k => $v) {
+                    $cleanK = trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower(trim((string)$k))), '_');
+                    $normRow[$cleanK] = $v;
+                }
 
-                // Clean rates helper
-                $getVal = function(array $keys) use ($row) {
-                    foreach ($keys as $k) {
-                        if (isset($row[$k]) && $row[$k] !== '' && !is_null($row[$k])) {
-                            return floatval($row[$k]);
+                $getVal = function(array $aliases) use ($normRow) {
+                    foreach ($aliases as $k) {
+                        $clean = trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower($k)), '_');
+                        if (isset($normRow[$clean]) && $normRow[$clean] !== '' && !is_null($normRow[$clean])) {
+                            $num = preg_replace('/[^0-9.]/', '', (string)$normRow[$clean]);
+                            return is_numeric($num) ? floatval($num) : null;
+                        }
+                    }
+                    foreach ($normRow as $rk => $rv) {
+                        if ($rv === '' || is_null($rv)) continue;
+                        foreach ($aliases as $k) {
+                            $clean = trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower($k)), '_');
+                            if (strlen($clean) >= 4 && (str_contains($rk, $clean) || str_contains($clean, $rk))) {
+                                $num = preg_replace('/[^0-9.]/', '', (string)$rv);
+                                return is_numeric($num) ? floatval($num) : null;
+                            }
                         }
                     }
                     return null;
                 };
 
-                $cost = $getVal(['cost__purchase_rate_', 'cost_purchase_rate', 'cost', 'purchase_price', 'raw_rate']);
-                $retail = $getVal(['retail_price__d2c_', 'retail_price_d2c', 'retail_price', 'price', 'rate_a', 'selling_price']);
-                $wholesale = $getVal(['wholesale_price__b2b_', 'wholesale_price_b2b', 'wholesale_price', 'rate_b']);
-                $mrp = $getVal(['mrp']);
-                $stockRaw = $getVal(['current_stock', 'stock', 'stock_quantity']);
+                $getString = function(array $aliases) use ($normRow) {
+                    foreach ($aliases as $k) {
+                        $clean = trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower($k)), '_');
+                        if (isset($normRow[$clean]) && trim((string)$normRow[$clean]) !== '') {
+                            return trim((string)$normRow[$clean]);
+                        }
+                    }
+                    foreach ($normRow as $rk => $rv) {
+                        if (trim((string)$rv) === '') continue;
+                        foreach ($aliases as $k) {
+                            $clean = trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower($k)), '_');
+                            if (strlen($clean) >= 4 && (str_contains($rk, $clean) || str_contains($clean, $rk))) {
+                                return trim((string)$rv);
+                            }
+                        }
+                    }
+                    return '';
+                };
+
+                // 1. Precise ID Matching (Col 1 & Col 2)
+                $rowProdId = intval($getVal(['product_id', 'product_id_do_not_change', 'id', 'item_id', 'prod_id']) ?? 0);
+                $rowVarId = intval($getVal(['variant_id', 'variant_id_optional', 'var_id', 'variantid']) ?? 0);
+                $sku = strtolower($getString(['sku', 'code', 'product_code', 'sku_code', 'itam_code', 'item_code']));
+                $pNameRaw = $getString(['product_name', 'name', 'item_name', 'title']);
+                $pName = strtolower($pNameRaw);
+                $vName = strtolower($getString(['size', 'variant_name', 'size_variant_name', 'variant', 'dimension']));
+
+                // Rates & Margins
+                $mrp = $getVal(['mrp', 'maximum_retail_price', 'mrp_list_bhaav']);
+                $less = $getVal(['less', 'less_percent', 'trade_discount_percent', 'discount']);
+                $gst = $getVal(['gst', 'gst_percent']);
+
+                $cost = $getVal([
+                    'purchase_price', 'p_cost', 'cost', 'raw_rate', 'net_landing_cost', 'landing_cost',
+                    'purchase_price_net_cost', 'purchase_price_khariid_bhaav_net_cost', 'cost_1'
+                ]);
+
+                // Auto-calculate purchase cost from MRP - Less% + GST% if purchase cost is left empty in Excel
+                if ((is_null($cost) || $cost <= 0) && (!is_null($mrp) && $mrp > 0) && (!is_null($less) && $less > 0)) {
+                    $discounted = $mrp * (1 - ($less / 100));
+                    $gstRate = (!is_null($gst) && $gst > 0) ? $gst : 18;
+                    $cost = round($discounted * (1 + ($gstRate / 100)), 2);
+                }
+
+                $retail = $getVal(['selling_price', 'sale_a', 'retail_price', 'price', 'rate_a', 'selling_price_sale_a']);
+                $wholesale = $getVal(['wholesale_price', 'sale_b', 'rate_b', 'wholesale_price_sale_b', 'b2b_price']);
+                $dealer = $getVal(['dealer_price', 'sale_c', 'cost_price_2', 'cost_2', 'rate_c', 'dealer_price_sale_c']);
+                $stockRaw = $getVal(['current_stock', 'stock', 'stock_quantity', 'opn_stock']);
                 $stock = !is_null($stockRaw) ? intval($stockRaw) : null;
 
                 // Find matching variant or product - ID takes top priority!
@@ -785,7 +859,10 @@ class CatalogIngestionController extends Controller
                     }
                     if (!is_null($retail) && $retail > 0) $updates['retail_price'] = $retail;
                     if (!is_null($wholesale) && $wholesale > 0) $updates['wholesale_price'] = $wholesale;
+                    if (!is_null($dealer) && $dealer > 0) $updates['cost_price_2'] = $dealer;
                     if (!is_null($mrp) && $mrp > 0) $updates['mrp'] = $mrp;
+                    if (!is_null($less) && $less > 0) $updates['trade_discount_percent'] = $less;
+                    if (!is_null($gst) && $gst > 0) $updates['gst_percent'] = $gst;
                     if (!is_null($stock)) $updates['stock_quantity'] = $stock;
 
                     if (!empty($updates)) {
@@ -803,7 +880,9 @@ class CatalogIngestionController extends Controller
                     if (!is_null($cost) && $cost > 0) $updates['purchase_price'] = $cost;
                     if (!is_null($retail) && $retail > 0) $updates['price'] = $retail;
                     if (!is_null($wholesale) && $wholesale > 0) $updates['wholesale_price'] = $wholesale;
+                    if (!is_null($dealer) && $dealer > 0) $updates['cost_price_2'] = $dealer;
                     if (!is_null($mrp) && $mrp > 0) $updates['mrp'] = $mrp;
+                    if (!is_null($gst) && $gst > 0) $updates['gst_percent'] = $gst;
                     if (!is_null($stock)) $updates['stock_quantity'] = $stock;
 
                     if (!empty($updates)) {
@@ -822,6 +901,7 @@ class CatalogIngestionController extends Controller
                         'purchase_price' => $first->purchase_price ?: $first->raw_rate,
                         'price' => $first->retail_price ?: $p->price,
                         'wholesale_price' => $first->wholesale_price ?: $p->wholesale_price,
+                        'cost_price_2' => $first->cost_price_2 ?: $p->cost_price_2,
                         'mrp' => $first->mrp ?: $p->mrp,
                     ]);
                 }

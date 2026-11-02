@@ -36,9 +36,71 @@ class ProductSpreadsheetController extends Controller
             }
         }
 
-        $folderParam = trim($request->query('folder', ''));
-        if ($folderParam !== '' && $folderParam !== 'all') {
-            $query->where('group_name', $folderParam);
+        $folderParam = trim((string)$request->query('folder', $request->query('group', $request->query('group_name', ''))));
+        $catParam = trim((string)$request->query('category', $request->query('category_id', '')));
+        $search = trim((string)$request->query('search', ''));
+
+        $hasGroupCol = \Illuminate\Support\Facades\Schema::hasColumn('products', 'group_name');
+
+        // Resolve conflict if both folder and category supplied
+        if ($hasGroupCol && $folderParam !== '' && $folderParam !== 'all' && $catParam !== '' && $catParam !== 'all') {
+            $folderTerm = strtolower($folderParam);
+            $catTerm = strtolower($catParam);
+            $cleanTerm = str_replace('-', ' ', $catTerm);
+
+            $bothMatchCount = (clone $query)->whereRaw('LOWER(group_name) = ?', [$folderTerm])
+                ->where(function($q) use ($catTerm, $cleanTerm) {
+                    $q->whereHas('category', function($cq) use ($catTerm, $cleanTerm) {
+                        $cq->whereRaw('LOWER(slug) = ?', [$catTerm])
+                           ->orWhereRaw('LOWER(name) = ?', [$catTerm])
+                           ->orWhereRaw('LOWER(name) = ?', [$cleanTerm])
+                           ->orWhereRaw('LOWER(slug) LIKE ?', [$catTerm . '%']);
+                    })
+                    ->orWhereRaw('LOWER(group_name) = ?', [$catTerm])
+                    ->orWhereRaw('LOWER(group_name) = ?', [$cleanTerm])
+                    ->orWhereRaw("LOWER(REPLACE(group_name, ' ', '-')) = ?", [$catTerm]);
+                })->count();
+
+            if ($bothMatchCount === 0) {
+                $folderParam = '';
+            }
+        }
+
+        if ($hasGroupCol && $folderParam !== '' && $folderParam !== 'all') {
+            $folderTerm = strtolower($folderParam);
+            $query->whereRaw('LOWER(group_name) = ?', [$folderTerm]);
+        }
+
+        if ($catParam !== '' && $catParam !== 'all') {
+            if (is_numeric($catParam)) {
+                $query->where('category_id', intval($catParam));
+            } else {
+                $catTerm = strtolower($catParam);
+                $cleanTerm = str_replace('-', ' ', $catTerm);
+                $query->where(function($q) use ($catTerm, $cleanTerm) {
+                    $q->whereHas('category', function($cq) use ($catTerm, $cleanTerm) {
+                        $cq->whereRaw('LOWER(slug) = ?', [$catTerm])
+                           ->orWhereRaw('LOWER(name) = ?', [$catTerm])
+                           ->orWhereRaw('LOWER(name) = ?', [$cleanTerm])
+                           ->orWhereRaw('LOWER(slug) LIKE ?', [$catTerm . '%']);
+                    })
+                    ->orWhereRaw('LOWER(group_name) = ?', [$catTerm])
+                    ->orWhereRaw('LOWER(group_name) = ?', [$cleanTerm])
+                    ->orWhereRaw("LOWER(REPLACE(group_name, ' ', '-')) = ?", [$catTerm]);
+                });
+            }
+        }
+
+        if ($search !== '') {
+            $term = '%' . strtolower($search) . '%';
+            $query->where(function($q) use ($term) {
+                $q->whereRaw('LOWER(name) LIKE ?', [$term])
+                  ->orWhereRaw('LOWER(sku) LIKE ?', [$term])
+                  ->orWhereHas('variants', function($vq) use ($term) {
+                      $vq->whereRaw('LOWER(variant_name) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(sku) LIKE ?', [$term]);
+                  });
+            });
         }
 
         $products = $query->get();
@@ -48,9 +110,12 @@ class ProductSpreadsheetController extends Controller
         $prefix = "VyaparIndia";
         if (!empty($ids)) {
             $prefix .= "_Selected_" . count($ids) . "_Items";
-        } elseif (!empty($folderParam) && $folderParam !== 'all') {
-            $cleanFolder = preg_replace('/[^a-zA-Z0-9_-]/', '_', Str::ascii($folderParam)) ?: 'Folder';
-            $prefix .= "_{$cleanFolder}";
+        } elseif ($catParam !== '' && $catParam !== 'all') {
+            $cleanCat = preg_replace('/[^a-zA-Z0-9_-]/', '_', Str::ascii($catParam)) ?: 'Category';
+            $prefix .= "_{$cleanCat}_" . count($products) . "_Items";
+        } elseif ($folderParam !== '' && $folderParam !== 'all') {
+            $cleanFolder = preg_replace('/[^a-zA-Z0-9_-]/', '_', Str::ascii($folderParam)) ?: 'Group';
+            $prefix .= "_{$cleanFolder}_" . count($products) . "_Items";
         }
 
         if ($type === 'full') {

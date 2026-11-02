@@ -4149,16 +4149,16 @@
                 return;
             }
             const sampleData = [
-                ["Product Code", "Product / Item Name", "Size / Dimension", "Packing 1 (Box)", "Packing 2 (Carton)", "MRP (₹)", "Cost Price 1 (₹)", "Cost Price 2 (₹)", "Selling Price (₹)", "Stock", "Category"],
-                ["UPVC-ELB-15", "UPVC Agri Elbow 90 Degree", "15 mm", "50 Pcs", "500 Pcs", 45.00, 22.00, 26.00, 35.00, 250, "UPVC Pipes & Fittings"],
-                ["UPVC-ELB-20", "UPVC Agri Elbow 90 Degree", "20 mm", "40 Pcs", "400 Pcs", 55.00, 28.00, 32.00, 42.00, 200, "UPVC Pipes & Fittings"],
-                ["UPVC-ELB-25", "UPVC Agri Elbow 90 Degree", "25 mm", "30 Pcs", "300 Pcs", 75.00, 38.00, 44.00, 58.00, 150, "UPVC Pipes & Fittings"],
-                ["CPVC-BR-15", "CPVC Brass Elbow", "15 mm x 1/2\"", "25 Pcs", "250 Pcs", 120.00, 62.00, 72.00, 95.00, 100, "CPVC Pipes & Fittings"],
-                ["SWR-TRAP-110", "SWR Nahani Trap", "110 mm x 75 mm", "12 Pcs", "72 Pcs", 180.00, 92.00, 105.00, 140.00, 60, "SWR Drainage"],
-                ["SLV-HEAVY-250", "Heavy Duty UPVC Solvent Cement 250ml", "", "24 Cans", "144 Cans", 185.00, 98.00, 115.00, 155.00, 120, "Agri & Solvents"],
-                ["TEF-TAPE-12", "PTFE Thread Seal Teflon Tape 12mm", "", "100 Pcs", "1000 Pcs", 25.00, 11.00, 13.00, 18.00, 500, "General Hardware"],
-                ["BP-WAL-01", "Berger Walmasta Exterior Antifungal Emulsion", "1 Ltr", "4 Cans", "16 Cans", 320.00, 195.00, 215.00, 260.00, 40, "Paints & Coatings"],
-                ["EL-SW-06A", "Anchor Roma 6A 1-Way Modular Switch", "1 Module", "20 Pcs", "200 Pcs", 38.00, 18.00, 21.00, 28.00, 300, "Electrical & Wiring"]
+                ["Product ID (Do Not Change)", "Variant ID (Optional)", "SKU / Code (आइटम कोड / बारकोड)", "Product Name (आइटम नाम)", "Size / Variant Name (साइज़ / प्रकार)", "Brand (कंपनी)", "Group (ग्रुप)", "MRP (लिस्ट भाव)", "Less % (डिस्काउंट %)", "GST %", "Purchase Price (खरीद भाव / Net Cost)", "Selling Price (बिक्री भाव / Sale A)", "Wholesale Price (थोक भाव / Sale B)", "Dealer Price (डीलर भाव / Sale C)", "Current Stock (स्टॉक संख्या)"],
+                ["", "", "UPVC-ELB-15", "UPVC Agri Elbow 90 Degree", "15 mm", "Plasto", "Fittings", 45.00, 47, 18, 22.00, 35.00, 30.00, 26.00, 250],
+                ["", "", "UPVC-ELB-20", "UPVC Agri Elbow 90 Degree", "20 mm", "Plasto", "Fittings", 55.00, 47, 18, 28.00, 42.00, 37.00, 32.00, 200],
+                ["", "", "UPVC-ELB-25", "UPVC Agri Elbow 90 Degree", "25 mm", "Plasto", "Fittings", 75.00, 47, 18, 38.00, 58.00, 50.00, 44.00, 150],
+                ["", "", "CPVC-BR-15", "CPVC Brass Elbow", "15 mm x 1/2\"", "Astral", "CPVC", 120.00, 40, 18, 62.00, 95.00, 82.00, 72.00, 100],
+                ["", "", "SWR-TRAP-110", "SWR Nahani Trap", "110 mm x 75 mm", "Supreme", "SWR", 180.00, 45, 18, 92.00, 140.00, 120.00, 105.00, 60],
+                ["", "", "SLV-HEAVY-250", "Heavy Duty UPVC Solvent Cement 250ml", "Standard", "Finolex", "Solvents", 185.00, 42, 18, 98.00, 155.00, 135.00, 115.00, 120],
+                ["", "", "TEF-TAPE-12", "PTFE Thread Seal Teflon Tape 12mm", "Standard", "Champion", "Hardware", 25.00, 50, 18, 11.00, 18.00, 15.00, 13.00, 500],
+                ["", "", "BP-WAL-01", "Berger Walmasta Exterior Antifungal Emulsion", "1 Ltr", "Berger", "Paints", 320.00, 35, 18, 195.00, 260.00, 235.00, 215.00, 40],
+                ["", "", "EL-SW-06A", "Anchor Roma 6A 1-Way Modular Switch", "1 Module", "Anchor", "Electrical", 38.00, 45, 18, 18.00, 28.00, 24.00, 21.00, 300]
             ];
             const ws = XLSX.utils.aoa_to_sheet(sampleData);
             const wb = XLSX.utils.book_new();

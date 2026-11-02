@@ -114,10 +114,18 @@ class CatalogAuditController extends Controller
 
         $dbBySku = [];
         $dbByNameSize = [];
+        $dbByVarId = [];
+        $dbByProdId = [];
         $totalLiveVariants = 0;
         $totalLiveCards = $products->count();
 
         foreach ($products as $p) {
+            $dbByProdId[$p->id] = [
+                'type' => 'product',
+                'product' => $p,
+                'variant' => null,
+            ];
+
             if ($p->sku) {
                 $dbBySku[strtolower(trim($p->sku))] = [
                     'type' => 'product',
@@ -129,6 +137,11 @@ class CatalogAuditController extends Controller
             if ($p->variants && $p->variants->isNotEmpty()) {
                 foreach ($p->variants as $v) {
                     $totalLiveVariants++;
+                    $dbByVarId[$v->id] = [
+                        'type' => 'variant',
+                        'product' => $p,
+                        'variant' => $v,
+                    ];
                     if ($v->sku) {
                         $dbBySku[strtolower(trim($v->sku))] = [
                             'type' => 'variant',
@@ -161,49 +174,63 @@ class CatalogAuditController extends Controller
         $matchedDbKeys = [];
 
         foreach ($excelRows as $row) {
-            $code = '';
-            foreach (['ITAM CODE', 'ITAM_CODE', 'ITEM CODE', 'ITEM_CODE', 'SKU', 'CODE', 'PRODUCT CODE'] as $k) {
-                if (!empty($row[$k])) {
-                    $code = trim((string)$row[$k]);
-                    break;
-                }
+            // Build normalized keys map
+            $normRow = [];
+            foreach ($row as $k => $v) {
+                $cleanK = preg_replace('/[^a-zA-Z0-9_]/', '', str_replace([' ', '/', '-', '(', ')', '%'], '_', strtolower(trim((string)$k))));
+                $cleanK = trim($cleanK, '_');
+                $normRow[$cleanK] = $v;
             }
 
-            $name = '';
-            foreach (['PRODUCT NAME', 'PRODUCT_NAME', 'NAME', 'ITEM NAME', 'ITEM_NAME', 'TITLE'] as $k) {
-                if (!empty($row[$k])) {
-                    $name = trim((string)$row[$k]);
-                    break;
+            $getVal = function(array $aliases) use ($normRow) {
+                foreach ($aliases as $k) {
+                    $clean = trim(preg_replace('/[^a-zA-Z0-9_]/', '', str_replace([' ', '/', '-', '(', ')', '%'], '_', strtolower($k))), '_');
+                    if (isset($normRow[$clean]) && $normRow[$clean] !== '' && !is_null($normRow[$clean])) {
+                        return trim((string)$normRow[$clean]);
+                    }
                 }
-            }
+                foreach ($normRow as $rk => $rv) {
+                    if (trim((string)$rv) === '') continue;
+                    foreach ($aliases as $k) {
+                        $clean = trim(preg_replace('/[^a-zA-Z0-9_]/', '', str_replace([' ', '/', '-', '(', ')', '%'], '_', strtolower($k))), '_');
+                        if (strlen($clean) >= 4 && str_contains($rk, $clean)) {
+                            return trim((string)$rv);
+                        }
+                    }
+                }
+                return '';
+            };
+
+            $prodId = intval(preg_replace('/[^0-9]/', '', $getVal(['product_id', 'product_id_do_not_change', 'id', 'item_id']) ?: '0'));
+            $varId = intval(preg_replace('/[^0-9]/', '', $getVal(['variant_id', 'variant_id_optional', 'var_id']) ?: '0'));
+            $code = $getVal(['sku', 'code', 'product_code', 'sku_code', 'itam_code', 'item_code']);
+            $name = $getVal(['product_name', 'name', 'item_name', 'title']);
 
             if (!$name || str_contains(strtoupper($name), '---') || str_contains(strtoupper($name), 'HEADING')) {
                 continue;
             }
 
             // Detect prices from Excel
-            $excelPrice = 0.0;
-            foreach (['SALE A', 'SALE_A', 'RETAIL PRICE', 'PRICE', 'SELLING PRICE'] as $k) {
-                if (isset($row[$k]) && is_numeric($row[$k])) {
-                    $excelPrice = (float)$row[$k];
-                    break;
-                }
-            }
+            $excelPriceRaw = $getVal(['selling_price', 'sale_a', 'retail_price', 'price', 'rate_a', 'selling_price_sale_a']);
+            $excelPrice = is_numeric(preg_replace('/[^0-9.]/', '', $excelPriceRaw)) ? (float)preg_replace('/[^0-9.]/', '', $excelPriceRaw) : 0.0;
 
-            $excelMrp = 0.0;
-            foreach (['MRP', 'M.R.P.', 'MAX RETAIL PRICE'] as $k) {
-                if (isset($row[$k]) && is_numeric($row[$k])) {
-                    $excelMrp = (float)$row[$k];
-                    break;
-                }
-            }
+            $excelMrpRaw = $getVal(['mrp', 'maximum_retail_price', 'mrp_list_bhaav']);
+            $excelMrp = is_numeric(preg_replace('/[^0-9.]/', '', $excelMrpRaw)) ? (float)preg_replace('/[^0-9.]/', '', $excelMrpRaw) : 0.0;
 
-            // Find matching item in DB
+            // Find matching item in DB - Priority: Variant ID > Product ID > SKU > Name/Size
             $dbItem = null;
-            $codeKey = strtolower($code);
-            if ($code && isset($dbBySku[$codeKey])) {
-                $dbItem = $dbBySku[$codeKey];
-                $matchedDbKeys[$codeKey] = true;
+            if ($varId && isset($dbByVarId[$varId])) {
+                $dbItem = $dbByVarId[$varId];
+                $matchedDbKeys["var_{$varId}"] = true;
+            } elseif ($prodId && isset($dbByProdId[$prodId])) {
+                $dbItem = $dbByProdId[$prodId];
+                $matchedDbKeys["prod_{$prodId}"] = true;
+            } elseif ($code) {
+                $codeKey = strtolower($code);
+                if (isset($dbBySku[$codeKey])) {
+                    $dbItem = $dbBySku[$codeKey];
+                    $matchedDbKeys[$codeKey] = true;
+                }
             }
 
             if (!$dbItem) {

@@ -884,11 +884,17 @@
                     Isme aapke sabhi live products unke <strong>Product ID</strong> ke sath milenge. Name, rate ya stock badal kar wapas upload karein!
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                    <a href="{{ route('seller.products.export_sheet', ['type' => 'rates']) }}" class="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs flex items-center gap-1 shadow-xs">
+                    @php
+                        $invExportFilters = array_filter([
+                            'category' => request('category'),
+                            'search' => request('search'),
+                        ]);
+                    @endphp
+                    <a href="{{ route('seller.products.export_sheet', array_merge(['type' => 'rates'], $invExportFilters)) }}" class="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs flex items-center gap-1 shadow-xs">
                         <i class="fa-solid fa-download"></i>
                         <span>दैनिक भाव (.csv)</span>
                     </a>
-                    <a href="{{ route('seller.products.export_sheet', ['type' => 'full']) }}" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-xs flex items-center gap-1 shadow-xs">
+                    <a href="{{ route('seller.products.export_sheet', array_merge(['type' => 'full'], $invExportFilters)) }}" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-xs flex items-center gap-1 shadow-xs">
                         <i class="fa-solid fa-download"></i>
                         <span>पूरा कैटलॉग (.csv)</span>
                     </a>
