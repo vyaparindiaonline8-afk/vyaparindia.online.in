@@ -38,6 +38,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
     Route::match(['GET', 'POST', 'DELETE'], 'products/{id}', [ProductController::class, 'destroy'])->name('products.post_destroy');
     Route::resource('products', ProductController::class);
     Route::post('products/{product}/quick-image-update', [ProductController::class, 'quickImageUpdate'])->name('products.quick_image_update');
+    Route::post('products/{product}/quick-cost-update', [ProductController::class, 'quickCostUpdate'])->name('products.quick_cost_update');
     Route::delete('products/{product}/images/{image}', [ProductController::class, 'deleteImage'])->name('products.images.destroy');
     Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');

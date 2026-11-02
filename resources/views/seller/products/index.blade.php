@@ -648,6 +648,31 @@
                                             <span class="text-xs font-semibold text-gray-500">सिंगल आइटम</span>
                                         @endif
                                     </div>
+                                <!-- Purchase Cost & Margin on Card -->
+                                <div class="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between text-xs bg-amber-50/40 p-2 rounded-xl border border-amber-100">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[10px] font-bold text-amber-900 flex items-center gap-1">
+                                            <i class="fa-solid fa-cart-shopping text-amber-600 text-[10px]"></i>
+                                            <span>खरीद लागत:</span>
+                                        </span>
+                                        <div class="relative">
+                                            <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-[9px]">₹</span>
+                                            <input type="number" step="0.5" id="prod-card-cost-{{ $product->id }}" 
+                                                   value="{{ (float)($product->purchase_price ?: ($product->attributes['unit_economics']['purchase_cost'] ?? '')) }}" 
+                                                   placeholder="0.00" 
+                                                   class="w-16 pl-3.5 pr-1 py-0.5 bg-white border border-amber-300 rounded text-xs font-mono font-bold text-gray-900 focus:outline-none">
+                                        </div>
+                                        <button type="button" onclick="quickSaveProductCostCard({{ $product->id }}, this)" 
+                                                class="h-5 w-5 rounded bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center text-[9px] transition cursor-pointer" 
+                                                title="खरीद लागत सेव करें">
+                                            <i class="fa-solid fa-floppy-disk"></i>
+                                        </button>
+                                    </div>
+                                    <span class="text-[10px] font-extrabold text-emerald-700 font-mono">
+                                        मुनाफ़ा: ₹{{ max(0, round((float)$product->price - (float)($product->purchase_price ?: 0))) }}
+                                    </span>
+                                </div>
+
                                 </div>
 
                                 <!-- Stock Status -->
@@ -751,6 +776,12 @@
                             </th>
                             <th class="py-3 px-4">Item & Rate Folder</th>
                             <th class="py-3 px-4">Category</th>
+                            <th class="py-3 px-3 bg-amber-50/70 text-amber-950 font-black min-w-[130px]" title="आपकी खरीद कीमत / लागत">
+                                <div class="flex items-center gap-1">
+                                    <i class="fa-solid fa-cart-shopping text-amber-600 text-xs"></i>
+                                    <span>खरीद लागत (P.Cost)</span>
+                                </div>
+                            </th>
                             <th class="py-3 px-4">Selling Price (Rate)</th>
                             <th class="py-3 px-4">Variants / Sizes</th>
                             <th class="py-3 px-4">Stock Status</th>
@@ -831,6 +862,29 @@
                                 </td>
                                 <td class="py-3 px-4 font-semibold text-gray-700">
                                     {{ $catName }}
+                                </td>
+                                <!-- Purchase Cost (P.Cost) Column with Instant Inline Edit & Save -->
+                                <td class="py-3 px-3 bg-amber-50/30">
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="relative">
+                                            <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-[10px]">₹</span>
+                                            <input type="number" step="0.5" id="prod-tbl-cost-{{ $product->id }}" 
+                                                   value="{{ (float)($product->purchase_price ?: ($product->attributes['unit_economics']['purchase_cost'] ?? '')) }}" 
+                                                   placeholder="0.00" 
+                                                   class="w-20 pl-4 pr-1.5 py-1 bg-white border border-amber-200 rounded-lg text-xs font-mono font-bold text-gray-900 focus:border-amber-500 focus:ring-1 focus:ring-amber-200 focus:outline-none" 
+                                                   title="अपनी खरीद लागत डालें">
+                                        </div>
+                                        <button type="button" onclick="quickSaveProductCost({{ $product->id }}, this)" 
+                                                class="h-6 w-6 rounded-md bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center text-[10px] transition shadow-2xs cursor-pointer shrink-0" 
+                                                title="खरीद लागत सेव करें">
+                                            <i class="fa-solid fa-floppy-disk"></i>
+                                        </button>
+                                    </div>
+                                    @if(!empty($product->purchase_price))
+                                        <span class="text-[9px] text-emerald-700 font-bold font-mono block mt-0.5" id="prod-tbl-margin-badge-{{ $product->id }}">
+                                            मार्जिन: ₹{{ round($product->price - $product->purchase_price) }}
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="py-3 px-4 font-black text-gray-900">
                                     @if($hasPrice)
@@ -2250,5 +2304,91 @@
     </div>
 
     @include('components.ai-copilot-widget')
+
+    <script>
+    async function quickSaveProductCost(prodId, btn) {
+        const costVal = document.getElementById(`prod-tbl-cost-${prodId}`)?.value;
+        if (costVal === '' || isNaN(parseFloat(costVal))) {
+            alert('कृपया वैध खरीद मूल्य (Purchase Cost) डालें!');
+            return;
+        }
+
+        const origHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+            const res = await fetch(`/seller/products/${prodId}/quick-cost-update`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({ purchase_price: parseFloat(costVal) })
+            });
+            const data = await res.json();
+            if (data.success) {
+                btn.innerHTML = '<i class="fa-solid fa-check text-emerald-300"></i>';
+                // Also sync card input if exists
+                const cardInp = document.getElementById(`prod-card-cost-${prodId}`);
+                if (cardInp) cardInp.value = costVal;
+                setTimeout(() => { btn.innerHTML = origHtml; btn.disabled = false; }, 2000);
+            } else {
+                alert(data.message || 'त्रुटि आई');
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+            }
+        } catch(e) {
+            console.error(e);
+            alert('नेटवर्क त्रुटि: खरीद लागत सेव नहीं हो पाई');
+            btn.innerHTML = origHtml;
+            btn.disabled = false;
+        }
+    }
+
+    async function quickSaveProductCostCard(prodId, btn) {
+        const costVal = document.getElementById(`prod-card-cost-${prodId}`)?.value;
+        if (costVal === '' || isNaN(parseFloat(costVal))) {
+            alert('कृपया वैध खरीद मूल्य डालें!');
+            return;
+        }
+
+        const origHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+            const res = await fetch(`/seller/products/${prodId}/quick-cost-update`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({ purchase_price: parseFloat(costVal) })
+            });
+            const data = await res.json();
+            if (data.success) {
+                btn.innerHTML = '<i class="fa-solid fa-check text-emerald-300"></i>';
+                const tblInp = document.getElementById(`prod-tbl-cost-${prodId}`);
+                if (tblInp) tblInp.value = costVal;
+                setTimeout(() => { btn.innerHTML = origHtml; btn.disabled = false; }, 2000);
+            } else {
+                alert(data.message || 'त्रुटि आई');
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+            }
+        } catch(e) {
+            console.error(e);
+            alert('नेटवर्क त्रुटि');
+            btn.innerHTML = origHtml;
+            btn.disabled = false;
+        }
+    }
+    </script>
+
 </body>
 </html>

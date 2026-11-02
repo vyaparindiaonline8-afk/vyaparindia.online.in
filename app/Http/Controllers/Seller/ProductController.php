@@ -454,4 +454,37 @@ class ProductController extends Controller
         return redirect()->route('seller.products.index')
             ->with('success', "आपके सेलर स्टोर के सभी {$count} पुराने प्रोडक्ट कार्ड्स व वेरिएंट्स सफलतापूर्वक साफ़ (Clear) कर दिए गए हैं। अब आप अपनी नई फाइनल एक्सेल शीट पूरी तरह फ्रेश अपलोड कर सकते हैं!");
     }
+
+    /**
+     * 1-Click Instant Purchase Cost / Cost Price Updater from Product Table & Cards
+     */
+    public function quickCostUpdate(Request $request, Product $product)
+    {
+        if (Auth::id() !== $product->user_id && !Auth::user()->isOwnerOrAdmin()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'purchase_price' => 'required|numeric|min:0',
+        ]);
+
+        $newCost = (float)$request->input('purchase_price');
+        $product->purchase_price = $newCost;
+
+        $attrs = $product->attributes ?? [];
+        if (!isset($attrs['unit_economics'])) {
+            $attrs['unit_economics'] = [];
+        }
+        $attrs['unit_economics']['purchase_cost'] = $newCost;
+        $attrs['unit_economics']['updated_at'] = now()->toIso8601String();
+        $product->attributes = $attrs;
+        $product->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'खरीद लागत (Purchase Price) सफलतापूर्वक सेव हो गई!',
+            'purchase_price' => $product->purchase_price,
+        ]);
+    }
+
 }
