@@ -63,7 +63,9 @@ class ProductSpreadsheetController extends Controller
                 'Brand (कंपनी)',
                 'Group (ग्रुप)',
                 'MRP',
-                'Purchase Price (खरीद भाव / Cost)',
+                'Purchase Price (खरीद भाव / Cost 1)',
+                'Cost Price 2 (खरीद भाव 2 / Rate B)',
+                'Cost Price 3 (खरीद भाव 3 / Rate C)',
                 'Selling Price (बिक्री भाव / Retail)',
                 'Wholesale Price (थोक भाव / B2B)',
                 'Stock Quantity (स्टॉक)',
@@ -87,6 +89,8 @@ class ProductSpreadsheetController extends Controller
                             $p->group_name ?? '',
                             $v->mrp ?: ($p->mrp ?: $p->price),
                             $v->purchase_price ?: ($v->raw_rate ?: ($p->purchase_price ?: '')),
+                            $v->cost_price_2 ?: ($p->cost_price_2 ?: ''),
+                            $v->cost_price_3 ?: ($p->cost_price_3 ?: ''),
                             $v->retail_price ?: $p->price,
                             $v->wholesale_price ?: ($p->wholesale_price ?: $p->price),
                             $v->stock_quantity ?? ($p->stock_quantity ?? 100),
@@ -107,6 +111,8 @@ class ProductSpreadsheetController extends Controller
                         $p->group_name ?? '',
                         $p->mrp ?: $p->price,
                         $p->purchase_price ?: '',
+                        $p->cost_price_2 ?: '',
+                        $p->cost_price_3 ?: '',
                         $p->price,
                         $p->wholesale_price ?: $p->price,
                         $p->stock_quantity ?? 0,
@@ -128,10 +134,12 @@ class ProductSpreadsheetController extends Controller
                 'Size / Variant Name (साइज़ / प्रकार)',
                 'Brand (कंपनी)',
                 'Group (ग्रुप)',
-                'Selling Price (बिक्री भाव)',
-                'Wholesale Price (थोक भाव B2B)',
-                'Purchase Price (खरीद भाव Cost)',
                 'MRP',
+                'Purchase Price (खरीद भाव Cost 1)',
+                'Cost Price 2 (खरीद भाव 2 / Rate B)',
+                'Cost Price 3 (खरीद भाव 3 / Rate C)',
+                'Selling Price (बिक्री भाव Retail)',
+                'Wholesale Price (थोक भाव B2B)',
                 'Current Stock (स्टॉक संख्या)',
             ];
             $rows[] = $headers;
@@ -146,10 +154,12 @@ class ProductSpreadsheetController extends Controller
                             $v->variant_name ?: ($v->size ?: 'Standard'),
                             $p->brand ?? '',
                             $p->group_name ?? '',
+                            $v->mrp ?: ($p->mrp ?: $p->price),
+                            $v->purchase_price ?: ($v->raw_rate ?: ($p->purchase_price ?: '')),
+                            $v->cost_price_2 ?: ($p->cost_price_2 ?: ''),
+                            $v->cost_price_3 ?: ($p->cost_price_3 ?: ''),
                             $v->retail_price ?: $p->price,
                             $v->wholesale_price ?: ($p->wholesale_price ?: $p->price),
-                            $v->purchase_price ?: ($v->raw_rate ?: ($p->purchase_price ?: '')),
-                            $v->mrp ?: ($p->mrp ?: $p->price),
                             $v->stock_quantity ?? ($p->stock_quantity ?? 100),
                         ];
                     }
@@ -161,10 +171,12 @@ class ProductSpreadsheetController extends Controller
                         'Standard',
                         $p->brand ?? '',
                         $p->group_name ?? '',
+                        $p->mrp ?: $p->price,
+                        $p->purchase_price ?: '',
+                        $p->cost_price_2 ?: '',
+                        $p->cost_price_3 ?: '',
                         $p->price,
                         $p->wholesale_price ?: $p->price,
-                        $p->purchase_price ?: '',
-                        $p->mrp ?: $p->price,
                         $p->stock_quantity ?? 0,
                     ];
                 }
@@ -551,7 +563,16 @@ class ProductSpreadsheetController extends Controller
 
                 $purchasePrice = $getFloat([
                     'p_cost', 'purchase_price', 'purchase_price_khariid_bhaav_cost', 'purchase_price_cost',
-                    'purchase_price_khariid_bhaav', 'purchase_price__khariid_bhaav___cost_', 'cost', 'raw_rate'
+                    'purchase_price_khariid_bhaav', 'purchase_price__khariid_bhaav___cost_', 'cost', 'raw_rate',
+                    'cost_1', 'purchase_price_1'
+                ]);
+
+                $costPrice2 = $getFloat([
+                    'cost_price_2', 'cost_price_2_khariid_bhaav_2', 'cost_2', 'purchase_price_2', 'rate_b_cost', 'rate_c', 'cost_price_2_khariid_bhaav_2_rate_b'
+                ]);
+
+                $costPrice3 = $getFloat([
+                    'cost_price_3', 'cost_price_3_khariid_bhaav_3', 'cost_3', 'purchase_price_3', 'rate_c_cost', 'rate_d', 'cost_price_3_khariid_bhaav_3_rate_c'
                 ]);
 
                 $mrp = $getFloat(['mrp', 'maximum_retail_price']);
@@ -865,6 +886,14 @@ class ProductSpreadsheetController extends Controller
                             $varUpdates['purchase_price'] = $purchasePrice;
                             $varUpdates['raw_rate'] = $purchasePrice;
                         }
+                        if (!is_null($costPrice2) && $costPrice2 >= 0) {
+                            $varUpdates['cost_price_2'] = $costPrice2;
+                            $isChanged = true;
+                        }
+                        if (!is_null($costPrice3) && $costPrice3 >= 0) {
+                            $varUpdates['cost_price_3'] = $costPrice3;
+                            $isChanged = true;
+                        }
                         if (!is_null($mrp) && $mrp >= 0) {
                             if (abs(floatval($matchedVariant->mrp) - $mrp) > 0.01) {
                                 $isChanged = true;
@@ -962,6 +991,14 @@ class ProductSpreadsheetController extends Controller
                             if (!is_null($purchasePrice) && $purchasePrice >= 0) {
                                 if (abs(floatval($product->purchase_price) - $purchasePrice) > 0.01) $isChanged = true;
                                 $prodUpdates['purchase_price'] = $purchasePrice;
+                            }
+                            if (!is_null($costPrice2) && $costPrice2 >= 0) {
+                                $prodUpdates['cost_price_2'] = $costPrice2;
+                                $isChanged = true;
+                            }
+                            if (!is_null($costPrice3) && $costPrice3 >= 0) {
+                                $prodUpdates['cost_price_3'] = $costPrice3;
+                                $isChanged = true;
                             }
                             if (!is_null($mrp) && $mrp >= 0) {
                                 if (abs(floatval($product->mrp) - $mrp) > 0.01) $isChanged = true;
