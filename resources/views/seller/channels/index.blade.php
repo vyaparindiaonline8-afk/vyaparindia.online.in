@@ -59,7 +59,7 @@
             </div>
         @endif
 
-        @if($errors->any())
+        @if(isset($errors) && $errors->any())
             <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold space-y-1 shadow-xs">
                 <div class="flex items-center gap-2 text-rose-700 font-black">
                     <i class="fa-solid fa-triangle-exclamation text-base"></i>
@@ -458,15 +458,23 @@
                             @php
                                 $imgCount = $p->images ? $p->images->count() : 0;
                                 if ($imgCount === 0 && !empty($p->image)) $imgCount = 1;
-                                $pCost = (float)($p->purchase_price ?: round($p->price * 0.70, 2));
+                                $pCost = (float)$p->purchase_price;
                                 $ue = $p->attributes['unit_economics'] ?? [];
+                                $marginPct = (float)($ue['margin_pct'] ?? 25);
+                                $rtoBuffer = (float)($ue['rto_buffer'] ?? 20);
                                 $packCost = (float)($ue['packaging'] ?? 15);
                                 $shipCost = (float)($ue['shipping'] ?? 45);
                                 $feePct = (float)($ue['platform_fee_pct'] ?? 12);
                                 $adsCost = (float)($ue['ads'] ?? 10);
                                 $otherCost = (float)($ue['others'] ?? 5);
-                                $totalExp = round($packCost + $shipCost + ($p->price * ($feePct / 100)) + $adsCost + $otherCost, 2);
-                                $netMargin = round($p->price - $pCost - $totalExp, 2);
+
+                                $desiredProfit = round($pCost * ($marginPct / 100));
+                                $totalFixed = $pCost + $desiredProfit + $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
+                                $multiplier = max(0.1, 1 - ($feePct / 100));
+                                $calcSellingPrice = ceil($totalFixed / $multiplier);
+                                $finalSellingPrice = !empty($ue['marketplace_price']) ? (float)$ue['marketplace_price'] : max($calcSellingPrice, (float)$p->price);
+                                $totalExp = round($packCost + $shipCost + $rtoBuffer + ($finalSellingPrice * ($feePct / 100)) + $adsCost + $otherCost, 2);
+                                $netMargin = round($finalSellingPrice - $pCost - $totalExp, 2);
                             @endphp
                             <div class="bg-white rounded-3xl border border-gray-200 p-4 shadow-2xs hover:border-indigo-400 hover:shadow-md transition space-y-3.5" id="pending-card-box-{{ $p->id }}">
                                 <div class="flex items-start gap-3">
@@ -532,11 +540,11 @@
                                     </div>
                                     <div class="flex items-center justify-between text-gray-500 text-[10px]">
                                         <span>शुद्ध मुनाफा / मार्जिन:</span>
-                                        <span class="font-mono font-extrabold text-emerald-700" id="card-profit-{{ $p->id }}">₹{{ number_format($netMargin, 2) }} ({{ round(($netMargin / max(1, $pCost)) * 100) }}%)</span>
+                                        <span class="font-mono font-extrabold text-emerald-700" id="card-profit-{{ $p->id }}">₹{{ number_format($desiredProfit, 2) }} ({{ $marginPct }}%)</span>
                                     </div>
                                     <div class="flex items-center justify-between pt-1 border-t border-gray-200">
                                         <span class="font-extrabold text-gray-900">फाइनल सेलिंग रेट:</span>
-                                        <span class="font-black text-emerald-700 text-xs font-mono" id="card-price-{{ $p->id }}">₹{{ number_format($p->price, 2) }}</span>
+                                        <span class="font-black text-emerald-700 text-xs font-mono" id="card-price-{{ $p->id }}">₹{{ number_format($finalSellingPrice, 2) }}</span>
                                     </div>
                                 </div>
 
@@ -661,13 +669,25 @@
                                     @php
                                         $imgCount = $p->images ? $p->images->count() : 0;
                                         if ($imgCount === 0 && !empty($p->image)) $imgCount = 1;
-                                        $pCost = (float)($p->purchase_price ?: round($p->price * 0.70, 2));
+                                        $pCost = (float)$p->purchase_price;
                                         $ue = $p->attributes['unit_economics'] ?? [];
+                                        $marginPct = (float)($ue['margin_pct'] ?? 25);
+                                        $rtoBuffer = (float)($ue['rto_buffer'] ?? 20);
                                         $packCost = (float)($ue['packaging'] ?? 15);
                                         $shipCost = (float)($ue['shipping'] ?? 45);
                                         $feePct = (float)($ue['platform_fee_pct'] ?? 12);
                                         $adsCost = (float)($ue['ads'] ?? 10);
                                         $otherCost = (float)($ue['others'] ?? 5);
+
+                                        $desiredProfit = round($pCost * ($marginPct / 100));
+                                        $totalFixed = $pCost + $desiredProfit + $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
+                                        $multiplier = max(0.1, 1 - ($feePct / 100));
+                                        $calcSellingPrice = ceil($totalFixed / $multiplier);
+                                        $finalSellingPrice = !empty($ue['marketplace_price']) ? (float)$ue['marketplace_price'] : max($calcSellingPrice, (float)$p->price);
+
+                                        $combo2 = ceil((($pCost * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $multiplier);
+                                        $combo4 = ceil((($pCost * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $multiplier);
+                                        $combo6 = ceil((($pCost * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $multiplier);
                                     @endphp
                                     <tr class="hover:bg-indigo-50/20 transition group" id="table-row-{{ $p->id }}" data-id="{{ $p->id }}">
                                         <td class="p-3 text-center">
@@ -703,7 +723,7 @@
                                         <td class="p-2 bg-slate-50/50">
                                             <div class="relative">
                                                 <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-[10px]">₹</span>
-                                                <input type="number" step="0.5" id="row-cost-{{ $p->id }}" value="{{ $pCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-20 pl-5 pr-1.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-mono font-extrabold text-slate-900 focus:border-indigo-500 focus:outline-none" title="आपकी खरीद लागत">
+                                                <input type="number" step="0.5" id="row-cost-{{ $p->id }}" value="{{ number_format($pCost, 2, '.', '') }}" oninput="recalcTableRow({{ $p->id }})" class="w-20 pl-5 pr-1.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-mono font-extrabold text-slate-900 focus:border-indigo-500 focus:outline-none" title="आपकी खरीद लागत">
                                             </div>
                                         </td>
 
@@ -782,7 +802,7 @@
                                             <div class="flex items-center gap-1.5">
                                                 <div class="relative">
                                                     <span class="absolute left-2 top-1/2 -translate-y-1/2 text-amber-600 font-bold text-[10px]">₹</span>
-                                                    <input type="number" step="1" id="row-price-{{ $p->id }}" value="{{ $p->price }}" oninput="syncManualPriceToCard({{ $p->id }})" class="w-20 pl-5 pr-1.5 py-1 bg-white border border-amber-300 rounded-lg text-xs font-mono font-black text-amber-950 focus:border-amber-500 focus:outline-none">
+                                                    <input type="number" step="1" id="row-price-{{ $p->id }}" value="{{ $finalSellingPrice }}" oninput="syncManualPriceToCard({{ $p->id }})" class="w-20 pl-5 pr-1.5 py-1 bg-white border border-amber-300 rounded-lg text-xs font-mono font-black text-amber-950 focus:border-amber-500 focus:outline-none">
                                                 </div>
                                                 <button type="button" onclick="saveTableRowCosting({{ $p->id }}, this)" class="h-7 w-7 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition shadow-2xs cursor-pointer" title="इस रो का रेट सेव करें">
                                                     <i class="fa-solid fa-floppy-disk text-xs"></i>
@@ -794,13 +814,13 @@
                                         <td class="p-2 text-center">
                                             <div class="inline-flex items-center gap-1 font-mono text-[10px] font-extrabold text-slate-700 bg-gray-100 p-1 rounded-xl">
                                                 <span class="px-1.5 py-0.5 bg-white rounded-md shadow-2xs" id="row-combo2-{{ $p->id }}" title="2 पीस पैक रेट">
-                                                    2P: ₹{{ round($p->price * 1.8) }}
+                                                    2P: ₹{{ $combo2 }}
                                                 </span>
                                                 <span class="px-1.5 py-0.5 bg-white rounded-md shadow-2xs" id="row-combo4-{{ $p->id }}" title="4 पीस पैक रेट">
-                                                    4P: ₹{{ round($p->price * 3.5) }}
+                                                    4P: ₹{{ $combo4 }}
                                                 </span>
                                                 <span class="px-1.5 py-0.5 bg-white rounded-md shadow-2xs" id="row-combo6-{{ $p->id }}" title="6 पीस पैक रेट">
-                                                    6P: ₹{{ round($p->price * 5.0) }}
+                                                    6P: ₹{{ $combo6 }}
                                                 </span>
                                             </div>
                                         </td>
@@ -1704,8 +1724,9 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             document.getElementById('calcCombo6Rate').textContent = '₹' + finalRate6.toFixed(2);
         }
 
-        // Switch Pending Layout between Table Grid vs Cards
+        // Switch Pending Layout between Table Grid vs Cards (with localStorage persistence)
         function switchPendingLayout(layout) {
+            try { localStorage.setItem('vyapar_channel_layout', layout); } catch(e) {}
             const cards = document.getElementById('pendingCardsContainer');
             const table = document.getElementById('pendingTableContainer');
             const btnCards = document.getElementById('btnPendingViewCards');
@@ -1734,6 +1755,15 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 }
             }
         }
+
+        // On Page Load: Restore user's preferred layout (defaults to table / excel mode)
+        document.addEventListener('DOMContentLoaded', function() {
+            let prefLayout = 'table';
+            try {
+                prefLayout = localStorage.getItem('vyapar_channel_layout') || 'table';
+            } catch(e) {}
+            switchPendingLayout(prefLayout);
+        });
 
         // Direct 1-Click Image Upload from Card / Table
         let currentDirectUploadProdId = null;

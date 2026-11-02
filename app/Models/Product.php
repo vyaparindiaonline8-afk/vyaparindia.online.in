@@ -65,6 +65,31 @@ class Product extends Model
         return $num;
     }
 
+    public function getPurchasePriceAttribute($val): float
+    {
+        $num = (float)($val ?? 0);
+        if ($num > 0) {
+            return $num;
+        }
+        $attrs = is_array($this->attributes['attributes'] ?? null) 
+            ? $this->attributes['attributes'] 
+            : json_decode($this->attributes['attributes'] ?? '[]', true);
+        if (!empty($attrs['unit_economics']['purchase_cost'])) {
+            $ueCost = (float)$attrs['unit_economics']['purchase_cost'];
+            if ($ueCost > 0) return $ueCost;
+        }
+        if ($this->relationLoaded('variants') && $this->variants && $this->variants->isNotEmpty()) {
+            $varCost = $this->variants->where('purchase_price', '>', 0)->min('purchase_price') 
+                ?: $this->variants->where('net_landing_cost', '>', 0)->min('net_landing_cost');
+            if ($varCost && (float)$varCost > 0) return (float)$varCost;
+        }
+        $basePrice = (float)($this->attributes['price'] ?? 0);
+        if ($basePrice > 0) {
+            return round($basePrice * 0.70, 2);
+        }
+        return 0.00;
+    }
+
     public function getVideoEmbedUrlAttribute(): ?string
     {
         if (empty($this->video_url)) {

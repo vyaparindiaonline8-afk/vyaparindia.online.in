@@ -503,9 +503,14 @@ class ChannelController extends Controller
             $product->gst_percent = (float)$request->input('gst_percent', 18);
         }
 
+        if ($product->variants()->exists() && isset($validated['purchase_price'])) {
+            $product->variants()->update(['purchase_price' => (float)$validated['purchase_price']]);
+        }
+
         $attrs = $product->attributes ?? [];
         $attrs['unit_economics'] = [
             'purchase_cost' => (float)($validated['purchase_price'] ?? $product->purchase_price ?? 0),
+            'marketplace_price' => (float)$product->price,
             'margin_pct' => (float)($request->input('margin_pct', 25)),
             'rto_buffer' => (float)($request->input('rto_buffer', 20)),
             'packaging' => (float)($validated['packaging'] ?? 15),
@@ -520,6 +525,8 @@ class ChannelController extends Controller
         ];
         $product->attributes = $attrs;
         $product->save();
+
+        $product->channelListings()->update(['channel_price' => (float)$product->price]);
 
         return response()->json([
             'success' => true,
@@ -541,16 +548,22 @@ class ChannelController extends Controller
             return response()->json(['success' => false, 'message' => 'कोई डेटा नहीं मिला।'], 422);
         }
 
+        $isOwnerOrAdmin = Auth::user() && Auth::user()->isOwnerOrAdmin();
         $savedCount = 0;
         foreach ($items as $item) {
             $prodId = $item['product_id'] ?? null;
             if (!$prodId) continue;
 
-            $product = Product::where('id', $prodId)->where('user_id', $userId)->first();
+            $product = $isOwnerOrAdmin
+                ? Product::where('id', $prodId)->first()
+                : Product::where('id', $prodId)->where('user_id', $userId)->first();
             if (!$product) continue;
 
             if (isset($item['purchase_price'])) {
                 $product->purchase_price = (float)$item['purchase_price'];
+                if ($product->variants()->exists()) {
+                    $product->variants()->update(['purchase_price' => (float)$item['purchase_price']]);
+                }
             }
             if (isset($item['price']) && $item['price'] > 0) {
                 $product->price = (float)$item['price'];
@@ -565,6 +578,7 @@ class ChannelController extends Controller
             $attrs = $product->attributes ?? [];
             $attrs['unit_economics'] = [
                 'purchase_cost' => (float)($item['purchase_price'] ?? $product->purchase_price ?? 0),
+                'marketplace_price' => (float)$product->price,
                 'margin_pct' => (float)($item['margin_pct'] ?? 25),
                 'rto_buffer' => (float)($item['rto_buffer'] ?? 20),
                 'packaging' => (float)($item['packaging'] ?? 15),
@@ -579,6 +593,8 @@ class ChannelController extends Controller
             ];
             $product->attributes = $attrs;
             $product->save();
+
+            $product->channelListings()->update(['channel_price' => (float)$product->price]);
             $savedCount++;
         }
 

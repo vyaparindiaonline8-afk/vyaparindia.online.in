@@ -471,6 +471,10 @@ class ProductController extends Controller
         $newCost = (float)$request->input('purchase_price');
         $product->purchase_price = $newCost;
 
+        if ($product->variants()->exists()) {
+            $product->variants()->update(['purchase_price' => $newCost]);
+        }
+
         $attrs = $product->attributes ?? [];
         if (!isset($attrs['unit_economics'])) {
             $attrs['unit_economics'] = [];

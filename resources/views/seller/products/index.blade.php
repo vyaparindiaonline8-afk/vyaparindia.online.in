@@ -658,7 +658,7 @@
                                         <div class="relative">
                                             <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-[9px]">₹</span>
                                             <input type="number" step="0.5" id="prod-card-cost-{{ $product->id }}" 
-                                                   value="{{ (float)($product->purchase_price ?: ($product->attributes['unit_economics']['purchase_cost'] ?? '')) }}" 
+                                                   value="{{ number_format((float)$product->purchase_price, 2, '.', '') }}" 
                                                    placeholder="0.00" 
                                                    class="w-16 pl-3.5 pr-1 py-0.5 bg-white border border-amber-300 rounded text-xs font-mono font-bold text-gray-900 focus:outline-none">
                                         </div>
@@ -668,8 +668,8 @@
                                             <i class="fa-solid fa-floppy-disk"></i>
                                         </button>
                                     </div>
-                                    <span class="text-[10px] font-extrabold text-emerald-700 font-mono">
-                                        मुनाफ़ा: ₹{{ max(0, round((float)$product->price - (float)($product->purchase_price ?: 0))) }}
+                                    <span class="text-[10px] font-extrabold text-emerald-700 font-mono" id="prod-card-margin-badge-{{ $product->id }}">
+                                        मुनाफ़ा: ₹{{ max(0, round((float)$product->price - (float)$product->purchase_price)) }}
                                     </span>
                                 </div>
 
@@ -869,7 +869,7 @@
                                         <div class="relative">
                                             <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-[10px]">₹</span>
                                             <input type="number" step="0.5" id="prod-tbl-cost-{{ $product->id }}" 
-                                                   value="{{ (float)($product->purchase_price ?: ($product->attributes['unit_economics']['purchase_cost'] ?? '')) }}" 
+                                                   value="{{ number_format((float)$product->purchase_price, 2, '.', '') }}" 
                                                    placeholder="0.00" 
                                                    class="w-20 pl-4 pr-1.5 py-1 bg-white border border-amber-200 rounded-lg text-xs font-mono font-bold text-gray-900 focus:border-amber-500 focus:ring-1 focus:ring-amber-200 focus:outline-none" 
                                                    title="अपनी खरीद लागत डालें">
@@ -880,11 +880,9 @@
                                             <i class="fa-solid fa-floppy-disk"></i>
                                         </button>
                                     </div>
-                                    @if(!empty($product->purchase_price))
-                                        <span class="text-[9px] text-emerald-700 font-bold font-mono block mt-0.5" id="prod-tbl-margin-badge-{{ $product->id }}">
-                                            मार्जिन: ₹{{ round($product->price - $product->purchase_price) }}
-                                        </span>
-                                    @endif
+                                    <span class="text-[9px] text-emerald-700 font-bold font-mono block mt-0.5" id="prod-tbl-margin-badge-{{ $product->id }}">
+                                        मार्जिन: ₹{{ max(0, round((float)$product->price - (float)$product->purchase_price)) }}
+                                    </span>
                                 </td>
                                 <td class="py-3 px-4 font-black text-gray-900">
                                     @if($hasPrice)
