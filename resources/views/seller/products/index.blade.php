@@ -302,6 +302,11 @@
 
                     <!-- Sync & Tools Group -->
                     <div class="flex items-center gap-1.5 flex-wrap">
+                        <a href="{{ route('seller.channels.index') }}" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs shadow-xs transition flex items-center gap-1.5 hover:scale-102 active:scale-98" title="Amazon, Meesho, Flipkart मल्टी-चैनल हब">
+                            <i class="fa-solid fa-share-nodes text-amber-300 text-xs"></i>
+                            <span>मल्टी-चैनल 🌐</span>
+                        </a>
+
                         <button type="button" onclick="openExcelSyncModal()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs shadow-xs transition flex items-center gap-1.5 hover:scale-102 active:scale-98">
                             <i class="fa-solid fa-cloud-arrow-up text-xs"></i>
                             <span>1-क्लिक सिंक</span>
@@ -1077,6 +1082,9 @@
                             </a>
                             <a href="{{ route('seller.products.export_sheet', array_merge(['type' => 'full'], $activeExportFilters ?? [])) }}" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-black text-[11px] flex items-center gap-1 transition">
                                 <i class="fa-solid fa-download"></i> पूरा कैटलॉग @if(!empty($activeExportFilters)) ({{ $products->count() }}) @endif
+                            </a>
+                            <a href="{{ route('seller.channels.export_sheet') }}" class="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[11px] flex items-center gap-1 transition" title="Amazon, Meesho, Flipkart मल्टी-चैनल प्राइसिंग एक्सेल शीट">
+                                <i class="fa-solid fa-file-excel text-amber-300"></i> मल्टी-चैनल शीट
                             </a>
                         </div>
                     </div>

@@ -11,6 +11,7 @@ use App\Models\Category;
 use App\Services\AIProductService;
 use App\Services\CloudinaryService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ChannelController extends Controller
@@ -700,5 +701,284 @@ class ChannelController extends Controller
         }
 
         return back()->with('success', 'प्रोडक्ट को मार्केटप्लेस बास्केट से हटा दिया गया है (आपकी दुकान में 100% सुरक्षित है)।');
+    }
+
+
+    /**
+     * 📥 Export Multi-Channel Staged & Pending Products to Clean Excel/CSV
+     */
+    public function exportSheet(Request $request)
+    {
+        $userId = Auth::id();
+        $scope = $request->query('scope', 'pending');
+
+        $query = Product::where('user_id', $userId)->with(['category', 'variants']);
+
+        if ($scope === 'pending') {
+            $query->where(function($q) {
+                $q->whereJsonContains('attributes->channel_staged', true)
+                  ->orWhereDoesntHave('channelListings');
+            });
+        }
+
+        $products = $query->orderBy('id', 'asc')->get();
+
+        // If pending queue is empty, fall back to all seller products so user always gets their products
+        if ($products->isEmpty() && $scope === 'pending') {
+            $products = Product::where('user_id', $userId)->with(['category', 'variants'])->orderBy('id', 'asc')->get();
+        }
+
+        $rows = [];
+        $headers = [
+            'Product ID (Do Not Change)',
+            'Variant ID (Optional)',
+            'SKU / Code (वर्तमान कोड)',
+            'Product Name (आइटम नाम)',
+            'Category (कैटेगरी)',
+            'Purchase Price Without GST (खरीद भाव - बिना GST)',
+            'Purchase Price With GST (खरीद भाव - GST सहित)',
+            'App Selling Price (दुकान सेलिंग रेट ₹)',
+            'Target Margin % (मार्जिन %)',
+            'RTO Buffer (रिटर्न बफ़र ₹)',
+            'Packaging Cost (पैकिंग ₹)',
+            'Courier Shipping (कूरियर ₹)',
+            'Marketplace Fee % (कमीशन %)',
+            'Ads Spend (ऐड्स ₹)',
+            'HSN Code',
+            'GST %',
+            'Channel Selling Price (फाइनल चैनल रेट ₹)',
+            'Combo 2 Pack Rate (2 पीस रेट)',
+            'Combo 4 Pack Rate (4 पीस रेट)',
+            'Combo 6 Pack Rate (6 पीस रेट)',
+            'Custom Barcode / Note (बारकोड / नोट)',
+        ];
+        $rows[] = $headers;
+
+        foreach ($products as $p) {
+            $ue = $p->attributes['unit_economics'] ?? [];
+            $pCost = (float)($p->purchase_price ?: 0);
+            $landingCost = (float)($p->net_landing_cost ?: ($pCost * (1 + (($p->gst_percent ?: 18) / 100))));
+            $storePrice = (float)($p->price ?: 0);
+            $marginPct = (float)($ue['margin_pct'] ?? 25);
+            $rtoBuffer = (float)($ue['rto_buffer'] ?? 20);
+            $packCost = (float)($ue['packaging'] ?? 15);
+            $shipCost = (float)($ue['shipping'] ?? 45);
+            $feePct = (float)($ue['platform_fee_pct'] ?? 12);
+            $adsCost = (float)($ue['ads'] ?? 10);
+            $otherCost = (float)($ue['others'] ?? 5);
+
+            $desiredProfit = round($pCost * ($marginPct / 100));
+            $totalFixed = $pCost + $desiredProfit + $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
+            $multiplier = max(0.1, 1 - ($feePct / 100));
+            $calcSellingPrice = ceil($totalFixed / $multiplier);
+            $finalSellingPrice = !empty($ue['marketplace_price']) ? (float)$ue['marketplace_price'] : max($calcSellingPrice, $storePrice);
+
+            $combo2 = ceil((($pCost * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $multiplier);
+            $combo4 = ceil((($pCost * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $multiplier);
+            $combo6 = ceil((($pCost * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $multiplier);
+
+            $rows[] = [
+                $p->id,
+                '',
+                $p->sku ?: "PRD-{$p->id}",
+                $p->name,
+                $p->category->name ?? 'General',
+                $pCost > 0 ? $pCost : '',
+                $landingCost > 0 ? round($landingCost, 2) : '',
+                $storePrice,
+                $marginPct,
+                $rtoBuffer,
+                $packCost,
+                $shipCost,
+                $feePct,
+                $adsCost,
+                $p->hsn_code ?: '',
+                $p->gst_percent ?: 18,
+                $finalSellingPrice,
+                $combo2,
+                $combo4,
+                $combo6,
+                $ue['custom_note'] ?? '',
+            ];
+        }
+
+        $timestamp = date('Y_m_d_His');
+        $filename = "VyaparIndia_MultiChannel_Pricing_Sheet_{$timestamp}.csv";
+
+        $output = "\xEF\xBB\xBF";
+        $handle = fopen('php://memory', 'r+');
+        foreach ($rows as $row) {
+            fputcsv($handle, $row);
+        }
+        rewind($handle);
+        $output .= stream_get_contents($handle);
+        fclose($handle);
+
+        return response($output, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
+    }
+
+    /**
+     * 📤 Import edited Multi-Channel Sheet to update unit economics, margins, and marketplace selling rates
+     */
+    public function importSheet(Request $request)
+    {
+        @set_time_limit(300);
+        $userId = Auth::id();
+        $rawRows = [];
+
+        if ($request->filled('sheet_rows')) {
+            $decoded = json_decode($request->input('sheet_rows'), true);
+            if (is_array($decoded)) {
+                $rawRows = $decoded;
+            }
+        } elseif ($request->hasFile('sheet_file')) {
+            $file = $request->file('sheet_file');
+            $path = $file->getRealPath();
+            if (($handle = fopen($path, 'r')) !== false) {
+                $bom = fread($handle, 3);
+                if ($bom !== "\xEF\xBB\xBF") {
+                    rewind($handle);
+                }
+                $header = null;
+                while (($data = fgetcsv($handle, 3000, ',')) !== false) {
+                    if (!$header) {
+                        $header = array_map(function ($h) {
+                            return trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower(trim($h))), '_');
+                        }, $data);
+                        continue;
+                    }
+                    if (count($data) >= 2) {
+                        $row = [];
+                        foreach ($header as $idx => $key) {
+                            $row[$key] = $data[$idx] ?? '';
+                        }
+                        $rawRows[] = $row;
+                    }
+                }
+                fclose($handle);
+            }
+        }
+
+        if (empty($rawRows)) {
+            return back()->with('error', 'Kripya ek valid CSV ya Excel file upload karein jisme rows mojud hon.');
+        }
+
+        $updatedCount = 0;
+        DB::transaction(function() use ($rawRows, $userId, &$updatedCount) {
+            $sellerProducts = Product::where('user_id', $userId)->get()->keyBy('id');
+            $bySku = [];
+            foreach ($sellerProducts as $p) {
+                if ($p->sku) $bySku[strtolower(trim($p->sku))] = $p;
+            }
+
+            foreach ($rawRows as $originalRow) {
+                $normRow = [];
+                foreach ($originalRow as $k => $v) {
+                    $cleanK = trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower(trim((string)$k))), '_');
+                    $normRow[$cleanK] = $v;
+                }
+
+                $getVal = function(array $aliases) use ($normRow) {
+                    foreach ($aliases as $k) {
+                        $clean = trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower($k)), '_');
+                        if (isset($normRow[$clean]) && $normRow[$clean] !== '' && !is_null($normRow[$clean])) {
+                            $num = preg_replace('/[^0-9.]/', '', (string)$normRow[$clean]);
+                            return is_numeric($num) ? floatval($num) : null;
+                        }
+                    }
+                    foreach ($normRow as $rk => $rv) {
+                        if ($rv === '' || is_null($rv)) continue;
+                        foreach ($aliases as $k) {
+                            $clean = trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower($k)), '_');
+                            if (strlen($clean) >= 5 && str_contains($rk, $clean)) {
+                                $num = preg_replace('/[^0-9.]/', '', (string)$rv);
+                                return is_numeric($num) ? floatval($num) : null;
+                            }
+                        }
+                    }
+                    return null;
+                };
+
+                $getString = function(array $aliases) use ($normRow) {
+                    foreach ($aliases as $k) {
+                        $clean = trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower($k)), '_');
+                        if (isset($normRow[$clean]) && trim((string)$normRow[$clean]) !== '') {
+                            return trim((string)$normRow[$clean]);
+                        }
+                    }
+                    return '';
+                };
+
+                $prodId = intval($getVal(['product_id', 'product_id_do_not_change', 'id']) ?? 0);
+                $sku = strtolower($getString(['sku', 'code', 'product_code']));
+
+                $product = null;
+                if ($prodId && isset($sellerProducts[$prodId])) {
+                    $product = $sellerProducts[$prodId];
+                } elseif ($sku && isset($bySku[$sku])) {
+                    $product = $bySku[$sku];
+                }
+
+                if (!$product) continue;
+
+                $pCostWithoutGst = $getVal(['purchase_price_without_gst', 'purchase_price_bina_gst', 'purchase_price', 'p_cost']);
+                $pCostWithGst = $getVal(['purchase_price_with_gst', 'purchase_price_gst_sahit', 'net_landing_cost']);
+                $margin = $getVal(['target_margin', 'margin_pct', 'margin']);
+                $rto = $getVal(['rto_buffer', 'rto', 'return_buffer']);
+                $pack = $getVal(['packaging_cost', 'packaging']);
+                $ship = $getVal(['courier_shipping', 'shipping', 'courier']);
+                $fee = $getVal(['marketplace_fee', 'platform_fee_pct', 'fee']);
+                $ads = $getVal(['ads_spend', 'ads']);
+                $hsn = $getString(['hsn_code', 'hsn']);
+                $gst = $getVal(['gst_percent', 'gst']);
+                $channelPrice = $getVal(['channel_selling_price', 'marketplace_price', 'final_selling']);
+                $note = $getString(['custom_barcode_note', 'custom_note', 'barcode_note', 'note']);
+
+                if (!is_null($pCostWithoutGst) && $pCostWithoutGst > 0) {
+                    $product->purchase_price = $pCostWithoutGst;
+                }
+                if (!is_null($pCostWithGst) && $pCostWithGst > 0) {
+                    $product->net_landing_cost = $pCostWithGst;
+                }
+                if (!empty($hsn)) {
+                    $product->hsn_code = $hsn;
+                }
+                if (!is_null($gst) && $gst > 0) {
+                    $product->gst_percent = $gst;
+                }
+
+                $attrs = $product->attributes ?? [];
+                $ue = $attrs['unit_economics'] ?? [];
+                if (!is_null($pCostWithoutGst)) $ue['purchase_cost'] = $pCostWithoutGst;
+                if (!is_null($margin)) $ue['margin_pct'] = $margin;
+                if (!is_null($rto)) $ue['rto_buffer'] = $rto;
+                if (!is_null($pack)) $ue['packaging'] = $pack;
+                if (!is_null($ship)) $ue['shipping'] = $ship;
+                if (!is_null($fee)) $ue['platform_fee_pct'] = $fee;
+                if (!is_null($ads)) $ue['ads'] = $ads;
+                if (!is_null($channelPrice) && $channelPrice > 0) {
+                    $ue['marketplace_price'] = $channelPrice;
+                }
+                if ($note !== '') $ue['custom_note'] = $note;
+                $ue['updated_at'] = now()->toIso8601String();
+
+                $attrs['unit_economics'] = $ue;
+                $product->attributes = $attrs;
+                $product->save();
+
+                if (!is_null($channelPrice) && $channelPrice > 0) {
+                    $product->channelListings()->update(['channel_price' => $channelPrice]);
+                }
+                $updatedCount++;
+            }
+        });
+
+        return back()->with('success', "🎉 शानदार! मल्टी-चैनल एक्सेल शीट से {$updatedCount} प्रोडक्ट्स के रेट्स, खर्चे और मार्जिन सफलतापूर्वक अपडेट हो गए!");
     }
 }

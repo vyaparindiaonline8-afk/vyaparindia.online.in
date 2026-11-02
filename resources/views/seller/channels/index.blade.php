@@ -29,7 +29,15 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2.5">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                    <a href="{{ route('seller.channels.export_sheet') }}" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="मल्टी-चैनल एक्सेल शीट डाउनलोड करें">
+                        <i class="fa-solid fa-file-csv text-amber-300 text-sm"></i>
+                        <span>📥 एक्सेल शीट डाउनलोड (.csv)</span>
+                    </a>
+                    <button type="button" onclick="document.getElementById('channelCsvUploadInput').click()" class="px-3.5 py-2 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-black text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="अपलोड करके मल्टी-चैनल रेट्स व खर्चे अपडेट करें">
+                        <i class="fa-solid fa-file-arrow-up text-amber-300 text-sm"></i>
+                        <span>📤 शीट अपलोड</span>
+                    </button>
                     <a href="{{ route('seller.channels.inventory') }}" class="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition flex items-center gap-1.5">
                         <i class="fa-solid fa-boxes-stacked text-indigo-600"></i>
                         <span>Omnichannel Stock</span>
@@ -441,7 +449,15 @@
                         </div>
 
                         <!-- Bulk Actions -->
-                        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                        <div class="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+                            <a href="{{ route('seller.channels.export_sheet') }}" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer" title="मल्टी-चैनल एक्सेल शीट डाउनलोड (.csv)">
+                                <i class="fa-solid fa-file-excel text-amber-300"></i>
+                                <span>एक्सेल शीट डाउनलोड</span>
+                            </a>
+                            <button type="button" onclick="document.getElementById('channelCsvUploadInput').click()" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer" title="एक्सेल शीट अपलोड कर रेट्स अपडेट करें">
+                                <i class="fa-solid fa-file-arrow-up text-amber-300"></i>
+                                <span>शीट अपलोड</span>
+                            </button>
                             <button type="button" id="btnBulkSaveTable" onclick="saveAllTableRowsCosting()" class="hidden px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer">
                                 <i class="fa-solid fa-floppy-disk text-amber-200"></i>
                                 <span>💾 सभी रो एक साथ सेव करें (Save All)</span>
