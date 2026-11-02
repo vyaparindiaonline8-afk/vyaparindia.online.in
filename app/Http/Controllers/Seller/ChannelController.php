@@ -496,15 +496,25 @@ class ChannelController extends Controller
         }
         $product->price = $validated['price'];
 
+        if ($request->filled('hsn_code')) {
+            $product->hsn_code = trim($request->input('hsn_code'));
+        }
+        if ($request->has('gst_percent')) {
+            $product->gst_percent = (float)$request->input('gst_percent', 18);
+        }
+
         $attrs = $product->attributes ?? [];
         $attrs['unit_economics'] = [
             'purchase_cost' => (float)($validated['purchase_price'] ?? $product->purchase_price ?? 0),
             'margin_pct' => (float)($request->input('margin_pct', 25)),
+            'rto_buffer' => (float)($request->input('rto_buffer', 20)),
             'packaging' => (float)($validated['packaging'] ?? 15),
             'shipping' => (float)($validated['shipping'] ?? 45),
             'platform_fee_pct' => (float)($validated['platform_fee_pct'] ?? 12),
             'ads' => (float)($validated['ads'] ?? 10),
             'others' => (float)($validated['others'] ?? 5),
+            'hsn_code' => $product->hsn_code,
+            'gst_percent' => (float)$product->gst_percent,
             'updated_at' => now()->toIso8601String(),
         ];
         $product->attributes = $attrs;
@@ -544,16 +554,25 @@ class ChannelController extends Controller
             if (isset($item['price']) && $item['price'] > 0) {
                 $product->price = (float)$item['price'];
             }
+            if (!empty($item['hsn_code'])) {
+                $product->hsn_code = trim($item['hsn_code']);
+            }
+            if (isset($item['gst_percent'])) {
+                $product->gst_percent = (float)$item['gst_percent'];
+            }
 
             $attrs = $product->attributes ?? [];
             $attrs['unit_economics'] = [
                 'purchase_cost' => (float)($item['purchase_price'] ?? $product->purchase_price ?? 0),
                 'margin_pct' => (float)($item['margin_pct'] ?? 25),
+                'rto_buffer' => (float)($item['rto_buffer'] ?? 20),
                 'packaging' => (float)($item['packaging'] ?? 15),
                 'shipping' => (float)($item['shipping'] ?? 45),
                 'platform_fee_pct' => (float)($item['platform_fee_pct'] ?? 12),
                 'ads' => (float)($item['ads'] ?? 10),
                 'others' => (float)($item['others'] ?? 5),
+                'hsn_code' => $product->hsn_code,
+                'gst_percent' => (float)$product->gst_percent,
                 'updated_at' => now()->toIso8601String(),
             ];
             $product->attributes = $attrs;

@@ -575,16 +575,76 @@
                     </div>
 
                     <!-- Pending Products List: 2. SPREADSHEET TABLE GRID VIEW (Unicommerce / EasyEcom Style) -->
-                    <div id="pendingTableContainer" class="hidden mt-4 overflow-x-auto bg-white rounded-3xl border border-gray-200 shadow-sm">
-                        <table class="w-full text-left text-xs divide-y divide-gray-200">
+                    <div id="pendingTableContainer" class="hidden mt-4 space-y-3">
+                        <!-- ⚡ QUICK BULK PRESET & APPLY TO ALL BAR -->
+                        <div class="p-3.5 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100 border border-amber-200 rounded-3xl shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
+                            <div class="flex items-center gap-2.5">
+                                <span class="h-8 w-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow-2xs">
+                                    <i class="fa-solid fa-wand-magic-sparkles text-amber-100"></i>
+                                </span>
+                                <div>
+                                    <span class="font-black text-amber-950 block">⚡ एक्सेल 'Apply to All' टूल (सभी 100 प्रोडक्ट्स में 1-क्लिक में भरें)</span>
+                                    <span class="text-[11px] text-amber-800">यहाँ डिफ़ॉल्ट मार्जिन, रिटर्न रिस्क बफ़र, डिलीवरी व GST सेट करके सीधे सभी रोज़ में लागू करें:</span>
+                                </div>
+                            </div>
+
+                            <!-- Inputs Bar -->
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
+                                    <span class="text-[10px] text-gray-500 font-bold">मार्जिन %:</span>
+                                    <input type="number" id="bulkPresetMargin" value="25" class="w-12 text-xs font-mono font-bold text-indigo-700 outline-none text-center">
+                                    <span class="text-[10px] text-gray-400">%</span>
+                                </div>
+
+                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-rose-300 shadow-2xs" title="RTO / रिटर्न नुकसान से सुरक्षा बफ़र">
+                                    <span class="text-[10px] text-rose-700 font-bold">🔄 रिटर्न/RTO:</span>
+                                    <span class="text-[10px] text-gray-400">₹</span>
+                                    <input type="number" id="bulkPresetRto" value="20" class="w-12 text-xs font-mono font-bold text-rose-700 outline-none text-center">
+                                </div>
+
+                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
+                                    <span class="text-[10px] text-gray-500 font-bold">डिलीवरी:</span>
+                                    <span class="text-[10px] text-gray-400">₹</span>
+                                    <input type="number" id="bulkPresetShip" value="45" class="w-12 text-xs font-mono font-bold text-gray-800 outline-none text-center">
+                                </div>
+
+                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
+                                    <span class="text-[10px] text-gray-500 font-bold">पैकिंग:</span>
+                                    <span class="text-[10px] text-gray-400">₹</span>
+                                    <input type="number" id="bulkPresetPack" value="15" class="w-12 text-xs font-mono font-bold text-gray-800 outline-none text-center">
+                                </div>
+
+                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
+                                    <span class="text-[10px] text-gray-500 font-bold">GST %:</span>
+                                    <select id="bulkPresetGst" class="text-xs font-mono font-bold text-gray-800 bg-transparent outline-none">
+                                        <option value="18" selected>18%</option>
+                                        <option value="12">12%</option>
+                                        <option value="5">5%</option>
+                                        <option value="0">0%</option>
+                                        <option value="28">28%</option>
+                                    </select>
+                                </div>
+
+                                <button type="button" onclick="applyPresetToAllRows()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
+                                    <i class="fa-solid fa-wand-magic-sparkles text-amber-200"></i>
+                                    <span>⚡ सभी पर लागू करें (Apply to All)</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto bg-white rounded-3xl border border-gray-200 shadow-sm">
+                            <table class="w-full text-left text-xs divide-y divide-gray-200">
                             <thead class="bg-gray-100 text-[10px] font-black uppercase text-gray-600 tracking-wider">
                                 <tr>
                                     <th class="p-3 w-8 text-center">✓</th>
                                     <th class="p-3">फ़ोटो</th>
-                                    <th class="p-3 min-w-[180px]">प्रोडक्ट का नाम</th>
-                                    <th class="p-3 min-w-[100px]">खरीद लागत (P.Cost ₹)</th>
+                                    <th class="p-3 min-w-[170px]">प्रोडक्ट का नाम</th>
+                                    <th class="p-3 min-w-[75px]">HSN कोड</th>
+                                    <th class="p-3 min-w-[70px]">GST %</th>
+                                    <th class="p-3 min-w-[95px]">खरीद लागत (₹)</th>
                                     <th class="p-3 min-w-[90px] bg-indigo-50 text-indigo-950 font-black">मार्जिन (%)</th>
-                                    <th class="p-3 min-w-[75px]">पैकिंग (₹)</th>
+                                    <th class="p-3 min-w-[85px] bg-rose-50 text-rose-950 font-black" title="रिटर्न/RTO नुकसान से सुरक्षा">🔄 रिटर्न बफ़र (₹)</th>
+                                    <th class="p-3 min-w-[70px]">पैकिंग (₹)</th>
                                     <th class="p-3 min-w-[75px]">कूरियर (₹)</th>
                                     <th class="p-3 min-w-[75px]">फ़ी (%)</th>
                                     <th class="p-3 min-w-[75px]">ऐड्स (₹)</th>
@@ -623,7 +683,7 @@
                                             </div>
                                         </td>
                                         <td class="p-3">
-                                            <span class="font-extrabold text-gray-900 block truncate max-w-[200px]" title="{{ $p->name }}">{{ $p->name }}</span>
+                                            <span class="font-extrabold text-gray-900 block truncate max-w-[170px]" title="{{ $p->name }}">{{ $p->name }}</span>
                                             <div class="flex items-center gap-1.5 mt-0.5">
                                                 <span class="text-[9px] text-gray-400 font-mono">SKU: {{ $p->sku ?: 'STD' }}</span>
                                                 <button type="button" onclick="triggerMultipleImageUpload({{ $p->id }}, '{{ addslashes($p->name) }}')" class="text-[9px] font-bold text-indigo-600 hover:text-indigo-800">
@@ -632,11 +692,27 @@
                                             </div>
                                         </td>
 
+                                        <!-- HSN Code -->
+                                        <td class="p-2">
+                                            <input type="text" id="row-hsn-{{ $p->id }}" value="{{ $p->hsn_code ?: '6204' }}" class="w-16 px-1.5 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono font-bold text-gray-800 focus:border-indigo-500 focus:outline-none" placeholder="HSN">
+                                        </td>
+
+                                        <!-- GST % -->
+                                        <td class="p-2">
+                                            <select id="row-gst-{{ $p->id }}" onchange="recalcTableRow({{ $p->id }})" class="w-14 px-1 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono font-bold text-gray-800 focus:border-indigo-500 focus:outline-none">
+                                                <option value="18" {{ (!isset($p->gst_percent) || $p->gst_percent == 18) ? 'selected' : '' }}>18%</option>
+                                                <option value="12" {{ ($p->gst_percent == 12) ? 'selected' : '' }}>12%</option>
+                                                <option value="5" {{ ($p->gst_percent == 5) ? 'selected' : '' }}>5%</option>
+                                                <option value="0" {{ (isset($p->gst_percent) && $p->gst_percent == 0) ? 'selected' : '' }}>0%</option>
+                                                <option value="28" {{ ($p->gst_percent == 28) ? 'selected' : '' }}>28%</option>
+                                            </select>
+                                        </td>
+
                                         <!-- 1. Purchase Cost (P. Cost) -->
                                         <td class="p-2">
                                             <div class="relative">
                                                 <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">₹</span>
-                                                <input type="number" step="0.5" id="row-cost-{{ $p->id }}" value="{{ $pCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-20 pl-5 pr-1.5 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono font-bold text-gray-900 focus:border-indigo-500 focus:outline-none">
+                                                <input type="number" step="0.5" id="row-cost-{{ $p->id }}" value="{{ $pCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-18 pl-5 pr-1.5 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono font-bold text-gray-900 focus:border-indigo-500 focus:outline-none">
                                             </div>
                                         </td>
 
@@ -649,6 +725,14 @@
                                             <span id="row-margin-amt-{{ $p->id }}" class="text-[9px] text-emerald-700 font-bold block font-mono mt-0.5">
                                                 ₹{{ round($pCost * (((float)($ue['margin_pct'] ?? 25)) / 100)) }} लाभ
                                             </span>
+                                        </td>
+
+                                        <!-- 1.8 Return / RTO Buffer (₹) -->
+                                        <td class="p-2 bg-rose-50/40">
+                                            <div class="relative">
+                                                <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-rose-400 text-[10px]">₹</span>
+                                                <input type="number" id="row-rto-{{ $p->id }}" value="{{ (float)($ue['rto_buffer'] ?? 20) }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 pl-4 pr-1.5 py-1 bg-white border border-rose-300 rounded-lg text-xs font-mono font-bold text-rose-700 focus:border-rose-500 focus:outline-none" title="रिटर्न/RTO नुकसान बफ़र">
+                                            </div>
                                         </td>
 
                                         <!-- 2. Packaging (₹) -->
@@ -739,6 +823,7 @@
                                 @endforelse
                             </tbody>
                         </table>
+                        </div>
                     </div>
 
         <!-- ======================================================== -->
@@ -1779,18 +1864,20 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             event.target.value = '';
         }
 
-        // Real-Time Table Row Unit Economics Recalculator with Margin % & Card Sync
+        // Real-Time Table Row Unit Economics Recalculator with Margin %, RTO Buffer, GST & Card Sync
         function recalcTableRow(prodId) {
             const cost = parseFloat(document.getElementById(`row-cost-${prodId}`)?.value) || 0;
             const marginPct = parseFloat(document.getElementById(`row-margin-${prodId}`)?.value) || 25;
+            const rto = parseFloat(document.getElementById(`row-rto-${prodId}`)?.value) || 0;
             const pack = parseFloat(document.getElementById(`row-pack-${prodId}`)?.value) || 0;
             const ship = parseFloat(document.getElementById(`row-ship-${prodId}`)?.value) || 0;
-            const feePct = parseFloat(document.getElementById(`row-fee-${prodId}`)?.value) || 0;
+            const feePct = parseFloat(document.getElementById(`row-fee-${prodId}`)?.value) || 12;
             const ads = parseFloat(document.getElementById(`row-ads-${prodId}`)?.value) || 0;
             const others = parseFloat(document.getElementById(`row-others-${prodId}`)?.value) || 0;
 
             const desiredProfit = Math.round(cost * (marginPct / 100));
-            const totalFixed = cost + desiredProfit + pack + ship + ads + others;
+            // Return / RTO loss buffer is safely included in fixed costs so return losses are covered!
+            const totalFixed = cost + desiredProfit + rto + pack + ship + ads + others;
             const multiplier = Math.max(0.1, 1 - (feePct / 100));
             const finalRate = Math.ceil(totalFixed / multiplier);
 
@@ -1803,9 +1890,9 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             if (marginAmtSpan) marginAmtSpan.textContent = `₹${desiredProfit} लाभ`;
 
             // Update combo previews in table row
-            const c2 = Math.ceil(((cost * 2) + (desiredProfit * 1.8) + (pack * 1.3) + ship + (ads * 1.2)) / multiplier);
-            const c4 = Math.ceil(((cost * 4) + (desiredProfit * 3.5) + (pack * 1.6) + (ship * 1.2) + (ads * 1.5)) / multiplier);
-            const c6 = Math.ceil(((cost * 6) + (desiredProfit * 5.0) + (pack * 2.0) + (ship * 1.4) + (ads * 1.8)) / multiplier);
+            const c2 = Math.ceil(((cost * 2) + (desiredProfit * 1.8) + (rto * 1.5) + (pack * 1.3) + ship + (ads * 1.2)) / multiplier);
+            const c4 = Math.ceil(((cost * 4) + (desiredProfit * 3.5) + (rto * 2.0) + (pack * 1.6) + (ship * 1.2) + (ads * 1.5)) / multiplier);
+            const c6 = Math.ceil(((cost * 6) + (desiredProfit * 5.0) + (rto * 2.5) + (pack * 2.0) + (ship * 1.4) + (ads * 1.8)) / multiplier);
 
             const rC2 = document.getElementById(`row-combo2-${prodId}`);
             if (rC2) rC2.textContent = `2P: ₹${c2}`;
@@ -1821,12 +1908,49 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             const cardCost = document.getElementById(`card-cost-${prodId}`);
             if (cardCost) cardCost.textContent = `₹${cost.toFixed(2)}`;
 
-            const totalExp = pack + ship + Math.round(finalRate * (feePct / 100)) + ads + others;
+            const totalExp = pack + ship + rto + Math.round(finalRate * (feePct / 100)) + ads + others;
             const cardExp = document.getElementById(`card-exp-${prodId}`);
             if (cardExp) cardExp.textContent = `+₹${totalExp.toFixed(2)}`;
 
             const cardProfit = document.getElementById(`card-profit-${prodId}`);
             if (cardProfit) cardProfit.textContent = `₹${desiredProfit.toFixed(2)} (${marginPct}%)`;
+        }
+
+        // Apply Bulk Preset Values to All Rows (Excel-style Apply to All)
+        function applyPresetToAllRows() {
+            const margin = parseFloat(document.getElementById('bulkPresetMargin')?.value) || 25;
+            const rto = parseFloat(document.getElementById('bulkPresetRto')?.value) || 20;
+            const ship = parseFloat(document.getElementById('bulkPresetShip')?.value) || 45;
+            const pack = parseFloat(document.getElementById('bulkPresetPack')?.value) || 15;
+            const gst = document.getElementById('bulkPresetGst')?.value || '18';
+
+            const rows = document.querySelectorAll('#pendingTableTbody tr[data-id]');
+            if (!rows.length) {
+                alert('कोई प्रोडक्ट मौजूद नहीं है!');
+                return;
+            }
+
+            rows.forEach(row => {
+                const id = row.getAttribute('data-id');
+                const marginInput = document.getElementById(`row-margin-${id}`);
+                if (marginInput) marginInput.value = margin;
+
+                const rtoInput = document.getElementById(`row-rto-${id}`);
+                if (rtoInput) rtoInput.value = rto;
+
+                const shipInput = document.getElementById(`row-ship-${id}`);
+                if (shipInput) shipInput.value = ship;
+
+                const packInput = document.getElementById(`row-pack-${id}`);
+                if (packInput) packInput.value = pack;
+
+                const gstSelect = document.getElementById(`row-gst-${id}`);
+                if (gstSelect) gstSelect.value = gst;
+
+                recalcTableRow(id);
+            });
+
+            showChannelToast(`⚡ ${rows.length} प्रोडक्ट्स पर मार्जिन (${margin}%), रिटर्न बफ़र (₹${rto}), डिलीवरी (₹${ship}) व GST (${gst}%) लागू हो गए!`);
         }
 
         function syncManualPriceToCard(prodId) {
@@ -1835,7 +1959,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             if (cardPrice) cardPrice.textContent = `₹${price.toFixed(2)}`;
         }
 
-        // Bulk Save All Table Rows Costing
+        // Bulk Save All Table Rows Costing (Includes HSN, GST, RTO)
         async function saveAllTableRowsCosting() {
             const rows = document.querySelectorAll('#pendingTableTbody tr[data-id]');
             if (!rows.length) {
@@ -1848,23 +1972,29 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 const id = row.getAttribute('data-id');
                 const cost = parseFloat(document.getElementById(`row-cost-${id}`)?.value) || 0;
                 const marginPct = parseFloat(document.getElementById(`row-margin-${id}`)?.value) || 25;
+                const rto = parseFloat(document.getElementById(`row-rto-${id}`)?.value) || 0;
                 const price = parseFloat(document.getElementById(`row-price-${id}`)?.value) || 0;
                 const pack = parseFloat(document.getElementById(`row-pack-${id}`)?.value) || 0;
                 const ship = parseFloat(document.getElementById(`row-ship-${id}`)?.value) || 0;
                 const fee = parseFloat(document.getElementById(`row-fee-${id}`)?.value) || 0;
                 const ads = parseFloat(document.getElementById(`row-ads-${id}`)?.value) || 0;
                 const others = parseFloat(document.getElementById(`row-others-${id}`)?.value) || 0;
+                const hsn = document.getElementById(`row-hsn-${id}`)?.value || '';
+                const gst = parseFloat(document.getElementById(`row-gst-${id}`)?.value) || 18;
 
                 items.push({
                     product_id: parseInt(id),
                     purchase_price: cost,
                     margin_pct: marginPct,
+                    rto_buffer: rto,
                     price: price,
                     packaging: pack,
                     shipping: ship,
                     platform_fee_pct: fee,
                     ads: ads,
-                    others: others
+                    others: others,
+                    hsn_code: hsn,
+                    gst_percent: gst
                 });
             });
 
@@ -1907,13 +2037,17 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
 
         // Save Inline Table Row Costing & Unit Economics
         async function saveTableRowCosting(prodId, btn) {
-            const cost = parseFloat(document.getElementById(`row-cost-${prodId}`).value) || 0;
-            const price = parseFloat(document.getElementById(`row-price-${prodId}`).value) || 0;
-            const pack = parseFloat(document.getElementById(`row-pack-${prodId}`).value) || 0;
-            const ship = parseFloat(document.getElementById(`row-ship-${prodId}`).value) || 0;
-            const feePct = parseFloat(document.getElementById(`row-fee-${prodId}`).value) || 0;
-            const ads = parseFloat(document.getElementById(`row-ads-${prodId}`).value) || 0;
-            const others = parseFloat(document.getElementById(`row-others-${prodId}`).value) || 0;
+            const cost = parseFloat(document.getElementById(`row-cost-${prodId}`)?.value) || 0;
+            const marginPct = parseFloat(document.getElementById(`row-margin-${prodId}`)?.value) || 25;
+            const rto = parseFloat(document.getElementById(`row-rto-${prodId}`)?.value) || 0;
+            const price = parseFloat(document.getElementById(`row-price-${prodId}`)?.value) || 0;
+            const pack = parseFloat(document.getElementById(`row-pack-${prodId}`)?.value) || 0;
+            const ship = parseFloat(document.getElementById(`row-ship-${prodId}`)?.value) || 0;
+            const feePct = parseFloat(document.getElementById(`row-fee-${prodId}`)?.value) || 0;
+            const ads = parseFloat(document.getElementById(`row-ads-${prodId}`)?.value) || 0;
+            const others = parseFloat(document.getElementById(`row-others-${prodId}`)?.value) || 0;
+            const hsn = document.getElementById(`row-hsn-${prodId}`)?.value || '';
+            const gst = parseFloat(document.getElementById(`row-gst-${prodId}`)?.value) || 18;
 
             if (price <= 0) {
                 alert('कृपया वैध फाइनल सेलिंग रेट डालें!');
@@ -1934,12 +2068,16 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                     },
                     body: JSON.stringify({
                         purchase_price: cost,
+                        margin_pct: marginPct,
+                        rto_buffer: rto,
                         price: price,
                         packaging: pack,
                         shipping: ship,
                         platform_fee_pct: feePct,
                         ads: ads,
-                        others: others
+                        others: others,
+                        hsn_code: hsn,
+                        gst_percent: gst
                     })
                 });
                 const data = await res.json();
