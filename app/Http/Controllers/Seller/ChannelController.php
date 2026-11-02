@@ -712,6 +712,16 @@ class ChannelController extends Controller
      * - Selling Price 1 (Retail), Selling Price 2 (Wholesale), Selling Price 3 (Dealer)
      * - Channel Selling Price & Combo Pack Rates 2, 4, 6
      */
+/**
+     * 📥 Export Multi-Channel Staged & Pending Products to Clean Excel/CSV
+     * Accurately supports:
+     * - Pending / Amazon Queue vs All Store Products
+     * - Full Variant iteration (e.g. all pipe sizes, fitting sizes)
+     * - MRP (लिस्ट भाव ₹) & Less % (डिस्काउंट %)
+     * - Purchase Price (खरीद लागत भाव - With GST ₹) & Without GST ₹
+     * - Selling Price 1 (Retail), Selling Price 2 (Wholesale), Selling Price 3 (Dealer)
+     * - Channel Selling Price & Combo Pack Rates 2, 4, 6
+     */
     public function exportSheet(Request $request)
     {
         $userId = Auth::id();
@@ -770,9 +780,12 @@ class ChannelController extends Controller
             'Variant ID (Optional)',
             'SKU / Code (वर्तमान कोड)',
             'Product Name (आइटम नाम)',
+            'Size / Variant Name (साइज़ / प्रकार)',
             'Category (कैटेगरी)',
-            'Purchase Price With GST (खरीद भाव - GST सहित)',
-            'Purchase Price Without GST (खरीद भाव - बिना GST)',
+            'MRP (लिस्ट भाव ₹)',
+            'Less % (डिस्काउंट %)',
+            'Purchase Price (खरीद लागत भाव - With GST ₹)',
+            'Purchase Price Without GST (खरीद भाव - बिना GST ₹)',
             'Selling Price 1 (दुकान / रिटेल रेट ₹)',
             'Selling Price 2 (थोक / Wholesale भाव ₹)',
             'Selling Price 3 (डीलर / बल्क भाव ₹)',
@@ -794,31 +807,6 @@ class ChannelController extends Controller
 
         foreach ($products as $p) {
             $ue = $p->attributes['unit_economics'] ?? [];
-            $gstPercent = (float)($p->gst_percent ?: 18);
-            $pCostRaw = (float)($p->purchase_price ?: 0);
-            $landingRaw = (float)($p->net_landing_cost ?: 0);
-
-            // Merchant listed products with purchase price as GST INCLUSIVE (With GST)
-            if ($landingRaw > 0 && $pCostRaw > 0 && abs($landingRaw - $pCostRaw) > 0.01) {
-                $costWithGst = $landingRaw;
-                $costWithoutGst = $pCostRaw;
-            } elseif ($landingRaw > 0) {
-                $costWithGst = $landingRaw;
-                $costWithoutGst = round($costWithGst / (1 + ($gstPercent / 100)), 2);
-            } elseif ($pCostRaw > 0) {
-                // The merchant's catalog purchase price was entered WITH GST:
-                $costWithGst = $pCostRaw;
-                $costWithoutGst = round($costWithGst / (1 + ($gstPercent / 100)), 2);
-            } else {
-                $costWithGst = '';
-                $costWithoutGst = '';
-            }
-
-            // Selling Prices 1, 2, 3
-            $sp1 = (float)($p->price ?: 0);
-            $sp2 = $p->wholesale_price ?: ($p->variants->where('wholesale_price', '>', 0)->min('wholesale_price') ?: '');
-            $sp3 = $p->cost_price_2 ?: ($p->variants->where('cost_price_2', '>', 0)->min('cost_price_2') ?: '');
-
             $marginPct = (float)($ue['margin_pct'] ?? 25);
             $rtoBuffer = (float)($ue['rto_buffer'] ?? 20);
             $packCost = (float)($ue['packaging'] ?? 15);
@@ -826,47 +814,115 @@ class ChannelController extends Controller
             $feePct = (float)($ue['platform_fee_pct'] ?? 12);
             $adsCost = (float)($ue['ads'] ?? 10);
             $otherCost = (float)($ue['others'] ?? 5);
-
-            // Calculation base: Use landing cost with GST, NEVER double-add GST!
-            $calcBaseCost = is_numeric($costWithGst) && $costWithGst > 0
-                ? (float)$costWithGst
-                : (is_numeric($costWithoutGst) && $costWithoutGst > 0 ? round((float)$costWithoutGst * (1 + ($gstPercent / 100)), 2) : 0);
-
-            $desiredProfit = round($calcBaseCost * ($marginPct / 100));
-            $totalFixed = $calcBaseCost + $desiredProfit + $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
             $multiplier = max(0.1, 1 - ($feePct / 100));
-            $calcSellingPrice = ceil($totalFixed / $multiplier);
-            $finalSellingPrice = !empty($ue['marketplace_price']) ? (float)$ue['marketplace_price'] : max($calcSellingPrice, $sp1);
 
-            $combo2 = ceil((($calcBaseCost * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $multiplier);
-            $combo4 = ceil((($calcBaseCost * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $multiplier);
-            $combo6 = ceil((($calcBaseCost * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $multiplier);
+            if ($p->variants && $p->variants->isNotEmpty()) {
+                foreach ($p->variants as $v) {
+                    $mrpVal = (float)($v->mrp ?: ($p->mrp ?: $p->price));
+                    $pCost = (float)($v->purchase_price ?: ($v->net_landing_cost ?: ($p->purchase_price ?: 0)));
+                    $lessVal = $v->trade_discount_percent ?: ($p->trade_discount_percent ?: '');
+                    if (($lessVal === '' || $lessVal <= 0) && $mrpVal > 0 && $pCost > 0 && $mrpVal > $pCost) {
+                        $lessVal = round((($mrpVal - $pCost) / $mrpVal) * 100, 2);
+                    }
+                    $gstPercent = (float)($v->gst_percent ?: ($p->gst_percent ?: 18));
+                    $costWithoutGst = round($pCost / (1 + ($gstPercent / 100)), 2);
 
-            $rows[] = [
-                $p->id,
-                '',
-                $p->sku ?: "PRD-{$p->id}",
-                $p->name,
-                $p->category->name ?? 'General',
-                $costWithGst !== '' ? $costWithGst : '',
-                $costWithoutGst !== '' ? $costWithoutGst : '',
-                $sp1 > 0 ? $sp1 : '',
-                $sp2 !== '' ? $sp2 : '',
-                $sp3 !== '' ? $sp3 : '',
-                $marginPct,
-                $rtoBuffer,
-                $packCost,
-                $shipCost,
-                $feePct,
-                $adsCost,
-                $p->hsn_code ?: '',
-                $gstPercent,
-                $finalSellingPrice,
-                $combo2,
-                $combo4,
-                $combo6,
-                $ue['custom_note'] ?? '',
-            ];
+                    $sp1 = (float)($v->retail_price ?: ($p->price ?: 0));
+                    $sp2 = $v->wholesale_price ?: ($p->wholesale_price ?: '');
+                    $sp3 = $v->cost_price_2 ?: ($p->cost_price_2 ?: '');
+
+                    // True Costing Calculation (Starting from actual purchase cost pCost)
+                    $desiredProfit = round($pCost * ($marginPct / 100));
+                    $totalFixed = $pCost + $desiredProfit + $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
+                    $calcSellingPrice = ceil($totalFixed / $multiplier);
+                    $finalSellingPrice = !empty($ue['marketplace_price']) ? (float)$ue['marketplace_price'] : max($calcSellingPrice, $sp1);
+
+                    $combo2 = ceil((($pCost * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $multiplier);
+                    $combo4 = ceil((($pCost * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $multiplier);
+                    $combo6 = ceil((($pCost * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $multiplier);
+
+                    $rows[] = [
+                        $p->id,
+                        $v->id,
+                        $v->sku ?: ($p->sku ?: "PRD-{$p->id}"),
+                        $p->name,
+                        $v->variant_name ?: ($v->size ?: 'Standard'),
+                        $p->category->name ?? 'General',
+                        $mrpVal > 0 ? $mrpVal : '',
+                        $lessVal !== '' ? $lessVal : '',
+                        $pCost > 0 ? $pCost : '',
+                        $costWithoutGst > 0 ? $costWithoutGst : '',
+                        $sp1 > 0 ? $sp1 : '',
+                        $sp2 !== '' ? $sp2 : '',
+                        $sp3 !== '' ? $sp3 : '',
+                        $marginPct,
+                        $rtoBuffer,
+                        $packCost,
+                        $shipCost,
+                        $feePct,
+                        $adsCost,
+                        $p->hsn_code ?: '',
+                        $gstPercent,
+                        $finalSellingPrice,
+                        $combo2,
+                        $combo4,
+                        $combo6,
+                        $ue['custom_note'] ?? '',
+                    ];
+                }
+            } else {
+                $mrpVal = (float)($p->mrp ?: $p->price);
+                $pCost = (float)($p->purchase_price ?: 0);
+                $lessVal = $p->trade_discount_percent ?: '';
+                if (($lessVal === '' || $lessVal <= 0) && $mrpVal > 0 && $pCost > 0 && $mrpVal > $pCost) {
+                    $lessVal = round((($mrpVal - $pCost) / $mrpVal) * 100, 2);
+                }
+                $gstPercent = (float)($p->gst_percent ?: 18);
+                $costWithoutGst = round($pCost / (1 + ($gstPercent / 100)), 2);
+
+                $sp1 = (float)($p->price ?: 0);
+                $sp2 = $p->wholesale_price ?: '';
+                $sp3 = $p->cost_price_2 ?: '';
+
+                // True Costing Calculation (Starting from actual purchase cost pCost)
+                $desiredProfit = round($pCost * ($marginPct / 100));
+                $totalFixed = $pCost + $desiredProfit + $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
+                $calcSellingPrice = ceil($totalFixed / $multiplier);
+                $finalSellingPrice = !empty($ue['marketplace_price']) ? (float)$ue['marketplace_price'] : max($calcSellingPrice, $sp1);
+
+                $combo2 = ceil((($pCost * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $multiplier);
+                $combo4 = ceil((($pCost * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $multiplier);
+                $combo6 = ceil((($pCost * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $multiplier);
+
+                $rows[] = [
+                    $p->id,
+                    '',
+                    $p->sku ?: "PRD-{$p->id}",
+                    $p->name,
+                    'Standard',
+                    $p->category->name ?? 'General',
+                    $mrpVal > 0 ? $mrpVal : '',
+                    $lessVal !== '' ? $lessVal : '',
+                    $pCost > 0 ? $pCost : '',
+                    $costWithoutGst > 0 ? $costWithoutGst : '',
+                    $sp1 > 0 ? $sp1 : '',
+                    $sp2 !== '' ? $sp2 : '',
+                    $sp3 !== '' ? $sp3 : '',
+                    $marginPct,
+                    $rtoBuffer,
+                    $packCost,
+                    $shipCost,
+                    $feePct,
+                    $adsCost,
+                    $p->hsn_code ?: '',
+                    $gstPercent,
+                    $finalSellingPrice,
+                    $combo2,
+                    $combo4,
+                    $combo6,
+                    $ue['custom_note'] ?? '',
+                ];
+            }
         }
 
         $timestamp = date('Y_m_d_His');
@@ -947,17 +1003,26 @@ class ChannelController extends Controller
         }
 
         $userId = Auth::id();
-        $sellerProducts = Product::where('user_id', $userId)->get()->keyBy('id');
+        $sellerProducts = Product::where('user_id', $userId)->with('variants')->get()->keyBy('id');
         $bySku = [];
+        $byVariantId = [];
         foreach ($sellerProducts as $sp) {
             if (!empty($sp->sku)) {
                 $bySku[strtolower(trim($sp->sku))] = $sp;
+            }
+            if ($sp->variants) {
+                foreach ($sp->variants as $v) {
+                    $byVariantId[$v->id] = [$sp, $v];
+                    if (!empty($v->sku)) {
+                        $bySku[strtolower(trim($v->sku))] = [$sp, $v];
+                    }
+                }
             }
         }
 
         $updatedCount = 0;
 
-        DB::transaction(function () use ($rows, $normHeaders, $sellerProducts, $bySku, &$updatedCount) {
+        DB::transaction(function () use ($rows, $normHeaders, $sellerProducts, $bySku, $byVariantId, &$updatedCount) {
             foreach ($rows as $row) {
                 $normRow = [];
                 foreach ($row as $i => $val) {
@@ -999,20 +1064,34 @@ class ChannelController extends Controller
                 };
 
                 $prodId = intval($getVal(['product_id', 'product_id_do_not_change', 'id']) ?? 0);
+                $varId = intval($getVal(['variant_id', 'variant_id_optional']) ?? 0);
                 $sku = strtolower($getString(['sku', 'code', 'product_code']));
 
                 $product = null;
-                if ($prodId && isset($sellerProducts[$prodId])) {
-                    $product = $sellerProducts[$prodId];
+                $variant = null;
+
+                if ($varId && isset($byVariantId[$varId])) {
+                    [$product, $variant] = $byVariantId[$varId];
                 } elseif ($sku && isset($bySku[$sku])) {
-                    $product = $bySku[$sku];
+                    if (is_array($bySku[$sku])) {
+                        [$product, $variant] = $bySku[$sku];
+                    } else {
+                        $product = $bySku[$sku];
+                    }
+                } elseif ($prodId && isset($sellerProducts[$prodId])) {
+                    $product = $sellerProducts[$prodId];
                 }
 
                 if (!$product) continue;
 
-                $pCostWithGst = $getVal(['purchase_price_with_gst', 'purchase_price_gst_sahit', 'net_landing_cost', 'cost_with_gst', 'p_cost']);
+                $mrp = $getVal(['mrp', 'mrp_list_bhaav', 'mrp_list_rate']);
+                $less = $getVal(['less', 'less_pct', 'trade_discount_percent', 'discount', 'less_percent']);
+
+                $pCost = $getVal([
+                    'purchase_price', 'purchase_price_khariid_laagt_bhaav_with_gst',
+                    'purchase_price_with_gst', 'purchase_price_gst_sahit', 'net_landing_cost', 'cost_with_gst', 'p_cost', 'cost'
+                ]);
                 $pCostWithoutGst = $getVal(['purchase_price_without_gst', 'purchase_price_bina_gst', 'basic_cost', 'cost_without_gst']);
-                $legacyCost = $getVal(['purchase_price', 'cost']);
 
                 $sp1 = $getVal(['selling_price_1', 'selling_price_1_dukaan_riteel_ret', 'selling_price', 'price', 'retail_price', 'sale_a']);
                 $sp2 = $getVal(['selling_price_2', 'selling_price_2_thok_wholesale_bhaav', 'wholesale_price', 'sale_b', 'price_2']);
@@ -1031,28 +1110,44 @@ class ChannelController extends Controller
 
                 $gstRate = (!is_null($gst) && $gst > 0) ? $gst : ($product->gst_percent ?: 18);
 
-                // Two-way GST Cost Calculation
-                if (!is_null($pCostWithGst) && $pCostWithGst > 0) {
-                    $product->net_landing_cost = $pCostWithGst;
-                    $product->purchase_price = round($pCostWithGst / (1 + ($gstRate / 100)), 2);
-                } elseif (!is_null($pCostWithoutGst) && $pCostWithoutGst > 0) {
-                    $product->purchase_price = $pCostWithoutGst;
-                    $product->net_landing_cost = round($pCostWithoutGst * (1 + ($gstRate / 100)), 2);
-                } elseif (!is_null($legacyCost) && $legacyCost > 0) {
-                    // Default merchant purchase prices are With GST
-                    $product->net_landing_cost = $legacyCost;
-                    $product->purchase_price = round($legacyCost / (1 + ($gstRate / 100)), 2);
+                // Auto calculate cost from MRP - Less% if cost empty
+                if ((is_null($pCost) || $pCost <= 0) && (!is_null($mrp) && $mrp > 0) && (!is_null($less) && $less > 0)) {
+                    $pCost = round($mrp * (1 - ($less / 100)), 2);
                 }
 
-                // Update Selling Prices 1, 2, 3
+                // If Less% is empty, auto-calculate: ((MRP - Cost) / MRP) * 100
+                if ((is_null($less) || $less <= 0) && (!is_null($mrp) && $mrp > 0) && (!is_null($pCost) && $pCost > 0) && $mrp > $pCost) {
+                    $less = round((($mrp - $pCost) / $mrp) * 100, 2);
+                }
+
+                // Save to Variant or Product
+                $targetObj = $variant ?: $product;
+
+                if (!is_null($mrp) && $mrp > 0) {
+                    $targetObj->mrp = $mrp;
+                }
+                if (!is_null($less) && $less >= 0) {
+                    $targetObj->trade_discount_percent = $less;
+                }
+
+                if (!is_null($pCost) && $pCost > 0) {
+                    $targetObj->purchase_price = $pCost;
+                    $targetObj->net_landing_cost = $pCost;
+                }
+
                 if (!is_null($sp1) && $sp1 > 0) {
-                    $product->price = $sp1;
+                    if ($variant) {
+                        $variant->retail_price = $sp1;
+                        $variant->price = $sp1;
+                    } else {
+                        $product->price = $sp1;
+                    }
                 }
                 if (!is_null($sp2) && $sp2 > 0) {
-                    $product->wholesale_price = $sp2;
+                    $targetObj->wholesale_price = $sp2;
                 }
                 if (!is_null($sp3) && $sp3 > 0) {
-                    $product->cost_price_2 = $sp3;
+                    $targetObj->cost_price_2 = $sp3;
                 }
 
                 if (!empty($hsn)) {
@@ -1060,11 +1155,12 @@ class ChannelController extends Controller
                 }
                 if (!is_null($gst) && $gst > 0) {
                     $product->gst_percent = $gst;
+                    if ($variant) $variant->gst_percent = $gst;
                 }
 
                 $attrs = $product->attributes ?? [];
                 $ue = $attrs['unit_economics'] ?? [];
-                if (!is_null($product->net_landing_cost)) $ue['purchase_cost'] = $product->net_landing_cost;
+                if (!is_null($targetObj->purchase_price)) $ue['purchase_cost'] = $targetObj->purchase_price;
                 if (!is_null($margin)) $ue['margin_pct'] = $margin;
                 if (!is_null($rto)) $ue['rto_buffer'] = $rto;
                 if (!is_null($pack)) $ue['packaging'] = $pack;
@@ -1081,6 +1177,10 @@ class ChannelController extends Controller
                 $product->attributes = $attrs;
                 $product->save();
 
+                if ($variant) {
+                    $variant->save();
+                }
+
                 if (!is_null($channelPrice) && $channelPrice > 0) {
                     $product->channelListings()->update(['channel_price' => $channelPrice]);
                 }
@@ -1088,6 +1188,6 @@ class ChannelController extends Controller
             }
         });
 
-        return back()->with('success', "🎉 शानदार! मल्टी-चैनल एक्सेल शीट से {$updatedCount} प्रोडक्ट्स के सेलिंग रेट 1-2-3, खरीद लागत (With GST) व खर्चे सफलतापूर्वक अपडेट हो गए!");
+        return back()->with('success', "🎉 शानदार! मल्टी-चैनल एक्सेल शीट से {$updatedCount} प्रोडक्ट्स / वैरियंट्स के MRP, Less %, खरीद लागत (With GST) व रेट्स सफलतापूर्वक अपडेट हो गए!");
     }
 }

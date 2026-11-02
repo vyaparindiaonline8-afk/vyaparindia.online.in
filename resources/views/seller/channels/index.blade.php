@@ -487,6 +487,11 @@
                                 $imgCount = $p->images ? $p->images->count() : 0;
                                 if ($imgCount === 0 && !empty($p->image)) $imgCount = 1;
                                 $pCost = (float)$p->purchase_price;
+                                $mrpVal = (float)($p->mrp ?: ($p->variants->where('mrp', '>', 0)->min('mrp') ?: $p->price));
+                                $lessVal = $p->trade_discount_percent ?: ($p->variants->where('trade_discount_percent', '>', 0)->min('trade_discount_percent') ?: '');
+                                if (($lessVal === '' || $lessVal <= 0) && $mrpVal > 0 && $pCost > 0 && $mrpVal > $pCost) {
+                                    $lessVal = round((($mrpVal - $pCost) / $mrpVal) * 100, 1);
+                                }
                                 $ue = $p->attributes['unit_economics'] ?? [];
                                 $marginPct = (float)($ue['margin_pct'] ?? 25);
                                 $rtoBuffer = (float)($ue['rto_buffer'] ?? 20);
@@ -558,6 +563,12 @@
 
                                 <!-- Unit Economics Breakdown Badge -->
                                 <div class="p-2.5 bg-slate-50 rounded-2xl border border-gray-100 text-[11px] space-y-1">
+                                    @if($mrpVal > 0)
+                                    <div class="flex items-center justify-between text-amber-900 text-[10px] font-bold pb-0.5 border-b border-gray-100">
+                                        <span>MRP (लिस्ट भाव):</span>
+                                        <span class="font-mono">₹{{ number_format($mrpVal, 2) }} @if($lessVal) <strong class="text-rose-600">({{ $lessVal }}% Less)</strong> @endif</span>
+                                    </div>
+                                    @endif
                                     <div class="flex items-center justify-between">
                                         <span class="text-gray-500 font-medium">खरीद लागत (P.Cost):</span>
                                         <span class="font-bold text-gray-800 font-mono" id="card-cost-{{ $p->id }}">₹{{ number_format($pCost, 2) }}</span>
@@ -676,6 +687,8 @@
                                     <th class="p-3">फ़ोटो</th>
                                     <th class="p-3 min-w-[170px]">प्रोडक्ट का नाम & SKU</th>
                                     <th class="p-3 min-w-[70px] text-center font-mono text-gray-500">ID</th>
+                                    <th class="p-3 min-w-[95px] bg-amber-50 text-amber-950 font-black">MRP (लिस्ट ₹)</th>
+                                    <th class="p-3 min-w-[75px] bg-amber-50 text-amber-950 font-black">Less %</th>
                                     <th class="p-3 min-w-[105px] bg-slate-50 text-slate-900 font-extrabold" title="आपकी खरीद लागत (GST सहित)">खरीद लागत (With GST ₹)</th>
                                     <th class="p-3 min-w-[105px] bg-blue-50 text-blue-950 font-black" title="दुकान / ऐप का रिटेल बिक्री भाव (Selling Price 1)">सेलिंग भाव 1 (दुकान ₹)</th>
                                     <th class="p-3 min-w-[90px] bg-indigo-50 text-indigo-950 font-black" title="मार्केटप्लेस के लिए आपका मनपसंद मुनाफा %">मार्जिन (%)</th>
@@ -698,6 +711,11 @@
                                         $imgCount = $p->images ? $p->images->count() : 0;
                                         if ($imgCount === 0 && !empty($p->image)) $imgCount = 1;
                                         $pCost = (float)$p->purchase_price;
+                                        $mrpVal = (float)($p->mrp ?: ($p->variants->where('mrp', '>', 0)->min('mrp') ?: $p->price));
+                                        $lessVal = $p->trade_discount_percent ?: ($p->variants->where('trade_discount_percent', '>', 0)->min('trade_discount_percent') ?: '');
+                                        if (($lessVal === '' || $lessVal <= 0) && $mrpVal > 0 && $pCost > 0 && $mrpVal > $pCost) {
+                                            $lessVal = round((($mrpVal - $pCost) / $mrpVal) * 100, 1);
+                                        }
                                         $ue = $p->attributes['unit_economics'] ?? [];
                                         $marginPct = (float)($ue['margin_pct'] ?? 25);
                                         $rtoBuffer = (float)($ue['rto_buffer'] ?? 20);
@@ -745,6 +763,22 @@
                                         <!-- Product ID -->
                                         <td class="p-2 text-center font-mono text-xs font-extrabold text-gray-500">
                                             #{{ $p->id }}
+                                        </td>
+
+                                        <!-- MRP & Less % -->
+                                        <td class="p-2 bg-amber-50/40 text-center font-mono font-bold text-amber-950">
+                                            @if($mrpVal > 0)
+                                                ₹{{ number_format($mrpVal, 2) }}
+                                            @else
+                                                <span class="text-gray-400 text-[10px]">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="p-2 bg-amber-50/40 text-center font-mono font-black text-amber-800">
+                                            @if($lessVal !== '' && $lessVal > 0)
+                                                {{ $lessVal }}%
+                                            @else
+                                                <span class="text-gray-400 text-[10px]">-</span>
+                                            @endif
                                         </td>
 
                                         <!-- 1. Purchase Cost (P. Cost) - Editable -->
