@@ -133,6 +133,7 @@ class ProductSpreadsheetController extends Controller
             $headers = [
                 'Product ID (Do Not Change)',
                 'Variant ID (Optional)',
+                'SKU / Code (आइटम कोड / बारकोड)',
                 'Product Name (आइटम नाम)',
                 'Size / Variant Name (साइज़ / प्रकार)',
                 'Brand (कंपनी)',
@@ -154,6 +155,7 @@ class ProductSpreadsheetController extends Controller
                         $rows[] = [
                             $p->id,
                             $v->id,
+                            $v->sku ?: ($p->sku ?: "PRD-{$p->id}"),
                             $p->name,
                             $v->variant_name ?: ($v->size ?: 'Standard'),
                             $p->brand ?? '',
@@ -172,6 +174,7 @@ class ProductSpreadsheetController extends Controller
                     $rows[] = [
                         $p->id,
                         '',
+                        $p->sku ?: "PRD-{$p->id}",
                         $p->name,
                         'Standard',
                         $p->brand ?? '',

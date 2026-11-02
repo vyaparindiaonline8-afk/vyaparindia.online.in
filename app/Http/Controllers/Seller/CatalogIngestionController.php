@@ -147,7 +147,9 @@ class CatalogIngestionController extends Controller
 
         $rows = [];
         $headers = [
-            'ITAM CODE',
+            'PRODUCT ID (Do Not Change)',
+            'VARIANT ID (Optional)',
+            'ITAM CODE (SKU)',
             'PRODUCT NAME',
             'CATEGORY',
             'GROUP',
@@ -186,6 +188,8 @@ class CatalogIngestionController extends Controller
                     $code = !empty($v['sku']) ? $v['sku'] : ("ITM-" . str_pad($codeCounter++, 3, '0', STR_PAD_LEFT));
 
                     $rows[] = [
+                        $prod['id'] ?? ($prod['product_id'] ?? ''),
+                        $v['id'] ?? ($v['variant_id'] ?? ''),
                         $code,
                         $baseName . ' ' . $size,
                         $category,
@@ -212,6 +216,8 @@ class CatalogIngestionController extends Controller
                 $code = !empty($prod['sku']) ? $prod['sku'] : ("ITM-" . str_pad($codeCounter++, 3, '0', STR_PAD_LEFT));
 
                 $rows[] = [
+                    $prod['id'] ?? ($prod['product_id'] ?? ''),
+                    '',
                     $code,
                     $baseName,
                     $category,
