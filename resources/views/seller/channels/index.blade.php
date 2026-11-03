@@ -547,9 +547,6 @@
                                 $pCost = (float)$p->purchase_price;
                                 $mrpVal = (float)($p->mrp ?: ($p->variants->where('mrp', '>', 0)->min('mrp') ?: $p->price));
                                 $lessVal = $p->trade_discount_percent ?: ($p->variants->where('trade_discount_percent', '>', 0)->max('trade_discount_percent') ?: '');
-                                if (($lessVal === '' || $lessVal <= 0) && $mrpVal > 0 && $pCost > 0 && $mrpVal > $pCost) {
-                                    $lessVal = round((($mrpVal - $pCost) / $mrpVal) * 100, 1);
-                                }
                                 $ue = $p->attributes['unit_economics'] ?? [];
                                 $marginPct = (float)($ue['margin_pct'] ?? 25);
                                 $rtoBuffer = (float)($ue['rto_buffer'] ?? 20);
@@ -738,9 +735,13 @@
                                     </select>
                                 </div>
 
-                                <button type="button" onclick="applyPresetToAllRows()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
+                                <button type="button" onclick="applyPresetToAllRows()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
                                     <i class="fa-solid fa-wand-magic-sparkles text-amber-200"></i>
-                                    <span>⚡ सभी पर लागू करें (Apply to All)</span>
+                                    <span>⚡ लागू करें (Apply)</span>
+                                </button>
+                                <button type="button" onclick="applyPresetAndSaveAll()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer" title="मार्जिन व खर्चे सभी पर लागू करके सीधे डेटाबेस में सुरक्षित सेव करें">
+                                    <i class="fa-solid fa-floppy-disk text-emerald-200"></i>
+                                    <span>💾 लागू करें व सेव करें (Apply & Save)</span>
                                 </button>
                             </div>
                         </div>
@@ -779,9 +780,6 @@
                                         $pCost = (float)$p->purchase_price;
                                         $mrpVal = (float)($p->mrp ?: ($p->variants->where('mrp', '>', 0)->min('mrp') ?: $p->price));
                                         $lessVal = $p->trade_discount_percent ?: ($p->variants->where('trade_discount_percent', '>', 0)->max('trade_discount_percent') ?: '');
-                                        if (($lessVal === '' || $lessVal <= 0) && $mrpVal > 0 && $pCost > 0 && $mrpVal > $pCost) {
-                                            $lessVal = round((($mrpVal - $pCost) / $mrpVal) * 100, 1);
-                                        }
                                         $ue = $p->attributes['unit_economics'] ?? [];
                                         $marginPct = (float)($ue['margin_pct'] ?? 25);
                                         $rtoBuffer = (float)($ue['rto_buffer'] ?? 20);
@@ -801,9 +799,9 @@
                                         $calcSellingPrice = ceil(($cTax + $fixedExp + $desiredProfit) / $denom);
                                         $finalSellingPrice = !empty($ue['marketplace_price']) ? (float)$ue['marketplace_price'] : max($calcSellingPrice, (float)$p->price);
 
-                                        $combo2 = ceil((($cTax * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $denom);
-                                        $combo4 = ceil((($cTax * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $denom);
-                                        $combo6 = ceil((($cTax * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $denom);
+                                        $combo2 = !empty($ue['combo_2']) ? (float)$ue['combo_2'] : ceil((($cTax * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $denom);
+                                        $combo4 = !empty($ue['combo_4']) ? (float)$ue['combo_4'] : ceil((($cTax * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $denom);
+                                        $combo6 = !empty($ue['combo_6']) ? (float)$ue['combo_6'] : ceil((($cTax * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $denom);
                                     @endphp
                                     <tr class="hover:bg-indigo-50/20 transition group" id="table-row-{{ $p->id }}" data-id="{{ $p->id }}">
                                         <td class="p-3 text-center">
@@ -947,18 +945,21 @@
                                             </div>
                                         </td>
 
-                                        <!-- 8. Real-Time Combo Previews (2/4/6 Pack) -->
-                                        <td class="p-2 text-center">
-                                            <div class="inline-flex items-center gap-1 font-mono text-[10px] font-extrabold text-slate-700 bg-gray-100 p-1 rounded-xl">
-                                                <span class="px-1.5 py-0.5 bg-white rounded-md shadow-2xs" id="row-combo2-{{ $p->id }}" title="2 पीस पैक रेट">
-                                                    2P: ₹{{ $combo2 }}
-                                                </span>
-                                                <span class="px-1.5 py-0.5 bg-white rounded-md shadow-2xs" id="row-combo4-{{ $p->id }}" title="4 पीस पैक रेट">
-                                                    4P: ₹{{ $combo4 }}
-                                                </span>
-                                                <span class="px-1.5 py-0.5 bg-white rounded-md shadow-2xs" id="row-combo6-{{ $p->id }}" title="6 पीस पैक रेट">
-                                                    6P: ₹{{ $combo6 }}
-                                                </span>
+                                        <!-- 8. Real-Time Editable Combo Rates (2/4/6 Pack) -->
+                                        <td class="p-2 text-center bg-gray-50/50">
+                                            <div class="inline-flex items-center gap-1 font-mono text-[10px]">
+                                                <div class="flex flex-col items-center">
+                                                    <span class="text-[8px] font-bold text-gray-500">2P ₹</span>
+                                                    <input type="number" id="row-combo2-{{ $p->id }}" value="{{ $combo2 }}" class="w-14 px-1 py-0.5 bg-white border border-gray-300 rounded text-center text-[10px] font-mono font-bold text-indigo-950 focus:border-indigo-500 focus:outline-none" title="2 पीस पैक का सेलिंग रेट (एडिट कर सकते हैं)">
+                                                </div>
+                                                <div class="flex flex-col items-center">
+                                                    <span class="text-[8px] font-bold text-gray-500">4P ₹</span>
+                                                    <input type="number" id="row-combo4-{{ $p->id }}" value="{{ $combo4 }}" class="w-14 px-1 py-0.5 bg-white border border-gray-300 rounded text-center text-[10px] font-mono font-bold text-indigo-950 focus:border-indigo-500 focus:outline-none" title="4 पीस पैक का सेलिंग रेट (एडिट कर सकते हैं)">
+                                                </div>
+                                                <div class="flex flex-col items-center">
+                                                    <span class="text-[8px] font-bold text-gray-500">6P ₹</span>
+                                                    <input type="number" id="row-combo6-{{ $p->id }}" value="{{ $combo6 }}" class="w-14 px-1 py-0.5 bg-white border border-gray-300 rounded text-center text-[10px] font-mono font-bold text-indigo-950 focus:border-indigo-500 focus:outline-none" title="6 पीस पैक का सेलिंग रेट (एडिट कर सकते हैं)">
+                                                </div>
                                             </div>
                                         </td>
 
@@ -2143,11 +2144,20 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             const c6 = Math.ceil(((cTax * 6) + (desiredProfit * 5.0) + (rto * 2.5) + (pack * 2.0) + (ship * 1.4) + (ads * 1.8)) / denom);
 
             const rC2 = document.getElementById(`row-combo2-${prodId}`);
-            if (rC2) rC2.textContent = `2P: ₹${c2}`;
+            if (rC2) {
+                if (rC2.tagName === 'INPUT') rC2.value = c2;
+                else rC2.textContent = `2P: ₹${c2}`;
+            }
             const rC4 = document.getElementById(`row-combo4-${prodId}`);
-            if (rC4) rC4.textContent = `4P: ₹${c4}`;
+            if (rC4) {
+                if (rC4.tagName === 'INPUT') rC4.value = c4;
+                else rC4.textContent = `4P: ₹${c4}`;
+            }
             const rC6 = document.getElementById(`row-combo6-${prodId}`);
-            if (rC6) rC6.textContent = `6P: ₹${c6}`;
+            if (rC6) {
+                if (rC6.tagName === 'INPUT') rC6.value = c6;
+                else rC6.textContent = `6P: ₹${c6}`;
+            }
 
             // 🔄 INSTANT LIVE SYNC TO CORRESPONDING PHOTO CARD!
             const cardPrice = document.getElementById(`card-price-${prodId}`);
@@ -2215,6 +2225,12 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             });
 
             showChannelToast(`⚡ इस रो का ${margin}% मार्जिन, ₹${rto} रिटर्न, ₹${ship} कूरियर सभी ${rows.length} प्रोडक्ट्स पर लागू हो गया!`);
+        }
+
+        // Apply & Save Immediately to prevent reverting on refresh
+        async function applyPresetAndSaveAll() {
+            applyPresetToAllRows();
+            await saveAllTableRowsCosting();
         }
 
         // Apply Bulk Preset Values to All Rows (Excel-style Apply to All)
@@ -2303,6 +2319,9 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 const note = document.getElementById(`row-note-${id}`)?.value || '';
 
                 const lessVal = parseFloat(document.getElementById(`row-less-${id}`)?.value) || 0;
+                const c2Val = parseFloat(document.getElementById(`row-combo2-${id}`)?.value) || 0;
+                const c4Val = parseFloat(document.getElementById(`row-combo4-${id}`)?.value) || 0;
+                const c6Val = parseFloat(document.getElementById(`row-combo6-${id}`)?.value) || 0;
                 items.push({
                     product_id: parseInt(id),
                     purchase_price: cost,
@@ -2317,6 +2336,9 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                     others: others,
                     hsn_code: hsn,
                     gst_percent: gst,
+                    combo_2: c2Val,
+                    combo_4: c4Val,
+                    combo_6: c6Val,
                     custom_note: note
                 });
             });
@@ -2404,6 +2426,9 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                         others: others,
                         hsn_code: hsn,
                         gst_percent: gst,
+                        combo_2: parseFloat(document.getElementById(`row-combo2-${prodId}`)?.value) || 0,
+                        combo_4: parseFloat(document.getElementById(`row-combo4-${prodId}`)?.value) || 0,
+                        combo_6: parseFloat(document.getElementById(`row-combo6-${prodId}`)?.value) || 0,
                         custom_note: note
                     })
                 });

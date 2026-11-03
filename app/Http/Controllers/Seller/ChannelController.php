@@ -491,6 +491,9 @@ class ChannelController extends Controller
             'platform_fee_pct' => 'nullable|numeric|min:0|max:100',
             'ads' => 'nullable|numeric|min:0',
             'others' => 'nullable|numeric|min:0',
+            'combo_2' => 'nullable|numeric|min:0',
+            'combo_4' => 'nullable|numeric|min:0',
+            'combo_6' => 'nullable|numeric|min:0',
         ]);
 
         if ($request->has('purchase_price')) {
@@ -524,7 +527,7 @@ class ChannelController extends Controller
         }
 
         $attrs = $product->attributes ?? [];
-        $attrs['unit_economics'] = [
+        $ueData = [
             'purchase_cost' => (float)($validated['purchase_price'] ?? $product->purchase_price ?? 0),
             'marketplace_price' => (float)$product->price,
             'margin_pct' => (float)($request->input('margin_pct', 25)),
@@ -539,6 +542,10 @@ class ChannelController extends Controller
             'custom_note' => $request->input('custom_note', ''),
             'updated_at' => now()->toIso8601String(),
         ];
+        if ($request->filled('combo_2')) $ueData['combo_2'] = (float)$request->input('combo_2');
+        if ($request->filled('combo_4')) $ueData['combo_4'] = (float)$request->input('combo_4');
+        if ($request->filled('combo_6')) $ueData['combo_6'] = (float)$request->input('combo_6');
+        $attrs['unit_economics'] = $ueData;
         $product->attributes = $attrs;
         $product->save();
 
@@ -606,7 +613,7 @@ class ChannelController extends Controller
             }
 
             $attrs = $product->attributes ?? [];
-            $attrs['unit_economics'] = [
+            $ueData = [
                 'purchase_cost' => (float)($item['purchase_price'] ?? $product->purchase_price ?? 0),
                 'marketplace_price' => (float)$product->price,
                 'margin_pct' => (float)($item['margin_pct'] ?? 25),
@@ -621,6 +628,10 @@ class ChannelController extends Controller
                 'custom_note' => $item['custom_note'] ?? '',
                 'updated_at' => now()->toIso8601String(),
             ];
+            if (!empty($item['combo_2'])) $ueData['combo_2'] = (float)$item['combo_2'];
+            if (!empty($item['combo_4'])) $ueData['combo_4'] = (float)$item['combo_4'];
+            if (!empty($item['combo_6'])) $ueData['combo_6'] = (float)$item['combo_6'];
+            $attrs['unit_economics'] = $ueData;
             $product->attributes = $attrs;
             $product->save();
 
@@ -709,18 +720,15 @@ class ChannelController extends Controller
             return back()->with('error', 'Unauthorized');
         }
 
-        // Delete all channel listings for this product for this seller (whether pending or synced)
-        ChannelListing::where('product_id', $product->id)
-            ->whereHas('channel', fn($q) => $q->where('user_id', Auth::id()))
-            ->delete();
+        // Delete all channel listings for this product (whether pending or synced)
+        ChannelListing::where('product_id', $product->id)->delete();
 
-        // Clear channel_staged attribute
+        // Clear channel_staged attribute completely
         $attrs = $product->attributes ?? [];
-        if (isset($attrs['channel_staged'])) {
-            unset($attrs['channel_staged']);
-            $product->attributes = $attrs;
-            $product->save();
-        }
+        unset($attrs['channel_staged']);
+        $attrs['channel_staged'] = false;
+        $product->attributes = $attrs;
+        $product->save();
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
@@ -748,18 +756,15 @@ class ChannelController extends Controller
             return back()->with('error', 'कृपया कम से कम एक प्रोडक्ट चुनें।');
         }
 
-        ChannelListing::whereIn('product_id', $productIds)
-            ->whereHas('channel', fn($q) => $q->where('user_id', $userId))
-            ->delete();
+        ChannelListing::whereIn('product_id', $productIds)->delete();
 
-        $products = Product::where('user_id', $userId)->whereIn('id', $productIds)->get();
+        $products = Product::whereIn('id', $productIds)->get();
         foreach ($products as $p) {
             $attrs = $p->attributes ?? [];
-            if (isset($attrs['channel_staged'])) {
-                unset($attrs['channel_staged']);
-                $p->attributes = $attrs;
-                $p->save();
-            }
+            unset($attrs['channel_staged']);
+            $attrs['channel_staged'] = false;
+            $p->attributes = $attrs;
+            $p->save();
         }
 
         $count = count($productIds);
@@ -903,9 +908,6 @@ class ChannelController extends Controller
                     $mrpVal = (float)($v->mrp ?: ($p->mrp ?: $p->price));
                     $pCost = (float)($v->purchase_price ?: ($v->net_landing_cost ?: ($p->purchase_price ?: 0)));
                     $lessVal = $v->trade_discount_percent ?: ($p->trade_discount_percent ?: '');
-                    if (($lessVal === '' || $lessVal <= 0) && $mrpVal > 0 && $pCost > 0 && $mrpVal > $pCost) {
-                        $lessVal = round((($mrpVal - $pCost) / $mrpVal) * 100, 2);
-                    }
                     $gstPercent = (float)($v->gst_percent ?: ($p->gst_percent ?: 18));
                     $costWithoutGst = round($pCost / (1 + ($gstPercent / 100)), 2);
 
@@ -961,9 +963,6 @@ class ChannelController extends Controller
                 $mrpVal = (float)($p->mrp ?: $p->price);
                 $pCost = (float)($p->purchase_price ?: 0);
                 $lessVal = $p->trade_discount_percent ?: '';
-                if (($lessVal === '' || $lessVal <= 0) && $mrpVal > 0 && $pCost > 0 && $mrpVal > $pCost) {
-                    $lessVal = round((($mrpVal - $pCost) / $mrpVal) * 100, 2);
-                }
                 $gstPercent = (float)($p->gst_percent ?: 18);
                 $costWithoutGst = round($pCost / (1 + ($gstPercent / 100)), 2);
 
