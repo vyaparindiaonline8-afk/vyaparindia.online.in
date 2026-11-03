@@ -722,10 +722,22 @@ class ChannelController extends Controller
      * - Selling Price 1 (Retail), Selling Price 2 (Wholesale), Selling Price 3 (Dealer)
      * - Channel Selling Price & Combo Pack Rates 2, 4, 6
      */
+/**
+     * 📥 Export Multi-Channel Staged & Pending Products to Clean Excel (.xls / .csv)
+     * Accurately supports:
+     * - Native Microsoft Excel (.xls) & CSV (.csv) formats (opens directly in Excel!)
+     * - Pending / Amazon Queue vs All Store Products
+     * - Full Variant iteration (e.g. all pipe sizes, fitting sizes)
+     * - MRP (लिस्ट भाव ₹) & Less % (डिस्काउंट %)
+     * - Purchase Price (खरीद लागत भाव - With GST ₹) & Without GST ₹
+     * - Selling Price 1 (Retail), Selling Price 2 (Wholesale), Selling Price 3 (Dealer)
+     * - Channel Selling Price & Combo Pack Rates 2, 4, 6
+     */
     public function exportSheet(Request $request)
     {
         $userId = Auth::id();
         $scope = $request->query('scope', 'pending');
+        $format = strtolower($request->query('format', 'xls')); // Default to .xls for native Excel opening
 
         $query = Product::where('user_id', $userId)->with(['category', 'variants']);
 
@@ -803,7 +815,6 @@ class ChannelController extends Controller
             'Combo 6 Pack Rate (6 पीस रेट)',
             'Custom Barcode / Note (बारकोड / नोट)',
         ];
-        $rows[] = $headers;
 
         foreach ($products as $p) {
             $ue = $p->attributes['unit_economics'] ?? [];
@@ -930,14 +941,50 @@ class ChannelController extends Controller
         if ($request->filled('items')) {
             $prefix .= "_Selected_" . count($rows) . "_Items";
         } elseif ($scope === 'pending') {
-            $prefix .= "_Amazon_Queue_" . (count($rows) - 1) . "_Items";
+            $prefix .= "_Amazon_Queue_" . count($rows) . "_Items";
         } else {
-            $prefix .= "_All_Products_" . (count($rows) - 1) . "_Items";
+            $prefix .= "_All_Products_" . count($rows) . "_Items";
         }
-        $filename = "{$prefix}_{$timestamp}.csv";
 
+        // 🌟 Format 1: Native Microsoft Excel (.xls) - Opens directly in Microsoft Excel!
+        if ($format === 'xls' || $format === 'excel') {
+            $filename = "{$prefix}_{$timestamp}.xls";
+            $html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+            $html .= '<head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>MultiChannel_Pricing</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>';
+            $html .= '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; font-family:Calibri,Arial,sans-serif;">';
+            
+            // Header Row
+            $html .= '<tr style="background-color:#0f172a; color:#ffffff; font-weight:bold; font-size:11pt; text-align:center;">';
+            foreach ($headers as $h) {
+                $html .= '<th style="padding:8px 12px; border:1px solid #cbd5e1; background-color:#0f172a; color:#ffffff;">' . htmlspecialchars($h) . '</th>';
+            }
+            $html .= '</tr>';
+
+            // Data Rows
+            foreach ($rows as $r) {
+                $html .= '<tr style="font-size:10pt;">';
+                foreach ($r as $cIdx => $val) {
+                    $align = ($cIdx === 3 || $cIdx === 5) ? 'left' : 'center';
+                    $html .= '<td style="padding:6px 10px; border:1px solid #e2e8f0; text-align:' . $align . ';">' . htmlspecialchars((string)$val) . '</td>';
+                }
+                $html .= '</tr>';
+            }
+            $html .= '</table></body></html>';
+
+            return response($html, 200, [
+                'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+            ]);
+        }
+
+        // 🌟 Format 2: CSV format with UTF-8 BOM
+        $filename = "{$prefix}_{$timestamp}.csv";
         $output = "\xEF\xBB\xBF";
         $handle = fopen('php://memory', 'r+');
+        fputcsv($handle, $headers);
         foreach ($rows as $row) {
             fputcsv($handle, $row);
         }
@@ -947,7 +994,7 @@ class ChannelController extends Controller
 
         return response($output, 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             'Cache-Control' => 'no-cache, no-store, must-revalidate',
             'Pragma' => 'no-cache',
             'Expires' => '0',
@@ -955,7 +1002,7 @@ class ChannelController extends Controller
     }
 
     /**
-     * 📤 Import & Sync Multi-Channel Pricing Spreadsheet
+     * 📤 Import & Sync Multi-Channel Pricing Spreadsheet (.xls, .csv, .xlsx, .tsv, .txt)
      */
     public function importSheet(Request $request)
     {
@@ -968,7 +1015,32 @@ class ChannelController extends Controller
         $path = $file->getRealPath();
 
         $rows = [];
-        if ($ext === 'csv' || $ext === 'txt') {
+
+        // Check if file is HTML-based Excel (.xls / .html)
+        if (in_array($ext, ['xls', 'html'])) {
+            $content = file_get_contents($path);
+            if (str_contains($content, '<table') || str_contains($content, '<tr')) {
+                $dom = new \DOMDocument();
+                @$dom->loadHTML('<?xml encoding="utf-8" ?>' . $content, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+                $table = $dom->getElementsByTagName('table')->item(0);
+                if ($table) {
+                    foreach ($table->getElementsByTagName('tr') as $tr) {
+                        $row = [];
+                        foreach ($tr->childNodes as $node) {
+                            if ($node->nodeName === 'th' || $node->nodeName === 'td') {
+                                $row[] = trim($node->textContent);
+                            }
+                        }
+                        if (!empty(array_filter($row, fn($v) => trim((string)$v) !== ''))) {
+                            $rows[] = $row;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Fallback for CSV/TXT or standard delimited file
+        if (empty($rows) && ($ext === 'csv' || $ext === 'txt' || $ext === 'tsv' || $ext === 'xls')) {
             $handle = fopen($path, 'r');
             if ($handle !== false) {
                 $bom = fread($handle, 3);
@@ -981,18 +1053,19 @@ class ChannelController extends Controller
                 }
                 fclose($handle);
             }
-        } elseif (in_array($ext, ['xlsx', 'xls'])) {
+        }
+
+        // If XLSX and PhpSpreadsheet available
+        if (empty($rows) && in_array($ext, ['xlsx', 'xls']) && class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
             try {
                 $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
                 $worksheet = $spreadsheet->getActiveSheet();
                 $rows = $worksheet->toArray(null, true, true, false);
-            } catch (\Throwable $e) {
-                return back()->with('error', 'एक्सेल फाइल पढ़ने में समस्या आई: ' . $e->getMessage());
-            }
+            } catch (\Throwable $e) {}
         }
 
         if (empty($rows) || count($rows) < 2) {
-            return back()->with('error', 'शीट में कोई डेटा नहीं मिला।');
+            return back()->with('error', 'शीट में कोई डेटा नहीं मिला। कृपया मान्य एक्सेल (.xls) या .csv फाइल अपलोड करें।');
         }
 
         $headers = array_shift($rows);
@@ -1138,7 +1211,6 @@ class ChannelController extends Controller
                 if (!is_null($sp1) && $sp1 > 0) {
                     if ($variant) {
                         $variant->retail_price = $sp1;
-                        $variant->price = $sp1;
                     } else {
                         $product->price = $sp1;
                     }

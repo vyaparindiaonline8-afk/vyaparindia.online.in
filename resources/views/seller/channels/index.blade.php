@@ -10,46 +10,65 @@
 </head>
 <body class="bg-gray-100 text-gray-800 antialiased min-h-screen">
 
-    <!-- Top Navigation Bar -->
+    <!-- Top Navigation Bar with Generous Breathing Room and Spacing -->
     <header class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-xs">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex items-center gap-3">
-                    <a href="{{ route('seller.dashboard') }}" class="h-9 w-9 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition">
-                        <i class="fa-solid fa-arrow-left text-xs"></i>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <!-- Left: Branding & Title -->
+                <div class="flex items-center gap-3.5 shrink-0">
+                    <a href="{{ route('seller.dashboard') }}" class="h-10 w-10 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition shadow-2xs shrink-0" title="डैशबोर्ड पर वापस जाएँ">
+                        <i class="fa-solid fa-arrow-left text-sm"></i>
                     </a>
                     <div>
-                        <div class="flex items-center gap-2">
-                            <h1 class="font-black text-base sm:text-lg text-gray-900 leading-tight">मल्टी-मार्केटप्लेस सेलर हब</h1>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase">
-                                API 24x7 Realtime Sync
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h1 class="font-black text-lg sm:text-xl text-gray-900 leading-tight">मल्टी-मार्केटप्लेस सेलर हब</h1>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase tracking-wide">
+                                ⚡ API 24x7 Realtime Sync
                             </span>
                         </div>
-                        <p class="text-[11px] text-gray-500">Amazon, Meesho, Flipkart, Myntra & Blinkit पर 1-क्लिक में प्रोडक्ट्स लिस्ट, आर्डर व इन्वेंटरी सिंक करें</p>
+                        <p class="text-xs text-gray-500 mt-0.5">Amazon, Meesho, Flipkart, Myntra & Blinkit पर 1-क्लिक में प्रोडक्ट्स लिस्ट, आर्डर व इन्वेंटरी सिंक करें</p>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2.5 flex-wrap">
-                    <a href="{{ route('seller.channels.export_sheet', ['scope' => 'pending']) }}" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="अमेज़न/मार्केटप्लेस कतार वाले प्रोडक्ट्स की एक्सेल शीट डाउनलोड करें">
-                        <i class="fa-solid fa-file-csv text-amber-300 text-sm"></i>
-                        <span>📥 कतार शीट ({{ count($pendingProducts ?? []) }} आइटम्स)</span>
-                    </a>
-                    <a href="{{ route('seller.channels.export_sheet', ['scope' => 'all']) }}" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="पूरी दुकान के सभी प्रोडक्ट्स की मल्टी-चैनल शीट">
-                        <i class="fa-solid fa-table-list text-emerald-400"></i>
-                        <span>पूरी कैटलॉग शीट</span>
-                    </a>
-                    <button type="button" onclick="document.getElementById('channelCsvUploadInput').click()" class="px-3.5 py-2 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-black text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="अपलोड करके मल्टी-चैनल रेट्स व खर्चे अपडेट करें">
-                        <i class="fa-solid fa-file-arrow-up text-amber-300 text-sm"></i>
-                        <span>📤 शीट अपलोड</span>
-                    </button>
-                    <a href="{{ route('seller.channels.inventory') }}" class="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-boxes-stacked text-indigo-600"></i>
-                        <span>Omnichannel Stock</span>
-                    </a>
-                    <a href="{{ route('seller.orders.index') }}" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-gray-950 font-black text-xs shadow-xs transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-truck-fast"></i>
-                        <span>सभी आर्डर्स देखें</span>
-                    </a>
+                <!-- Right: Action Buttons Grouped with generous margins and padding -->
+                <div class="flex items-center gap-3 flex-wrap lg:justify-end">
+                    <!-- Excel Sync Actions Group -->
+                    <div class="inline-flex items-center gap-2 p-1.5 bg-slate-100/90 rounded-2xl border border-gray-200 shadow-2xs flex-wrap sm:flex-nowrap">
+                        <!-- Direct Excel .xls download (Opens directly in MS Excel!) -->
+                        <a href="{{ route('seller.channels.export_sheet', ['scope' => 'pending', 'format' => 'xls']) }}" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-xs transition flex items-center gap-1.5 hover:scale-102 active:scale-98 cursor-pointer" title="Microsoft Excel (.xls) शीट डाउनलोड करें - सीधे Excel में खुलेगी">
+                            <i class="fa-solid fa-file-excel text-amber-300 text-sm"></i>
+                            <span>📥 कतार शीट (Excel)</span>
+                        </a>
+
+                        <!-- CSV option -->
+                        <a href="{{ route('seller.channels.export_sheet', ['scope' => 'pending', 'format' => 'csv']) }}" class="px-2.5 py-2 rounded-xl bg-white hover:bg-emerald-50 text-emerald-800 font-bold text-xs border border-emerald-200 shadow-2xs transition flex items-center gap-1 cursor-pointer" title="CSV (.csv) फॉर्मेट डाउनलोड करें">
+                            <span class="text-[11px]">.CSV</span>
+                        </a>
+
+                        <!-- All products master sheet -->
+                        <a href="{{ route('seller.channels.export_sheet', ['scope' => 'all', 'format' => 'xls']) }}" class="px-3 py-2 rounded-xl bg-white hover:bg-gray-50 text-slate-800 font-bold text-xs border border-gray-200 shadow-2xs transition flex items-center gap-1.5 cursor-pointer" title="पूरी दुकान के सभी प्रोडक्ट्स की मल्टी-चैनल शीट">
+                            <i class="fa-solid fa-table-list text-slate-600"></i>
+                            <span>पूरी कैटलॉग</span>
+                        </a>
+
+                        <!-- Upload trigger -->
+                        <button type="button" onclick="document.getElementById('channelCsvUploadInput').click()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-2xs transition flex items-center gap-1.5 cursor-pointer hover:scale-102 active:scale-98" title="एडिट की हुई शीट अपलोड कर रेट्स व खर्चे अपडेट करें">
+                            <i class="fa-solid fa-file-arrow-up text-amber-300"></i>
+                            <span>📤 शीट अपलोड</span>
+                        </button>
+                    </div>
+
+                    <!-- Hub Navigation Group -->
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('seller.channels.inventory') }}" class="px-3 py-2 rounded-xl bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs border border-gray-200 shadow-2xs transition flex items-center gap-1.5" title="सभी चैनलों की लाइव इन्वेंटरी देखें">
+                            <i class="fa-solid fa-boxes-stacked text-indigo-600"></i>
+                            <span>Omnichannel Stock</span>
+                        </a>
+                        <a href="{{ route('seller.orders.index') }}" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-gray-950 font-black text-xs shadow-xs transition flex items-center gap-1.5 hover:scale-102 active:scale-98" title="सभी मार्केटप्लेस आर्डर्स">
+                            <i class="fa-solid fa-truck-fast"></i>
+                            <span>सभी आर्डर्स</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -434,47 +453,47 @@
                     </div>
 
                                         <!-- 🎛️ VIEW MODE SWITCHER & BULK ACTIONS TOOLBAR -->
-                    <div class="mt-4 p-3 bg-slate-900 text-white rounded-2xl shadow-md flex flex-col sm:flex-row items-center justify-between gap-3">
-                        <div class="flex items-center gap-3">
+                    <div class="mt-6 p-4 sm:p-4.5 bg-slate-900 text-white rounded-3xl shadow-md flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
+                        <div class="flex items-center gap-3 flex-wrap">
                             <span class="text-xs font-black text-slate-300 flex items-center gap-1.5">
                                 <i class="fa-solid fa-layer-group text-amber-400"></i>
                                 <span>व्यू मोड चुनें:</span>
                             </span>
-                            <div class="inline-flex items-center bg-white/10 p-1 rounded-xl border border-white/20">
-                                <button type="button" onclick="switchPendingLayout('cards')" id="btnPendingViewCards" class="px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer">
+                            <div class="inline-flex items-center bg-white/10 p-1 rounded-2xl border border-white/20">
+                                <button type="button" onclick="switchPendingLayout('cards')" id="btnPendingViewCards" class="px-4 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer">
                                     <i class="fa-solid fa-grip"></i>
                                     <span>🎴 फ़ोटो कार्ड मोड</span>
                                 </button>
-                                <button type="button" onclick="switchPendingLayout('table')" id="btnPendingViewTable" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-300 hover:text-white cursor-pointer">
+                                <button type="button" onclick="switchPendingLayout('table')" id="btnPendingViewTable" class="px-4 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 text-slate-300 hover:text-white cursor-pointer">
                                     <i class="fa-solid fa-table-cells text-emerald-400"></i>
-                                    <span>📊 एक्सेल शीट / लिस्ट मोड (मार्जिन & खर्चे भरें)</span>
+                                    <span>📊 एक्सेल शीट / लिस्ट मोड</span>
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Bulk Actions -->
-                        <div class="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
-                            <a href="{{ route('seller.channels.export_sheet', ['scope' => 'pending']) }}" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer" title="अमेज़न कतार वाले प्रोडक्ट्स की एक्सेल शीट डाउनलोड (.csv)">
+                        <!-- Bulk Actions with clean spacing and breathing room -->
+                        <div class="flex items-center gap-2.5 sm:gap-3 w-full xl:w-auto justify-start xl:justify-end flex-wrap">
+                            <a href="{{ route('seller.channels.export_sheet', ['scope' => 'pending', 'format' => 'xls']) }}" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer hover:scale-102 active:scale-98" title="Microsoft Excel में खुलने वाली शीट डाउनलोड करें">
                                 <i class="fa-solid fa-file-excel text-amber-300"></i>
-                                <span>📥 कतार शीट ({{ count($pendingProducts ?? []) }})</span>
+                                <span>📥 कतार शीट (Excel)</span>
                             </a>
-                            <button type="button" id="btnDownloadSelectedChannel" onclick="downloadSelectedChannelRows()" class="hidden px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer" title="केवल टिक किए हुए प्रोडक्ट्स डाउनलोड करें">
+                            <button type="button" id="btnDownloadSelectedChannel" onclick="downloadSelectedChannelRows()" class="hidden px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer hover:scale-102 active:scale-98" title="केवल टिक किए हुए प्रोडक्ट्स डाउनलोड करें">
                                 <i class="fa-solid fa-check-double"></i>
                                 <span id="btnDownloadSelectedChannelText">चुने हुए डाउनलोड</span>
                             </button>
-                            <a href="{{ route('seller.channels.export_sheet', ['scope' => 'all']) }}" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-slate-200 hover:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer" title="पूरी दुकान की मल्टी-चैनल शीट">
+                            <a href="{{ route('seller.channels.export_sheet', ['scope' => 'all', 'format' => 'xls']) }}" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer" title="पूरी दुकान की मल्टी-चैनल शीट">
                                 <i class="fa-solid fa-layer-group text-emerald-400"></i>
                                 <span>पूरी कैटलॉग</span>
                             </a>
-                            <button type="button" onclick="document.getElementById('channelCsvUploadInput').click()" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer" title="एक्सेल शीट अपलोड कर रेट्स अपडेट करें">
+                            <button type="button" onclick="document.getElementById('channelCsvUploadInput').click()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer hover:scale-102 active:scale-98" title="एक्सेल शीट अपलोड कर रेट्स अपडेट करें">
                                 <i class="fa-solid fa-file-arrow-up text-amber-300"></i>
                                 <span>शीट अपलोड</span>
                             </button>
-                            <button type="button" id="btnBulkSaveTable" onclick="saveAllTableRowsCosting()" class="hidden px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                            <button type="button" id="btnBulkSaveTable" onclick="saveAllTableRowsCosting()" class="hidden px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer">
                                 <i class="fa-solid fa-floppy-disk text-amber-200"></i>
-                                <span>💾 सभी रो एक साथ सेव करें (Save All)</span>
+                                <span>💾 सभी सेव करें (Save All)</span>
                             </button>
-                            <span class="text-xs text-slate-300 font-semibold bg-white/10 px-2.5 py-1 rounded-lg">
+                            <span class="text-xs text-slate-300 font-semibold bg-white/10 px-3 py-2 rounded-xl border border-white/10">
                                 <strong class="text-amber-400 font-mono">{{ count($pendingProducts ?? []) }}</strong> प्रोडक्ट्स कतार में
                             </span>
                         </div>
