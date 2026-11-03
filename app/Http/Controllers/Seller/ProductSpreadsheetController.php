@@ -924,91 +924,18 @@ class ProductSpreadsheetController extends Controller
                     if ($isRowReducer !== $pIsReducer) return false;
 
                     return true;
-                };
-
-                // Case 3 by Name / Base Family
-                if (!$product && !empty($familyBaseName)) {
-                    $cleanFam = strtolower(trim($familyBaseName));
-                    $famSlug = Str::slug($familyBaseName);
-                    $product = $sellerProducts->first(function($p) use ($cleanFam, $famSlug, $isCompatible) {
-                        return (strtolower(trim($p->name)) === $cleanFam || (!empty($famSlug) && $p->slug === $famSlug))
-                            && $isCompatible($p);
+                };                // Case 3 by Exact Full Name Only (Prevent auto-merging different items/models into variants)
+                if (!$product && !empty($name)) {
+                    $cleanFullName = strtolower(trim($name));
+                    $product = $sellerProducts->first(function($p) use ($cleanFullName, $productCode, $isCompatible) {
+                        if (!$isCompatible($p)) return false;
+                        if (strtolower(trim($p->name)) !== $cleanFullName) return false;
+                        if (!empty($productCode)) {
+                            return empty($p->sku) || strtoupper(trim($p->sku)) === strtoupper(trim($productCode));
+                        }
+                        return true;
                     });
-
-                    // Substring check: Does product name exist inside full item name or vice-versa?
-                    if (!$product) {
-                        $product = $sellerProducts->first(function($p) use ($name, $familyBaseName, $isCompatible) {
-                            if (!$isCompatible($p)) return false;
-                            $pName = strtolower(trim($p->name));
-                            if (strlen($pName) < 4) return false;
-                            $cleanRow = strtolower(trim($familyBaseName ?: $name));
-                            foreach (['reducer', 'reduser', 'reducing', 'brass'] as $crit) {
-                                if (str_contains($cleanRow, $crit) !== str_contains($pName, $crit)) {
-                                    return false;
-                                }
-                            }
-                            return stripos($cleanRow, $pName) !== false || stripos($pName, $cleanRow) !== false;
-                        });
-                    }
-
-                    // Fuzzy base matching using normalizeForMatching
-                    if (!$product) {
-                        $normName = $normalizeForMatching($familyBaseName);
-                        if (!empty($normName)) {
-                            $product = $sellerProducts->first(function($p) use ($normName, $normalizeForMatching, $isCompatible) {
-                                if (!$isCompatible($p)) return false;
-                                $pNorm = $normalizeForMatching($p->name);
-                                if (empty($pNorm)) return false;
-                                foreach (['reducer', 'reduser', 'reducing', 'brass'] as $crit) {
-                                    if (str_contains($normName, $crit) !== str_contains($pNorm, $crit)) {
-                                        return false;
-                                    }
-                                }
-                                return ($pNorm === $normName || str_contains($pNorm, $normName) || str_contains($normName, $pNorm));
-                            });
-                        }
-                    }
-
-                    // Smart Word-set matching with category verification (prevents UPVC vs CPVC collision)
-                    if (!$product) {
-                        $rowWords = $extractWordSet($familyBaseName . ' ' . $categoryName);
-                        if (!empty($rowWords)) {
-                            $bestP = null;
-                            $bestScore = 0;
-                            foreach ($sellerProducts as $p) {
-                                if (!$isCompatible($p)) continue;
-                                $pWords = $extractWordSet($p->name . ' ' . ($p->category->name ?? ''));
-                                if (empty($pWords)) continue;
-
-                                // 🛡️ Strict Fitting Type Discrimination: Reducer vs Regular fittings MUST NEVER MERGE!
-                                $typeKeywords = ['reducer', 'reduser', 'reducing', 'brass', 'elbow', 'tee', 'coupler', 'socket', 'bush', 'union', 'nipple', 'nippale', 'mta', 'fta', 'bend', 'trap', 'valve', 'cap', 'cross'];
-                                $mismatch = false;
-                                foreach ($typeKeywords as $tk) {
-                                    if (in_array($tk, $rowWords) !== in_array($tk, $pWords)) {
-                                        $mismatch = true;
-                                        break;
-                                    }
-                                }
-                                if ($mismatch) continue;
-
-                                $intersect = array_intersect($rowWords, $pWords);
-                                if (!empty($intersect)) {
-                                    $score = count($intersect);
-                                    if ($score >= 2 && ($score === count($rowWords) || $score === count($pWords))) {
-                                        if ($score > $bestScore) {
-                                            $bestScore = $score;
-                                            $bestP = $p;
-                                        }
-                                    }
-                                }
-                            }
-                            if ($bestP) {
-                                $product = $bestP;
-                            }
-                        }
-                    }
                 }
-
                 // In-Memory lookup for BrandMaster image (Zero DB queries!)
                 $catalogImage = null;
                 if (!empty($productCode)) {
@@ -1309,7 +1236,7 @@ class ProductSpreadsheetController extends Controller
                             $skuToAssign = !empty($newProductCode) ? trim($newProductCode) : (!empty($productCode) ? trim($productCode) : ('PLASTO-' . time() . '-' . rand(10, 99)));
                             $newProduct = Product::create([
                                 'user_id' => $seller->id,
-                                'name' => $familyBaseName,
+                                'name' => !empty($name) ? trim($name) : $familyBaseName,
                                 'sku' => $skuToAssign,
                                 'slug' => $uniqueSlug,
                                 'description' => !empty($desc) ? $desc : $name,
@@ -1322,7 +1249,7 @@ class ProductSpreadsheetController extends Controller
                                 'mrp' => $finalMrp,
                                 'stock_quantity' => !is_null($stock) ? $stock : 0,
                                 'track_inventory' => !is_null($stock) && $stock > 0,
-                                'has_variants' => !empty($sizeVariant),
+                                'has_variants' => false,
                                 'image' => $catalogImage,
                             ]);
 
