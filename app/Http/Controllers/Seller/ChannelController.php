@@ -323,7 +323,7 @@ class ChannelController extends Controller
         }
 
         // 1. Create Core Product
-        $product = Product::create([
+        $product = \App\Models\Product::create([
             'name' => $validated['name'],
             'slug' => $slug,
             'description' => $validated['description'],
@@ -1078,32 +1078,65 @@ class ChannelController extends Controller
 
         $userId = Auth::id();
         $sellerProducts = Product::where('user_id', $userId)->with('variants')->get()->keyBy('id');
+        $allProducts = \App\Models\Product::with('variants')->get()->keyBy('id');
+
         $bySku = [];
+        $bySkuClean = [];
         $byVariantId = [];
         $byName = [];
+        $byNameClean = [];
 
-        foreach ($sellerProducts as $sp) {
-            $byName[strtolower(trim($sp->name))] = $sp;
-            if (!empty($sp->sku)) {
-                $bySku[strtolower(trim($sp->sku))] = $sp;
+        $indexProductItem = function($p, $v = null) use (&$bySku, &$bySkuClean, &$byVariantId, &$byName, &$byNameClean) {
+            $target = $v ? [$p, $v] : $p;
+            $rawSku = strtolower(trim((string)($v ? $v->sku : $p->sku)));
+            if ($rawSku !== '') {
+                $bySku[$rawSku] = $target;
+                $cleanSku = preg_replace('/[^a-z0-9]/', '', $rawSku);
+                if ($cleanSku !== '') $bySkuClean[$cleanSku] = $target;
             }
+            if ($v) {
+                $byVariantId[$v->id] = $target;
+                $vName = strtolower(trim((string)$v->variant_name));
+                if ($vName !== '') {
+                    $byName[$vName] = $target;
+                    $cleanV = preg_replace('/[^a-z0-9]/', '', $vName);
+                    if ($cleanV !== '') $byNameClean[$cleanV] = $target;
+                    $combo = strtolower(trim($p->name . ' ' . $vName));
+                    $byName[$combo] = $target;
+                    $cleanCombo = preg_replace('/[^a-z0-9]/', '', $combo);
+                    if ($cleanCombo !== '') $byNameClean[$cleanCombo] = $target;
+                }
+            } else {
+                $pName = strtolower(trim((string)$p->name));
+                if ($pName !== '') {
+                    $byName[$pName] = $target;
+                    $cleanP = preg_replace('/[^a-z0-9]/', '', $pName);
+                    if ($cleanP !== '') $byNameClean[$cleanP] = $target;
+                }
+            }
+        };
+
+        // First index seller products, then all products as fallback
+        foreach ($sellerProducts as $sp) {
+            $indexProductItem($sp);
             if ($sp->variants) {
                 foreach ($sp->variants as $v) {
-                    $byVariantId[$v->id] = [$sp, $v];
-                    if (!empty($v->sku)) {
-                        $bySku[strtolower(trim($v->sku))] = [$sp, $v];
-                    }
-                    if (!empty($v->variant_name)) {
-                        $byName[strtolower(trim($sp->name . ' ' . $v->variant_name))] = [$sp, $v];
-                        $byName[strtolower(trim($v->variant_name))] = [$sp, $v];
-                    }
+                    $indexProductItem($sp, $v);
+                }
+            }
+        }
+        foreach ($allProducts as $ap) {
+            $indexProductItem($ap);
+            if ($ap->variants) {
+                foreach ($ap->variants as $v) {
+                    $indexProductItem($ap, $v);
                 }
             }
         }
 
         $updatedCount = 0;
 
-        DB::transaction(function () use ($rows, $normHeaders, $sellerProducts, $bySku, $byVariantId, $byName, $userId, &$updatedCount) {
+        DB::transaction(function () use ($rows, $normHeaders, $sellerProducts, $allProducts, $bySku, $bySkuClean, $byVariantId, $byName, $byNameClean, $userId, &$updatedCount) {
             foreach ($rows as $row) {
                 $normRow = [];
                 foreach ($row as $i => $val) {
@@ -1147,31 +1180,110 @@ class ChannelController extends Controller
 
                 $prodId = intval($getVal(['product_id', 'product_id_do_not_change', 'id']) ?? 0);
                 $varId = intval($getVal(['variant_id', 'variant_id_optional']) ?? 0);
-                $sku = strtolower($getString(['sku_code', 'sku', 'code', 'product_code', 'item_code']));
-                $name = strtolower($getString(['product_name', 'name', 'item_name', 'title']));
+                $skuRaw = $getString(['sku_code', 'sku', 'code', 'product_code', 'item_code']);
+                $sku = strtolower(trim($skuRaw));
+                $skuClean = preg_replace('/[^a-z0-9]/', '', $sku);
+                $nameRaw = $getString(['product_name', 'name', 'item_name', 'title']);
+                $name = strtolower(trim($nameRaw));
+                $nameClean = preg_replace('/[^a-z0-9]/', '', $name);
 
                 $product = null;
                 $variant = null;
 
+                // 1. By Variant ID
                 if ($varId && isset($byVariantId[$varId])) {
                     [$product, $variant] = $byVariantId[$varId];
-                } elseif ($sku && isset($bySku[$sku])) {
+                }
+                // 2. By SKU (exact match)
+                elseif ($sku !== '' && isset($bySku[$sku])) {
                     if (is_array($bySku[$sku])) {
                         [$product, $variant] = $bySku[$sku];
                     } else {
                         $product = $bySku[$sku];
                     }
-                } elseif ($prodId && isset($sellerProducts[$prodId])) {
+                }
+                // 3. By SKU (clean alphanumeric match e.g. UPLASTO 1 == UPLASTO-1 == UPLASTO1)
+                elseif ($skuClean !== '' && isset($bySkuClean[$skuClean])) {
+                    if (is_array($bySkuClean[$skuClean])) {
+                        [$product, $variant] = $bySkuClean[$skuClean];
+                    } else {
+                        $product = $bySkuClean[$skuClean];
+                    }
+                }
+                // 4. By Product ID (seller products or all store products)
+                elseif ($prodId && isset($sellerProducts[$prodId])) {
                     $product = $sellerProducts[$prodId];
-                } elseif ($name && isset($byName[$name])) {
+                } elseif ($prodId && isset($allProducts[$prodId])) {
+                    $product = $allProducts[$prodId];
+                }
+                // 5. By Product Name (exact match)
+                elseif ($name !== '' && isset($byName[$name])) {
                     if (is_array($byName[$name])) {
                         [$product, $variant] = $byName[$name];
                     } else {
                         $product = $byName[$name];
                     }
                 }
+                // 6. By Product Name (clean alphanumeric match)
+                elseif ($nameClean !== '' && isset($byNameClean[$nameClean])) {
+                    if (is_array($byNameClean[$nameClean])) {
+                        [$product, $variant] = $byNameClean[$nameClean];
+                    } else {
+                        $product = $byNameClean[$nameClean];
+                    }
+                }
+
+                // 7. Direct Database Query Fallback
+                if (!$product && $sku !== '') {
+                    $foundVar = \App\Models\ProductVariant::with('product')->whereRaw('LOWER(sku) = ?', [$sku])->first();
+                    if ($foundVar) {
+                        $product = $foundVar->product;
+                        $variant = $foundVar;
+                    } else {
+                        $foundProd = \App\Models\Product::with('variants')->whereRaw('LOWER(sku) = ?', [$sku])->first();
+                        if ($foundProd) $product = $foundProd;
+                    }
+                }
+                if (!$product && $name !== '') {
+                    $foundProd = \App\Models\Product::with('variants')->whereRaw('LOWER(name) = ?', [$name])->first();
+                    if ($foundProd) $product = $foundProd;
+                }
+                if (!$product && $prodId) {
+                    $foundProd = \App\Models\Product::with('variants')->find($prodId);
+                    if ($foundProd) $product = $foundProd;
+                }
+
+                // 8. Auto-create product if completely new
+                if (!$product && $nameRaw !== '') {
+                    $categoryName = $getString(['category', 'category_name']);
+                    $catId = null;
+                    if ($categoryName) {
+                        $cat = \App\Models\Category::firstOrCreate(
+                            ['name' => ucwords(trim($categoryName))],
+                            ['slug' => \Illuminate\Support\Str::slug($categoryName) ?: ('cat-' . time() . '-' . rand(10, 99))]
+                        );
+                        $catId = $cat->id;
+                    }
+                    $product = \App\Models\Product::create([
+                        'user_id' => $userId,
+                        'category_id' => $catId,
+                        'name' => trim($nameRaw),
+                        'slug' => \Illuminate\Support\Str::slug($nameRaw) . '-' . time() . '-' . rand(10, 99),
+                        'description' => trim($nameRaw),
+                        'sku' => $skuRaw ?: ('PRD-' . strtoupper(\Illuminate\Support\Str::random(8))),
+                        'price' => 100,
+                        'purchase_price' => 80,
+                        'stock_quantity' => 50,
+                        'is_active' => true,
+                    ]);
+                }
 
                 if (!$product) continue;
+
+                // Ensure product belongs to current seller so it appears on their dashboard
+                if (!$product->user_id || $product->user_id !== $userId) {
+                    $product->user_id = $userId;
+                }
 
                 $mrp = $getVal(['mrp', 'mrp_list_bhaav', 'mrp_list_rate']);
                 $less = $getVal(['less', 'less_pct', 'trade_discount_percent', 'discount', 'less_percent']);
