@@ -484,6 +484,7 @@ class ChannelController extends Controller
 
         $validated = $request->validate([
             'purchase_price' => 'nullable|numeric|min:0',
+            'trade_discount_percent' => 'nullable|numeric|min:0|max:100',
             'price' => 'required|numeric|min:1',
             'packaging' => 'nullable|numeric|min:0',
             'shipping' => 'nullable|numeric|min:0',
@@ -494,6 +495,10 @@ class ChannelController extends Controller
 
         if ($request->has('purchase_price')) {
             $product->purchase_price = $validated['purchase_price'];
+            $product->net_landing_cost = $validated['purchase_price'];
+        }
+        if ($request->has('trade_discount_percent')) {
+            $product->trade_discount_percent = $validated['trade_discount_percent'];
         }
         $product->price = $validated['price'];
 
@@ -504,8 +509,18 @@ class ChannelController extends Controller
             $product->gst_percent = (float)$request->input('gst_percent', 18);
         }
 
-        if ($product->variants()->exists() && isset($validated['purchase_price'])) {
-            $product->variants()->update(['purchase_price' => (float)$validated['purchase_price']]);
+        if ($product->variants()->exists()) {
+            $vUpdates = [];
+            if (isset($validated['purchase_price'])) {
+                $vUpdates['purchase_price'] = (float)$validated['purchase_price'];
+                $vUpdates['net_landing_cost'] = (float)$validated['purchase_price'];
+            }
+            if (isset($validated['trade_discount_percent'])) {
+                $vUpdates['trade_discount_percent'] = (float)$validated['trade_discount_percent'];
+            }
+            if (!empty($vUpdates)) {
+                $product->variants()->update($vUpdates);
+            }
         }
 
         $attrs = $product->attributes ?? [];
@@ -562,8 +577,22 @@ class ChannelController extends Controller
 
             if (isset($item['purchase_price'])) {
                 $product->purchase_price = (float)$item['purchase_price'];
-                if ($product->variants()->exists()) {
-                    $product->variants()->update(['purchase_price' => (float)$item['purchase_price']]);
+                $product->net_landing_cost = (float)$item['purchase_price'];
+            }
+            if (isset($item['trade_discount_percent'])) {
+                $product->trade_discount_percent = (float)$item['trade_discount_percent'];
+            }
+            if ($product->variants()->exists()) {
+                $vUpdates = [];
+                if (isset($item['purchase_price'])) {
+                    $vUpdates['purchase_price'] = (float)$item['purchase_price'];
+                    $vUpdates['net_landing_cost'] = (float)$item['purchase_price'];
+                }
+                if (isset($item['trade_discount_percent'])) {
+                    $vUpdates['trade_discount_percent'] = (float)$item['trade_discount_percent'];
+                }
+                if (!empty($vUpdates)) {
+                    $product->variants()->update($vUpdates);
                 }
             }
             if (isset($item['price']) && $item['price'] > 0) {

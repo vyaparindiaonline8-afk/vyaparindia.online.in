@@ -484,9 +484,15 @@
                                         <!-- 🎛️ VIEW MODE SWITCHER & BULK ACTIONS TOOLBAR -->
                     <div class="mt-6 p-4 sm:p-4.5 bg-slate-900 text-white rounded-3xl shadow-md flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
                         <div class="flex items-center gap-3 flex-wrap">
+                            <!-- Instant Search in Pending Queue -->
+                            <div class="relative w-full sm:w-64">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                                <input type="text" id="pendingQueueSearchInp" oninput="filterPendingQueueItems()" placeholder="🔍 कतार में खोजें (उदा. Bib, Cistern)..." class="w-full pl-8 pr-3 py-1.5 rounded-xl bg-white/10 text-white placeholder-gray-400 border border-white/20 text-xs font-semibold focus:bg-white focus:text-gray-900 focus:placeholder-gray-500 outline-none transition">
+                            </div>
+
                             <span class="text-xs font-black text-slate-300 flex items-center gap-1.5">
                                 <i class="fa-solid fa-layer-group text-amber-400"></i>
-                                <span>व्यू मोड चुनें:</span>
+                                <span>व्यू मोड:</span>
                             </span>
                             <div class="inline-flex items-center bg-white/10 p-1 rounded-2xl border border-white/20">
                                 <button type="button" onclick="switchPendingLayout('cards')" id="btnPendingViewCards" class="px-4 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer">
@@ -616,9 +622,13 @@
                                 <!-- Unit Economics Breakdown Badge -->
                                 <div class="p-2.5 bg-slate-50 rounded-2xl border border-gray-100 text-[11px] space-y-1">
                                     @if($mrpVal > 0)
-                                    <div class="flex items-center justify-between text-amber-900 text-[10px] font-bold pb-0.5 border-b border-gray-100">
-                                        <span>MRP (लिस्ट भाव):</span>
-                                        <span class="font-mono">₹{{ number_format($mrpVal, 2) }} @if($lessVal) <strong class="text-rose-600">({{ $lessVal }}% Less)</strong> @endif</span>
+                                    <div class="flex items-center justify-between text-amber-900 text-[10px] font-bold pb-1 border-b border-gray-100">
+                                        <span>MRP: <strong class="font-mono">₹{{ number_format($mrpVal, 2) }}</strong></span>
+                                        <div class="inline-flex items-center gap-1 bg-amber-50/70 px-2 py-0.5 rounded-lg border border-amber-200">
+                                            <span class="text-[10px] text-amber-950 font-bold">Less:</span>
+                                            <input type="number" step="0.5" min="0" max="99" id="card-less-{{ $p->id }}" data-mrp="{{ $mrpVal }}" value="{{ $lessVal !== '' && $lessVal > 0 ? $lessVal : '' }}" oninput="recalcCardLessToCost({{ $p->id }})" class="w-12 px-1 py-0.5 bg-white border border-amber-300 rounded font-mono font-black text-amber-900 text-center text-[10px] outline-none" placeholder="Less%">
+                                            <span class="text-rose-600 font-black">%</span>
+                                        </div>
                                     </div>
                                     @endif
                                     <div class="flex items-center justify-between">
@@ -825,12 +835,17 @@
                                                 <span class="text-gray-400 text-[10px]">-</span>
                                             @endif
                                         </td>
-                                        <td class="p-2 bg-amber-50/40 text-center font-mono font-black text-amber-800">
-                                            @if($lessVal !== '' && $lessVal > 0)
-                                                {{ $lessVal }}%
-                                            @else
-                                                <span class="text-gray-400 text-[10px]">-</span>
-                                            @endif
+                                        <td class="p-2 bg-amber-50/40 text-center">
+                                            <div class="inline-flex items-center gap-0.5">
+                                                <input type="number" step="0.5" min="0" max="99" 
+                                                    id="row-less-{{ $p->id }}" 
+                                                    data-mrp="{{ $mrpVal }}" 
+                                                    value="{{ $lessVal !== '' && $lessVal > 0 ? $lessVal : '' }}" 
+                                                    oninput="recalcLessToCost({{ $p->id }})" 
+                                                    class="w-14 px-1 py-1 bg-white border border-amber-300 rounded-lg text-xs font-mono font-black text-amber-900 text-center focus:border-amber-600 focus:outline-none" 
+                                                    title="MRP पर डिस्काउंट % (Less %)" placeholder="Less %">
+                                                <span class="font-bold text-amber-800 text-[10px]">%</span>
+                                            </div>
                                         </td>
 
                                         <!-- 1. Purchase Cost (P. Cost) - Editable -->
@@ -2027,6 +2042,63 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             event.target.value = '';
         }
 
+                // 2-Way Real-time recalculation: Less % -> Purchase Cost
+        function recalcLessToCost(prodId) {
+            const lessInp = document.getElementById(`row-less-${prodId}`);
+            if (!lessInp) return;
+            const mrp = parseFloat(lessInp.getAttribute('data-mrp')) || 0;
+            const lessVal = parseFloat(lessInp.value);
+            const costInp = document.getElementById(`row-cost-${prodId}`);
+            if (mrp > 0 && !isNaN(lessVal) && lessVal >= 0 && lessVal < 100) {
+                const calculatedCost = Math.round((mrp * (1 - (lessVal / 100))) * 100) / 100;
+                if (costInp) costInp.value = calculatedCost.toFixed(2);
+                const cardCost = document.getElementById(`card-cost-${prodId}`);
+                if (cardCost) cardCost.textContent = '₹' + calculatedCost.toFixed(2);
+            }
+            const cardLess = document.getElementById(`card-less-${prodId}`);
+            if (cardLess && cardLess.value !== lessInp.value) cardLess.value = lessInp.value;
+
+            recalcTableRow(prodId);
+        }
+
+        // 2-Way Real-time recalculation from Card view Less %
+        function recalcCardLessToCost(prodId) {
+            const cardLess = document.getElementById(`card-less-${prodId}`);
+            if (!cardLess) return;
+            const mrp = parseFloat(cardLess.getAttribute('data-mrp')) || 0;
+            const lessVal = parseFloat(cardLess.value);
+            const costInp = document.getElementById(`row-cost-${prodId}`);
+            if (mrp > 0 && !isNaN(lessVal) && lessVal >= 0 && lessVal < 100) {
+                const calculatedCost = Math.round((mrp * (1 - (lessVal / 100))) * 100) / 100;
+                if (costInp) costInp.value = calculatedCost.toFixed(2);
+                const cardCost = document.getElementById(`card-cost-${prodId}`);
+                if (cardCost) cardCost.textContent = '₹' + calculatedCost.toFixed(2);
+            }
+            const rowLess = document.getElementById(`row-less-${prodId}`);
+            if (rowLess && rowLess.value !== cardLess.value) rowLess.value = cardLess.value;
+
+            recalcTableRow(prodId);
+        }
+
+        // Instant Live Search Filter for Pending Cards & Table Rows
+        function filterPendingQueueItems() {
+            const q = (document.getElementById('pendingQueueSearchInp')?.value || '').trim().toLowerCase();
+            
+            // Filter Cards
+            const cards = document.querySelectorAll('#pendingCardsContainer > div[id^="pending-card-box-"]');
+            cards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = (!q || text.includes(q)) ? '' : 'none';
+            });
+
+            // Filter Table Rows
+            const rows = document.querySelectorAll('#pendingTableTbody tr[data-id]');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = (!q || text.includes(q)) ? '' : 'none';
+            });
+        }
+
         // Real-Time Table Row Unit Economics Recalculator with Margin %, RTO Buffer, GST & Card Sync
         function recalcTableRow(prodId) {
             const cost = parseFloat(document.getElementById(`row-cost-${prodId}`)?.value) || 0;
@@ -2136,6 +2208,8 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
         function applyPresetToAllRows() {
             // Read exactly what user entered in the top preset box
             const marginRaw = document.getElementById('bulkPresetMargin')?.value;
+            const lessRaw = document.getElementById('bulkPresetLess')?.value;
+            const lessVal = (lessRaw !== '' && !isNaN(parseFloat(lessRaw))) ? parseFloat(lessRaw) : null;
             const margin = (marginRaw !== '' && !isNaN(parseFloat(marginRaw))) ? parseFloat(marginRaw) : 25;
 
             const rtoRaw = document.getElementById('bulkPresetRto')?.value;
@@ -2157,6 +2231,13 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
 
             rows.forEach(row => {
                 const id = row.getAttribute('data-id');
+                if (lessVal !== null) {
+                    const lInp = document.getElementById(`row-less-${id}`);
+                    if (lInp) {
+                        lInp.value = lessVal;
+                        recalcLessToCost(id);
+                    }
+                }
                 const marginInput = document.getElementById(`row-margin-${id}`);
                 if (marginInput) marginInput.value = margin;
 
@@ -2208,9 +2289,11 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 const gst = parseFloat(document.getElementById(`row-gst-${id}`)?.value) || 18;
                 const note = document.getElementById(`row-note-${id}`)?.value || '';
 
+                const lessVal = parseFloat(document.getElementById(`row-less-${id}`)?.value) || 0;
                 items.push({
                     product_id: parseInt(id),
                     purchase_price: cost,
+                    trade_discount_percent: lessVal,
                     margin_pct: marginPct,
                     rto_buffer: rto,
                     price: price,
@@ -2286,6 +2369,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i>';
 
+            const lessVal = parseFloat(document.getElementById(`row-less-${prodId}`)?.value || document.getElementById(`card-less-${prodId}`)?.value) || 0;
             try {
                 const res = await fetch(`/seller/channels/products/${prodId}/save-costing`, {
                     method: 'POST',
@@ -2296,6 +2380,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                     },
                     body: JSON.stringify({
                         purchase_price: cost,
+                        trade_discount_percent: lessVal,
                         margin_pct: marginPct,
                         rto_buffer: rto,
                         price: price,
