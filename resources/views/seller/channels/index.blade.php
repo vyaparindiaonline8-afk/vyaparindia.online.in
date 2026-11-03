@@ -711,6 +711,12 @@
 
                             <!-- Inputs Bar -->
                             <div class="flex items-center gap-2 flex-wrap">
+                                <div class="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-xl border-2 border-amber-400 shadow-xs" title="MRP पर लेस डिस्काउंट % (उदा. 45% या 40%) - सभी आइटम्स की खरीद लागत अपने-आप बदल जाएगी">
+                                    <span class="text-[10px] text-amber-950 font-black">🏷️ Less %:</span>
+                                    <input type="number" step="0.5" min="0" max="99" id="bulkPresetLess" placeholder="उदा. 45" class="w-14 text-xs font-mono font-black text-amber-950 outline-none text-center bg-white rounded border border-amber-300">
+                                    <span class="text-[10px] text-amber-700 font-black">%</span>
+                                </div>
+
                                 <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
                                     <span class="text-[10px] text-gray-500 font-bold">मार्जिन %:</span>
                                     <input type="number" id="bulkPresetMargin" value="25" class="w-12 text-xs font-mono font-bold text-indigo-700 outline-none text-center">
@@ -2082,7 +2088,11 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
         function recalcLessToCost(prodId) {
             const lessInp = document.getElementById(`row-less-${prodId}`);
             if (!lessInp) return;
-            const mrp = parseFloat(lessInp.getAttribute('data-mrp')) || 0;
+            let mrp = parseFloat(lessInp.getAttribute('data-mrp')) || 0;
+            if (mrp <= 0) {
+                const priceInp = document.getElementById(`row-price-${prodId}`);
+                mrp = parseFloat(priceInp?.value) || 0;
+            }
             const lessVal = parseFloat(lessInp.value);
             const costInp = document.getElementById(`row-cost-${prodId}`);
             if (mrp > 0 && !isNaN(lessVal) && lessVal >= 0 && lessVal < 100) {
@@ -2102,7 +2112,11 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
         function recalcCardLessToCost(prodId) {
             const cardLess = document.getElementById(`card-less-${prodId}`);
             if (!cardLess) return;
-            const mrp = parseFloat(cardLess.getAttribute('data-mrp')) || 0;
+            let mrp = parseFloat(cardLess.getAttribute('data-mrp')) || 0;
+            if (mrp <= 0) {
+                const priceInp = document.getElementById(`row-price-${prodId}`);
+                mrp = parseFloat(priceInp?.value) || 0;
+            }
             const lessVal = parseFloat(cardLess.value);
             const costInp = document.getElementById(`row-cost-${prodId}`);
             if (mrp > 0 && !isNaN(lessVal) && lessVal >= 0 && lessVal < 100) {
@@ -2336,7 +2350,10 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 recalcTableRow(id);
             });
 
-            showChannelToast(`⚡ सभी ${rows.length} प्रोडक्ट्स पर ${margin}% मार्जिन, ₹${rto} रिटर्न बफ़र, ₹${ship} कूरियर व ${gst}% GST लागू हो गया!`);
+            let msg = `⚡ सभी ${rows.length} प्रोडक्ट्स पर `;
+            if (lessVal !== null) msg += `${lessVal}% लेस डिस्काउंट, `;
+            msg += `${margin}% मार्जिन, ₹${rto} रिटर्न बफ़र, ₹${ship} कूरियर व ${gst}% GST लागू हो गया!`;
+            showChannelToast(msg);
         }
 
         function syncManualPriceToCard(prodId) {
