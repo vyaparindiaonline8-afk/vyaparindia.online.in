@@ -1066,7 +1066,7 @@ class ChannelController extends Controller
         }
 
         if (empty($rows) || count($rows) < 2) {
-            return back()->with('error', 'शीट में कोई डेटा नहीं मिला। कृपया मान्य एक्सेल (.xls) या .csv फाइल अपलोड करें।');
+            return redirect()->route('seller.channels.index')->with('error', 'शीट में कोई डेटा नहीं मिला। कृपया मान्य एक्सेल (.xls) या .csv फाइल अपलोड करें।');
         }
 
         $headers = array_shift($rows);
@@ -1080,7 +1080,10 @@ class ChannelController extends Controller
         $sellerProducts = Product::where('user_id', $userId)->with('variants')->get()->keyBy('id');
         $bySku = [];
         $byVariantId = [];
+        $byName = [];
+
         foreach ($sellerProducts as $sp) {
+            $byName[strtolower(trim($sp->name))] = $sp;
             if (!empty($sp->sku)) {
                 $bySku[strtolower(trim($sp->sku))] = $sp;
             }
@@ -1090,13 +1093,17 @@ class ChannelController extends Controller
                     if (!empty($v->sku)) {
                         $bySku[strtolower(trim($v->sku))] = [$sp, $v];
                     }
+                    if (!empty($v->variant_name)) {
+                        $byName[strtolower(trim($sp->name . ' ' . $v->variant_name))] = [$sp, $v];
+                        $byName[strtolower(trim($v->variant_name))] = [$sp, $v];
+                    }
                 }
             }
         }
 
         $updatedCount = 0;
 
-        DB::transaction(function () use ($rows, $normHeaders, $sellerProducts, $bySku, $byVariantId, $userId, &$updatedCount) {
+        DB::transaction(function () use ($rows, $normHeaders, $sellerProducts, $bySku, $byVariantId, $byName, $userId, &$updatedCount) {
             foreach ($rows as $row) {
                 $normRow = [];
                 foreach ($row as $i => $val) {
@@ -1118,7 +1125,8 @@ class ChannelController extends Controller
                         foreach ($aliases as $k) {
                             $clean = trim(preg_replace('/[^a-zA-Z0-9]+/', '_', strtolower($k)), '_');
                             if ($clean === 'gst' || $clean === 'tax') continue;
-                            if (strlen($clean) >= 5 && str_contains($rk, $clean)) {
+                            if (str_contains($clean, 'with_gst') && str_contains($rk, 'without')) continue;
+                            if (strlen($clean) >= 4 && str_contains($rk, $clean)) {
                                 $num = preg_replace('/[^0-9.]/', '', (string)$rv);
                                 return is_numeric($num) ? floatval($num) : null;
                             }
@@ -1139,7 +1147,8 @@ class ChannelController extends Controller
 
                 $prodId = intval($getVal(['product_id', 'product_id_do_not_change', 'id']) ?? 0);
                 $varId = intval($getVal(['variant_id', 'variant_id_optional']) ?? 0);
-                $sku = strtolower($getString(['sku', 'code', 'product_code']));
+                $sku = strtolower($getString(['sku_code', 'sku', 'code', 'product_code', 'item_code']));
+                $name = strtolower($getString(['product_name', 'name', 'item_name', 'title']));
 
                 $product = null;
                 $variant = null;
@@ -1154,6 +1163,12 @@ class ChannelController extends Controller
                     }
                 } elseif ($prodId && isset($sellerProducts[$prodId])) {
                     $product = $sellerProducts[$prodId];
+                } elseif ($name && isset($byName[$name])) {
+                    if (is_array($byName[$name])) {
+                        [$product, $variant] = $byName[$name];
+                    } else {
+                        $product = $byName[$name];
+                    }
                 }
 
                 if (!$product) continue;
@@ -1161,13 +1176,20 @@ class ChannelController extends Controller
                 $mrp = $getVal(['mrp', 'mrp_list_bhaav', 'mrp_list_rate']);
                 $less = $getVal(['less', 'less_pct', 'trade_discount_percent', 'discount', 'less_percent']);
 
-                $pCost = $getVal([
-                    'purchase_price', 'purchase_price_khariid_laagt_bhaav_with_gst',
-                    'purchase_price_with_gst', 'purchase_price_gst_sahit', 'net_landing_cost', 'cost_with_gst', 'p_cost', 'cost'
+                $pCostWithoutGst = $getVal([
+                    'purchase_price_without_gst_gst', 'purchase_price_without_gst',
+                    'purchase_price_bina_gst', 'basic_cost', 'cost_without_gst'
                 ]);
-                $pCostWithoutGst = $getVal(['purchase_price_without_gst', 'purchase_price_bina_gst', 'basic_cost', 'cost_without_gst']);
+                $pCost = $getVal([
+                    'purchase_price_with_gst_gst', 'purchase_price_with_gst',
+                    'purchase_price_khariid_laagt_bhaav_with_gst', 'purchase_price_gst_sahit',
+                    'net_landing_cost', 'cost_with_gst', 'p_cost', 'cost', 'purchase_price'
+                ]);
 
-                $sp1 = $getVal(['selling_price_1', 'selling_price_1_dukaan_riteel_ret', 'selling_price', 'price', 'retail_price', 'sale_a']);
+                $sp1 = $getVal([
+                    'app_selling_price', 'app_price', 'store_price', 'selling_price_1',
+                    'selling_price_1_dukaan_riteel_ret', 'selling_price', 'price', 'retail_price', 'sale_a'
+                ]);
                 $sp2 = $getVal(['selling_price_2', 'selling_price_2_thok_wholesale_bhaav', 'wholesale_price', 'sale_b', 'price_2']);
                 $sp3 = $getVal(['selling_price_3', 'selling_price_3_diilr_bulk_bhaav', 'dealer_price', 'cost_price_2', 'sale_c', 'price_3']);
 
@@ -1179,10 +1201,13 @@ class ChannelController extends Controller
                 $ads = $getVal(['ads_spend', 'ads']);
                 $hsn = $getString(['hsn_code', 'hsn']);
                 $gst = $getVal(['gst_percent', 'gst']);
-                $channelPrice = $getVal(['channel_selling_price', 'marketplace_price', 'final_selling']);
-                $combo2Val = $getVal(['combo_2_pack_rate', 'combo_2', 'combo_2_rate', 'combo2', 'combo_2_pack', 'combo_2_piece_rate']);
-                $combo4Val = $getVal(['combo_4_pack_rate', 'combo_4', 'combo_4_rate', 'combo4', 'combo_4_pack', 'combo_4_piece_rate']);
-                $combo6Val = $getVal(['combo_6_pack_rate', 'combo_6', 'combo_6_rate', 'combo6', 'combo_6_pack', 'combo_6_piece_rate']);
+                $channelPrice = $getVal(['channel_selling_price', 'channel_price', 'marketplace_price', 'final_selling']);
+                if ((is_null($channelPrice) || $channelPrice <= 0) && (!is_null($sp1) && $sp1 > 0)) {
+                    $channelPrice = $sp1;
+                }
+                $combo2Val = $getVal(['combo_2_pack_rate_2', 'combo_2_pack_rate', 'combo_2', 'combo_2_rate', 'combo2', 'combo_2_pack', 'combo_2_piece_rate']);
+                $combo4Val = $getVal(['combo_4_pack_rate_4', 'combo_4_pack_rate', 'combo_4', 'combo_4_rate', 'combo4', 'combo_4_pack', 'combo_4_piece_rate']);
+                $combo6Val = $getVal(['combo_6_pack_rate_6', 'combo_6_pack_rate', 'combo_6', 'combo_6_rate', 'combo6', 'combo_6_pack', 'combo_6_piece_rate']);
                 $note = $getString(['custom_barcode_note', 'custom_note', 'barcode_note', 'note']);
 
                 $gstRate = (!is_null($gst) && $gst > 0) ? $gst : ($product->gst_percent ?: 18);
@@ -1190,6 +1215,16 @@ class ChannelController extends Controller
                 // Auto calculate cost from MRP - Less% if cost empty
                 if ((is_null($pCost) || $pCost <= 0) && (!is_null($mrp) && $mrp > 0) && (!is_null($less) && $less > 0)) {
                     $pCost = round($mrp * (1 - ($less / 100)), 2);
+                }
+
+                // Auto calculate Cost With GST from Cost Without GST
+                if ((is_null($pCost) || $pCost <= 0) && (!is_null($pCostWithoutGst) && $pCostWithoutGst > 0)) {
+                    $pCost = round($pCostWithoutGst * (1 + ($gstRate / 100)), 2);
+                }
+
+                // Auto calculate Cost Without GST from Cost With GST
+                if ((is_null($pCostWithoutGst) || $pCostWithoutGst <= 0) && (!is_null($pCost) && $pCost > 0)) {
+                    $pCostWithoutGst = round($pCost / (1 + ($gstRate / 100)), 2);
                 }
 
                 // If Less% is empty, auto-calculate: ((MRP - Cost) / MRP) * 100
@@ -1308,6 +1343,10 @@ class ChannelController extends Controller
             }
         });
 
-        return back()->with('success', "🎉 शानदार! मल्टी-चैनल एक्सेल शीट से {$updatedCount} प्रोडक्ट्स / वैरियंट्स के MRP, Less %, खरीद लागत (With GST) व रेट्स सफलतापूर्वक अपडेट हो गए!");
+        if ($updatedCount === 0) {
+            return redirect()->route('seller.channels.index')->with('error', "⚠️ शीट में से कोई भी प्रोडक्ट आपकी दुकान से मैच नहीं हुआ। कृपया सुनिश्चित करें कि Product ID, SKU कोड या नाम आपकी दुकान से मेल खाता हो।");
+        }
+
+        return redirect()->route('seller.channels.index')->with('success', "🎉 शानदार! मल्टी-चैनल एक्सेल शीट से {$updatedCount} प्रोडक्ट्स / वैरियंट्स के MRP, Less %, खरीद लागत (With GST) व रेट्स सफलतापूर्वक अपडेट हो गए!");
     }
 }

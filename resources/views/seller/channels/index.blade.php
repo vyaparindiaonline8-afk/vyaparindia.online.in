@@ -7,6 +7,35 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <!-- SweetAlert2 Modal Popup Notification -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    @if(session('success'))
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        Swal.fire({
+            icon: 'success',
+            title: '🎉 शीट सफलतापूर्वक अपडेट हो गई!',
+            html: '{!! addslashes(session("success")) !!}',
+            confirmButtonColor: '#059669',
+            confirmButtonText: 'शानदार! ठीक है'
+        });
+    });
+    </script>
+    @endif
+    @if(session('error'))
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        Swal.fire({
+            icon: 'error',
+            title: '⚠️ एक्सेल शीट अपडेट सूचना',
+            html: '{!! addslashes(session("error")) !!}',
+            confirmButtonColor: '#dc2626',
+            confirmButtonText: 'समझ गया'
+        });
+    });
+    </script>
+    @endif
+
 </head>
 <body class="bg-gray-100 text-gray-800 antialiased min-h-screen">
 
