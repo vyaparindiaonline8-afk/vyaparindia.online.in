@@ -560,11 +560,15 @@
                                 $otherCost = (float)($ue['others'] ?? 5);
 
                                 $desiredProfit = round($pCost * ($marginPct / 100));
-                                $totalFixed = $pCost + $desiredProfit + $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
-                                $multiplier = max(0.1, 1 - ($feePct / 100));
-                                $calcSellingPrice = ceil($totalFixed / $multiplier);
+                                $gstPercent = (float)($p->gst_percent ?: 18);
+                                $g = $gstPercent / 100;
+                                $f = $feePct / 100;
+                                $cTax = $g > 0 ? ($pCost / (1 + $g)) : $pCost;
+                                $denom = max(0.05, (1 / (1 + $g)) - $f);
+                                $fixedExp = $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
+                                $calcSellingPrice = ceil(($cTax + $fixedExp + $desiredProfit) / $denom);
                                 $finalSellingPrice = !empty($ue['marketplace_price']) ? (float)$ue['marketplace_price'] : max($calcSellingPrice, (float)$p->price);
-                                $totalExp = round($packCost + $shipCost + $rtoBuffer + ($finalSellingPrice * ($feePct / 100)) + $adsCost + $otherCost, 2);
+                                $totalExp = round($packCost + $shipCost + $rtoBuffer + ($finalSellingPrice * $f) + $adsCost + $otherCost, 2);
                                 $netMargin = round($finalSellingPrice - $pCost - $totalExp, 2);
                             @endphp
                             <div class="bg-white rounded-3xl border border-gray-200 p-4 shadow-2xs hover:border-indigo-400 hover:shadow-md transition space-y-3.5" id="pending-card-box-{{ $p->id }}">
@@ -788,14 +792,18 @@
                                         $otherCost = (float)($ue['others'] ?? 5);
 
                                         $desiredProfit = round($pCost * ($marginPct / 100));
-                                        $totalFixed = $pCost + $desiredProfit + $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
-                                        $multiplier = max(0.1, 1 - ($feePct / 100));
-                                        $calcSellingPrice = ceil($totalFixed / $multiplier);
+                                        $gstPercent = (float)($p->gst_percent ?: 18);
+                                        $g = $gstPercent / 100;
+                                        $f = $feePct / 100;
+                                        $cTax = $g > 0 ? ($pCost / (1 + $g)) : $pCost;
+                                        $denom = max(0.05, (1 / (1 + $g)) - $f);
+                                        $fixedExp = $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
+                                        $calcSellingPrice = ceil(($cTax + $fixedExp + $desiredProfit) / $denom);
                                         $finalSellingPrice = !empty($ue['marketplace_price']) ? (float)$ue['marketplace_price'] : max($calcSellingPrice, (float)$p->price);
 
-                                        $combo2 = ceil((($pCost * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $multiplier);
-                                        $combo4 = ceil((($pCost * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $multiplier);
-                                        $combo6 = ceil((($pCost * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $multiplier);
+                                        $combo2 = ceil((($cTax * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $denom);
+                                        $combo4 = ceil((($cTax * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $denom);
+                                        $combo6 = ceil((($cTax * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $denom);
                                     @endphp
                                     <tr class="hover:bg-indigo-50/20 transition group" id="table-row-{{ $p->id }}" data-id="{{ $p->id }}">
                                         <td class="p-3 text-center">
@@ -1827,30 +1835,31 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             const packing = parseFloat(document.getElementById('calcPackingCost').value) || 0;
             const shipping = parseFloat(document.getElementById('calcShippingCost').value) || 0;
             const feePct = parseFloat(document.getElementById('calcPlatformFeePercent').value) || 0;
+            const gstRate = 18; // Standard GST rate %
 
             const desiredProfit = cost * (marginPct / 100);
-            const fixedCostSum = cost + desiredProfit + packing + shipping;
-            const multiplier = Math.max(0.1, 1 - (feePct / 100));
-            const finalRate = Math.ceil(fixedCostSum / multiplier);
+            const g = gstRate / 100;
+            const f = feePct / 100;
+            const cTax = g > 0 ? (cost / (1 + g)) : cost;
+            const denom = Math.max(0.05, (1 / (1 + g)) - f);
+            const fixedCostSum = packing + shipping;
+            const finalRate = Math.ceil((cTax + fixedCostSum + desiredProfit) / denom);
 
             document.getElementById('calcFinalSellingRate').textContent = '₹' + finalRate.toFixed(2);
             document.getElementById('calcNetProfitInHand').textContent = '₹' + desiredProfit.toFixed(2);
 
-            // Combo calculations (Packaging and single shipping benefit)
-            // 2 PC: Cost x2, Profit x2, 1x Packing x1.3, 1x Shipping
-            const cost2 = (cost * 2) + (desiredProfit * 1.8) + (packing * 1.3) + shipping;
-            const finalRate2 = Math.ceil(cost2 / multiplier);
-            document.getElementById('calcCombo2Rate').textContent = '₹' + finalRate2.toFixed(2);
+            // Combo calculations (GST-Gap protected + packaging & courier efficiency)
+            // 2 PC: Cost x2, Profit x1.8, 1x Packing x1.3, 1x Shipping
+            const c2 = Math.ceil(((cTax * 2) + (desiredProfit * 1.8) + (packing * 1.3) + shipping) / denom);
+            document.getElementById('calcCombo2Rate').textContent = '₹' + c2.toFixed(2);
 
             // 4 PC
-            const cost4 = (cost * 4) + (desiredProfit * 3.5) + (packing * 1.6) + (shipping * 1.2);
-            const finalRate4 = Math.ceil(cost4 / multiplier);
-            document.getElementById('calcCombo4Rate').textContent = '₹' + finalRate4.toFixed(2);
+            const c4 = Math.ceil(((cTax * 4) + (desiredProfit * 3.5) + (packing * 1.6) + (shipping * 1.2)) / denom);
+            document.getElementById('calcCombo4Rate').textContent = '₹' + c4.toFixed(2);
 
             // 6 PC
-            const cost6 = (cost * 6) + (desiredProfit * 5.0) + (packing * 2.0) + (shipping * 1.4);
-            const finalRate6 = Math.ceil(cost6 / multiplier);
-            document.getElementById('calcCombo6Rate').textContent = '₹' + finalRate6.toFixed(2);
+            const c6 = Math.ceil(((cTax * 6) + (desiredProfit * 5.0) + (packing * 2.0) + (shipping * 1.4)) / denom);
+            document.getElementById('calcCombo6Rate').textContent = '₹' + c6.toFixed(2);
         }
 
         // Switch Pending Layout between Table Grid vs Cards (with localStorage persistence)
@@ -2109,12 +2118,16 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             const feePct = parseFloat(document.getElementById(`row-fee-${prodId}`)?.value) || 12;
             const ads = parseFloat(document.getElementById(`row-ads-${prodId}`)?.value) || 0;
             const others = parseFloat(document.getElementById(`row-others-${prodId}`)?.value) || 0;
+            const gstRate = parseFloat(document.getElementById(`row-gst-${prodId}`)?.value) || 18;
 
             const desiredProfit = Math.round(cost * (marginPct / 100));
-            // Return / RTO loss buffer is safely included in fixed costs so return losses are covered!
-            const totalFixed = cost + desiredProfit + rto + pack + ship + ads + others;
-            const multiplier = Math.max(0.1, 1 - (feePct / 100));
-            const finalRate = Math.ceil(totalFixed / multiplier);
+            // Gap GST Formula: net margin protected after paying output GST minus ITC on cost and fee
+            const g = gstRate / 100;
+            const f = feePct / 100;
+            const cTax = g > 0 ? (cost / (1 + g)) : cost;
+            const denom = Math.max(0.05, (1 / (1 + g)) - f);
+            const fixedExp = rto + pack + ship + ads + others;
+            const finalRate = Math.ceil((cTax + fixedExp + desiredProfit) / denom);
 
             // Update row price input
             const priceInput = document.getElementById(`row-price-${prodId}`);
@@ -2124,10 +2137,10 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             const marginAmtSpan = document.getElementById(`row-margin-amt-${prodId}`);
             if (marginAmtSpan) marginAmtSpan.textContent = `₹${desiredProfit} लाभ`;
 
-            // Update combo previews in table row
-            const c2 = Math.ceil(((cost * 2) + (desiredProfit * 1.8) + (rto * 1.5) + (pack * 1.3) + ship + (ads * 1.2)) / multiplier);
-            const c4 = Math.ceil(((cost * 4) + (desiredProfit * 3.5) + (rto * 2.0) + (pack * 1.6) + (ship * 1.2) + (ads * 1.5)) / multiplier);
-            const c6 = Math.ceil(((cost * 6) + (desiredProfit * 5.0) + (rto * 2.5) + (pack * 2.0) + (ship * 1.4) + (ads * 1.8)) / multiplier);
+            // Update combo previews in table row (GST-Gap protected)
+            const c2 = Math.ceil(((cTax * 2) + (desiredProfit * 1.8) + (rto * 1.5) + (pack * 1.3) + ship + (ads * 1.2)) / denom);
+            const c4 = Math.ceil(((cTax * 4) + (desiredProfit * 3.5) + (rto * 2.0) + (pack * 1.6) + (ship * 1.2) + (ads * 1.5)) / denom);
+            const c6 = Math.ceil(((cTax * 6) + (desiredProfit * 5.0) + (rto * 2.5) + (pack * 2.0) + (ship * 1.4) + (ads * 1.8)) / denom);
 
             const rC2 = document.getElementById(`row-combo2-${prodId}`);
             if (rC2) rC2.textContent = `2P: ₹${c2}`;

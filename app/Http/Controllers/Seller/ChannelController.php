@@ -913,16 +913,20 @@ class ChannelController extends Controller
                     $sp2 = $v->wholesale_price ?: ($p->wholesale_price ?: '');
                     $sp3 = $v->cost_price_2 ?: ($p->cost_price_2 ?: '');
 
-                    // True Costing Calculation (Starting from actual purchase cost pCost)
+                    // True Costing Calculation (GST-Gap protected so in-hand net cash profit is 100% guaranteed)
                     $desiredProfit = round($pCost * ($marginPct / 100));
-                    $totalFixed = $pCost + $desiredProfit + $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
-                    $calcSellingPrice = ceil($totalFixed / $multiplier);
+                    $g = $gstPercent / 100;
+                    $f = $feePct / 100;
+                    $cTax = $g > 0 ? ($pCost / (1 + $g)) : $pCost;
+                    $denom = max(0.05, (1 / (1 + $g)) - $f);
+                    $fixedExp = $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
+                    $calcSellingPrice = ceil(($cTax + $fixedExp + $desiredProfit) / $denom);
                     $finalSellingPrice = !empty($ue['marketplace_price']) ? (float)$ue['marketplace_price'] : max($calcSellingPrice, $sp1);
 
                     $vAttrs = $v->attributes ?? [];
-                    $combo2 = !empty($vAttrs['combo_2']) ? (float)$vAttrs['combo_2'] : (!empty($ue['combo_2']) ? (float)$ue['combo_2'] : ceil((($pCost * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $multiplier));
-                    $combo4 = !empty($vAttrs['combo_4']) ? (float)$vAttrs['combo_4'] : (!empty($ue['combo_4']) ? (float)$ue['combo_4'] : ceil((($pCost * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $multiplier));
-                    $combo6 = !empty($vAttrs['combo_6']) ? (float)$vAttrs['combo_6'] : (!empty($ue['combo_6']) ? (float)$ue['combo_6'] : ceil((($pCost * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $multiplier));
+                    $combo2 = !empty($vAttrs['combo_2']) ? (float)$vAttrs['combo_2'] : (!empty($ue['combo_2']) ? (float)$ue['combo_2'] : ceil((($cTax * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $denom));
+                    $combo4 = !empty($vAttrs['combo_4']) ? (float)$vAttrs['combo_4'] : (!empty($ue['combo_4']) ? (float)$ue['combo_4'] : ceil((($cTax * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $denom));
+                    $combo6 = !empty($vAttrs['combo_6']) ? (float)$vAttrs['combo_6'] : (!empty($ue['combo_6']) ? (float)$ue['combo_6'] : ceil((($cTax * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $denom));
 
                     $rows[] = [
                         $p->id,
@@ -967,15 +971,19 @@ class ChannelController extends Controller
                 $sp2 = $p->wholesale_price ?: '';
                 $sp3 = $p->cost_price_2 ?: '';
 
-                // True Costing Calculation (Starting from actual purchase cost pCost)
+                // True Costing Calculation (GST-Gap protected so in-hand net cash profit is 100% guaranteed)
                 $desiredProfit = round($pCost * ($marginPct / 100));
-                $totalFixed = $pCost + $desiredProfit + $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
-                $calcSellingPrice = ceil($totalFixed / $multiplier);
+                $g = $gstPercent / 100;
+                $f = $feePct / 100;
+                $cTax = $g > 0 ? ($pCost / (1 + $g)) : $pCost;
+                $denom = max(0.05, (1 / (1 + $g)) - $f);
+                $fixedExp = $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
+                $calcSellingPrice = ceil(($cTax + $fixedExp + $desiredProfit) / $denom);
                 $finalSellingPrice = !empty($ue['marketplace_price']) ? (float)$ue['marketplace_price'] : max($calcSellingPrice, $sp1);
 
-                $combo2 = !empty($ue['combo_2']) ? (float)$ue['combo_2'] : ceil((($pCost * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $multiplier);
-                $combo4 = !empty($ue['combo_4']) ? (float)$ue['combo_4'] : ceil((($pCost * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $multiplier);
-                $combo6 = !empty($ue['combo_6']) ? (float)$ue['combo_6'] : ceil((($pCost * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $multiplier);
+                $combo2 = !empty($ue['combo_2']) ? (float)$ue['combo_2'] : ceil((($cTax * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $denom);
+                $combo4 = !empty($ue['combo_4']) ? (float)$ue['combo_4'] : ceil((($cTax * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $denom);
+                $combo6 = !empty($ue['combo_6']) ? (float)$ue['combo_6'] : ceil((($cTax * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $denom);
 
                 $rows[] = [
                     $p->id,
