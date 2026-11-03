@@ -506,6 +506,10 @@
                                 <i class="fa-solid fa-file-excel text-amber-300"></i>
                                 <span>📥 कतार शीट (Excel)</span>
                             </a>
+                            <button type="button" id="btnUnstageSelectedChannel" onclick="unstageSelectedChannelRows()" class="hidden px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer hover:scale-102 active:scale-98" title="चुने हुए प्रोडक्ट्स को Amazon/Meesho कतार से हटाएं (दुकान में सुरक्षित रहेंगे)">
+                                <i class="fa-solid fa-trash-can"></i>
+                                <span id="btnUnstageSelectedChannelText">मार्केटप्लेस से हटाएं</span>
+                            </button>
                             <button type="button" id="btnDownloadSelectedChannel" onclick="downloadSelectedChannelRows()" class="hidden px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer hover:scale-102 active:scale-98" title="केवल टिक किए हुए प्रोडक्ट्स डाउनलोड करें">
                                 <i class="fa-solid fa-check-double"></i>
                                 <span id="btnDownloadSelectedChannelText">चुने हुए डाउनलोड</span>
@@ -536,7 +540,7 @@
                                 if ($imgCount === 0 && !empty($p->image)) $imgCount = 1;
                                 $pCost = (float)$p->purchase_price;
                                 $mrpVal = (float)($p->mrp ?: ($p->variants->where('mrp', '>', 0)->min('mrp') ?: $p->price));
-                                $lessVal = $p->trade_discount_percent ?: ($p->variants->where('trade_discount_percent', '>', 0)->min('trade_discount_percent') ?: '');
+                                $lessVal = $p->trade_discount_percent ?: ($p->variants->where('trade_discount_percent', '>', 0)->max('trade_discount_percent') ?: '');
                                 if (($lessVal === '' || $lessVal <= 0) && $mrpVal > 0 && $pCost > 0 && $mrpVal > $pCost) {
                                     $lessVal = round((($mrpVal - $pCost) / $mrpVal) * 100, 1);
                                 }
@@ -760,7 +764,7 @@
                                         if ($imgCount === 0 && !empty($p->image)) $imgCount = 1;
                                         $pCost = (float)$p->purchase_price;
                                         $mrpVal = (float)($p->mrp ?: ($p->variants->where('mrp', '>', 0)->min('mrp') ?: $p->price));
-                                        $lessVal = $p->trade_discount_percent ?: ($p->variants->where('trade_discount_percent', '>', 0)->min('trade_discount_percent') ?: '');
+                                        $lessVal = $p->trade_discount_percent ?: ($p->variants->where('trade_discount_percent', '>', 0)->max('trade_discount_percent') ?: '');
                                         if (($lessVal === '' || $lessVal <= 0) && $mrpVal > 0 && $pCost > 0 && $mrpVal > $pCost) {
                                             $lessVal = round((($mrpVal - $pCost) / $mrpVal) * 100, 1);
                                         }
@@ -2694,6 +2698,46 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
 </body>
 </html>
 <script>
+function unstageSelectedChannelRows() {
+    const chks = document.querySelectorAll('.pending-prod-chk:checked');
+    const ids = Array.from(chks).map(c => c.value).filter(Boolean);
+    if (ids.length === 0) {
+        alert('कृपया कम से कम एक प्रोडक्ट टिक करें।');
+        return;
+    }
+    if (!confirm(`क्या आप चुने हुए ${ids.length} प्रोडक्ट्स को Amazon/Meesho/Flipkart कतार से हटाना चाहते हैं?\n(ये प्रोडक्ट्स आपकी दुकान के मुख्य कैटलॉग में 100% सुरक्षित रहेंगे)`)) {
+        return;
+    }
+    const csrfToken = document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : '{{ csrf_token() }}';
+    fetch("{{ route('seller.channels.unstageBulk') }}", {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ product_ids: ids })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            ids.forEach(id => {
+                const card = document.getElementById(`pending-card-box-${id}`);
+                if (card) card.remove();
+                const row = document.getElementById(`table-row-${id}`);
+                if (row) row.remove();
+            });
+            window.location.reload();
+        } else {
+            alert(data.message || 'त्रुटि हुई');
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        window.location.reload();
+    });
+}
+
 function downloadSelectedChannelRows() {
     const chks = document.querySelectorAll('.pending-prod-chk:checked');
     const ids = Array.from(chks).map(c => c.value).filter(Boolean);
@@ -2709,13 +2753,20 @@ document.addEventListener('change', function(e) {
         const count = document.querySelectorAll('.pending-prod-chk:checked').length;
         const btn = document.getElementById('btnDownloadSelectedChannel');
         const btnText = document.getElementById('btnDownloadSelectedChannelText');
-        if (btn) {
-            if (count > 0) {
+        const btnDel = document.getElementById('btnUnstageSelectedChannel');
+        const btnDelText = document.getElementById('btnUnstageSelectedChannelText');
+        if (count > 0) {
+            if (btn) {
                 btn.classList.remove('hidden');
                 if (btnText) btnText.textContent = `चुने हुए (${count}) डाउनलोड`;
-            } else {
-                btn.classList.add('hidden');
             }
+            if (btnDel) {
+                btnDel.classList.remove('hidden');
+                if (btnDelText) btnDelText.textContent = `मार्केटप्लेस से हटाएं (${count})`;
+            }
+        } else {
+            if (btn) btn.classList.add('hidden');
+            if (btnDel) btnDel.classList.add('hidden');
         }
     }
 });

@@ -680,9 +680,9 @@ class ChannelController extends Controller
             return back()->with('error', 'Unauthorized');
         }
 
-        // Delete any pending listing for this product
+        // Delete all channel listings for this product for this seller (whether pending or synced)
         ChannelListing::where('product_id', $product->id)
-            ->where('sync_status', 'pending')
+            ->whereHas('channel', fn($q) => $q->where('user_id', Auth::id()))
             ->delete();
 
         // Clear channel_staged attribute
@@ -702,6 +702,48 @@ class ChannelController extends Controller
 
         return back()->with('success', 'प्रोडक्ट को मार्केटप्लेस बास्केट से हटा दिया गया है (आपकी दुकान में 100% सुरक्षित है)।');
     }
+
+    // Bulk Remove Products from Marketplace Staging Queue
+    public function unstageBulk(Request $request)
+    {
+        $userId = Auth::id();
+        $productIds = $request->input('product_ids', []);
+        if (is_string($productIds)) {
+            $productIds = array_filter(array_map('intval', explode(',', $productIds)));
+        }
+
+        if (empty($productIds)) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'कृपया कम से कम एक प्रोडक्ट चुनें।'], 400);
+            }
+            return back()->with('error', 'कृपया कम से कम एक प्रोडक्ट चुनें।');
+        }
+
+        ChannelListing::whereIn('product_id', $productIds)
+            ->whereHas('channel', fn($q) => $q->where('user_id', $userId))
+            ->delete();
+
+        $products = Product::where('user_id', $userId)->whereIn('id', $productIds)->get();
+        foreach ($products as $p) {
+            $attrs = $p->attributes ?? [];
+            if (isset($attrs['channel_staged'])) {
+                unset($attrs['channel_staged']);
+                $p->attributes = $attrs;
+                $p->save();
+            }
+        }
+
+        $count = count($productIds);
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "{$count} प्रोडक्ट्स को मार्केटप्लेस बास्केट से हटा दिया गया है (दुकान में सुरक्षित हैं)।",
+            ]);
+        }
+
+        return back()->with('success', "{$count} प्रोडक्ट्स को मार्केटप्लेस बास्केट से हटा दिया गया है (दुकान में सुरक्षित हैं)।");
+    }
+
 
 
 /**
@@ -1351,17 +1393,20 @@ class ChannelController extends Controller
 
                 if (!is_null($mrp) && $mrp > 0) {
                     $targetObj->mrp = $mrp;
+                    if (!$variant || empty($product->mrp) || $product->mrp <= 0) {
+                        $product->mrp = $mrp;
+                    }
                 }
                 if (!is_null($less) && $less >= 0) {
                     $targetObj->trade_discount_percent = $less;
+                    $product->trade_discount_percent = $less;
                 }
 
                 if (!is_null($pCost) && $pCost > 0) {
                     $targetObj->purchase_price = $pCost;
                     $targetObj->net_landing_cost = $pCost;
-                    if ($variant) {
-                        $product->purchase_price = $pCost;
-                    }
+                    $product->purchase_price = $pCost;
+                    $product->net_landing_cost = $pCost;
                 }
 
                 if (!is_null($sp1) && $sp1 > 0) {
@@ -1436,21 +1481,24 @@ class ChannelController extends Controller
                         'last_synced_at' => now(),
                     ]);
 
-                    // 🌟 2. Ensure all active channels for this seller (Meesho, Flipkart, Amazon) have synced listings
-                    $activeChannels = \App\Models\Channel::where('user_id', $userId)->where('is_active', true)->get();
-                    foreach ($activeChannels as $ac) {
-                        \App\Models\ChannelListing::updateOrCreate(
-                            [
-                                'channel_id' => $ac->id,
-                                'product_id' => $product->id,
-                            ],
-                            [
-                                'channel_price' => $channelPrice,
-                                'synced_stock' => $product->stock_quantity ?? 50,
-                                'sync_status' => 'synced',
-                                'last_synced_at' => now(),
-                            ]
-                        );
+                    // 🌟 2. Only sync active channels IF the product is already staged or listed for channels by merchant
+                    $isAlreadyStagedOrListed = $product->channelListings()->exists() || !empty($product->attributes['channel_staged']);
+                    if ($isAlreadyStagedOrListed) {
+                        $activeChannels = \App\Models\Channel::where('user_id', $userId)->where('is_active', true)->get();
+                        foreach ($activeChannels as $ac) {
+                            \App\Models\ChannelListing::updateOrCreate(
+                                [
+                                    'channel_id' => $ac->id,
+                                    'product_id' => $product->id,
+                                ],
+                                [
+                                    'channel_price' => $channelPrice,
+                                    'synced_stock' => $product->stock_quantity ?? 50,
+                                    'sync_status' => 'synced',
+                                    'last_synced_at' => now(),
+                                ]
+                            );
+                        }
                     }
                 }
                 $updatedCount++;
