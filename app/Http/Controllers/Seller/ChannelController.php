@@ -1217,13 +1217,15 @@ class ChannelController extends Controller
                     $pCost = round($mrp * (1 - ($less / 100)), 2);
                 }
 
-                // Auto calculate Cost With GST from Cost Without GST
-                if ((is_null($pCost) || $pCost <= 0) && (!is_null($pCostWithoutGst) && $pCostWithoutGst > 0)) {
-                    $pCost = round($pCostWithoutGst * (1 + ($gstRate / 100)), 2);
-                }
-
-                // Auto calculate Cost Without GST from Cost With GST
-                if ((is_null($pCostWithoutGst) || $pCostWithoutGst <= 0) && (!is_null($pCost) && $pCost > 0)) {
+                // If With GST purchase cost is provided, that is our true landing cost
+                if (!is_null($pCost) && $pCost > 0) {
+                    if (is_null($pCostWithoutGst) || $pCostWithoutGst <= 0) {
+                        $pCostWithoutGst = round($pCost / (1 + ($gstRate / 100)), 2);
+                    }
+                } elseif (!is_null($pCostWithoutGst) && $pCostWithoutGst > 0) {
+                    // When merchant entered their cost (even in old sheet column), treat as true landing cost (With GST)
+                    // so GST is NEVER added twice!
+                    $pCost = $pCostWithoutGst;
                     $pCostWithoutGst = round($pCost / (1 + ($gstRate / 100)), 2);
                 }
 
