@@ -52,7 +52,7 @@
                         </a>
 
                         <!-- Upload trigger -->
-                        <button type="button" onclick="document.getElementById('channelCsvUploadInput').click()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-2xs transition flex items-center gap-1.5 cursor-pointer hover:scale-102 active:scale-98" title="एडिट की हुई शीट अपलोड कर रेट्स व खर्चे अपडेट करें">
+                        <button type="button" onclick="triggerChannelSheetUpload()" class="btn-sheet-upload-trigger px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-2xs transition flex items-center gap-1.5 cursor-pointer hover:scale-102 active:scale-98" title="एडिट की हुई शीट अपलोड कर रेट्स व खर्चे अपडेट करें">
                             <i class="fa-solid fa-file-arrow-up text-amber-300"></i>
                             <span>📤 शीट अपलोड</span>
                         </button>
@@ -485,7 +485,7 @@
                                 <i class="fa-solid fa-layer-group text-emerald-400"></i>
                                 <span>पूरी कैटलॉग</span>
                             </a>
-                            <button type="button" onclick="document.getElementById('channelCsvUploadInput').click()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer hover:scale-102 active:scale-98" title="एक्सेल शीट अपलोड कर रेट्स अपडेट करें">
+                            <button type="button" onclick="triggerChannelSheetUpload()" class="btn-sheet-upload-trigger px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer hover:scale-102 active:scale-98" title="एक्सेल शीट अपलोड कर रेट्स अपडेट करें">
                                 <i class="fa-solid fa-file-arrow-up text-amber-300"></i>
                                 <span>शीट अपलोड</span>
                             </button>
@@ -2631,6 +2631,35 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             </form>
         </div>
     </div>
+
+
+    <!-- Hidden Form for Excel / CSV Sheet Upload -->
+    <form id="channelCsvUploadForm" action="{{ route('seller.channels.import_sheet') }}" method="POST" enctype="multipart/form-data" style="display:none;">
+        @csrf
+        <input type="file" id="channelCsvUploadInput" name="sheet" accept=".xls,.xlsx,.csv,.tsv,.txt" onchange="handleChannelSheetUpload(this)">
+    </form>
+    <script>
+    function triggerChannelSheetUpload() {
+        var input = document.getElementById("channelCsvUploadInput");
+        if (input) {
+            input.value = "";
+            input.click();
+        } else {
+            alert("अपलोड फ़ॉर्म नहीं मिला, कृपया पेज रीफ़्रेश करें।");
+        }
+    }
+
+    function handleChannelSheetUpload(input) {
+        if (input.files && input.files.length > 0) {
+            var triggers = document.querySelectorAll(".btn-sheet-upload-trigger");
+            triggers.forEach(function(btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-amber-300"></i> <span>अपलोड व सिंक हो रहा है...</span>';
+            });
+            document.getElementById("channelCsvUploadForm").submit();
+        }
+    }
+    </script>
 
 @include('components.ai-copilot-widget')
 </body>

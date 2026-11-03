@@ -1096,7 +1096,7 @@ class ChannelController extends Controller
 
         $updatedCount = 0;
 
-        DB::transaction(function () use ($rows, $normHeaders, $sellerProducts, $bySku, $byVariantId, &$updatedCount) {
+        DB::transaction(function () use ($rows, $normHeaders, $sellerProducts, $bySku, $byVariantId, $userId, &$updatedCount) {
             foreach ($rows as $row) {
                 $normRow = [];
                 foreach ($row as $i => $val) {
@@ -1210,13 +1210,27 @@ class ChannelController extends Controller
                 if (!is_null($pCost) && $pCost > 0) {
                     $targetObj->purchase_price = $pCost;
                     $targetObj->net_landing_cost = $pCost;
+                    if ($variant) {
+                        $product->purchase_price = $pCost;
+                    }
                 }
 
                 if (!is_null($sp1) && $sp1 > 0) {
                     if ($variant) {
                         $variant->retail_price = $sp1;
+                        if (!$product->price || $product->price <= 0) {
+                            $product->price = $sp1;
+                        }
                     } else {
                         $product->price = $sp1;
+                    }
+                } elseif (!is_null($channelPrice) && $channelPrice > 0) {
+                    // Match app store price if retail price was left empty
+                    if (!$product->price || $product->price <= 0) {
+                        $product->price = $channelPrice;
+                    }
+                    if ($variant && (!$variant->retail_price || $variant->retail_price <= 0)) {
+                        $variant->retail_price = $channelPrice;
                     }
                 }
                 if (!is_null($sp2) && $sp2 > 0) {
@@ -1266,7 +1280,29 @@ class ChannelController extends Controller
                 }
 
                 if (!is_null($channelPrice) && $channelPrice > 0) {
-                    $product->channelListings()->update(['channel_price' => $channelPrice]);
+                    // 🌟 1. Update all existing listings for this product across all channels (Amazon, Meesho, Flipkart, etc.)
+                    $product->channelListings()->update([
+                        'channel_price' => $channelPrice,
+                        'sync_status' => 'synced',
+                        'last_synced_at' => now(),
+                    ]);
+
+                    // 🌟 2. Ensure all active channels for this seller (Meesho, Flipkart, Amazon) have synced listings
+                    $activeChannels = \App\Models\Channel::where('user_id', $userId)->where('is_active', true)->get();
+                    foreach ($activeChannels as $ac) {
+                        \App\Models\ChannelListing::updateOrCreate(
+                            [
+                                'channel_id' => $ac->id,
+                                'product_id' => $product->id,
+                            ],
+                            [
+                                'channel_price' => $channelPrice,
+                                'synced_stock' => $product->stock_quantity ?? 50,
+                                'sync_status' => 'synced',
+                                'last_synced_at' => now(),
+                            ]
+                        );
+                    }
                 }
                 $updatedCount++;
             }
