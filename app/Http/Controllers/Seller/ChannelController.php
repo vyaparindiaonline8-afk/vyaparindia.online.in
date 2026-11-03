@@ -354,7 +354,7 @@ class ChannelController extends Controller
                     'external_product_id' => $externalId,
                     'sync_status' => 'synced',
                     'listing_url' => $listingUrl,
-                    'channel_price' => $product->price,
+                    'channel_price' => !empty($product->attributes['unit_economics']['marketplace_price']) ? (float)$product->attributes['unit_economics']['marketplace_price'] : (float)$product->price,
                     'synced_stock' => $product->stock_quantity,
                     'last_synced_at' => now(),
                 ]);
@@ -848,9 +848,10 @@ class ChannelController extends Controller
                     $calcSellingPrice = ceil($totalFixed / $multiplier);
                     $finalSellingPrice = !empty($ue['marketplace_price']) ? (float)$ue['marketplace_price'] : max($calcSellingPrice, $sp1);
 
-                    $combo2 = ceil((($pCost * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $multiplier);
-                    $combo4 = ceil((($pCost * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $multiplier);
-                    $combo6 = ceil((($pCost * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $multiplier);
+                    $vAttrs = $v->attributes ?? [];
+                    $combo2 = !empty($vAttrs['combo_2']) ? (float)$vAttrs['combo_2'] : (!empty($ue['combo_2']) ? (float)$ue['combo_2'] : ceil((($pCost * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $multiplier));
+                    $combo4 = !empty($vAttrs['combo_4']) ? (float)$vAttrs['combo_4'] : (!empty($ue['combo_4']) ? (float)$ue['combo_4'] : ceil((($pCost * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $multiplier));
+                    $combo6 = !empty($vAttrs['combo_6']) ? (float)$vAttrs['combo_6'] : (!empty($ue['combo_6']) ? (float)$ue['combo_6'] : ceil((($pCost * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $multiplier));
 
                     $rows[] = [
                         $p->id,
@@ -901,9 +902,9 @@ class ChannelController extends Controller
                 $calcSellingPrice = ceil($totalFixed / $multiplier);
                 $finalSellingPrice = !empty($ue['marketplace_price']) ? (float)$ue['marketplace_price'] : max($calcSellingPrice, $sp1);
 
-                $combo2 = ceil((($pCost * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $multiplier);
-                $combo4 = ceil((($pCost * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $multiplier);
-                $combo6 = ceil((($pCost * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $multiplier);
+                $combo2 = !empty($ue['combo_2']) ? (float)$ue['combo_2'] : ceil((($pCost * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $multiplier);
+                $combo4 = !empty($ue['combo_4']) ? (float)$ue['combo_4'] : ceil((($pCost * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $multiplier);
+                $combo6 = !empty($ue['combo_6']) ? (float)$ue['combo_6'] : ceil((($pCost * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $multiplier);
 
                 $rows[] = [
                     $p->id,
@@ -1179,6 +1180,9 @@ class ChannelController extends Controller
                 $hsn = $getString(['hsn_code', 'hsn']);
                 $gst = $getVal(['gst_percent', 'gst']);
                 $channelPrice = $getVal(['channel_selling_price', 'marketplace_price', 'final_selling']);
+                $combo2Val = $getVal(['combo_2_pack_rate', 'combo_2', 'combo_2_rate', 'combo2', 'combo_2_pack', 'combo_2_piece_rate']);
+                $combo4Val = $getVal(['combo_4_pack_rate', 'combo_4', 'combo_4_rate', 'combo4', 'combo_4_pack', 'combo_4_piece_rate']);
+                $combo6Val = $getVal(['combo_6_pack_rate', 'combo_6', 'combo_6_rate', 'combo6', 'combo_6_pack', 'combo_6_piece_rate']);
                 $note = $getString(['custom_barcode_note', 'custom_note', 'barcode_note', 'note']);
 
                 $gstRate = (!is_null($gst) && $gst > 0) ? $gst : ($product->gst_percent ?: 18);
@@ -1242,6 +1246,9 @@ class ChannelController extends Controller
                 if (!is_null($channelPrice) && $channelPrice > 0) {
                     $ue['marketplace_price'] = $channelPrice;
                 }
+                if (!is_null($combo2Val) && $combo2Val > 0) $ue['combo_2'] = $combo2Val;
+                if (!is_null($combo4Val) && $combo4Val > 0) $ue['combo_4'] = $combo4Val;
+                if (!is_null($combo6Val) && $combo6Val > 0) $ue['combo_6'] = $combo6Val;
                 if ($note !== '') $ue['custom_note'] = $note;
                 $ue['updated_at'] = now()->toIso8601String();
 
@@ -1250,6 +1257,11 @@ class ChannelController extends Controller
                 $product->save();
 
                 if ($variant) {
+                    $vAttrs = $variant->attributes ?? [];
+                    if (!is_null($combo2Val) && $combo2Val > 0) $vAttrs['combo_2'] = $combo2Val;
+                    if (!is_null($combo4Val) && $combo4Val > 0) $vAttrs['combo_4'] = $combo4Val;
+                    if (!is_null($combo6Val) && $combo6Val > 0) $vAttrs['combo_6'] = $combo6Val;
+                    $variant->attributes = $vAttrs;
                     $variant->save();
                 }
 
