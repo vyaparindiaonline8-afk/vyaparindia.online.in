@@ -528,7 +528,7 @@
                                 <i class="fa-solid fa-file-arrow-up text-amber-300"></i>
                                 <span>शीट अपलोड</span>
                             </button>
-                            <button type="button" id="btnBulkSaveTable" onclick="saveAllTableRowsCosting()" class="hidden px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                            <button type="button" id="btnBulkSaveTable" onclick="saveAllTableRowsCosting()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95" title="कतार के सभी प्रोडक्ट्स के रेट्स, लेस% व मार्जिन एक साथ सेव करें">
                                 <i class="fa-solid fa-floppy-disk text-amber-200"></i>
                                 <span>💾 सभी सेव करें (Save All)</span>
                             </button>
@@ -656,12 +656,23 @@
                                         <i class="fa-solid fa-calculator"></i>
                                         <span>खर्च & रेट कैलकुलेटर</span>
                                     </button>
-                                    <a href="/seller/products/{{ $p->id }}/pricing-tiers" target="_blank" class="py-1.5 px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-black transition flex items-center gap-1" title="2 पीस, 4 पीस, 6 पीस पैक रेट सेट करें">
-                                        <i class="fa-solid fa-layer-group text-emerald-600"></i>
-                                        <span>2/4/6 पीस स्लैब</span>
-                                    </a>
+                                    <button type="button" onclick="saveTableRowCosting({{ $p->id }}, this)" class="py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95" title="इस कार्ड के रेट्स व लेस% को तुरंत सेव करें">
+                                        <i class="fa-solid fa-floppy-disk text-xs"></i>
+                                        <span>सेव करें</span>
+                                    </button>
                                 </div>
                             </div>
+                        @if(count($pendingProducts ?? []) > 0)
+                            <div class="col-span-full pt-3 pb-1 flex items-center justify-between bg-slate-900 text-white px-5 py-3 rounded-3xl shadow-lg border border-slate-800">
+                                <span class="text-xs text-slate-300">
+                                    कुल <strong class="text-amber-400 font-mono">{{ count($pendingProducts ?? []) }}</strong> प्रोडक्ट्स कतार में
+                                </span>
+                                <button type="button" onclick="saveAllTableRowsCosting()" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95">
+                                    <i class="fa-solid fa-floppy-disk text-amber-200"></i>
+                                    <span>💾 सभी कार्ड्स एक साथ सेव करें (Save All Cards)</span>
+                                </button>
+                            </div>
+                        @endif
                         @empty
                             <div class="col-span-full p-8 sm:p-12 text-center bg-white rounded-3xl border-2 border-dashed border-amber-200/80 shadow-2xs space-y-4">
                                 <div class="h-16 w-16 mx-auto rounded-3xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl border border-amber-200 shadow-xs">
@@ -999,6 +1010,23 @@
                                     </tr>
                                 @endforelse
                             </tbody>
+                            @if(count($pendingProducts ?? []) > 0)
+                            <tfoot class="bg-gray-50 border-t-2 border-gray-200">
+                                <tr>
+                                    <td colspan="15" class="p-3">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs text-gray-600 font-bold">
+                                                कुल <strong class="text-indigo-600 font-mono">{{ count($pendingProducts ?? []) }}</strong> प्रोडक्ट्स कतार में
+                                            </span>
+                                            <button type="button" onclick="saveAllTableRowsCosting()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95">
+                                                <i class="fa-solid fa-floppy-disk text-amber-200"></i>
+                                                <span>💾 सभी रोज़ के बदलाव एक साथ सेव करें (Save All Changes)</span>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                            @endif
                         </table>
                         </div>
                     </div>
@@ -1875,7 +1903,6 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             if (layout === 'table') {
                 if (cards) cards.classList.add('hidden');
                 if (table) table.classList.remove('hidden');
-                if (btnBulkSave) btnBulkSave.classList.remove('hidden');
                 if (btnTable) {
                     btnTable.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer";
                 }
@@ -1885,7 +1912,6 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             } else {
                 if (table) table.classList.add('hidden');
                 if (cards) cards.classList.remove('hidden');
-                if (btnBulkSave) btnBulkSave.classList.add('hidden');
                 if (btnCards) {
                     btnCards.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer";
                 }
@@ -2069,6 +2095,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             if (cardLess && cardLess.value !== lessInp.value) cardLess.value = lessInp.value;
 
             recalcTableRow(prodId);
+            markUnsavedChanges();
         }
 
         // 2-Way Real-time recalculation from Card view Less %
@@ -2088,6 +2115,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             if (rowLess && rowLess.value !== cardLess.value) rowLess.value = cardLess.value;
 
             recalcTableRow(prodId);
+            markUnsavedChanges();
         }
 
         // Instant Live Search Filter for Pending Cards & Table Rows
@@ -2107,6 +2135,29 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 const text = row.textContent.toLowerCase();
                 row.style.display = (!q || text.includes(q)) ? '' : 'none';
             });
+        }
+
+        let unsavedChangesCount = 0;
+        function markUnsavedChanges() {
+            unsavedChangesCount++;
+            const bar = document.getElementById('stickySaveBar');
+            const txt = document.getElementById('stickyUnsavedCountText');
+            if (bar) {
+                bar.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+                bar.classList.add('translate-y-0', 'opacity-100');
+            }
+            if (txt) {
+                txt.textContent = `आपने बदलाव किए हैं (${unsavedChangesCount})`;
+            }
+        }
+
+        function clearUnsavedChanges() {
+            unsavedChangesCount = 0;
+            const bar = document.getElementById('stickySaveBar');
+            if (bar) {
+                bar.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+                bar.classList.remove('translate-y-0', 'opacity-100');
+            }
         }
 
         // Real-Time Table Row Unit Economics Recalculator with Margin %, RTO Buffer, GST & Card Sync
@@ -2362,6 +2413,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 const data = await res.json();
                 if (data.success) {
                     showChannelToast(`✓ ${data.saved_count} प्रोडक्ट्स के मार्जिन व रेट्स सेव हो गए!`);
+                    clearUnsavedChanges();
                     btn.innerHTML = '<i class="fa-solid fa-check text-emerald-300"></i> <span>सफलतापूर्वक सेव हुआ!</span>';
                     setTimeout(() => {
                         btn.innerHTML = origHtml;
@@ -2816,6 +2868,22 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
         }
     }
     </script>
+
+<!-- Floating Sticky Save All Bar -->
+<div id="stickySaveBar" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 backdrop-blur-md text-white px-5 py-3 rounded-2xl shadow-2xl border border-indigo-500/40 flex items-center gap-4 transition-all duration-300 transform translate-y-24 opacity-0 pointer-events-none">
+    <div class="flex items-center gap-2">
+        <span class="flex h-3 w-3 relative">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+        </span>
+        <span class="text-xs font-bold text-amber-200" id="stickyUnsavedCountText">आपने बदलाव किए हैं</span>
+    </div>
+    <div class="h-4 w-px bg-white/20"></div>
+    <button type="button" onclick="saveAllTableRowsCosting()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs shadow-lg transition flex items-center gap-2 active:scale-95 cursor-pointer">
+        <i class="fa-solid fa-floppy-disk text-amber-200"></i>
+        <span>💾 सभी बदलाव एक साथ सेव करें (Save All)</span>
+    </button>
+</div>
 
 @include('components.ai-copilot-widget')
 </body>
