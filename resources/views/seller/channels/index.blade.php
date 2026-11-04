@@ -26,8 +26,8 @@
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         Swal.fire({
-            icon: 'error',
-            title: '⚠️ एक्सेल शीट अपडेट सूचना',
+            icon: 'warning',
+            title: '⚠️ मार्केटप्लेस व कतार सूचना',
             html: '{!! addslashes(session("error")) !!}',
             confirmButtonColor: '#dc2626',
             confirmButtonText: 'समझ गया'
@@ -442,12 +442,12 @@
 
             <!-- TAB 2: 🟡 PENDING TO PUBLISH VIEW -->
             <div id="viewPendingMarketplaces" class="hidden space-y-5">
-                <form action="{{ route('seller.channels.bulkPublish') }}" method="POST">
+                <form action="{{ route('seller.channels.bulkPublish') }}" method="POST" id="bulkPublishForm" onsubmit="return handleBulkPublishSubmit(event)">
                     @csrf
                     <!-- Action Bar -->
                     <div class="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div class="flex items-center gap-3">
-                            <input type="checkbox" id="selectAllPendingChk" onchange="toggleSelectAllPending(this.checked)" class="rounded text-indigo-600 h-4 w-4 cursor-pointer">
+                            <input type="checkbox" id="selectAllPendingChk" onchange="toggleSelectAllPending(this.checked)" checked class="rounded text-indigo-600 h-4 w-4 cursor-pointer">
                             <div>
                                 <span class="font-extrabold text-xs text-amber-950 block">पेंडिंग प्रोडक्ट्स का चयन करें (Bulk Push)</span>
                                 <span class="text-[11px] text-amber-800">ये प्रोडक्ट्स आपके VyaparIndia स्टोर पर लाइव हैं, इन्हें 1-क्लिक में Amazon/Meesho पर भेजें।</span>
@@ -570,7 +570,7 @@
                             @endphp
                             <div class="bg-white rounded-3xl border border-gray-200 p-4 shadow-2xs hover:border-indigo-400 hover:shadow-md transition space-y-3.5" id="pending-card-box-{{ $p->id }}">
                                 <div class="flex items-start gap-3">
-                                    <input type="checkbox" name="product_ids[]" value="{{ $p->id }}" class="pending-prod-chk rounded text-indigo-600 h-4 w-4 mt-1 cursor-pointer">
+                                    <input type="checkbox" name="product_ids[]" value="{{ $p->id }}" checked class="pending-prod-chk rounded text-indigo-600 h-4 w-4 mt-1 cursor-pointer">
                                     
                                     <!-- Photo Block with Multi-Image Support -->
                                     <div class="relative group/pendingimg h-16 w-16 rounded-2xl bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center shrink-0 p-1 cursor-pointer hover:border-indigo-500 hover:ring-2 hover:ring-indigo-200 transition"
@@ -844,7 +844,7 @@
                                     @endphp
                                     <tr class="hover:bg-indigo-50/20 transition group" id="table-row-{{ $p->id }}" data-id="{{ $p->id }}">
                                         <td class="p-3 text-center">
-                                            <input type="checkbox" name="product_ids[]" value="{{ $p->id }}" class="pending-prod-chk rounded text-indigo-600 h-4 w-4 cursor-pointer">
+                                            <input type="checkbox" name="product_ids[]" value="{{ $p->id }}" checked class="pending-prod-chk rounded text-indigo-600 h-4 w-4 cursor-pointer">
                                         </td>
                                         <td class="p-2">
                                             <div class="relative h-12 w-12 rounded-xl bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center p-0.5 cursor-pointer hover:ring-2 hover:ring-indigo-300 group/rowimg"
@@ -1572,6 +1572,35 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                     card.style.display = 'none';
                 }
             });
+        }
+
+        // Auto-select all pending products if none explicitly checked on bulk publish
+        function handleBulkPublishSubmit(e) {
+            let checkedBoxes = document.querySelectorAll('.pending-prod-chk:checked');
+            if (checkedBoxes.length === 0) {
+                const allBoxes = document.querySelectorAll('.pending-prod-chk');
+                if (allBoxes.length > 0) {
+                    toggleSelectAllPending(true);
+                    const selectAll = document.getElementById('selectAllPendingChk');
+                    if (selectAll) selectAll.checked = true;
+                    return true;
+                } else {
+                    if (e) e.preventDefault();
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: '⚠️ पेंडिंग कतार खाली है',
+                            text: 'आपकी कतार में अभी कोई प्रोडक्ट नहीं है। कृपया पहले "+ दुकान से और जोड़ें" बटन दबाकर प्रोडक्ट जोड़ें।',
+                            confirmButtonColor: '#4f46e5',
+                            confirmButtonText: 'समझ गया'
+                        });
+                    } else {
+                        alert('आपकी कतार में अभी कोई प्रोडक्ट नहीं है। कृपया पहले "+ दुकान से और जोड़ें" बटन दबाकर प्रोडक्ट जोड़ें।');
+                    }
+                    return false;
+                }
+            }
+            return true;
         }
 
         // Select All Pending Checkbox

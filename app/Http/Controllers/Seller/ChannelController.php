@@ -402,8 +402,22 @@ class ChannelController extends Controller
         $productIds = $request->input('product_ids', []);
         $channelNames = $request->input('channels', []);
 
+        // Smart fallback: If no specific checkboxes were sent, auto-publish all currently staged pending products for this seller!
         if (empty($productIds)) {
-            return back()->with('error', 'कृपया कम से कम एक प्रोडक्ट चुनें।');
+            $channelSelectedProductIds = ChannelListing::whereHas('channel', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })->pluck('product_id')->unique()->toArray();
+
+            $stagedAttrProductIds = Product::where('user_id', $userId)
+                ->whereJsonContains('attributes->channel_staged', true)
+                ->pluck('id')
+                ->toArray();
+
+            $productIds = array_values(array_unique(array_merge($channelSelectedProductIds, $stagedAttrProductIds)));
+        }
+
+        if (empty($productIds)) {
+            return back()->with('error', 'आपकी मार्केटप्लेस कतार में कोई पेंडिंग प्रोडक्ट नहीं है। कृपया पहले "+ दुकान से और जोड़ें" बटन दबाकर प्रोडक्ट जोड़ें।');
         }
 
         $connectedChannels = Channel::where('user_id', $userId)
