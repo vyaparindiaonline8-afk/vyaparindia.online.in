@@ -651,14 +651,18 @@
                                 </div>
 
                                 <!-- Action Buttons -->
-                                <div class="pt-1 flex items-center justify-between gap-2">
-                                    <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="flex-1 py-1.5 px-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-black transition flex items-center justify-center gap-1 shadow-2xs">
+                                <div class="pt-1 flex items-center justify-between gap-1.5">
+                                    <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="flex-1 py-1.5 px-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-black transition flex items-center justify-center gap-1 shadow-2xs" title="1 पीस खर्च व मुनाफा देखें">
                                         <i class="fa-solid fa-calculator"></i>
-                                        <span>खर्च & रेट कैलकुलेटर</span>
+                                        <span>1P खर्च</span>
                                     </button>
-                                    <button type="button" onclick="saveTableRowCosting({{ $p->id }}, this)" class="py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95" title="इस कार्ड के रेट्स व लेस% को तुरंत सेव करें">
+                                    <button type="button" onclick="openComboCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="flex-1 py-1.5 px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-[10px] font-black transition flex items-center justify-center gap-1 shadow-2xs" title="2P, 4P, 6P कॉम्बो खर्च व कूरियर पॉपअप खोलें">
+                                        <i class="fa-solid fa-layer-group"></i>
+                                        <span>2/4/6P विवरण</span>
+                                    </button>
+                                    <button type="button" onclick="saveTableRowCosting({{ $p->id }}, this)" class="py-1.5 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95" title="इस कार्ड के रेट्स व लेस% को तुरंत सेव करें">
                                         <i class="fa-solid fa-floppy-disk text-xs"></i>
-                                        <span>सेव करें</span>
+                                        <span>सेव</span>
                                     </button>
                                 </div>
                             </div>
@@ -760,6 +764,24 @@
                                     <i class="fa-solid fa-floppy-disk text-emerald-200"></i>
                                     <span>💾 लागू करें व सेव करें (Apply & Save)</span>
                                 </button>
+                            </div>
+
+                            <!-- Bulk Combo Management Bar -->
+                            <div class="w-full flex items-center justify-between pt-2.5 border-t border-amber-200/70 flex-wrap gap-2 text-xs">
+                                <div class="flex items-center gap-1.5 text-amber-950 font-black">
+                                    <i class="fa-solid fa-boxes-packing text-amber-700"></i>
+                                    <span>📦 2P, 4P, 6P कॉम्बो बल्क टूल्स:</span>
+                                </div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <button type="button" onclick="bulkRecalcCombos('all')" class="px-3 py-1.5 rounded-xl bg-white border border-amber-300 hover:bg-amber-100 text-amber-950 font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95" title="सभी प्रोडक्ट्स के 2P (₹45 कूरियर), 4P (₹65 कूरियर), 6P (₹85 कूरियर) ऑटो-कैलकुलेट करें">
+                                        <i class="fa-solid fa-calculator text-indigo-600"></i>
+                                        <span>⚡ 2P, 4P, 6P ऑटो-कैलकुलेट (Bulk)</span>
+                                    </button>
+                                    <button type="button" onclick="bulkRecalcAndSaveCombos()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95" title="सभी प्रोडक्ट्स के 2P, 4P, 6P रेट्स री-कैलकुलेट कर तुरंत डेटाबेस में सेव करें">
+                                        <i class="fa-solid fa-floppy-disk text-amber-200"></i>
+                                        <span>💾 सभी कॉम्बो री-कैलकुलेट व सेव करें</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -977,6 +999,10 @@
                                                     <span class="text-[8px] font-bold text-gray-500">6P ₹</span>
                                                     <input type="number" id="row-combo6-{{ $p->id }}" value="{{ $combo6 }}" class="w-14 px-1 py-0.5 bg-white border border-gray-300 rounded text-center text-[10px] font-mono font-bold text-indigo-950 focus:border-indigo-500 focus:outline-none" title="6 पीस पैक का सेलिंग रेट (एडिट कर सकते हैं)">
                                                 </div>
+                                                <button type="button" onclick="openComboCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="h-8 px-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 flex flex-col items-center justify-center transition shadow-2xs cursor-pointer ml-0.5" title="2P/4P/6P खर्च, कूरियर व मुनाफा पॉपअप में देखें व बदलें">
+                                                    <i class="fa-solid fa-eye text-xs"></i>
+                                                    <span class="text-[7px] font-black uppercase">विवरण</span>
+                                                </button>
                                             </div>
                                         </td>
 
@@ -1897,6 +1923,204 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             document.getElementById('calcCombo6Rate').textContent = '₹' + c6.toFixed(2);
         }
 
+        // --- 📦 COMBO CALCULATOR MODAL LOGIC (2P, 4P, 6P) ---
+        let activeComboProductId = null;
+
+        function openComboCalculatorModal(prodId, prodName) {
+            activeComboProductId = prodId;
+            document.getElementById('comboModalProdName').textContent = prodName;
+
+            const cost = parseFloat(document.getElementById(`row-cost-${prodId}`)?.value) || 0;
+            const marginPct = parseFloat(document.getElementById(`row-margin-${prodId}`)?.value) || 25;
+            const gstRate = parseFloat(document.getElementById(`row-gst-${prodId}`)?.value) || 18;
+            const feePct = parseFloat(document.getElementById(`row-fee-${prodId}`)?.value) || 12;
+
+            const currentC2 = parseFloat(document.getElementById(`row-combo2-${prodId}`)?.value) || 0;
+            const currentC4 = parseFloat(document.getElementById(`row-combo4-${prodId}`)?.value) || 0;
+            const currentC6 = parseFloat(document.getElementById(`row-combo6-${prodId}`)?.value) || 0;
+
+            document.getElementById('comboModalBaseCost').textContent = '₹' + cost.toFixed(2);
+            document.getElementById('comboModalGstRate').textContent = gstRate + '% GST';
+
+            // 2P
+            document.getElementById('combo2_cost').textContent = 'खरीद: ₹' + (cost * 2).toFixed(2);
+            document.getElementById('combo2_margin').value = marginPct;
+            document.getElementById('combo2_ship').value = 45;
+            document.getElementById('combo2_pack').value = 20;
+            document.getElementById('combo2_rto').value = 30;
+            document.getElementById('combo2_fee').value = feePct;
+
+            // 4P
+            document.getElementById('combo4_cost').textContent = 'खरीद: ₹' + (cost * 4).toFixed(2);
+            document.getElementById('combo4_margin').value = marginPct;
+            document.getElementById('combo4_ship').value = 65;
+            document.getElementById('combo4_pack').value = 25;
+            document.getElementById('combo4_rto').value = 40;
+            document.getElementById('combo4_fee').value = feePct;
+
+            // 6P
+            document.getElementById('combo6_cost').textContent = 'खरीद: ₹' + (cost * 6).toFixed(2);
+            document.getElementById('combo6_margin').value = marginPct;
+            document.getElementById('combo6_ship').value = 85;
+            document.getElementById('combo6_pack').value = 30;
+            document.getElementById('combo6_rto').value = 50;
+            document.getElementById('combo6_fee').value = feePct;
+
+            recalcComboModalLive(2, currentC2);
+            recalcComboModalLive(4, currentC4);
+            recalcComboModalLive(6, currentC6);
+
+            const m = document.getElementById('comboCalculatorModal');
+            if (m) {
+                m.classList.remove('hidden');
+                m.classList.add('flex');
+            }
+        }
+
+        function closeComboCalculatorModal() {
+            const m = document.getElementById('comboCalculatorModal');
+            if (m) {
+                m.classList.add('hidden');
+                m.classList.remove('flex');
+            }
+        }
+
+        function recalcComboModalLive(qty, overrideRate = 0) {
+            if (!activeComboProductId) return;
+            const unitCost = parseFloat(document.getElementById(`row-cost-${activeComboProductId}`)?.value) || 0;
+            const gstRate = parseFloat(document.getElementById(`row-gst-${activeComboProductId}`)?.value) || 18;
+
+            const ship = parseFloat(document.getElementById(`combo${qty}_ship`)?.value) || 0;
+            const pack = parseFloat(document.getElementById(`combo${qty}_pack`)?.value) || 0;
+            const rto = parseFloat(document.getElementById(`combo${qty}_rto`)?.value) || 0;
+            const marginPct = parseFloat(document.getElementById(`combo${qty}_margin`)?.value) || 25;
+            const feePct = parseFloat(document.getElementById(`combo${qty}_fee`)?.value) || 12;
+
+            const totalCost = unitCost * qty;
+            const g = gstRate / 100;
+            const f = feePct / 100;
+            const cTax = g > 0 ? (totalCost / (1 + g)) : totalCost;
+            const denom = Math.max(0.05, (1 / (1 + g)) - f);
+
+            const profitTarget = totalCost * (marginPct / 100);
+            const fixedExp = ship + pack + rto;
+            const calculatedSellingRate = Math.ceil((cTax + fixedExp + profitTarget) / denom);
+
+            const finalPrice = (overrideRate > 0) ? overrideRate : calculatedSellingRate;
+            const priceInp = document.getElementById(`combo${qty}_price`);
+            if (priceInp) priceInp.value = finalPrice;
+
+            recalcComboModalProfit(qty);
+        }
+
+        function recalcComboModalProfit(qty) {
+            if (!activeComboProductId) return;
+            const unitCost = parseFloat(document.getElementById(`row-cost-${activeComboProductId}`)?.value) || 0;
+            const gstRate = parseFloat(document.getElementById(`row-gst-${activeComboProductId}`)?.value) || 18;
+
+            const totalCost = unitCost * qty;
+            const ship = parseFloat(document.getElementById(`combo${qty}_ship`)?.value) || 0;
+            const pack = parseFloat(document.getElementById(`combo${qty}_pack`)?.value) || 0;
+            const rto = parseFloat(document.getElementById(`combo${qty}_rto`)?.value) || 0;
+            const feePct = parseFloat(document.getElementById(`combo${qty}_fee`)?.value) || 12;
+
+            const finalPrice = parseFloat(document.getElementById(`combo${qty}_price`)?.value) || 0;
+
+            const g = gstRate / 100;
+            const f = feePct / 100;
+            const sTax = g > 0 ? (finalPrice / (1 + g)) : finalPrice;
+            const cTax = g > 0 ? (totalCost / (1 + g)) : totalCost;
+            const fee = finalPrice * f;
+            const fixedExp = ship + pack + rto;
+
+            const netProfit = Math.round((sTax - cTax - fee - fixedExp) * 100) / 100;
+            const profitSpan = document.getElementById(`combo${qty}_profit`);
+            if (profitSpan) profitSpan.textContent = `₹${netProfit.toFixed(2)}`;
+
+            const perPcSpan = document.getElementById(`combo${qty}_per_pc`);
+            if (perPcSpan && finalPrice > 0) {
+                perPcSpan.textContent = `₹${(finalPrice / qty).toFixed(1)}/pc`;
+            }
+        }
+
+        async function saveComboModalValues(btn) {
+            if (!activeComboProductId) return;
+            const c2 = parseFloat(document.getElementById('combo2_price')?.value) || 0;
+            const c4 = parseFloat(document.getElementById('combo4_price')?.value) || 0;
+            const c6 = parseFloat(document.getElementById('combo6_price')?.value) || 0;
+
+            const r2 = document.getElementById(`row-combo2-${activeComboProductId}`);
+            if (r2) r2.value = c2;
+            const r4 = document.getElementById(`row-combo4-${activeComboProductId}`);
+            if (r4) r4.value = c4;
+            const r6 = document.getElementById(`row-combo6-${activeComboProductId}`);
+            if (r6) r6.value = c6;
+
+            const origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> सेव हो रहा है...';
+
+            const rowSaveBtn = document.querySelector(`#table-row-${activeComboProductId} button[onclick^="saveTableRowCosting"]`);
+            await saveTableRowCosting(activeComboProductId, rowSaveBtn || btn);
+
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+            closeComboCalculatorModal();
+            showChannelToast(`✓ 2P (₹${c2}), 4P (₹${c4}), 6P (₹${c6}) कॉम्बो रेट्स व खर्चे सुरक्षित सेव हो गए!`);
+        }
+
+        // --- 📦 BULK COMBO RECALCULATION & SAVING ---
+        function bulkRecalcCombos() {
+            const rows = document.querySelectorAll('#pendingTableTbody tr[data-id]');
+            if (!rows.length) {
+                alert('कोई प्रोडक्ट मौजूद नहीं है!');
+                return;
+            }
+
+            rows.forEach(row => {
+                const id = row.getAttribute('data-id');
+                const cost = parseFloat(document.getElementById(`row-cost-${id}`)?.value) || 0;
+                const marginPct = parseFloat(document.getElementById(`row-margin-${id}`)?.value) || 25;
+                const gstRate = parseFloat(document.getElementById(`row-gst-${id}`)?.value) || 18;
+                const feePct = parseFloat(document.getElementById(`row-fee-${id}`)?.value) || 12;
+
+                const g = gstRate / 100;
+                const f = feePct / 100;
+                const denom = Math.max(0.05, (1 / (1 + g)) - f);
+
+                // 2P: 2x cost, ₹45 ship, ₹20 pack, ₹30 rto
+                const cTax2 = g > 0 ? ((cost * 2) / (1 + g)) : (cost * 2);
+                const p2 = (cost * 2) * (marginPct / 100);
+                const c2 = Math.ceil((cTax2 + 45 + 20 + 30 + p2) / denom);
+
+                // 4P: 4x cost, ₹65 ship, ₹25 pack, ₹40 rto
+                const cTax4 = g > 0 ? ((cost * 4) / (1 + g)) : (cost * 4);
+                const p4 = (cost * 4) * (marginPct / 100);
+                const c4 = Math.ceil((cTax4 + 65 + 25 + 40 + p4) / denom);
+
+                // 6P: 6x cost, ₹85 ship, ₹30 pack, ₹50 rto
+                const cTax6 = g > 0 ? ((cost * 6) / (1 + g)) : (cost * 6);
+                const p6 = (cost * 6) * (marginPct / 100);
+                const c6 = Math.ceil((cTax6 + 85 + 30 + 50 + p6) / denom);
+
+                const r2 = document.getElementById(`row-combo2-${id}`);
+                if (r2) r2.value = c2;
+                const r4 = document.getElementById(`row-combo4-${id}`);
+                if (r4) r4.value = c4;
+                const r6 = document.getElementById(`row-combo6-${id}`);
+                if (r6) r6.value = c6;
+            });
+
+            markUnsavedChanges();
+            showChannelToast(`⚡ सभी ${rows.length} प्रोडक्ट्स के 2P, 4P, 6P कॉम्बो रेट्स री-कैलकुलेट हो गए!`);
+        }
+
+        async function bulkRecalcAndSaveCombos() {
+            bulkRecalcCombos();
+            await saveAllTableRowsCosting();
+        }
+
+
         // Switch Pending Layout between Table Grid vs Cards (with localStorage persistence)
         function switchPendingLayout(layout) {
             try { localStorage.setItem('vyapar_channel_layout', layout); } catch(e) {}
@@ -2738,10 +2962,10 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
 
                 <!-- Action Button -->
                 <div class="pt-2 flex items-center justify-between gap-2 border-t border-gray-100">
-                    <a id="calcSlabSetupDirectLink" href="#" target="_blank" class="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-layer-group text-emerald-600"></i>
-                        <span>2/4/6 पीस स्लैब सेव करें &rarr;</span>
-                    </a>
+                    <button type="button" onclick="closeCostCalculatorModal(); openComboCalculatorModal(activeCalcProductId, document.getElementById('calcModalProdName').textContent)" class="px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold transition flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-layer-group text-indigo-600"></i>
+                        <span>2/4/6 पीस स्लैब विवरण &rarr;</span>
+                    </button>
                     <button type="button" onclick="closeCostCalculatorModal()" class="px-4 py-2 rounded-xl bg-gray-900 text-white font-bold transition">
                         ठीक है (Close)
                     </button>
@@ -2750,6 +2974,238 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
         </div>
     </div>
 
+    <!-- 📦 COMBO PACK DETAILS & INDIVIDUAL EXPENSES MODAL (2P / 4P / 6P) -->
+    <div id="comboCalculatorModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-4 overflow-y-auto" onclick="closeComboCalculatorModal()">
+        <div class="bg-white rounded-3xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in duration-200 my-auto" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-lg font-bold shadow-md">
+                        <i class="fa-solid fa-boxes-packing"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-black text-sm sm:text-base text-gray-900">2 / 4 / 6 पीस कॉम्बो खर्च, कूरियर व रेट विवरण</h3>
+                            <span class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-md border border-indigo-200" id="comboModalGstRate">18% GST</span>
+                        </div>
+                        <p class="text-xs text-gray-500 truncate max-w-md mt-0.5" id="comboModalProdName">Product</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeComboCalculatorModal()" class="text-gray-400 hover:text-gray-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Base Info Pill -->
+            <div class="flex items-center justify-between bg-amber-50/80 p-2.5 rounded-2xl border border-amber-200 text-xs">
+                <div class="flex items-center gap-2 text-amber-900 font-bold">
+                    <i class="fa-solid fa-tag text-amber-600"></i>
+                    <span>1 पीस खरीद लागत (With GST): <strong class="font-mono text-gray-900" id="comboModalBaseCost">₹0.00</strong></span>
+                </div>
+                <span class="text-[11px] text-amber-800">कॉम्बो में वजन के अनुसार कूरियर व RTO अलग जोड़ें और मनचाहा रेट सेट करें।</span>
+            </div>
+
+            <!-- 3 Combo Cards: 2P, 4P, 6P -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
+                <!-- 2 PC PACK -->
+                <div class="bg-slate-50 p-3.5 rounded-2xl border border-indigo-200 space-y-2.5 flex flex-col justify-between">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between border-b border-indigo-100 pb-1.5">
+                            <span class="font-black text-xs text-indigo-950 flex items-center gap-1">
+                                <span class="w-5 h-5 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-[10px] font-mono">2P</span>
+                                <span>2 पीस पैक</span>
+                            </span>
+                            <span class="text-[10px] font-bold text-gray-500 font-mono" id="combo2_cost">₹0.00</span>
+                        </div>
+
+                        <!-- Expenses -->
+                        <div class="space-y-1.5 text-[11px]">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">कूरियर / डिलीवरी:</span>
+                                <div class="relative w-20">
+                                    <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">₹</span>
+                                    <input type="number" id="combo2_ship" value="45" oninput="recalcComboModalLive(2)" class="w-full pl-4 pr-1 py-0.5 bg-white border border-gray-300 rounded text-right font-mono font-bold text-gray-800">
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">पैकिंग खर्च:</span>
+                                <div class="relative w-20">
+                                    <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">₹</span>
+                                    <input type="number" id="combo2_pack" value="20" oninput="recalcComboModalLive(2)" class="w-full pl-4 pr-1 py-0.5 bg-white border border-gray-300 rounded text-right font-mono font-bold text-gray-800">
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">RTO / रिटर्न बफ़र:</span>
+                                <div class="relative w-20">
+                                    <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-rose-400 text-[10px]">₹</span>
+                                    <input type="number" id="combo2_rto" value="30" oninput="recalcComboModalLive(2)" class="w-full pl-4 pr-1 py-0.5 bg-white border border-rose-300 rounded text-right font-mono font-bold text-rose-700">
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">मार्जिन %:</span>
+                                <div class="relative w-20">
+                                    <input type="number" id="combo2_margin" value="25" oninput="recalcComboModalLive(2)" class="w-full pr-4 pl-1 py-0.5 bg-white border border-gray-300 rounded text-right font-mono font-bold text-emerald-700">
+                                    <span class="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">%</span>
+                                </div>
+                            </div>
+                            <input type="hidden" id="combo2_fee" value="12">
+                        </div>
+                    </div>
+
+                    <!-- Output & Price -->
+                    <div class="pt-2 border-t border-indigo-100 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-extrabold text-indigo-950 uppercase">फाइनल 2P रेट:</span>
+                            <div class="relative w-24">
+                                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-amber-600 font-bold text-xs">₹</span>
+                                <input type="number" id="combo2_price" value="0" oninput="recalcComboModalProfit(2)" class="w-full pl-5 pr-1.5 py-1 bg-white border-2 border-amber-400 rounded-lg text-xs font-mono font-black text-amber-950 text-right">
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px]">
+                            <span class="text-gray-500">शुद्ध जेब मुनाफा:</span>
+                            <span class="font-mono font-black text-emerald-700" id="combo2_profit">₹0.00</span>
+                        </div>
+                        <div class="text-[9px] text-gray-400 text-right" id="combo2_per_pc">₹0/pc</div>
+                    </div>
+                </div>
+
+                <!-- 4 PC PACK -->
+                <div class="bg-indigo-50/50 p-3.5 rounded-2xl border-2 border-indigo-400 space-y-2.5 flex flex-col justify-between shadow-xs">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between border-b border-indigo-200 pb-1.5">
+                            <span class="font-black text-xs text-indigo-950 flex items-center gap-1">
+                                <span class="w-5 h-5 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-[10px] font-mono">4P</span>
+                                <span>4 पीस पैक (Best Seller)</span>
+                            </span>
+                            <span class="text-[10px] font-bold text-gray-500 font-mono" id="combo4_cost">₹0.00</span>
+                        </div>
+
+                        <!-- Expenses -->
+                        <div class="space-y-1.5 text-[11px]">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">कूरियर / डिलीवरी:</span>
+                                <div class="relative w-20">
+                                    <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">₹</span>
+                                    <input type="number" id="combo4_ship" value="65" oninput="recalcComboModalLive(4)" class="w-full pl-4 pr-1 py-0.5 bg-white border border-gray-300 rounded text-right font-mono font-bold text-gray-800">
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">पैकिंग खर्च:</span>
+                                <div class="relative w-20">
+                                    <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">₹</span>
+                                    <input type="number" id="combo4_pack" value="25" oninput="recalcComboModalLive(4)" class="w-full pl-4 pr-1 py-0.5 bg-white border border-gray-300 rounded text-right font-mono font-bold text-gray-800">
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">RTO / रिटर्न बफ़र:</span>
+                                <div class="relative w-20">
+                                    <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-rose-400 text-[10px]">₹</span>
+                                    <input type="number" id="combo4_rto" value="40" oninput="recalcComboModalLive(4)" class="w-full pl-4 pr-1 py-0.5 bg-white border border-rose-300 rounded text-right font-mono font-bold text-rose-700">
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">मार्जिन %:</span>
+                                <div class="relative w-20">
+                                    <input type="number" id="combo4_margin" value="25" oninput="recalcComboModalLive(4)" class="w-full pr-4 pl-1 py-0.5 bg-white border border-gray-300 rounded text-right font-mono font-bold text-emerald-700">
+                                    <span class="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">%</span>
+                                </div>
+                            </div>
+                            <input type="hidden" id="combo4_fee" value="12">
+                        </div>
+                    </div>
+
+                    <!-- Output & Price -->
+                    <div class="pt-2 border-t border-indigo-200 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-extrabold text-indigo-950 uppercase">फाइनल 4P रेट:</span>
+                            <div class="relative w-24">
+                                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-amber-600 font-bold text-xs">₹</span>
+                                <input type="number" id="combo4_price" value="0" oninput="recalcComboModalProfit(4)" class="w-full pl-5 pr-1.5 py-1 bg-white border-2 border-emerald-500 rounded-lg text-xs font-mono font-black text-emerald-950 text-right">
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px]">
+                            <span class="text-gray-500">शुद्ध जेब मुनाफा:</span>
+                            <span class="font-mono font-black text-emerald-700" id="combo4_profit">₹0.00</span>
+                        </div>
+                        <div class="text-[9px] text-gray-400 text-right" id="combo4_per_pc">₹0/pc</div>
+                    </div>
+                </div>
+
+                <!-- 6 PC PACK -->
+                <div class="bg-slate-50 p-3.5 rounded-2xl border border-indigo-200 space-y-2.5 flex flex-col justify-between">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between border-b border-indigo-100 pb-1.5">
+                            <span class="font-black text-xs text-indigo-950 flex items-center gap-1">
+                                <span class="w-5 h-5 rounded-lg bg-amber-600 text-white flex items-center justify-center text-[10px] font-mono">6P</span>
+                                <span>6 पीस पैक</span>
+                            </span>
+                            <span class="text-[10px] font-bold text-gray-500 font-mono" id="combo6_cost">₹0.00</span>
+                        </div>
+
+                        <!-- Expenses -->
+                        <div class="space-y-1.5 text-[11px]">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">कूरियर / डिलीवरी:</span>
+                                <div class="relative w-20">
+                                    <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">₹</span>
+                                    <input type="number" id="combo6_ship" value="85" oninput="recalcComboModalLive(6)" class="w-full pl-4 pr-1 py-0.5 bg-white border border-gray-300 rounded text-right font-mono font-bold text-gray-800">
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">पैकिंग खर्च:</span>
+                                <div class="relative w-20">
+                                    <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">₹</span>
+                                    <input type="number" id="combo6_pack" value="30" oninput="recalcComboModalLive(6)" class="w-full pl-4 pr-1 py-0.5 bg-white border border-gray-300 rounded text-right font-mono font-bold text-gray-800">
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">RTO / रिटर्न बफ़र:</span>
+                                <div class="relative w-20">
+                                    <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-rose-400 text-[10px]">₹</span>
+                                    <input type="number" id="combo6_rto" value="50" oninput="recalcComboModalLive(6)" class="w-full pl-4 pr-1 py-0.5 bg-white border border-rose-300 rounded text-right font-mono font-bold text-rose-700">
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">मार्जिन %:</span>
+                                <div class="relative w-20">
+                                    <input type="number" id="combo6_margin" value="25" oninput="recalcComboModalLive(6)" class="w-full pr-4 pl-1 py-0.5 bg-white border border-gray-300 rounded text-right font-mono font-bold text-emerald-700">
+                                    <span class="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">%</span>
+                                </div>
+                            </div>
+                            <input type="hidden" id="combo6_fee" value="12">
+                        </div>
+                    </div>
+
+                    <!-- Output & Price -->
+                    <div class="pt-2 border-t border-indigo-100 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-extrabold text-indigo-950 uppercase">फाइनल 6P रेट:</span>
+                            <div class="relative w-24">
+                                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-amber-600 font-bold text-xs">₹</span>
+                                <input type="number" id="combo6_price" value="0" oninput="recalcComboModalProfit(6)" class="w-full pl-5 pr-1.5 py-1 bg-white border-2 border-amber-400 rounded-lg text-xs font-mono font-black text-amber-950 text-right">
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px]">
+                            <span class="text-gray-500">शुद्ध जेब मुनाफा:</span>
+                            <span class="font-mono font-black text-emerald-700" id="combo6_profit">₹0.00</span>
+                        </div>
+                        <div class="text-[9px] text-gray-400 text-right" id="combo6_per_pc">₹0/pc</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Save Actions -->
+            <div class="pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
+                <button type="button" onclick="closeComboCalculatorModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition">
+                    रद्द करें (Close)
+                </button>
+                <button type="button" id="btnSaveComboModal" onclick="saveComboModalValues(this)" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md transition flex items-center gap-2 active:scale-95 cursor-pointer">
+                    <i class="fa-solid fa-floppy-disk text-amber-200"></i>
+                    <span>💾 2P, 4P, 6P कॉम्बो रेट्स तुरंत सेव करें (Save All Combos)</span>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- 🛒 Add Products from Store Catalog to Marketplace Queue Modal -->
     <div id="stageProductsModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-4 overflow-y-auto" onclick="closeStageProductsModal()">
