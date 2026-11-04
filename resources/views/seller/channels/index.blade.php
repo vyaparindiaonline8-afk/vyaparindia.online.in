@@ -14,7 +14,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         Swal.fire({
             icon: 'success',
-            title: '🎉 शीट सफलतापूर्वक अपडेट हो गई!',
+            title: '🎉 सफलता (Success)!',
             html: '{!! addslashes(session("success")) !!}',
             confirmButtonColor: '#059669',
             confirmButtonText: 'शानदार! ठीक है'
