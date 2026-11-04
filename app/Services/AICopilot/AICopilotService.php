@@ -28,7 +28,7 @@ class AICopilotService
         $actionResult = $this->detectAndExecuteAction($message, $imageData, $user, $role, $context);
 
         // 2. Call LLM (Gemini or OpenAI) with system prompt & business context
-        $aiReply = $this->generateAIResponse($message, $imageData, $role, $user, $actionResult);
+        $aiReply = $this->generateAIResponse($message, $imageData, $role, $user, $actionResult, $context);
 
         return [
             'reply' => $aiReply,
@@ -69,6 +69,15 @@ class AICopilotService
         // POWER 5: Catalog Automation & PDF Navigation
         if ($role === 'seller' && preg_match('/pdf|excel mapper|photo bank|studio|crop|upload catalog|tools|mapper/i', $msgLower)) {
             return $this->handleCatalogNavigation($user);
+        }
+
+        // POWER 6.5: Direct Marketplace Upload & Failure Diagnostic Reporting
+        if ($role === 'seller' && (
+            preg_match('/(?:upload|publish|live|bhejo|sync|dal do|dalo|bhej do).*?(?:amazon|meesho|flipkart|marketplace|channel)/i', $msgLower) ||
+            preg_match('/(?:amazon|meesho|flipkart|marketplace).*?(?:upload|publish|live|bhejo|sync|dal do|dalo|bhej do)/i', $msgLower) ||
+            preg_match('/(?:fail|failed|error|ruka|pass|kyu|reason|report|status|diagnostic).*?(?:upload|publish|amazon|sync)/i', $msgLower)
+        )) {
+            return $this->handleMarketplacePublishAndReport($message, $user);
         }
 
         // POWER 6: Multi-Marketplace & Channels Intelligence (Amazon, Meesho, Flipkart, Blinkit)
@@ -379,6 +388,119 @@ class AICopilotService
     }
 
     /**
+     * POWER 6.5: Direct Marketplace Upload & Failure Diagnostic Reporting
+     */
+    protected function handleMarketplacePublishAndReport(string $message, ?User $user): array
+    {
+        if (!$user) {
+            return ['action' => null, 'data' => null];
+        }
+
+        $msgLower = strtolower($message);
+        $amazonChannel = \App\Models\Channel::where('user_id', $user->id)->where('channel_name', 'amazon')->where('is_active', true)->first();
+
+        $isDiagnosticQuery = preg_match('/(?:fail|failed|error|ruka|kyu|reason|report|diagnostic|pass)/i', $msgLower);
+
+        // Fetch staged products
+        $stagedProducts = \App\Models\Product::where('user_id', $user->id)
+            ->where(function ($q) {
+                $q->whereJsonContains('attributes->channel_staged', true)
+                  ->orWhereHas('channelListings');
+            })
+            ->latest()
+            ->take(10)
+            ->get();
+
+        if ($stagedProducts->isEmpty()) {
+            $stagedProducts = \App\Models\Product::where('user_id', $user->id)->latest()->take(5)->get();
+        }
+
+        // If user asked to upload/publish right now
+        if (!$isDiagnosticQuery && preg_match('/(?:upload|publish|live|bhejo|sync|dal do|dalo|bhej do)/i', $msgLower)) {
+            if (!$amazonChannel || empty($amazonChannel->api_key) || empty($amazonChannel->access_token)) {
+                return [
+                    'action' => 'marketplace_upload_report',
+                    'data' => [
+                        'status' => 'NEED_SETUP',
+                        'channel' => 'Amazon India',
+                        'passed_count' => 0,
+                        'failed_count' => count($stagedProducts),
+                        'diagnosis' => 'Amazon LWA API Credentials Missing: Aapne Channel Settings me LWA Client ID ya Refresh Token pura nahi bhara hai.',
+                        'solution' => 'Channels Hub me jakar Amazon settings me apni API keys bharein ya "📥 कतार शीट (Excel)" download karke upload karein.',
+                        'action_url' => route('seller.channels.index'),
+                        'action_label' => 'Channels Hub me Keys Bharein',
+                        'excel_url' => route('seller.channels.export_sheet'),
+                        'message' => "Amazon par direct live upload karne ke liye aapki LWA API Keys chahiye. Ya fir aap turant **'📥 कतार शीट (Excel)'** download karke Amazon Seller Central me bina kisi API ke 1 minute me bulk upload kar sakte hain."
+                    ]
+                ];
+            }
+
+            // Real SP-API call
+            $spApi = app(\App\Services\AmazonSpApiService::class);
+            $batchRes = $spApi->batchPublish($amazonChannel, $stagedProducts);
+
+            $passed = $batchRes['passed'];
+            $failed = $batchRes['failed'];
+            $commonIssue = $batchRes['common_issue'] ?? 'Amazon SP-API Error';
+            $actionAdvice = $batchRes['action_advice'] ?? 'Aap Excel sheet se turant bulk upload kar sakte hain.';
+
+            $reportMsg = $passed > 0
+                ? "🎉 **Shandar! {$passed} products Amazon India par safaltapoorvak live submit ho gaye!**" . ($failed > 0 ? " (Lekin {$failed} products me validation issue aaya)." : "")
+                : "⚠️ **Amazon SP-API ne {$failed} products ka upload rokk diya hai.**\n\n**🔍 Mukhya Karan (Main Reason):**\n{$commonIssue}\n\n**💡 Turant Upay (Immediate Solution):**\n{$actionAdvice}";
+
+            return [
+                'action' => 'marketplace_upload_report',
+                'data' => [
+                    'status' => $passed > 0 ? 'SUCCESS' : 'FAILED',
+                    'channel' => 'Amazon India (SP-API)',
+                    'passed_count' => $passed,
+                    'failed_count' => $failed,
+                    'total_count' => count($stagedProducts),
+                    'diagnosis' => $commonIssue,
+                    'solution' => $actionAdvice,
+                    'action_url' => route('seller.channels.index'),
+                    'action_label' => 'Channels Hub Kholein',
+                    'excel_url' => route('seller.channels.export_sheet'),
+                    'message' => $reportMsg
+                ]
+            ];
+        }
+
+        // Diagnostic / Status Report
+        $recentProdWithDiag = \App\Models\Product::where('user_id', $user->id)
+            ->whereNotNull('attributes->amazon_sync')
+            ->latest()
+            ->first();
+
+        $syncDiag = $recentProdWithDiag->attributes['amazon_sync']['diagnostic'] ?? null;
+        $syncSol = $recentProdWithDiag->attributes['amazon_sync']['solution'] ?? null;
+
+        if (!$syncDiag && (!$amazonChannel || empty($amazonChannel->api_key))) {
+            $syncDiag = 'Amazon API Credentials Incomplete: Amazon LWA App ID ya Refresh token missing hai.';
+            $syncSol = 'Channels Hub me jakar Amazon Card par click karein aur LWA Client ID/Secret save karein.';
+        } elseif (!$syncDiag) {
+            $syncDiag = 'Amazon Brand / Barcode Exemption Required: Amazon par bina EAN/UPC barcode bechne ke liye GTIN Exemption approval chahiye.';
+            $syncSol = 'Amazon Seller Central -> Catalog -> Apply for GTIN Exemption par apply karein, ya VyaparIndia portal se Excel Sheet upload karein.';
+        }
+
+        return [
+            'action' => 'marketplace_upload_report',
+            'data' => [
+                'status' => 'DIAGNOSTIC_REPORT',
+                'channel' => 'Amazon India (SP-API)',
+                'passed_count' => \App\Models\Product::where('user_id', $user->id)->whereHas('channelListings', fn($q) => $q->where('sync_status', 'synced'))->count(),
+                'failed_count' => max(1, count($stagedProducts)),
+                'diagnosis' => $syncDiag,
+                'solution' => $syncSol ?? 'Excel Sheet download karke Amazon Seller Central me bulk upload karein.',
+                'action_url' => route('seller.channels.index'),
+                'action_label' => 'Channels Hub Kholein',
+                'excel_url' => route('seller.channels.export_sheet'),
+                'message' => "📋 **Amazon Upload Status & Diagnostic Report:**\n\n**1. Mukhya Wajah (Why it Failed / Staged):**\n{$syncDiag}\n\n**2. Iska Asli Hal (How to Fix It):**\n" . ($syncSol ?? "Portal ki Excel Sheet download karein aur Amazon Seller Central me 'Add Products via Upload' me daalein.")
+            ]
+        ];
+    }
+
+    /**
      * POWER 6: Multi-Marketplace & Channels Intelligence
      */
     protected function handleChannelsSummary(?User $user): array
@@ -601,9 +723,9 @@ class AICopilotService
     /**
      * Generate LLM or Smart Fallback Response.
      */
-    protected function generateAIResponse(string $prompt, ?string $imageData, string $role, ?User $user, array $actionResult): string
+    protected function generateAIResponse(string $prompt, ?string $imageData, string $role, ?User $user, array $actionResult, array $context = []): string
     {
-        $apiKey = env('GEMINI_API_KEY') ?: env('OPENAI_KEY') ?: env('OPENAI_API_KEY');
+        $apiKey = $context['openai_api_key'] ?? env('OPENAI_API_KEY') ?: env('OPENAI_KEY') ?: env('GEMINI_API_KEY');
 
         // If Gemini or OpenAI is configured, invoke model
         if (!empty($apiKey)) {

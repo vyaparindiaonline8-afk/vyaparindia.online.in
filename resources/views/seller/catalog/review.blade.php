@@ -1057,5 +1057,6 @@
             });
         }
     </script>
+    @include('components.ai-copilot-widget')
 </body>
 </html>

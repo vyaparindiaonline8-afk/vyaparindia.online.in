@@ -44,5 +44,6 @@
             @endforeach
         </tbody>
     </table>
+    @include('components.ai-copilot-widget')
 </body>
 </html>

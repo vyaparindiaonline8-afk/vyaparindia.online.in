@@ -417,5 +417,6 @@
             btnText.textContent = "Analyzing PDF with AI...";
         });
     </script>
+    @include('components.ai-copilot-widget')
 </body>
 </html>

@@ -174,5 +174,6 @@
             </div>
         </div>
     </div>
+    @include('components.ai-copilot-widget')
 </body>
 </html>

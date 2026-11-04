@@ -24,5 +24,6 @@
         </div>
         <button type="submit">Add Dispatch Details</button>
     </form>
+    @include('components.ai-copilot-widget')
 </body>
 </html>

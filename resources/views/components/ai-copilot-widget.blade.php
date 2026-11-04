@@ -1,7 +1,7 @@
 <!-- 🤖 VyaparIndia Universal AI Copilot Widget (Modular Store & Buyer Assistant) -->
-<div id="vyapar-ai-copilot" class="fixed bottom-6 right-6 z-50 font-sans" x-data="aiCopilotWidget()">
+<div id="vyapar-ai-copilot" class="fixed bottom-6 right-6 z-50 font-sans">
     <!-- Floating Trigger Button -->
-    <button @click="toggleChat()" onclick="toggleAiChat()" 
+    <button id="vyapar-ai-copilot-btn" type="button" onclick="toggleAiChat(event)" 
             class="group relative flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white rounded-full shadow-2xl hover:shadow-indigo-500/40 hover:scale-105 transition-all duration-300 focus:outline-none">
         <span class="relative flex h-3 w-3">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -29,10 +29,32 @@
                     <p class="text-[10px] text-slate-300">Catalog Listing, Quotations & 24/7 Guide</p>
                 </div>
             </div>
-            <button onclick="document.getElementById('ai-chat-window').classList.add('hidden')" 
-                    class="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white transition">
-                <i class="fa-solid fa-xmark text-sm"></i>
-            </button>
+            <div class="flex items-center gap-1.5">
+                <button type="button" onclick="toggleAiKeyDrawer()" 
+                        class="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-amber-300 hover:text-white transition" 
+                        title="OpenAI GPT-4o-mini Settings">
+                    <i class="fa-solid fa-key text-xs"></i>
+                </button>
+                <button type="button" onclick="closeAiChat()" 
+                        class="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- OpenAI Key Drawer -->
+        <div id="ai-key-drawer" class="hidden px-4 py-2.5 bg-slate-950 border-b border-indigo-500/30 text-white text-[11px] space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="font-bold flex items-center gap-1.5 text-amber-300">
+                    <i class="fa-solid fa-bolt text-indigo-400"></i> Model: OpenAI GPT-4o-mini
+                </span>
+                <span class="text-[9px] text-emerald-400 font-mono font-bold" id="ai-key-status">Auto Active</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <input type="password" id="ai-custom-openai-key" placeholder="sk-proj-... (OpenAI API Key)" class="flex-1 px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-[10px] font-mono text-white focus:outline-none focus:border-indigo-400">
+                <button type="button" onclick="aiSaveCustomOpenAiKey()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-[10px] transition shrink-0 cursor-pointer">Save Key</button>
+            </div>
+            <p class="text-[9px] text-slate-400">Aapki key browser me safe rahegi aur har sawal direct GPT-4o-mini se process hoga.</p>
         </div>
 
         <!-- Messages Area -->
@@ -63,6 +85,12 @@
         <div id="ai-quick-pills" class="px-4 py-2 bg-white border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             @auth
                 @if(Auth::user()->is_seller())
+                    <button onclick="aiSendQuick('Amazon me upload karo aur live status report do')" class="px-3 py-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-900 text-[10px] font-black rounded-full whitespace-nowrap transition border border-amber-300 flex items-center gap-1">
+                        <i class="fa-brands fa-amazon text-amber-600"></i> 🚀 Amazon अपलोड व रिपोर्ट
+                    </button>
+                    <button onclick="aiSendQuick('Amazon upload fail kyu hua? Asli reason aur solution batao')" class="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-bold rounded-full whitespace-nowrap transition border border-rose-200">
+                        <i class="fa-solid fa-circle-question mr-1 text-rose-500"></i> Fail/Pass रिपोर्ट
+                    </button>
                     <button onclick="aiSendQuick('Marketplace aur Channels status batao')" class="px-3 py-1 bg-violet-50 hover:bg-violet-100 text-violet-700 text-[10px] font-bold rounded-full whitespace-nowrap transition border border-violet-200">
                         <i class="fa-solid fa-store mr-1 text-violet-600"></i> Channels Hub
                     </button>
@@ -147,15 +175,71 @@
     let isRecording = false;
     let recognition = null;
 
-    function toggleAiChat() {
+    function toggleAiChat(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         const win = document.getElementById('ai-chat-window');
-        win.classList.toggle('hidden');
-        if (!win.classList.contains('hidden')) {
-            document.getElementById('ai-text-input').focus();
+        if (!win) return;
+        const isHidden = win.classList.contains('hidden');
+        if (isHidden) {
+            win.classList.remove('hidden');
+            win.classList.add('flex');
+            const input = document.getElementById('ai-text-input');
+            if (input) setTimeout(() => input.focus(), 150);
+        } else {
+            win.classList.add('hidden');
+            win.classList.remove('flex');
         }
     }
 
-    document.querySelector('#vyapar-ai-copilot button').addEventListener('click', toggleAiChat);
+    function closeAiChat() {
+        const win = document.getElementById('ai-chat-window');
+        if (win) {
+            win.classList.add('hidden');
+            win.classList.remove('flex');
+        }
+    }
+
+    function toggleAiKeyDrawer() {
+        const d = document.getElementById('ai-key-drawer');
+        if (d) d.classList.toggle('hidden');
+        const saved = localStorage.getItem('vyapar_openai_api_key');
+        if (saved && document.getElementById('ai-custom-openai-key')) {
+            document.getElementById('ai-custom-openai-key').value = saved;
+        }
+    }
+
+    function aiSaveCustomOpenAiKey() {
+        const key = document.getElementById('ai-custom-openai-key')?.value.trim();
+        if (key) {
+            localStorage.setItem('vyapar_openai_api_key', key);
+            const stat = document.getElementById('ai-key-status');
+            if (stat) {
+                stat.textContent = 'GPT-4o-mini Key Active ✓';
+                stat.className = 'text-[9px] text-emerald-400 font-mono font-bold';
+            }
+            setTimeout(() => {
+                document.getElementById('ai-key-drawer')?.classList.add('hidden');
+            }, 800);
+            appendChatBubble('ai', '✅ Aapki OpenAI GPT-4o-mini Key safaltapoorvak save ho gayi hai! Ab Copilot direct GPT-4o-mini model se baat karke kaam karega.');
+        } else {
+            localStorage.removeItem('vyapar_openai_api_key');
+            const stat = document.getElementById('ai-key-status');
+            if (stat) stat.textContent = 'Auto Engine';
+            alert('Custom key hata di gayi hai.');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const saved = localStorage.getItem('vyapar_openai_api_key');
+        const stat = document.getElementById('ai-key-status');
+        if (saved && stat) {
+            stat.textContent = 'GPT-4o-mini Key Active ✓';
+            stat.className = 'text-[9px] text-emerald-400 font-mono font-bold';
+        }
+    });
 
     function aiHandleFileSelect(event) {
         const file = event.target.files[0];
@@ -211,7 +295,8 @@
                     context: {
                         url: window.location.href,
                         pathname: window.location.pathname,
-                        title: document.title
+                        title: document.title,
+                        openai_api_key: localStorage.getItem('vyapar_openai_api_key') || ''
                     }
                 })
             });
@@ -239,7 +324,48 @@
         let imgHtml = image ? `<img src="${image}" class="w-28 h-28 object-cover rounded-xl mb-2 border border-slate-200 shadow-xs">` : '';
         let actionCardHtml = '';
 
-        if (action === 'channels_summary' && actionData) {
+        if (action === 'marketplace_upload_report' && actionData) {
+            const isSuccess = actionData.status === 'SUCCESS';
+            const bgClass = isSuccess ? 'bg-emerald-950/95 border-emerald-500/40' : 'bg-slate-900 border-rose-500/30';
+            const statusBadge = isSuccess
+                ? `<span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-black text-[10px] border border-emerald-500/30">Live Sync Passed (${actionData.passed_count})</span>`
+                : `<span class="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-black text-[10px] border border-rose-500/30">${actionData.failed_count} Pending Action</span>`;
+
+            actionCardHtml = `
+                <div class="mt-3 p-3.5 rounded-2xl ${bgClass} text-white space-y-3 shadow-lg border">
+                    <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                        <span class="text-xs font-black flex items-center gap-1.5 text-amber-300">
+                            <i class="fa-brands fa-amazon text-amber-400"></i> ${actionData.channel || 'Amazon India (SP-API)'}
+                        </span>
+                        ${statusBadge}
+                    </div>
+                    <div class="space-y-2 text-[11px]">
+                        <div class="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-1">
+                            <div class="font-bold text-amber-300 flex items-center gap-1">
+                                <i class="fa-solid fa-circle-exclamation text-amber-400"></i> मुख्य कारण (Root Cause):
+                            </div>
+                            <p class="text-slate-300 text-[10px] leading-relaxed">${actionData.diagnosis || 'Validation Check Required'}</p>
+                        </div>
+                        ${actionData.solution ? `
+                        <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 space-y-1">
+                            <div class="font-bold text-emerald-300 flex items-center gap-1">
+                                <i class="fa-solid fa-lightbulb text-emerald-400"></i> तुरंत समाधान (Action Advice):
+                            </div>
+                            <p class="text-emerald-200 text-[10px] leading-relaxed">${actionData.solution}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="pt-1 flex items-center gap-2">
+                        <a href="${actionData.excel_url || '/seller/channels/export-sheet'}" class="flex-1 py-2 text-center bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl text-[10px] shadow-xs transition flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-file-excel text-amber-200"></i> 📥 Excel शीट डाउनलोड
+                        </a>
+                        <a href="${actionData.action_url || '/seller/channels'}" class="py-2 px-3 text-center bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-[10px] transition">
+                            ${actionData.action_label || 'सेटिंग्स'}
+                        </a>
+                    </div>
+                </div>
+            `;
+        } else if (action === 'channels_summary' && actionData) {
             actionCardHtml = `
                 <div class="mt-3 p-3.5 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white space-y-3 shadow-lg border border-indigo-500/30">
                     <div class="flex items-center justify-between border-b border-white/10 pb-2">

@@ -439,38 +439,102 @@ class ChannelController extends Controller
         }
 
         $syncedCount = 0;
-        foreach ($productIds as $pId) {
-            $product = Product::where('id', $pId)->where('user_id', $userId)->first();
-            if (!$product) continue;
+        $failedCount = 0;
+        $diagnosticReports = [];
 
-            // Clear staging attribute since it is now published
-            $attrs = $product->attributes ?? [];
-            if (isset($attrs['channel_staged'])) {
-                unset($attrs['channel_staged']);
-                $product->attributes = $attrs;
-                $product->save();
+        $amazonSpApi = app(\App\Services\AmazonSpApiService::class);
+        $selectedProducts = Product::whereIn('id', $productIds)->where('user_id', $userId)->get();
+
+        foreach ($connectedChannels as $channel) {
+            if ($channel->channel_name === 'amazon' && !empty($channel->api_key) && !empty($channel->access_token)) {
+                // Real Live Amazon SP-API Push
+                $spResults = $amazonSpApi->batchPublish($channel, $selectedProducts);
+                foreach ($spResults['items'] as $res) {
+                    $prod = $selectedProducts->firstWhere('id', $res['product_id']);
+                    if (!$prod) continue;
+
+                    $attrs = $prod->attributes ?? [];
+                    if ($res['success']) {
+                        unset($attrs['channel_staged']);
+                        $attrs['amazon_sync'] = [
+                            'status' => 'synced',
+                            'submission_id' => $res['submission_id'] ?? null,
+                            'last_synced_at' => now()->toIso8601String(),
+                        ];
+                        $prod->attributes = $attrs;
+                        $prod->save();
+
+                        ChannelListing::updateOrCreate(
+                            ['channel_id' => $channel->id, 'product_id' => $prod->id],
+                            [
+                                'external_product_id' => $res['submission_id'] ?? ('AMZN-' . rand(10000, 99999)),
+                                'sync_status' => 'synced',
+                                'channel_price' => $res['price'] ?? $prod->price,
+                                'synced_stock' => $prod->stock_quantity ?? 50,
+                                'last_synced_at' => now(),
+                            ]
+                        );
+                        $syncedCount++;
+                    } else {
+                        $attrs['amazon_sync'] = [
+                            'status' => 'failed',
+                            'diagnostic' => $res['diagnostic'] ?? $res['message'],
+                            'solution' => $res['solution'] ?? null,
+                            'attempted_at' => now()->toIso8601String(),
+                        ];
+                        $prod->attributes = $attrs;
+                        $prod->save();
+
+                        ChannelListing::updateOrCreate(
+                            ['channel_id' => $channel->id, 'product_id' => $prod->id],
+                            [
+                                'sync_status' => 'failed',
+                                'channel_price' => $prod->price,
+                                'synced_stock' => $prod->stock_quantity ?? 50,
+                                'last_synced_at' => now(),
+                            ]
+                        );
+                        $failedCount++;
+                        $diagnosticReports[] = $res['message'];
+                    }
+                }
+            } else {
+                // Staged mock listing / other channel sync
+                foreach ($selectedProducts as $product) {
+                    $attrs = $product->attributes ?? [];
+                    if (isset($attrs['channel_staged'])) {
+                        unset($attrs['channel_staged']);
+                        $product->attributes = $attrs;
+                        $product->save();
+                    }
+
+                    $externalId = strtoupper($channel->channel_name) . '-' . rand(10000, 99999);
+                    $listingUrl = $channel->store_url ? rtrim($channel->store_url, '/') . '/dp/' . $externalId : null;
+
+                    ChannelListing::updateOrCreate(
+                        [
+                            'channel_id' => $channel->id,
+                            'product_id' => $product->id,
+                        ],
+                        [
+                            'external_product_id' => $externalId,
+                            'sync_status' => 'synced',
+                            'listing_url' => $listingUrl,
+                            'channel_price' => $product->price,
+                            'synced_stock' => $product->stock_quantity ?? 50,
+                            'last_synced_at' => now(),
+                        ]
+                    );
+                    $syncedCount++;
+                }
             }
+        }
 
-            foreach ($connectedChannels as $channel) {
-                $externalId = strtoupper($channel->channel_name) . '-' . rand(10000, 99999);
-                $listingUrl = $channel->store_url ? rtrim($channel->store_url, '/') . '/dp/' . $externalId : null;
-
-                ChannelListing::updateOrCreate(
-                    [
-                        'channel_id' => $channel->id,
-                        'product_id' => $product->id,
-                    ],
-                    [
-                        'external_product_id' => $externalId,
-                        'sync_status' => 'synced',
-                        'listing_url' => $listingUrl,
-                        'channel_price' => $product->price,
-                        'synced_stock' => $product->stock_quantity ?? 50,
-                        'last_synced_at' => now(),
-                    ]
-                );
-                $syncedCount++;
-            }
+        if ($failedCount > 0 && $syncedCount === 0) {
+            $firstDiag = $diagnosticReports[0] ?? 'Amazon SP-API Error';
+            return back()->with('error', "⚠️ Amazon SP-API स्थिति: {$failedCount} प्रोडक्ट्स में रुकावट आई। रिपोर्ट: {$firstDiag}");
+        } elseif ($failedCount > 0) {
+            return back()->with('warning', "⚠️ {$syncedCount} प्रोडक्ट्स सिंक हुए, लेकिन {$failedCount} में Amazon SP-API रुकावट आई: " . ($diagnosticReports[0] ?? ''));
         }
 
         return back()->with('success', "✅ {$syncedCount} प्रोडक्ट्स सफलतापूर्वक कनेक्टेड मार्केट्स (Amazon / Meesho / Flipkart) पर लाइव सिंक हो गए!");

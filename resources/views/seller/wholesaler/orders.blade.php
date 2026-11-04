@@ -272,5 +272,6 @@
             document.getElementById('dispatch-modal').classList.add('hidden');
         }
     </script>
+    @include('components.ai-copilot-widget')
 </body>
 </html>
