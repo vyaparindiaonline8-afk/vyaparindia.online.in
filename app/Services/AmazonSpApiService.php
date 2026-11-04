@@ -183,7 +183,7 @@ class AmazonSpApiService
             // Parse Amazon issues & error codes
             $issues = $data['issues'] ?? [];
             $mainError = $data['message'] ?? 'Amazon API ne request reject ki';
-            $diagAdvice = $this->interpretAmazonIssues($issues, $res->status(), $mainError);
+            $diagAdvice = $this->interpretAmazonIssues($issues, $res->status(), $mainError, $sellerId);
 
             return [
                 'success' => false,
@@ -215,13 +215,20 @@ class AmazonSpApiService
     /**
      * Translate Amazon Error Codes into Clear Actionable Hindi Diagnostics
      */
-    protected function interpretAmazonIssues(array $issues, int $httpStatus, string $fallbackMsg): array
+    protected function interpretAmazonIssues(array $issues, int $httpStatus, string $fallbackMsg, string $sellerId = ''): array
     {
         $codeStr = '';
         $msgStr = $fallbackMsg;
         foreach ($issues as $iss) {
             $codeStr .= ($iss['code'] ?? '') . ' ';
             $msgStr .= ' ' . ($iss['message'] ?? '');
+        }
+
+        if (empty($sellerId) || $sellerId === 'DEFAULT_MERCHANT') {
+            return [
+                'diagnosis' => 'Merchant Token (सेलर आईडी) दर्ज नहीं है: Amazon SP-API को आपका मर्चेंट टोकन चाहिए।',
+                'solution' => 'Amazon Seller Central में Settings -> Account Info -> Your Merchant Token (13-14 अक्षरों का कोड) कॉपी करें और यहाँ "API सेटिंग्स बदलें" में "Merchant Token" वाले बॉक्स में पेस्ट करके सेव करें।'
+            ];
         }
 
         if (str_contains($codeStr, '8572') || str_contains($msgStr, 'brand') || str_contains($msgStr, 'UPC') || str_contains($msgStr, 'EAN') || str_contains($msgStr, 'GTIN')) {
@@ -234,7 +241,7 @@ class AmazonSpApiService
         if ($httpStatus === 403 || str_contains($msgStr, 'Unauthorized') || str_contains($msgStr, 'Access Denied')) {
             return [
                 'diagnosis' => 'API Permissions: Aapke Amazon Developer App ko Listings Feed write karne ki SP-API permission active nahi hai.',
-                'solution' => 'Amazon Developer Console me jakar apne app ki SP-API Roles me "Pricing" aur "Product Listing" permissions enable karein.'
+                'solution' => 'Amazon Developer Console me jakar apne app ki SP-API Roles me "Pricing" aur "Product Listing" permissions enable karein (ya upar diye "📥 कतार शीट (Excel)" button se 1-click me sheet download kar Seller Central me upload karein).'
             ];
         }
 
