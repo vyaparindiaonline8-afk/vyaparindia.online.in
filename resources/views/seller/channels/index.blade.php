@@ -1014,9 +1014,9 @@
                                         <!-- 9. Quick Actions -->
                                         <td class="p-3 text-right">
                                             <div class="flex items-center justify-end gap-1">
-                                                <a href="/seller/products/{{ $p->id }}/pricing-tiers" target="_blank" class="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition" title="2/4/6 पीस स्लैब सेटिंग्स">
+                                                <button type="button" onclick="openComboCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="p-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 transition cursor-pointer" title="2P, 4P, 6P कॉम्बो खर्च व सेलिंग विवरण (पॉपअप)">
                                                     <i class="fa-solid fa-layer-group text-xs"></i>
-                                                </a>
+                                                </button>
                                                 <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition" title="डिटेल कैलकुलेटर खोलें">
                                                     <i class="fa-solid fa-calculator text-xs"></i>
                                                 </button>
@@ -2755,7 +2755,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             document.getElementById('calcModalProdName').textContent = prodName;
             const costVal = (purchasePrice && purchasePrice > 0) ? purchasePrice : Math.max(10, Math.round(basePrice * 0.70));
             document.getElementById('calcCostPrice').value = costVal;
-            document.getElementById('calcSlabSetupDirectLink').href = `/seller/products/${prodId}/pricing-tiers`;
+            const slabLink = document.getElementById('calcSlabSetupDirectLink'); if (slabLink) slabLink.href = `/seller/products/${prodId}/pricing-tiers`;
             calculateLiveSellingPrice();
             const modal = document.getElementById('costCalculatorModal');
             modal.classList.remove('hidden');

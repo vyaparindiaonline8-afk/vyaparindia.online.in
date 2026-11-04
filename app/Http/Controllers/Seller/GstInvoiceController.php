@@ -25,7 +25,8 @@ class GstInvoiceController extends Controller
     public function pricingTiers(Product $product)
     {
         $tiers = ProductPricingTier::where('product_id', $product->id)->orderBy('min_quantity')->get();
-        return view('seller.products.pricing_tiers', compact('product', 'tiers'));
+        $sellerPage = \App\Models\SellerPage::where('user_id', $product->user_id)->first() ?? new \App\Models\SellerPage(['business_name' => 'Vyapar India Seller']);
+        return view('seller.products.pricing_tiers', compact('product', 'tiers', 'sellerPage'));
     }
 
     public function storeTier(Request $request, Product $product)
