@@ -90,7 +90,111 @@ class AmazonSpApiService
     /**
      * Submit single product to Amazon India via Listings Items API
      */
-    public function publishProduct(Channel $channel, Product $product): array
+        /**
+     * Live Test Connection and Permission Diagnostic for Amazon SP-API
+     */
+    public function testConnection(Channel $channel): array
+    {
+        $clientId = trim($channel->api_key ?? '');
+        $clientSecret = trim($channel->api_secret ?? '');
+        $refreshToken = trim($channel->access_token ?? '');
+        $sellerId = trim($channel->store_url ?? '');
+
+        $checklist = [
+            'client_id' => !empty($clientId),
+            'client_secret' => !empty($clientSecret),
+            'refresh_token' => !empty($refreshToken),
+            'merchant_token' => !empty($sellerId) && !str_contains($sellerId, 'http') && $sellerId !== 'DEFAULT_MERCHANT',
+        ];
+
+        // 1. Check LWA Token
+        $auth = $this->getLwaAccessToken($channel);
+        if (!$auth['success']) {
+            return [
+                'status' => 'auth_failed',
+                'connected' => false,
+                'checklist' => $checklist,
+                'title' => '❌ Amazon LWA ऑथेंटिकेशन असफल',
+                'message' => $auth['message'],
+                'guide' => 'Client ID, Secret या Refresh Token गलत है। Amazon Developer Console से नई keys डालें।',
+                'next_step' => 'API सेटिंग्स में जाकर क्रेडेंशियल्स दोबारा भरें।'
+            ];
+        }
+
+        $accessToken = $auth['access_token'];
+
+        // 2. Check Merchant Token Presence
+        if (!$checklist['merchant_token']) {
+            return [
+                'status' => 'merchant_token_missing',
+                'connected' => false,
+                'checklist' => $checklist,
+                'title' => '⚠️ Merchant Token (सेलर आईडी) गायब है',
+                'message' => 'LWA टोकन तो सही है, लेकिन Amazon सेलर आईडी (Merchant Token) नहीं मिली।',
+                'guide' => 'Amazon Seller Central -> Settings -> Account Info -> Your Merchant Token से 13-14 अक्षरों का कोड कॉपी करके भरें।',
+                'next_step' => 'API सेटिंग्स में Merchant Token भरें।'
+            ];
+        }
+
+        // 3. Test SP-API Sellers Participation / Permissions Endpoint
+        try {
+            $partRes = Http::withToken($accessToken)
+                ->withHeaders([
+                    'x-amz-access-token' => $accessToken,
+                    'Accept' => 'application/json'
+                ])
+                ->timeout(12)
+                ->get(self::SP_API_EU_ENDPOINT . '/sellers/v1/marketplaceParticipations');
+
+            if ($partRes->successful()) {
+                return [
+                    'status' => 'ready',
+                    'connected' => true,
+                    'checklist' => array_merge($checklist, ['spapi_roles' => true]),
+                    'seller_id' => $sellerId,
+                    'title' => '🟢 Amazon SP-API पूरी तरह कनेक्टेड व तैयार है!',
+                    'message' => "बधाई! आपकी सेलर आईडी ({$sellerId}) सक्रिय है और Amazon SP-API से सीधा लिंक स्थापित हो चुका है।",
+                    'guide' => 'अब आप 1-क्लिक में प्रोडक्ट्स Amazon पर पब्लिश कर सकते हैं!',
+                    'next_step' => 'पेंडिंग कतार से "🚀 1-क्लिक में लाइव पब्लिश करें" दबाएँ।'
+                ];
+            }
+
+            if ($partRes->status() === 403) {
+                return [
+                    'status' => 'roles_missing',
+                    'connected' => false,
+                    'checklist' => array_merge($checklist, ['spapi_roles' => false]),
+                    'seller_id' => $sellerId,
+                    'title' => '⚠️ SP-API Roles परमिशन की आवश्यकता',
+                    'message' => 'LWA टोकन व सेलर आईडी तो सही हैं, लेकिन आपके Amazon Developer App में SP-API Roles (Product Listing & Pricing) एक्टिव नहीं हैं।',
+                    'guide' => 'Amazon Developer Console में जाकर App को Edit करें, "Pricing" व "Product Listing" रोल्स टिक करें और "Authorize" करके नया Refresh Token डालें।',
+                    'next_step' => 'Amazon Developer Console -> Edit App -> Roles टिक करें।'
+                ];
+            }
+
+            return [
+                'status' => 'http_error',
+                'connected' => false,
+                'checklist' => $checklist,
+                'title' => "⚠️ Amazon SP-API स्थिति कोड: {$partRes->status()}",
+                'message' => 'Amazon API ने प्रतिक्रिया दी: ' . substr($partRes->body(), 0, 150),
+                'guide' => 'एक बार API सेटिंग्स में क्रेडेंशियल्स की जाँच करें।',
+                'next_step' => 'API सेटिंग्स अपडेट करें।'
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'status' => 'exception',
+                'connected' => false,
+                'checklist' => $checklist,
+                'title' => '⚠️ कनेक्शन टाइमआउट',
+                'message' => 'Amazon सर्वर से बात नहीं हो सकी: ' . $e->getMessage(),
+                'guide' => 'इंटरनेट या Amazon सर्वर व्यस्त हो सकता है, 1 मिनट बाद पुनः प्रयास करें।',
+                'next_step' => 'पुनः प्रयास करें।'
+            ];
+        }
+    }
+
+public function publishProduct(Channel $channel, Product $product): array
     {
         $auth = $this->getLwaAccessToken($channel);
         if (!$auth['success']) {

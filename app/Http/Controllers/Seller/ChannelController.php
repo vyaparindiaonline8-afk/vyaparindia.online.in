@@ -178,6 +178,42 @@ class ChannelController extends Controller
     }
 
     // Toggle Channel Status
+        // Live Test Channel Connection (LWA Token, Merchant Token, SP-API Roles)
+    public function testConnection(Request $request)
+    {
+        $userId = Auth::id();
+        $channelName = $request->input('channel', 'amazon');
+        $channel = Channel::where('user_id', $userId)->where('channel_name', $channelName)->first();
+
+        if (!$channel) {
+            return response()->json([
+                'success' => false,
+                'status' => 'not_configured',
+                'connected' => false,
+                'title' => '⚠️ चैनल अभी सेव नहीं है',
+                'message' => 'पहले API सेटिंग्स में अपनी Keys व Merchant Token भरें।',
+                'guide' => 'चैनल कार्ड पर "API Key से कनेक्ट करें" बटन पर क्लिक करके जानकारी भरें।',
+                'next_step' => 'API सेटिंग्स भरें।'
+            ]);
+        }
+
+        if ($channelName === 'amazon') {
+            $spApi = app(\App\Services\AmazonSpApiService::class);
+            $result = $spApi->testConnection($channel);
+            return response()->json($result);
+        }
+
+        return response()->json([
+            'success' => true,
+            'status' => 'ready',
+            'connected' => true,
+            'title' => '🟢 कनेक्टेड है',
+            'message' => ucfirst($channelName) . ' चैनल सेटिंग्स सुरक्षित हैं।',
+            'guide' => 'यह चैनल लिस्टिंग व इन्वेंटरी सिंक के लिए तैयार है।',
+            'next_step' => 'प्रोडक्ट्स कतार से पब्लिश करें।'
+        ]);
+    }
+
     public function toggleChannel(Channel $channel)
     {
         if ($channel->user_id !== Auth::id()) abort(403);

@@ -474,6 +474,10 @@
                                 <span>+ दुकान से और जोड़ें</span>
                             </button>
 
+                            <button type="button" onclick="testChannelConnection('amazon')" class="px-3.5 py-2 rounded-xl bg-white border border-indigo-300 hover:bg-indigo-50 text-indigo-900 font-extrabold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer hover:scale-102 active:scale-98" title="चेक करें कि Amazon API से लिंक है या नहीं और क्या कमी है">
+                                <i class="fa-solid fa-bolt text-indigo-600"></i>
+                                <span>⚡ Amazon लिंक चेक</span>
+                            </button>
                             <button type="submit" class="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1.5">
                                 <i class="fa-solid fa-cloud-arrow-up text-amber-300"></i>
                                 <span>🚀 1-क्लिक में लाइव पब्लिश करें</span>
@@ -1117,8 +1121,12 @@
 
                         <div class="pt-3 border-t border-gray-100 flex items-center gap-2">
                             @if($connected)
-                                <button type="button" onclick="openConnectModal('{{ $channelKey }}', '{{ $info['name'] }}', '{{ $connected->store_name }}', '{{ $connected->store_url }}', '{{ $connected->api_key }}', '{{ $connected->api_secret }}', '{{ $connected->access_token }}')" class="flex-1 py-2 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-extrabold text-xs transition">
-                                    API सेटिंग्स बदलें
+                                <button type="button" onclick="testChannelConnection('{{ $channelKey }}')" class="py-2 px-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold text-xs transition flex items-center justify-center gap-1 shadow-2xs" title="लाइव लिंक व परमिशन टेस्ट करें">
+                                    <i class="fa-solid fa-bolt"></i>
+                                    <span>टेस्ट लिंक</span>
+                                </button>
+                                <button type="button" onclick="openConnectModal('{{ $channelKey }}', '{{ $info['name'] }}', '{{ $connected->store_name }}', '{{ $connected->store_url }}', '{{ $connected->api_key }}', '{{ $connected->api_secret }}', '{{ $connected->access_token }}')" class="flex-1 py-2 px-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-extrabold text-xs transition truncate">
+                                    API सेटिंग्स
                                 </button>
                                 <form action="{{ route('seller.channels.toggle', $connected->id) }}" method="POST">
                                     @csrf
@@ -1604,6 +1612,84 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
         }
 
         // Select All Pending Checkbox
+        // Test Channel Connection and Permissions in Real Time
+        function testChannelConnection(channelName = 'amazon') {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : '{{ csrf_token() }}';
+            
+            Swal.fire({
+                title: '⚡ लिंक व परमिशन जांची जा रही है...',
+                html: '<div class="p-3 text-xs text-gray-600"><i class="fa-solid fa-spinner fa-spin text-2xl text-indigo-600 mb-2 block"></i>Amazon SP-API सर्वर से संपर्क हो रहा है...</div>',
+                allowOutsideClick: false,
+                showConfirmButton: false
+            });
+
+            fetch("{{ route('seller.channels.testConnection') }}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ channel: channelName })
+            })
+            .then(res => res.json())
+            .then(data => {
+                let iconType = data.connected ? 'success' : (data.status === 'roles_missing' ? 'warning' : 'error');
+                let checklistHtml = '';
+                if (data.checklist) {
+                    checklistHtml = `
+                        <div class="mt-3 p-3 bg-gray-50 rounded-2xl border border-gray-200 text-left text-xs space-y-1.5 font-sans">
+                            <div class="font-bold text-gray-700 text-[11px] uppercase mb-1">ज़रूरी चीज़ों की स्थिति (Checklist):</div>
+                            <div class="flex items-center justify-between">
+                                <span>1. LWA Client ID & Secret:</span>
+                                <span>${data.checklist.client_id && data.checklist.client_secret ? '✅ सही है' : '❌ गायब है'}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span>2. Refresh Token:</span>
+                                <span>${data.checklist.refresh_token ? '✅ सही है' : '❌ गायब है'}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span>3. Merchant Token (सेलर आईडी):</span>
+                                <span>${data.checklist.merchant_token ? '✅ सही है' : '❌ दर्ज नहीं है'}</span>
+                            </div>
+                            ${data.checklist.spapi_roles !== undefined ? `
+                            <div class="flex items-center justify-between">
+                                <span>4. SP-API Roles (Listing Rights):</span>
+                                <span>${data.checklist.spapi_roles ? '✅ एक्टिवेट है' : '⚠️ पेंडिंग / ब्लॉक'}</span>
+                            </div>` : ''}
+                        </div>
+                    `;
+                }
+
+                let htmlContent = `
+                    <div class="text-xs text-gray-700 space-y-2.5 text-left font-sans">
+                        <p class="font-semibold text-gray-900">${data.message || ''}</p>
+                        ${checklistHtml}
+                        ${data.guide ? `
+                        <div class="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-950 text-[11px]">
+                            <strong>💡 समाधान / उपाय:</strong> ${data.guide}
+                        </div>` : ''}
+                    </div>
+                `;
+
+                Swal.fire({
+                    icon: iconType,
+                    title: data.title || 'कनेक्शन स्थिति',
+                    html: htmlContent,
+                    confirmButtonColor: data.connected ? '#059669' : '#4f46e5',
+                    confirmButtonText: 'समझ गया'
+                });
+            })
+            .catch(err => {
+                Swal.fire({
+                    icon: 'error',
+                    title: '⚠️ नेटवर्क एरर',
+                    text: 'सर्वर से संपर्क करने में असमर्थ। कृपया पुनः प्रयास करें।',
+                    confirmButtonColor: '#dc2626'
+                });
+            });
+        }
+
         function toggleSelectAllPending(checked) {
             document.querySelectorAll('.pending-prod-chk').forEach(chk => {
                 chk.checked = checked;

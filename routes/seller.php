@@ -106,6 +106,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
     Route::prefix('channels')->name('channels.')->group(function () {
         Route::get('/', [ChannelController::class, 'index'])->name('index');
         Route::post('/store', [ChannelController::class, 'storeChannel'])->name('store');
+        Route::post('/test-connection', [ChannelController::class, 'testConnection'])->name('testConnection');
         Route::post('/{channel}/toggle', [ChannelController::class, 'toggleChannel'])->name('toggle');
         Route::post('/ai-generate', [ChannelController::class, 'aiGenerate'])->name('aiGenerate');
         Route::post('/ai-market-intelligence', [ChannelController::class, 'aiMarketIntelligence'])->name('aiMarketIntelligence');

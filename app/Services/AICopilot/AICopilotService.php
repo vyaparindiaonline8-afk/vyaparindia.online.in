@@ -75,7 +75,7 @@ class AICopilotService
         if ($role === 'seller' && (
             preg_match('/(?:upload|publish|live|bhejo|sync|dal do|dalo|bhej do).*?(?:amazon|meesho|flipkart|marketplace|channel)/i', $msgLower) ||
             preg_match('/(?:amazon|meesho|flipkart|marketplace).*?(?:upload|publish|live|bhejo|sync|dal do|dalo|bhej do)/i', $msgLower) ||
-            preg_match('/(?:fail|failed|error|ruka|pass|kyu|reason|report|status|diagnostic).*?(?:upload|publish|amazon|sync)/i', $msgLower)
+            preg_match('/(?:fail|failed|error|ruka|pass|kyu|reason|report|status|diagnostic|link|connect|required|kyu nahi|check).*?(?:upload|publish|amazon|sync|channel|post)/i', $msgLower)
         )) {
             return $this->handleMarketplacePublishAndReport($message, $user);
         }
@@ -398,6 +398,42 @@ class AICopilotService
 
         $msgLower = strtolower($message);
         $amazonChannel = \App\Models\Channel::where('user_id', $user->id)->where('channel_name', 'amazon')->where('is_active', true)->first();
+
+        $isLinkCheckQuery = preg_match('/(?:link|connect|connected|test|check|kya chahiye|required|kyu nahi ho raha|kyu post nahi|kya chij)/i', $msgLower);
+        if ($isLinkCheckQuery) {
+            if (!$amazonChannel) {
+                return [
+                    'action' => 'marketplace_upload_report',
+                    'data' => [
+                        'status' => 'NEED_SETUP',
+                        'channel' => 'Amazon India',
+                        'title' => '⚠️ Amazon API लिंक अभी सेटअप नहीं है',
+                        'diagnosis' => 'Amazon Channel अभी सेव नहीं है। पहले Merchant Token व LWA Keys भरें।',
+                        'solution' => 'Channels Hub में जाकर "API Key से कनेक्ट करें" पर क्लिक करें।',
+                        'action_url' => route('seller.channels.index'),
+                        'action_label' => 'Channels Hub खोलें',
+                        'excel_url' => route('seller.channels.export_sheet'),
+                        'message' => 'Amazon SP-API लिंक अभी एक्टिव नहीं है। पहले API सेटिंग्स में Merchant Token और LWA Keys भरें।'
+                    ]
+                ];
+            }
+            $spApi = app(\App\Services\AmazonSpApiService::class);
+            $testRes = $spApi->testConnection($amazonChannel);
+            return [
+                'action' => 'marketplace_upload_report',
+                'data' => [
+                    'status' => $testRes['connected'] ? 'SUCCESS' : 'WARNING',
+                    'channel' => 'Amazon India (SP-API)',
+                    'title' => $testRes['title'],
+                    'diagnosis' => $testRes['message'],
+                    'solution' => $testRes['guide'] ?? '',
+                    'action_url' => route('seller.channels.index'),
+                    'action_label' => 'चैनल सेटिंग्स देखें',
+                    'excel_url' => route('seller.channels.export_sheet'),
+                    'message' => "**" . $testRes['title'] . "**\n\n" . $testRes['message'] . "\n\n💡 **उपाय:** " . ($testRes['guide'] ?? '')
+                ]
+            ];
+        }
 
         $isDiagnosticQuery = preg_match('/(?:fail|failed|error|ruka|kyu|reason|report|diagnostic|pass)/i', $msgLower);
 
