@@ -725,9 +725,25 @@
                                     <span class="text-[10px] text-amber-700 font-black">%</span>
                                 </div>
 
+                                <!-- 1-Click Platform Modes (Meesho vs Amazon) -->
+                                <div class="flex items-center gap-1.5 bg-gradient-to-r from-pink-50 to-amber-50 p-1 rounded-xl border border-pink-200 shadow-2xs">
+                                    <button type="button" onclick="setBulkPlatformPreset('meesho')" id="btnModeMeesho" class="px-2.5 py-1 rounded-lg text-[11px] font-black transition flex items-center gap-1 bg-white text-pink-700 hover:bg-pink-600 hover:text-white border border-pink-300 shadow-xs active:scale-95 cursor-pointer" title="Meesho: 0% कमीशन, ₹35 रिटर्न/RTO सुरक्षा बफ़र, ₹38 कूरियर, 25% मार्जिन">
+                                        <span class="text-xs">🌸</span> Meesho मोड (0% फ़ी + ₹35 RTO)
+                                    </button>
+                                    <button type="button" onclick="setBulkPlatformPreset('amazon')" id="btnModeAmazon" class="px-2.5 py-1 rounded-lg text-[11px] font-black transition flex items-center gap-1 bg-white text-amber-900 hover:bg-amber-700 hover:text-white border border-amber-300 shadow-xs active:scale-95 cursor-pointer" title="Amazon: 12% कमीशन, ₹20 रिटर्न बफ़र, ₹45 Easy Ship, 25% मार्जिन">
+                                        <span class="text-xs">🟠</span> Amazon मोड (12% फ़ी + ₹20 RTO)
+                                    </button>
+                                </div>
+
                                 <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
                                     <span class="text-[10px] text-gray-500 font-bold">मार्जिन %:</span>
                                     <input type="number" id="bulkPresetMargin" value="25" class="w-12 text-xs font-mono font-bold text-indigo-700 outline-none text-center">
+                                    <span class="text-[10px] text-gray-400">%</span>
+                                </div>
+
+                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-purple-300 shadow-2xs" title="प्लेटफ़ॉर्म कमीशन % (Amazon: 12%, Meesho: 0%, Flipkart: 10%)">
+                                    <span class="text-[10px] text-purple-700 font-bold">कमीशन %:</span>
+                                    <input type="number" id="bulkPresetFee" value="12" class="w-11 text-xs font-mono font-bold text-purple-700 outline-none text-center">
                                     <span class="text-[10px] text-gray-400">%</span>
                                 </div>
 
@@ -2679,7 +2695,30 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             showChannelToast(`⚡ इस रो का ${margin}% मार्जिन, ₹${rto} रिटर्न, ₹${ship} कूरियर सभी ${rows.length} प्रोडक्ट्स पर लागू हो गया!`);
         }
 
-        // Apply & Save Immediately to prevent reverting on refresh
+                // 1-Click Platform Mode Switcher for Table View (Meesho vs Amazon)
+        function setBulkPlatformPreset(platform) {
+            if (platform === 'meesho') {
+                if (document.getElementById('bulkPresetFee')) document.getElementById('bulkPresetFee').value = 0;
+                if (document.getElementById('bulkPresetRto')) document.getElementById('bulkPresetRto').value = 35; // higher RTO buffer for Meesho COD
+                if (document.getElementById('bulkPresetShip')) document.getElementById('bulkPresetShip').value = 38; // cheaper Meesho delivery
+                if (document.getElementById('bulkPresetPack')) document.getElementById('bulkPresetPack').value = 15;
+                if (document.getElementById('bulkPresetMargin')) document.getElementById('bulkPresetMargin').value = 25;
+                
+                applyPresetToAllRows();
+                showChannelToast('🌸 Meesho मोड लागू! (0% कमीशन, ₹35 रिटर्न/RTO सुरक्षा बफ़र, ₹38 कूरियर) - सभी 19 प्रोडक्ट्स के Meesho रेट्स तैयार!');
+            } else if (platform === 'amazon') {
+                if (document.getElementById('bulkPresetFee')) document.getElementById('bulkPresetFee').value = 12;
+                if (document.getElementById('bulkPresetRto')) document.getElementById('bulkPresetRto').value = 20;
+                if (document.getElementById('bulkPresetShip')) document.getElementById('bulkPresetShip').value = 45;
+                if (document.getElementById('bulkPresetPack')) document.getElementById('bulkPresetPack').value = 15;
+                if (document.getElementById('bulkPresetMargin')) document.getElementById('bulkPresetMargin').value = 25;
+                
+                applyPresetToAllRows();
+                showChannelToast('🟠 Amazon मोड लागू! (12% कमीशन, ₹20 रिटर्न बफ़र, ₹45 Easy Ship) - सभी 19 प्रोडक्ट्स के Amazon रेट्स तैयार!');
+            }
+        }
+
+// Apply & Save Immediately to prevent reverting on refresh
         async function applyPresetAndSaveAll() {
             applyPresetToAllRows();
             await saveAllTableRowsCosting();
@@ -2692,6 +2731,9 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             const lessRaw = document.getElementById('bulkPresetLess')?.value;
             const lessVal = (lessRaw !== '' && !isNaN(parseFloat(lessRaw))) ? parseFloat(lessRaw) : null;
             const margin = (marginRaw !== '' && !isNaN(parseFloat(marginRaw))) ? parseFloat(marginRaw) : 25;
+
+            const feeRaw = document.getElementById('bulkPresetFee')?.value;
+            const fee = (feeRaw !== '' && !isNaN(parseFloat(feeRaw))) ? parseFloat(feeRaw) : 12;
 
             const rtoRaw = document.getElementById('bulkPresetRto')?.value;
             const rto = (rtoRaw !== '' && !isNaN(parseFloat(rtoRaw))) ? parseFloat(rtoRaw) : 20;
@@ -2721,6 +2763,9 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 }
                 const marginInput = document.getElementById(`row-margin-${id}`);
                 if (marginInput) marginInput.value = margin;
+
+                const feeInput = document.getElementById(`row-fee-${id}`);
+                if (feeInput) feeInput.value = fee;
 
                 const rtoInput = document.getElementById(`row-rto-${id}`);
                 if (rtoInput) rtoInput.value = rto;
