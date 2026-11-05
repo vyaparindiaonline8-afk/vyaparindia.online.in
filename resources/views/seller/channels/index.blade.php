@@ -2055,10 +2055,10 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             const packing = parseFloat(document.getElementById('calcPackingCost').value) || 0;
             const shipping = parseFloat(document.getElementById('calcShippingCost').value) || 0;
             const feePct = parseFloat(document.getElementById('calcPlatformFeePercent').value) || 0;
-            const gstRate = 18; // Standard GST rate %
+            const prodGstRate = parseFloat(document.getElementById('calcProductGst')?.value) || 18;
 
             const desiredProfit = cost * (marginPct / 100);
-            const g = gstRate / 100;
+            const g = prodGstRate / 100;
             const f = feePct / 100;
             const cTax = g > 0 ? (cost / (1 + g)) : cost;
             const denom = Math.max(0.05, (1 / (1 + g)) - f);
@@ -2068,11 +2068,15 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             document.getElementById('calcFinalSellingRate').textContent = '₹' + finalRate.toFixed(2);
             document.getElementById('calcNetProfitInHand').textContent = '₹' + desiredProfit.toFixed(2);
 
-            // 📊 Advance GST & ITC Tax Engine Calculations
-            const outputGst = (finalRate * (gstRate / (100 + gstRate)));
-            const courierGstItc = (shipping * (gstRate / 100));
-            const commGstItc = ((finalRate * f) * (gstRate / 100));
-            const purchaseGstItc = (cost * (gstRate / (100 + gstRate)));
+            // 📊 Advance Multi-Slab GST & ITC Tax Engine Calculations
+            // 1. Output GST on Product: calculated by Product tax slab (e.g. 5%, 12%, 18%)
+            const outputGst = (finalRate * (prodGstRate / (100 + prodGstRate)));
+            // 2. Courier Services (SAC 9968) are FIXED at 18% GST in India
+            const courierGstItc = (shipping * 0.18);
+            // 3. Platform Commission (SAC 9983) is FIXED at 18% GST in India
+            const commGstItc = ((finalRate * f) * 0.18);
+            // 4. Purchase Cost ITC depends on Product tax slab
+            const purchaseGstItc = (cost * (prodGstRate / (100 + prodGstRate)));
             const totalItc = courierGstItc + commGstItc + purchaseGstItc;
             const netCashGst = Math.max(0, outputGst - totalItc);
 
@@ -2081,7 +2085,9 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             const elComm = document.getElementById('calcGstCommItc');
             const elCash = document.getElementById('calcGstNetCash');
             const elLabel = document.getElementById('calcGstPlatformLabel');
+            const elProdTag = document.getElementById('calcGstProdLabel');
 
+            if (elProdTag) elProdTag.textContent = `${prodGstRate}%`;
             if (elOutput) elOutput.textContent = '₹' + outputGst.toFixed(2);
             if (elCourier) elCourier.textContent = '-₹' + courierGstItc.toFixed(2);
             if (elComm) elComm.textContent = (f > 0) ? ('-₹' + commGstItc.toFixed(2)) : '₹0.00 (Meesho 0% कमीशन)';
@@ -2963,6 +2969,10 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             document.getElementById('calcModalProdName').textContent = prodName;
             const costVal = (purchasePrice && purchasePrice > 0) ? purchasePrice : Math.max(10, Math.round(basePrice * 0.70));
             document.getElementById('calcCostPrice').value = costVal;
+            const rowGst = document.getElementById(`row-gst-${prodId}`)?.value;
+            if (rowGst && document.getElementById('calcProductGst')) {
+                document.getElementById('calcProductGst').value = rowGst;
+            }
             const slabLink = document.getElementById('calcSlabSetupDirectLink'); if (slabLink) slabLink.href = `/seller/products/${prodId}/pricing-tiers`;
             calculateLiveSellingPrice();
             const modal = document.getElementById('costCalculatorModal');
@@ -3124,18 +3134,28 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-2">
+                    <div class="grid grid-cols-4 gap-2">
                         <div>
                             <label class="text-[10px] text-gray-600 block">पैकिंग खर्च</label>
                             <input type="number" id="calcPackingCost" value="15" oninput="calculateLiveSellingPrice()" class="w-full px-2 py-1 bg-white border border-indigo-200 rounded-lg font-mono font-semibold text-gray-800">
                         </div>
                         <div>
-                            <label class="text-[10px] text-gray-600 block">शिपिंग / डिलीवरी</label>
+                            <label class="text-[10px] text-gray-600 block" title="कूरियर बिल पर सरकार 18% GST लगाती है जिसका पूरा ITC मिलता है">शिपिंग (कूरियर)</label>
                             <input type="number" id="calcShippingCost" value="45" oninput="calculateLiveSellingPrice()" class="w-full px-2 py-1 bg-white border border-indigo-200 rounded-lg font-mono font-semibold text-gray-800">
                         </div>
                         <div>
-                            <label class="text-[10px] text-gray-600 block">Amazon/Meesho फी (%)</label>
+                            <label class="text-[10px] text-gray-600 block" title="कमीशन पर 18% GST लगता है जिसका पूरा ITC मिलता है">प्लेटफ़ॉर्म फ़ी (%)</label>
                             <input type="number" id="calcPlatformFeePercent" value="12" oninput="calculateLiveSellingPrice()" class="w-full px-2 py-1 bg-white border border-indigo-200 rounded-lg font-mono font-semibold text-gray-800">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-600 block font-bold text-indigo-900" title="प्रोडक्ट का खुद का टैक्स रेट (उदा. 5%, 12%, 18%)">प्रोडक्ट GST</label>
+                            <select id="calcProductGst" onchange="calculateLiveSellingPrice()" class="w-full px-1.5 py-1 bg-white border-2 border-indigo-300 rounded-lg font-mono font-bold text-indigo-900 text-xs">
+                                <option value="18" selected>18% (हार्डवेयर/प्लंबिंग)</option>
+                                <option value="5">5% (कपड़े/कम दर)</option>
+                                <option value="12">12%</option>
+                                <option value="0">0% (टैक्स फ्री)</option>
+                                <option value="28">28% (लक्ज़री)</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -3163,15 +3183,15 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                             <span class="text-amber-300 font-mono font-bold" id="calcGstPlatformLabel">Meesho (0% फ़ी)</span>
                         </div>
                         <div class="flex items-center justify-between text-slate-300 text-[10px] font-mono">
-                            <span>📦 माल पर आउटपुट GST (ग्राहक से मिला):</span>
+                            <span>📦 माल पर आउटपुट GST (ग्राहक से मिला - <span id="calcGstProdLabel" class="text-amber-200 font-bold">18%</span>):</span>
                             <span class="font-bold text-amber-300" id="calcGstOutput">₹28.83</span>
                         </div>
-                        <div class="flex items-center justify-between text-slate-400 text-[10px] font-mono">
-                            <span>🚚 कूरियर शिपिंग ITC (वापसी क्रेडिट):</span>
+                        <div class="flex items-center justify-between text-slate-400 text-[10px] font-mono" title="कूरियर/लॉजिस्टिक्स सेवा (SAC 9968) पर भारत सरकार का 18% फिक्स GST लगता है, जो आपको ITC क्रेडिट के रूप में वापस मिल जाता है">
+                            <span>🚚 कूरियर ITC (फिक्स 18% GST वापसी):</span>
                             <span class="text-emerald-400 font-bold" id="calcGstCourierItc">-₹6.84</span>
                         </div>
-                        <div class="flex items-center justify-between text-slate-400 text-[10px] font-mono">
-                            <span>💼 प्लेटफ़ॉर्म कमीशन ITC (वापसी क्रेडिट):</span>
+                        <div class="flex items-center justify-between text-slate-400 text-[10px] font-mono" title="मार्केटप्लेस सेवा (SAC 9983) पर 18% फिक्स GST लगता है, जो ITC में वापस मिलता है">
+                            <span>💼 कमीशन ITC (फिक्स 18% GST वापसी):</span>
                             <span class="text-emerald-400 font-bold" id="calcGstCommItc">₹0.00 (Meesho 0%)</span>
                         </div>
                         <div class="flex items-center justify-between pt-1 border-t border-white/10 font-bold text-[11px]">
