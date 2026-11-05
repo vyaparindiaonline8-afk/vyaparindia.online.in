@@ -2052,6 +2052,26 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             document.getElementById('calcFinalSellingRate').textContent = '₹' + finalRate.toFixed(2);
             document.getElementById('calcNetProfitInHand').textContent = '₹' + desiredProfit.toFixed(2);
 
+            // 📊 Advance GST & ITC Tax Engine Calculations
+            const outputGst = (finalRate * (gstRate / (100 + gstRate)));
+            const courierGstItc = (shipping * (gstRate / 100));
+            const commGstItc = ((finalRate * f) * (gstRate / 100));
+            const purchaseGstItc = (cost * (gstRate / (100 + gstRate)));
+            const totalItc = courierGstItc + commGstItc + purchaseGstItc;
+            const netCashGst = Math.max(0, outputGst - totalItc);
+
+            const elOutput = document.getElementById('calcGstOutput');
+            const elCourier = document.getElementById('calcGstCourierItc');
+            const elComm = document.getElementById('calcGstCommItc');
+            const elCash = document.getElementById('calcGstNetCash');
+            const elLabel = document.getElementById('calcGstPlatformLabel');
+
+            if (elOutput) elOutput.textContent = '₹' + outputGst.toFixed(2);
+            if (elCourier) elCourier.textContent = '-₹' + courierGstItc.toFixed(2);
+            if (elComm) elComm.textContent = (f > 0) ? ('-₹' + commGstItc.toFixed(2)) : '₹0.00 (Meesho 0% कमीशन)';
+            if (elCash) elCash.textContent = '₹' + netCashGst.toFixed(2);
+            if (elLabel) elLabel.textContent = (f > 0) ? 'Amazon (12% फ़ी बेस)' : 'Meesho (कूरियर बेस - 0% फ़ी)';
+
             // Combo calculations (GST-Gap protected + packaging & courier efficiency)
             // 2 PC: Cost x2, Profit x1.8, 1x Packing x1.3, 1x Shipping
             const c2 = Math.ceil(((cTax * 2) + (desiredProfit * 1.8) + (packing * 1.3) + shipping) / denom);
@@ -3085,6 +3105,33 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                         <div class="text-right">
                             <span class="text-[10px] uppercase font-bold text-emerald-400">शुद्ध जेब में बचत (Net Profit)</span>
                             <div class="text-lg font-black text-emerald-400 font-mono" id="calcNetProfitInHand">₹25.00</div>
+                        </div>
+                    </div>
+
+                    <!-- 📊 Smart GST & ITC Breakdown Engine (Amazon Commission vs Meesho Courier Base) -->
+                    <div class="p-3 bg-slate-950/80 rounded-2xl border border-indigo-500/30 text-[11px] space-y-1.5 font-sans">
+                        <div class="flex items-center justify-between text-indigo-300 font-bold text-[10px] uppercase border-b border-white/10 pb-1">
+                            <span class="flex items-center gap-1">
+                                <i class="fa-solid fa-scale-balanced text-amber-300"></i>
+                                <span>स्मार्ट GST & ITC टैक्स इंजन (Real-Time)</span>
+                            </span>
+                            <span class="text-amber-300 font-mono font-bold" id="calcGstPlatformLabel">Meesho (0% फ़ी)</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-300 text-[10px] font-mono">
+                            <span>📦 माल पर आउटपुट GST (ग्राहक से मिला):</span>
+                            <span class="font-bold text-amber-300" id="calcGstOutput">₹28.83</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-400 text-[10px] font-mono">
+                            <span>🚚 कूरियर शिपिंग ITC (वापसी क्रेडिट):</span>
+                            <span class="text-emerald-400 font-bold" id="calcGstCourierItc">-₹6.84</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-400 text-[10px] font-mono">
+                            <span>💼 प्लेटफ़ॉर्म कमीशन ITC (वापसी क्रेडिट):</span>
+                            <span class="text-emerald-400 font-bold" id="calcGstCommItc">₹0.00 (Meesho 0%)</span>
+                        </div>
+                        <div class="flex items-center justify-between pt-1 border-t border-white/10 font-bold text-[11px]">
+                            <span class="text-white">🏛️ सरकार को शुद्ध नकद GST (देय):</span>
+                            <span class="text-rose-400 font-mono font-extrabold" id="calcGstNetCash">₹6.74</span>
                         </div>
                     </div>
 
