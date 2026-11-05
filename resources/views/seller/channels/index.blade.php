@@ -2005,6 +2005,34 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             modal.classList.remove('flex');
         }
 
+        // 1-Click Platform Presets for Pricing Calculator (Amazon vs Meesho)
+        function setCalcPlatformPreset(platform) {
+            const btnAmz = document.getElementById('calcPresetBtnAmz');
+            const btnMsh = document.getElementById('calcPresetBtnMsh');
+            if (platform === 'meesho') {
+                document.getElementById('calcPlatformFeePercent').value = 0;
+                document.getElementById('calcShippingCost').value = 38;
+                document.getElementById('calcPackingCost').value = 12;
+                if (btnMsh) {
+                    btnMsh.className = 'px-2 py-0.5 rounded-lg bg-pink-600 text-white font-black text-[10px] shadow-2xs transition cursor-pointer';
+                }
+                if (btnAmz) {
+                    btnAmz.className = 'px-2 py-0.5 rounded-lg bg-gray-100 hover:bg-amber-100 text-gray-700 font-bold text-[10px] border border-gray-300 transition cursor-pointer';
+                }
+            } else {
+                document.getElementById('calcPlatformFeePercent').value = 12;
+                document.getElementById('calcShippingCost').value = 45;
+                document.getElementById('calcPackingCost').value = 15;
+                if (btnAmz) {
+                    btnAmz.className = 'px-2 py-0.5 rounded-lg bg-amber-500 text-slate-950 font-black text-[10px] shadow-2xs transition cursor-pointer';
+                }
+                if (btnMsh) {
+                    btnMsh.className = 'px-2 py-0.5 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-900 font-black text-[10px] border border-pink-300 transition cursor-pointer';
+                }
+            }
+            calculateLiveSellingPrice();
+        }
+
         function calculateLiveSellingPrice() {
             const cost = parseFloat(document.getElementById('calcCostPrice').value) || 0;
             const marginPct = parseFloat(document.getElementById('calcMarginPercent').value) || 0;
@@ -3015,10 +3043,21 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
 
                 <!-- Platform Expenses Breakdown -->
                 <div class="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-100 space-y-2.5">
-                    <span class="text-[10px] font-black uppercase text-indigo-900 tracking-wider flex items-center gap-1.5">
-                        <i class="fa-solid fa-receipt text-indigo-600"></i>
-                        <span>मार्केटप्लेस खर्चे (अनुमानित 1 पीस के लिए)</span>
-                    </span>
+                    <div class="flex items-center justify-between flex-wrap gap-1.5">
+                        <span class="text-[10px] font-black uppercase text-indigo-900 tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-receipt text-indigo-600"></i>
+                            <span>मार्केटप्लेस खर्चे (अनुमानित 1 पीस के लिए)</span>
+                        </span>
+                        <!-- 1-Click Platform Switcher -->
+                        <div class="flex items-center gap-1">
+                            <button type="button" onclick="setCalcPlatformPreset('amazon')" id="calcPresetBtnAmz" class="px-2 py-0.5 rounded-lg bg-amber-500 text-slate-950 font-black text-[10px] shadow-2xs hover:scale-102 active:scale-95 transition cursor-pointer">
+                                🟠 Amazon (12% फ़ी)
+                            </button>
+                            <button type="button" onclick="setCalcPlatformPreset('meesho')" id="calcPresetBtnMsh" class="px-2 py-0.5 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-900 font-black text-[10px] border border-pink-300 shadow-2xs hover:scale-102 active:scale-95 transition cursor-pointer">
+                                🌸 Meesho (0% फ़ी)
+                            </button>
+                        </div>
+                    </div>
 
                     <div class="grid grid-cols-3 gap-2">
                         <div>
