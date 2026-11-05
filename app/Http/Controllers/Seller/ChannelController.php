@@ -32,13 +32,12 @@ class ChannelController extends Controller
             'woocommerce' => ['name' => 'WooCommerce (WordPress)', 'icon' => 'fa-brands fa-wordpress', 'color' => 'text-purple-600', 'bg' => 'bg-purple-50', 'sla' => 'Self Ship'],
         ];
 
-        // 1. Group Published Listings per Channel (sync_status = 'synced')
+        // 1. Group Published Listings per Channel (Only strictly synced/live listings with external ID)
         $allListings = ChannelListing::whereHas('channel', function ($q) use ($userId) {
             $q->where('user_id', $userId);
-        })->where(function ($q) {
-            $q->where('sync_status', 'synced')
-              ->orWhereNull('sync_status');
-        })->with(['channel', 'product.category'])->get();
+        })->where('sync_status', 'synced')
+          ->whereNotNull('external_product_id')
+          ->with(['channel', 'product.category'])->get();
 
         $channelListingCounts = [
             'amazon' => $allListings->where('channel.channel_name', 'amazon')->count(),
