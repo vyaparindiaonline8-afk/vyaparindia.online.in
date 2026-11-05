@@ -658,11 +658,18 @@ class ChannelController extends Controller
         if ($request->filled('combo_2')) $ueData['combo_2'] = (float)$request->input('combo_2');
         if ($request->filled('combo_4')) $ueData['combo_4'] = (float)$request->input('combo_4');
         if ($request->filled('combo_6')) $ueData['combo_6'] = (float)$request->input('combo_6');
+        if ($request->has('stock_quantity')) {
+            $product->stock_quantity = max(0, intval($request->input('stock_quantity')));
+        }
         $attrs['unit_economics'] = $ueData;
         $product->attributes = $attrs;
         $product->save();
 
-        $product->channelListings()->update(['channel_price' => (float)$product->price]);
+        $product->channelListings()->update([
+            'channel_price' => (float)$product->price,
+            'synced_stock' => (int)$product->stock_quantity,
+            'last_synced_at' => now(),
+        ]);
 
         return response()->json([
             'success' => true,
@@ -715,6 +722,9 @@ class ChannelController extends Controller
                     $product->variants()->update($vUpdates);
                 }
             }
+            if (isset($item['stock_quantity'])) {
+                $product->stock_quantity = max(0, intval($item['stock_quantity']));
+            }
             if (isset($item['price']) && $item['price'] > 0) {
                 $product->price = (float)$item['price'];
             }
@@ -748,7 +758,11 @@ class ChannelController extends Controller
             $product->attributes = $attrs;
             $product->save();
 
-            $product->channelListings()->update(['channel_price' => (float)$product->price]);
+            $product->channelListings()->update([
+                'channel_price' => (float)$product->price,
+                'synced_stock' => (int)$product->stock_quantity,
+                'last_synced_at' => now(),
+            ]);
             $savedCount++;
         }
 

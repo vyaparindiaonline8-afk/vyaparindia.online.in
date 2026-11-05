@@ -765,6 +765,12 @@
                                     <input type="number" id="bulkPresetPack" value="15" class="w-12 text-xs font-mono font-bold text-gray-800 outline-none text-center">
                                 </div>
 
+                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-emerald-300 shadow-2xs" title="सभी प्रोडक्ट्स में एक साथ इन्वेंट्री स्टॉक पीस भरें (उदा. 10, 20 या 50)">
+                                    <span class="text-[10px] text-emerald-800 font-bold">📦 स्टॉक Qty:</span>
+                                    <input type="number" min="0" id="bulkPresetStock" value="20" class="w-12 text-xs font-mono font-bold text-emerald-800 outline-none text-center">
+                                    <span class="text-[10px] text-gray-400">pcs</span>
+                                </div>
+
                                 <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
                                     <span class="text-[10px] text-gray-500 font-bold">GST %:</span>
                                     <select id="bulkPresetGst" class="text-xs font-mono font-bold text-gray-800 bg-transparent outline-none">
@@ -813,6 +819,7 @@
                                     <th class="p-3">फ़ोटो</th>
                                     <th class="p-3 min-w-[170px]">प्रोडक्ट का नाम & SKU</th>
                                     <th class="p-3 min-w-[70px] text-center font-mono text-gray-500">ID</th>
+                                    <th class="p-3 min-w-[90px] bg-emerald-50 text-emerald-950 font-black text-center" title="उपलब्ध इन्वेंट्री / स्टॉक की संख्या">📦 स्टॉक (Qty)</th>
                                     <th class="p-3 min-w-[95px] bg-amber-50 text-amber-950 font-black">MRP (लिस्ट ₹)</th>
                                     <th class="p-3 min-w-[75px] bg-amber-50 text-amber-950 font-black">Less %</th>
                                     <th class="p-3 min-w-[105px] bg-slate-50 text-slate-900 font-extrabold" title="आपकी खरीद लागत (GST सहित)">खरीद लागत (With GST ₹)</th>
@@ -890,6 +897,21 @@
                                         <!-- Product ID -->
                                         <td class="p-2 text-center font-mono text-xs font-extrabold text-gray-500">
                                             #{{ $p->id }}
+                                        </td>
+
+                                        <!-- Stock Quantity (Editable with Out-of-Stock Alert) -->
+                                        <td class="p-2 text-center {{ ($p->stock_quantity ?? 0) <= 0 ? 'bg-rose-50/70' : 'bg-emerald-50/30' }}" id="row-stock-cell-{{ $p->id }}">
+                                            <div class="inline-flex flex-col items-center">
+                                                <input type="number" min="0" 
+                                                    id="row-stock-{{ $p->id }}" 
+                                                    value="{{ $p->stock_quantity ?? 0 }}" 
+                                                    oninput="updateStockStatusBadge({{ $p->id }})" 
+                                                    class="w-16 px-1 py-1 text-center font-mono font-black text-xs rounded-lg border {{ ($p->stock_quantity ?? 0) <= 0 ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-emerald-300 bg-white text-emerald-900' }}" 
+                                                    title="उपलब्ध स्टॉक (इन्वेंट्री पीस)">
+                                                <span class="text-[9px] mt-0.5 {{ ($p->stock_quantity ?? 0) <= 0 ? 'text-rose-600 font-black' : 'text-emerald-700 font-bold' }}" id="row-stock-warn-{{ $p->id }}">
+                                                    {{ ($p->stock_quantity ?? 0) <= 0 ? '⚠️ 0 स्टॉक' : '✓ तैयार' }}
+                                                </span>
+                                            </div>
                                         </td>
 
                                         <!-- MRP & Less % -->
@@ -1598,7 +1620,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             });
         }
 
-        // Auto-select all pending products if none explicitly checked on bulk publish
+        // Auto-select all pending products & check zero stock on bulk publish
         function handleBulkPublishSubmit(e) {
             let checkedBoxes = document.querySelectorAll('.pending-prod-chk:checked');
             if (checkedBoxes.length === 0) {
@@ -1607,7 +1629,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                     toggleSelectAllPending(true);
                     const selectAll = document.getElementById('selectAllPendingChk');
                     if (selectAll) selectAll.checked = true;
-                    return true;
+                    checkedBoxes = document.querySelectorAll('.pending-prod-chk:checked');
                 } else {
                     if (e) e.preventDefault();
                     if (typeof Swal !== 'undefined') {
@@ -1624,6 +1646,49 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                     return false;
                 }
             }
+
+            // ⚠️ Check if any selected product has ZERO STOCK!
+            let zeroStockCount = 0;
+            checkedBoxes.forEach(chk => {
+                const prodId = chk.value;
+                const stInp = document.getElementById(`row-stock-${prodId}`);
+                if (stInp && parseInt(stInp.value) <= 0) {
+                    zeroStockCount++;
+                }
+            });
+
+            if (zeroStockCount > 0 && !window._bypassZeroStockConfirm) {
+                if (e) e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: `⚠️ ${zeroStockCount} प्रोडक्ट्स में 0 स्टॉक (इन्वेंट्री) है!`,
+                        html: `<div class="text-left text-xs text-gray-700 space-y-2">
+                            <p>अगर आप 0 स्टॉक के साथ पब्लिश करेंगे तो Amazon व Meesho पर ये <strong>"Currently Unavailable / Out of Stock"</strong> दिखेंगे और ग्राहक ऑर्डर नहीं कर पाएंगे।</p>
+                            <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-950">
+                                💡 <strong>सुझाव:</strong> आप ऊपर टेबल में <strong>"📦 स्टॉक Qty"</strong> में 10 या 20 डालकर <em>'Apply & Save'</em> कर सकते हैं, जिससे तुरंत स्टॉक तैयार हो जाएगा!
+                            </div>
+                        </div>`,
+                        showCancelButton: true,
+                        confirmButtonColor: '#10b981',
+                        cancelButtonColor: '#f43f5e',
+                        confirmButtonText: 'हाँ, फिर भी पब्लिश करें',
+                        cancelButtonText: 'रुकें, पहले स्टॉक भरेंगे'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window._bypassZeroStockConfirm = true;
+                            document.getElementById('bulkPublishForm').submit();
+                        }
+                    });
+                } else {
+                    if (confirm(`चेतावनी: ${zeroStockCount} प्रोडक्ट्स में 0 स्टॉक है। क्या आप फिर भी पब्लिश करना चाहते हैं?`)) {
+                        window._bypassZeroStockConfirm = true;
+                        document.getElementById('bulkPublishForm').submit();
+                    }
+                }
+                return false;
+            }
+
             return true;
         }
 
@@ -2264,6 +2329,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
 
             rows.forEach(row => {
                 const id = row.getAttribute('data-id');
+                const stock = parseInt(document.getElementById(`row-stock-${id}`)?.value) || 0;
                 const cost = parseFloat(document.getElementById(`row-cost-${id}`)?.value) || 0;
                 const marginPct = parseFloat(document.getElementById(`row-margin-${id}`)?.value) || 25;
                 const gstRate = parseFloat(document.getElementById(`row-gst-${id}`)?.value) || 18;
@@ -2583,6 +2649,29 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             }
         }
 
+        // Live Stock Status Badge & Highlight
+        function updateStockStatusBadge(prodId) {
+            const inp = document.getElementById(`row-stock-${prodId}`);
+            const badge = document.getElementById(`row-stock-warn-${prodId}`);
+            const cell = document.getElementById(`row-stock-cell-${prodId}`);
+            const val = parseInt(inp?.value) || 0;
+            if (val <= 0) {
+                if (badge) {
+                    badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> 0 स्टॉक';
+                    badge.className = 'text-[9px] mt-0.5 text-rose-600 font-black';
+                }
+                if (inp) inp.className = 'w-16 px-1 py-1 text-center font-mono font-black text-xs rounded-lg border border-rose-400 bg-rose-50 text-rose-700';
+                if (cell) cell.className = 'p-2 text-center bg-rose-50/70';
+            } else {
+                if (badge) {
+                    badge.textContent = '✓ तैयार';
+                    badge.className = 'text-[9px] mt-0.5 text-emerald-700 font-bold';
+                }
+                if (inp) inp.className = 'w-16 px-1 py-1 text-center font-mono font-black text-xs rounded-lg border border-emerald-300 bg-white text-emerald-900';
+                if (cell) cell.className = 'p-2 text-center bg-emerald-50/30';
+            }
+        }
+
         // Real-Time Table Row Unit Economics Recalculator with Margin %, RTO Buffer, GST & Card Sync
         function recalcTableRow(prodId) {
             const cost = parseFloat(document.getElementById(`row-cost-${prodId}`)?.value) || 0;
@@ -2741,6 +2830,9 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             const feeRaw = document.getElementById('bulkPresetFee')?.value;
             const fee = (feeRaw !== '' && !isNaN(parseFloat(feeRaw))) ? parseFloat(feeRaw) : 12;
 
+            const stockRaw = document.getElementById('bulkPresetStock')?.value;
+            const stockVal = (stockRaw !== '' && !isNaN(parseInt(stockRaw))) ? parseInt(stockRaw) : null;
+
             const rtoRaw = document.getElementById('bulkPresetRto')?.value;
             const rto = (rtoRaw !== '' && !isNaN(parseFloat(rtoRaw))) ? parseFloat(rtoRaw) : 20;
 
@@ -2772,6 +2864,14 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
 
                 const feeInput = document.getElementById(`row-fee-${id}`);
                 if (feeInput) feeInput.value = fee;
+
+                if (stockVal !== null) {
+                    const stInp = document.getElementById(`row-stock-${id}`);
+                    if (stInp) {
+                        stInp.value = stockVal;
+                        updateStockStatusBadge(id);
+                    }
+                }
 
                 const rtoInput = document.getElementById(`row-rto-${id}`);
                 if (rtoInput) rtoInput.value = rto;
@@ -2830,6 +2930,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 const c6Val = parseFloat(document.getElementById(`row-combo6-${id}`)?.value) || 0;
                 items.push({
                     product_id: parseInt(id),
+                    stock_quantity: stock,
                     purchase_price: cost,
                     trade_discount_percent: lessVal,
                     margin_pct: marginPct,
@@ -2912,6 +3013,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i>';
 
             const lessVal = parseFloat(document.getElementById(`row-less-${prodId}`)?.value || document.getElementById(`card-less-${prodId}`)?.value) || 0;
+            const stock = parseInt(document.getElementById(`row-stock-${prodId}`)?.value) || 0;
             try {
                 const res = await fetch(`/seller/channels/products/${prodId}/save-costing`, {
                     method: 'POST',
@@ -2921,6 +3023,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
                     body: JSON.stringify({
+                        stock_quantity: stock,
                         purchase_price: cost,
                         trade_discount_percent: lessVal,
                         margin_pct: marginPct,
