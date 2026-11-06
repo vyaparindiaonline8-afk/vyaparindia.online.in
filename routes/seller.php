@@ -120,6 +120,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/products/{product}/save-costing', [ChannelController::class, 'saveProductCosting'])->name('saveProductCosting');
         Route::post('/save-all-costing', [ChannelController::class, 'saveAllProductCosting'])->name('saveAllCosting');
         Route::post('/stage-products', [ChannelController::class, 'stageProducts'])->name('stageProducts');
+        Route::post('/products/{product}/toggle-stage', [ChannelController::class, 'toggleStage'])->name('toggleStage');
         Route::post('/products/{product}/unstage', [ChannelController::class, 'unstageProduct'])->name('unstageProduct');
         Route::post('/unstage-bulk', [ChannelController::class, 'unstageBulk'])->name('unstageBulk');
         Route::post('/simulate-order', [\App\Http\Controllers\Seller\ChannelWebhookController::class, 'simulateOrder'])->name('simulateOrder');

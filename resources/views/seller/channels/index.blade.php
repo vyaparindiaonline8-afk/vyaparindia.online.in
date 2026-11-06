@@ -322,17 +322,27 @@
                     </div>
                 </div>
 
-                <!-- 2 Main Workspace Tabs (Published vs Pending) -->
-                <div class="inline-flex items-center bg-gray-100 p-1.5 rounded-2xl border border-gray-200 self-start sm:self-auto">
-                    <button type="button" onclick="switchMarketplaceTab('published')" id="btnTabPublishedMarketplaces" class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-indigo-700 shadow-2xs cursor-pointer">
-                        <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-                        <span>🟢 पब्लिश किए गए (Published)</span>
-                        <span class="px-2 py-0.2 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-extrabold">{{ $allListings->count() }}</span>
+                <!-- 3 Main Workspace Tabs: Available vs Pending vs Published -->
+                <div class="inline-flex items-center bg-gray-100 p-1.5 rounded-2xl border border-gray-200 self-start sm:self-auto flex-wrap gap-1">
+                    <!-- TAB 1: 🏬 दुकान कैटलॉग (उपलब्ध उत्पाद) -->
+                    <button type="button" onclick="switchMarketplaceTab('available')" id="btnTabAvailableMarketplaces" class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer" title="आपकी दुकान के सभी उपलब्ध प्रोडक्ट्स">
+                        <span class="h-2 w-2 rounded-full bg-blue-500"></span>
+                        <span>🏬 दुकान कैटलॉग (उपलब्ध)</span>
+                        <span class="px-2 py-0.2 rounded-full text-[10px] bg-blue-100 text-blue-900 font-extrabold">{{ count($allStoreProducts ?? []) }}</span>
                     </button>
-                    <button type="button" onclick="switchMarketplaceTab('pending')" id="btnTabPendingMarketplaces" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer">
-                        <span class="h-2 w-2 rounded-full bg-amber-500"></span>
-                        <span>🟡 पेंडिंग प्रोडक्ट्स (Pending)</span>
+
+                    <!-- TAB 2: 🟡 पेंडिंग कतार (19 प्रोडक्ट्स) -->
+                    <button type="button" onclick="switchMarketplaceTab('pending')" id="btnTabPendingMarketplaces" class="px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-amber-900 shadow-2xs cursor-pointer" title="मार्केटप्लेस पर भेजने के लिए तैयार कतार">
+                        <span class="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
+                        <span>🟡 पेंडिंग कतार (तैयार ड्राफ्ट्स)</span>
                         <span class="px-2 py-0.2 rounded-full text-[10px] bg-amber-100 text-amber-800 font-extrabold pending-count-badge">{{ count($pendingProducts ?? []) }}</span>
+                    </button>
+
+                    <!-- TAB 3: 🟢 लाइव पब्लिश्ड (0) -->
+                    <button type="button" onclick="switchMarketplaceTab('published')" id="btnTabPublishedMarketplaces" class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer" title="जो वाकई में Amazon/Meesho पर लाइव बिक रहे हैं">
+                        <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                        <span>🟢 लाइव पब्लिश्ड</span>
+                        <span class="px-2 py-0.2 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-extrabold">{{ $allListings->count() }}</span>
                     </button>
                 </div>
 
@@ -342,6 +352,152 @@
                     <span>+ दुकान से प्रोडक्ट्स चुनें</span>
                     <span class="bg-black/20 text-white text-[10px] font-mono px-1.5 py-0.5 rounded-full">{{ count($allStoreProducts ?? []) }} उपलब्ध</span>
                 </button>
+            </div>
+
+            <!-- ======================================================== -->
+            <!-- TAB 1: 🏬 AVAILABLE STORE PRODUCTS (दुकान के सभी उत्पाद) -->
+            <!-- ======================================================== -->
+            <div id="viewAvailableMarketplaces" class="hidden space-y-6">
+                <!-- Top Filter Bar: Category & Groups with Search -->
+                <div class="p-4 bg-blue-50/60 rounded-3xl border border-blue-200/80 space-y-3">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <span class="h-9 w-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                                <i class="fa-solid fa-boxes-stacked"></i>
+                            </span>
+                            <div>
+                                <h3 class="font-black text-sm text-blue-950 flex items-center gap-2">
+                                    <span>आपकी दुकान के कुल उपलब्ध उत्पाद</span>
+                                    <span class="px-2 py-0.5 rounded-full bg-blue-200 text-blue-900 text-[10px] font-mono font-extrabold">{{ count($allStoreProducts ?? []) }} प्रोडक्ट्स</span>
+                                </h3>
+                                <p class="text-[11px] text-blue-800">यहाँ से प्रोडक्ट्स की केटेगरी देखें, फोटो अपलोड करें, सेलिंग रेट निकालें और 1-क्लिक में 'पेंडिंग कतार' में भेजें।</p>
+                            </div>
+                        </div>
+
+                        <!-- Real-Time Search Input -->
+                        <div class="relative w-full md:w-72">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                            <input type="text" id="availableProdSearchInput" oninput="filterAvailableProducts()" placeholder="🔍 नाम, SKU या ग्रुप से खोजें..." class="w-full pl-8 pr-3 py-2 rounded-xl bg-white border border-blue-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs">
+                        </div>
+                    </div>
+
+                    <!-- Category & Group Filter Pills -->
+                    <div class="pt-2 border-t border-blue-200/60 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                        <span class="text-xs font-black text-blue-900 shrink-0 mr-1 flex items-center gap-1">
+                            <i class="fa-solid fa-tags"></i>
+                            <span>केटेगरी चुनें:</span>
+                        </span>
+                        <button type="button" onclick="filterAvailableCategory('all', this)" class="avail-cat-btn px-3 py-1.5 rounded-xl text-xs font-black transition bg-blue-600 text-white shadow-2xs cursor-pointer" data-cat="all">
+                            सभी (All: {{ count($allStoreProducts ?? []) }})
+                        </button>
+                        @foreach($storeCategories ?? [] as $cat)
+                            <button type="button" onclick="filterAvailableCategory('{{ $cat->id }}', this)" class="avail-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition bg-white hover:bg-blue-100 text-blue-900 border border-blue-300 shadow-2xs cursor-pointer" data-cat="{{ $cat->id }}">
+                                {{ $cat->name }} ({{ $cat->products_count ?? 0 }})
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Products Grid / Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="availableProductsGrid">
+                    @forelse($allStoreProducts ?? [] as $sp)
+                        @php
+                            $spImgs = $sp->images ? $sp->images->count() : 0;
+                            if ($spImgs === 0 && !empty($sp->image)) $spImgs = 1;
+                            $spCost = (float)$sp->purchase_price;
+                            $spMrp = (float)($sp->mrp ?: ($sp->variants->where('mrp', '>', 0)->min('mrp') ?: $sp->price));
+                            $spUe = $sp->attributes['unit_economics'] ?? [];
+                            $spMargin = (float)($spUe['margin_pct'] ?? 25);
+                            $spMarketPrice = (float)($spUe['marketplace_price'] ?? $sp->price);
+                            $isAlreadyStaged = in_array($sp->id, $allPendingIds ?? []);
+                        @endphp
+                        <div class="available-prod-card bg-white rounded-2xl border {{ $isAlreadyStaged ? 'border-amber-300 ring-2 ring-amber-100' : 'border-gray-200' }} p-4 shadow-2xs hover:shadow-md transition space-y-3 flex flex-col justify-between"
+                             data-cat-id="{{ $sp->category_id ?? 0 }}"
+                             data-name="{{ strtolower($sp->name) }}"
+                             data-sku="{{ strtolower($sp->sku ?? '') }}"
+                             data-id="{{ $sp->id }}">
+                            
+                            <div class="space-y-3">
+                                <div class="flex items-start gap-3">
+                                    <!-- Photo Box with click-to-upload -->
+                                    <div class="relative h-16 w-16 rounded-2xl bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center shrink-0 p-1 cursor-pointer group/availimg hover:border-blue-500 hover:ring-2 hover:ring-blue-200 transition"
+                                         onclick="triggerMultipleImageUpload({{ $sp->id }}, '{{ addslashes($sp->name) }}')"
+                                         title="फ़ोटो बदलें या और फ़ोटो जोड़ें">
+                                        <img src="{{ $sp->image_url ?? '' }}" alt="{{ $sp->name }}" id="avail-prod-img-{{ $sp->id }}" class="h-full w-full object-contain {{ !empty($sp->image_url) ? '' : 'hidden' }}">
+                                        <div id="avail-prod-img-ph-{{ $sp->id }}" class="{{ !empty($sp->image_url) ? 'hidden' : 'flex' }} flex-col items-center justify-center text-gray-300">
+                                            <i class="fa-solid fa-camera text-base"></i>
+                                            <span class="text-[8px] font-bold text-gray-400 mt-0.5">+फ़ोटो</span>
+                                        </div>
+                                        <div class="absolute inset-0 bg-blue-950/80 text-white flex flex-col items-center justify-center opacity-0 group-hover/availimg:opacity-100 transition rounded-2xl text-[9px] font-bold">
+                                            <i class="fa-solid fa-camera text-xs mb-0.5 text-amber-300"></i>
+                                            <span>बदलें</span>
+                                        </div>
+                                        <span class="absolute bottom-0.5 right-0.5 bg-slate-900/90 text-white text-[7px] font-black px-1 rounded" id="avail-img-badge-{{ $sp->id }}">
+                                            {{ $spImgs }} फ़ोटो
+                                        </span>
+                                    </div>
+
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center justify-between gap-1 mb-1">
+                                            <span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-blue-50 text-blue-900 border border-blue-200 truncate max-w-[140px]">
+                                                {{ $sp->category->name ?? 'General' }}
+                                            </span>
+                                            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded {{ ($sp->stock_quantity ?? 0) <= 0 ? 'bg-rose-100 text-rose-700 font-black' : 'bg-emerald-100 text-emerald-800' }}">
+                                                {{ ($sp->stock_quantity ?? 0) <= 0 ? '⚠️ 0 स्टॉक' : 'स्टॉक: ' . ($sp->stock_quantity ?? 0) . ' pcs' }}
+                                            </span>
+                                        </div>
+
+                                        <h4 class="font-extrabold text-xs text-gray-900 truncate" title="{{ $sp->name }}">
+                                            {{ $sp->name }}
+                                        </h4>
+                                        <div class="text-[10px] text-gray-400 font-mono mt-0.5 flex items-center gap-2">
+                                            <span>SKU: {{ $sp->sku ?: 'STD' }}</span>
+                                            <span>#{{ $sp->id }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Pricing Breakdown Badge -->
+                                <div class="p-2.5 bg-slate-50 rounded-2xl border border-gray-100 text-[11px] space-y-1">
+                                    <div class="flex items-center justify-between text-gray-600 text-[10px]">
+                                        <span>MRP: <strong class="font-mono text-gray-800">₹{{ number_format($spMrp, 2) }}</strong></span>
+                                        <span>खरीद लागत: <strong class="font-mono text-indigo-700">₹{{ number_format($spCost, 2) }}</strong></span>
+                                    </div>
+                                    <div class="flex items-center justify-between pt-1 border-t border-gray-200 font-bold">
+                                        <span class="text-gray-900 text-[11px]">अनुमानित सेलिंग रेट:</span>
+                                        <span class="text-emerald-700 font-black font-mono text-xs">₹{{ number_format($spMarketPrice, 2) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Bar: Add to Queue vs In Queue -->
+                            <div class="pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
+                                <button type="button" onclick="openCostCalculatorModal({{ $sp->id }}, '{{ addslashes($sp->name) }}', {{ $sp->price }}, {{ $spCost }})" class="py-1.5 px-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-black transition flex items-center gap-1 shadow-2xs" title="इस प्रोडक्ट का सेलिंग रेट व मार्जिन निकालें">
+                                    <i class="fa-solid fa-calculator"></i>
+                                    <span>रेट निकालें</span>
+                                </button>
+
+                                <button type="button" 
+                                        id="btn-toggle-stage-{{ $sp->id }}" 
+                                        onclick="toggleProductStage({{ $sp->id }})" 
+                                        class="py-1.5 px-3 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95 {{ $isAlreadyStaged ? 'bg-amber-100 text-amber-900 hover:bg-rose-100 hover:text-rose-700 border border-amber-300' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white' }}"
+                                        title="{{ $isAlreadyStaged ? 'पेंडिंग कतार से हटाएं' : 'मार्केटप्लेस पेंडिंग कतार में भेजें' }}">
+                                    @if($isAlreadyStaged)
+                                        <i class="fa-solid fa-check text-emerald-600"></i>
+                                        <span>कतार में मौजूद</span>
+                                    @else
+                                        <i class="fa-solid fa-plus-circle text-blue-200"></i>
+                                        <span>+ कतार में जोड़ें</span>
+                                    @endif
+                                </button>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="col-span-full p-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-300 text-xs text-gray-500">
+                            कोई उत्पाद उपलब्ध नहीं है।
+                        </div>
+                    @endforelse
+                </div>
             </div>
 
             <!-- TAB 1: 🟢 PUBLISHED MARKETPLACES VIEW -->
@@ -433,9 +589,20 @@
                         @endforeach
                     </div>
                 @else
-                    <div class="p-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-300 text-xs text-gray-500 space-y-2">
-                        <i class="fa-brands fa-amazon text-gray-300 text-3xl mb-1 block"></i>
-                        <p>अभी किसी मार्केटप्लेस पर सीधे लिस्टिंग नहीं हुई है। नीचे पेंडिंग प्रोडक्ट्स को टिक करके तुरंत पब्लिश करें।</p>
+                    <div class="p-10 text-center bg-gradient-to-b from-gray-50 to-white rounded-3xl border border-dashed border-gray-300 space-y-3">
+                        <div class="h-16 w-16 mx-auto rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-3xl shadow-xs border border-emerald-100">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <div class="max-w-md mx-auto space-y-1">
+                            <h3 class="font-black text-sm text-gray-900">अभी तक कोई प्रोडक्ट लाइव पब्लिश नहीं हुआ है</h3>
+                            <p class="text-xs text-gray-500 leading-relaxed">
+                                जब आप पेंडिंग कतार से प्रोडक्ट्स को Amazon या Meesho पर लाइव पब्लिश करेंगे, तब सफल लिस्टिंग्स यहाँ लाइव ASIN व स्टेटस के साथ दिखेंगी।
+                            </p>
+                        </div>
+                        <button type="button" onclick="switchMarketplaceTab('pending')" class="px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-md transition inline-flex items-center gap-2 cursor-pointer active:scale-95">
+                            <i class="fa-solid fa-arrow-right"></i>
+                            <span>पेंडिंग कतार (19 प्रोडक्ट्स) पर जाएँ</span>
+                        </button>
                     </div>
                 @endif
             </div>
@@ -1578,23 +1745,115 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
     </div>
 
     <script>
-        // Switcher: Published Marketplaces vs Pending
+        // Switcher for 3 Workspace Tabs: Available vs Pending vs Published
         function switchMarketplaceTab(tab) {
-            const pubView = document.getElementById('viewPublishedMarketplaces');
+            const availView = document.getElementById('viewAvailableMarketplaces');
             const penView = document.getElementById('viewPendingMarketplaces');
-            const btnPub = document.getElementById('btnTabPublishedMarketplaces');
-            const btnPen = document.getElementById('btnTabPendingMarketplaces');
+            const pubView = document.getElementById('viewPublishedMarketplaces');
 
-            if (tab === 'published') {
-                pubView.classList.remove('hidden');
-                penView.classList.add('hidden');
-                btnPub.className = "px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-indigo-700 shadow-2xs cursor-pointer";
-                btnPen.className = "px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer";
+            const btnAvail = document.getElementById('btnTabAvailableMarketplaces');
+            const btnPen = document.getElementById('btnTabPendingMarketplaces');
+            const btnPub = document.getElementById('btnTabPublishedMarketplaces');
+
+            if (availView) availView.classList.add('hidden');
+            if (penView) penView.classList.add('hidden');
+            if (pubView) pubView.classList.add('hidden');
+
+            const inactiveClass = "px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer";
+            if (btnAvail) btnAvail.className = inactiveClass;
+            if (btnPen) btnPen.className = inactiveClass;
+            if (btnPub) btnPub.className = inactiveClass;
+
+            if (tab === 'available') {
+                if (availView) availView.classList.remove('hidden');
+                if (btnAvail) btnAvail.className = "px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-blue-900 shadow-2xs cursor-pointer";
+            } else if (tab === 'published') {
+                if (pubView) pubView.classList.remove('hidden');
+                if (btnPub) btnPub.className = "px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-emerald-900 shadow-2xs cursor-pointer";
             } else {
-                pubView.classList.add('hidden');
-                penView.classList.remove('hidden');
-                btnPen.className = "px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-amber-800 shadow-2xs cursor-pointer";
-                btnPub.className = "px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer";
+                // Default: pending
+                if (penView) penView.classList.remove('hidden');
+                if (btnPen) btnPen.className = "px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 bg-white text-amber-900 shadow-2xs cursor-pointer";
+            }
+        }
+
+        // Filter Available Products by Category
+        function filterAvailableCategory(catId, btn) {
+            document.querySelectorAll('.avail-cat-btn').forEach(b => {
+                b.className = "avail-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold transition bg-white hover:bg-blue-100 text-blue-900 border border-blue-300 shadow-2xs cursor-pointer";
+            });
+            if (btn) {
+                btn.className = "avail-cat-btn px-3 py-1.5 rounded-xl text-xs font-black transition bg-blue-600 text-white shadow-2xs cursor-pointer";
+            }
+
+            const cards = document.querySelectorAll('.available-prod-card');
+            cards.forEach(card => {
+                const cardCat = card.getAttribute('data-cat-id');
+                if (catId === 'all' || cardCat === catId) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Real-Time Search in Available Products
+        function filterAvailableProducts() {
+            const q = (document.getElementById('availableProdSearchInput')?.value || '').trim().toLowerCase();
+            const cards = document.querySelectorAll('.available-prod-card');
+            cards.forEach(card => {
+                const name = card.getAttribute('data-name') || '';
+                const sku = card.getAttribute('data-sku') || '';
+                if (!q || name.includes(q) || sku.includes(q)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // 1-Click Toggle Stage / Unstage Product directly from Available Catalog
+        async function toggleProductStage(prodId) {
+            const btn = document.getElementById(`btn-toggle-stage-${prodId}`);
+            if (!btn) return;
+
+            const origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i> <span>...</span>';
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+                const res = await fetch(`/seller/channels/products/${prodId}/toggle-stage`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (data.is_staged) {
+                        btn.className = "py-1.5 px-3 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95 bg-amber-100 text-amber-900 hover:bg-rose-100 hover:text-rose-700 border border-amber-300";
+                        btn.innerHTML = '<i class="fa-solid fa-check text-emerald-600"></i> <span>कतार में मौजूद</span>';
+                    } else {
+                        btn.className = "py-1.5 px-3 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white";
+                        btn.innerHTML = '<i class="fa-solid fa-plus-circle text-blue-200"></i> <span>+ कतार में जोड़ें</span>';
+                    }
+                    // Update pending count badges
+                    document.querySelectorAll('.pending-count-badge').forEach(b => {
+                        b.textContent = data.pending_count;
+                    });
+                    showChannelToast(data.message);
+                } else {
+                    alert(data.message || 'त्रुटि हुई');
+                    btn.innerHTML = origHtml;
+                }
+            } catch (err) {
+                console.error(err);
+                btn.innerHTML = origHtml;
+            } finally {
+                btn.disabled = false;
             }
         }
 

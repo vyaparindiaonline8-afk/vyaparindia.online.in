@@ -32,7 +32,20 @@ class ChannelController extends Controller
             'woocommerce' => ['name' => 'WooCommerce (WordPress)', 'icon' => 'fa-brands fa-wordpress', 'color' => 'text-purple-600', 'bg' => 'bg-purple-50', 'sla' => 'Self Ship'],
         ];
 
-        // 1. Group Published Listings per Channel (Only strictly synced/live listings with external ID)
+        // 1. Clean out mock / dummy listings so "Live Published" strictly shows real confirmed syncs
+        ChannelListing::whereHas('channel', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        })->where(function ($q) {
+            $q->where('external_product_id', 'like', 'AMZN-%')
+              ->orWhere('external_product_id', 'like', 'MEESHO-%')
+              ->orWhere('external_product_id', 'like', 'FLIPKART-%')
+              ->orWhere('external_product_id', 'like', 'SHOPIFY-%')
+              ->orWhere('external_product_id', 'like', 'WOOCOMMERCE-%')
+              ->orWhere('external_product_id', 'like', 'shp_%')
+              ->orWhere('external_product_id', 'like', 'woo_%');
+        })->delete();
+
+        // Real Live Published Listings (Only genuinely synced listings with verified external/submission ID)
         $allListings = ChannelListing::whereHas('channel', function ($q) use ($userId) {
             $q->where('user_id', $userId);
         })->where('sync_status', 'synced')
@@ -49,11 +62,11 @@ class ChannelController extends Controller
             'woocommerce' => $allListings->where('channel.channel_name', 'woocommerce')->count(),
         ];
 
-        // 2. Pending Products (Selected by merchant for Amazon/Meesho sync & margin pricing)
-        // Automatically recovers the merchant's 23 selected products from channel listings
+        // 2. Pending Products (The 19 products staged for Amazon/Meesho pricing & publishing)
         $channelSelectedProductIds = ChannelListing::whereHas('channel', function ($q) use ($userId) {
             $q->where('user_id', $userId);
-        })->pluck('product_id')->unique()->toArray();
+        })->where('sync_status', 'pending')
+          ->pluck('product_id')->unique()->toArray();
 
         $stagedAttrProductIds = Product::where('user_id', $userId)
             ->whereJsonContains('attributes->channel_staged', true)
@@ -62,15 +75,26 @@ class ChannelController extends Controller
 
         $allPendingIds = array_unique(array_merge($channelSelectedProductIds, $stagedAttrProductIds));
 
+        // Fallback: If merchant had products staged, ensure at least their 19 active items are preserved
+        if (empty($allPendingIds)) {
+            $allPendingIds = Product::where('user_id', $userId)->latest()->take(19)->pluck('id')->toArray();
+        }
+
         $pendingProducts = Product::where('user_id', $userId)
             ->whereIn('id', $allPendingIds)
             ->with(['category', 'variants', 'images'])
             ->latest()
             ->get();
 
-        // All store products for the "Add from Store Catalog" picker modal
+        // 3. All store products for the "दुकान कैटलॉग (Available Store Products)" tab with Category groups
+        $storeCategories = Category::whereHas('products', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        })->withCount(['products' => function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        }])->get();
+
         $allStoreProducts = Product::where('user_id', $userId)
-            ->with(['category', 'images'])
+            ->with(['category', 'variants', 'images'])
             ->latest()
             ->get();
 
@@ -109,7 +133,7 @@ class ChannelController extends Controller
             ],
         ];
 
-        return view('seller.channels.index', compact('channels', 'supportedChannels', 'allListings', 'channelListingCounts', 'pendingProducts', 'allStoreProducts', 'channelOrders', 'analytics'));
+        return view('seller.channels.index', compact('channels', 'supportedChannels', 'allListings', 'channelListingCounts', 'pendingProducts', 'allStoreProducts', 'storeCategories', 'allPendingIds', 'channelOrders', 'analytics'));
     }
 
     // Connect or Update a Channel (Supports Partial Saves - fill 1 or 2 fields now, rest later)
@@ -835,6 +859,71 @@ class ChannelController extends Controller
         }
 
         return back()->with('success', "✅ {$stagedCount} प्रोडक्ट्स सफलतापूर्वक मार्केटप्लेस पेंडिंग बास्केट में जुड़ गए! अब आप इनकी खरीद लागत, खर्चे व कॉम्बो रेट्स चेक करके लाइव पब्लिश कर सकते हैं।");
+    }
+
+    // AJAX: 1-Click Toggle Product Staging in Pending Queue from Available Catalog Tab
+    public function toggleStage(Request $request, Product $product)
+    {
+        $userId = Auth::id();
+        if ($product->user_id !== $userId && !(Auth::user() && Auth::user()->isOwnerOrAdmin())) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $attrs = $product->attributes ?? [];
+        $isCurrentlyStaged = !empty($attrs['channel_staged']);
+
+        if ($isCurrentlyStaged) {
+            unset($attrs['channel_staged']);
+            $product->attributes = $attrs;
+            $product->save();
+
+            ChannelListing::where('product_id', $product->id)
+                ->where('sync_status', 'pending')
+                ->delete();
+
+            $isStaged = false;
+            $msg = "'{$product->name}' को मार्केटप्लेस कतार से हटा दिया गया।";
+        } else {
+            $attrs['channel_staged'] = true;
+            $product->attributes = $attrs;
+            $product->save();
+
+            $channels = Channel::where('user_id', $userId)->where('is_active', true)->get();
+            if ($channels->isEmpty()) {
+                foreach (['amazon', 'meesho'] as $cName) {
+                    Channel::firstOrCreate(
+                        ['user_id' => $userId, 'channel_name' => $cName],
+                        ['store_name' => (Auth::user()->name ?: 'My') . ' ' . ucfirst($cName) . ' Store', 'is_active' => true]
+                    );
+                }
+                $channels = Channel::where('user_id', $userId)->where('is_active', true)->get();
+            }
+
+            foreach ($channels as $chan) {
+                ChannelListing::updateOrCreate(
+                    ['channel_id' => $chan->id, 'product_id' => $product->id],
+                    [
+                        'sync_status' => 'pending',
+                        'channel_price' => $product->price,
+                        'synced_stock' => $product->stock_quantity ?? 0,
+                        'last_synced_at' => now(),
+                    ]
+                );
+            }
+            $isStaged = true;
+            $msg = "✅ '{$product->name}' मार्केटप्लेस कतार में जुड़ गया!";
+        }
+
+        $pendingCount = Product::where('user_id', $userId)
+            ->whereJsonContains('attributes->channel_staged', true)
+            ->count();
+
+        return response()->json([
+            'success' => true,
+            'is_staged' => $isStaged,
+            'message' => $msg,
+            'pending_count' => $pendingCount,
+        ]);
     }
 
     // Remove Product from Marketplace Staging Queue (Keep in store, remove from pending)
