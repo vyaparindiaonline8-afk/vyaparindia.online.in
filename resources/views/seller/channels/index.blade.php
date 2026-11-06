@@ -795,6 +795,37 @@
                                     </div>
                                 </div>
 
+                                <!-- Dedicated Add 3-4 Photos Button & Gallery Preview Strip -->
+                                <div class="space-y-1.5 pt-0.5">
+                                    <button type="button" onclick="triggerMultipleImageUpload({{ $p->id }}, '{{ addslashes($p->name) }}')" class="w-full py-2 px-3 rounded-2xl bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 hover:from-indigo-100 hover:to-purple-100 border border-indigo-200/90 text-indigo-950 font-black text-xs transition flex items-center justify-between shadow-2xs hover:shadow-xs hover:border-indigo-400 active:scale-98 cursor-pointer group" title="फ़ोन गैलरी या कंप्यूटर से 3-4 नई फ़ोटो एक साथ जोड़ें">
+                                        <span class="flex items-center gap-1.5">
+                                            <span class="h-6 w-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs group-hover:scale-110 transition shadow-2xs">
+                                                <i class="fa-solid fa-camera"></i>
+                                            </span>
+                                            <span class="text-indigo-900 font-extrabold">+ 3-4 नई फ़ोटो जोड़ें (Add Images)</span>
+                                        </span>
+                                        <span id="card-img-count-badge-{{ $p->id }}" class="px-2 py-0.5 rounded-lg bg-white border border-indigo-200 text-indigo-700 text-[10px] font-mono font-bold shadow-2xs">
+                                            📸 {{ $imgCount }} फ़ोटो
+                                        </span>
+                                    </button>
+
+                                    <!-- Mini Gallery Preview Strip (Currently saved images) -->
+                                    <div class="flex items-center gap-1.5 px-1 overflow-x-auto pb-0.5" id="card-gallery-strip-{{ $p->id }}">
+                                        @if(!empty($p->image_url))
+                                            <div class="h-8 w-8 rounded-lg border border-indigo-200 overflow-hidden bg-white p-0.5 shrink-0 shadow-2xs" title="मुख्य फ़ोटो">
+                                                <img src="{{ $p->image_url }}" alt="Primary" class="h-full w-full object-contain">
+                                            </div>
+                                        @endif
+                                        @foreach($p->images ?? [] as $gImg)
+                                            @if($gImg->image_path !== $p->image)
+                                                <div class="h-8 w-8 rounded-lg border border-gray-200 overflow-hidden bg-white p-0.5 shrink-0 shadow-2xs" title="गैलरी फ़ोटो">
+                                                    <img src="{{ $gImg->url }}" alt="Gallery" class="h-full w-full object-contain">
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                </div>
+
                                 <!-- Unit Economics Breakdown Badge -->
                                 <div class="p-2.5 bg-slate-50 rounded-2xl border border-gray-100 text-[11px] space-y-1">
                                     @if($mrpVal > 0)
@@ -2864,6 +2895,21 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                     if (cardBadge) cardBadge.textContent = `${count} फ़ोटो`;
                     const tableBadge = document.getElementById(`table-img-badge-${prodId}`);
                     if (tableBadge) tableBadge.textContent = `${count} फ़ोटो`;
+                    const cardCountBadge = document.getElementById(`card-img-count-badge-${prodId}`);
+                    if (cardCountBadge) cardCountBadge.textContent = `📸 ${count} फ़ोटो`;
+
+                    // Dynamically refresh gallery strip thumbnails on the card
+                    const galleryStrip = document.getElementById(`card-gallery-strip-${prodId}`);
+                    if (galleryStrip && data.images && data.images.length > 0) {
+                        let thumbsHtml = '';
+                        data.images.slice(0, 6).forEach(imgObj => {
+                            thumbsHtml += `<div class="h-8 w-8 rounded-lg border border-gray-200 overflow-hidden bg-white p-0.5 shrink-0 shadow-2xs" title="गैलरी फ़ोटो"><img src="${imgObj.url}" class="h-full w-full object-contain"></div>`;
+                        });
+                        if (data.images.length > 6) {
+                            thumbsHtml += `<span class="text-[8px] font-mono font-bold text-gray-500 bg-gray-100 px-1 py-1 rounded-md shrink-0">+${data.images.length - 6}</span>`;
+                        }
+                        galleryStrip.innerHTML = thumbsHtml;
+                    }
 
                     showChannelToast(`✓ ${files.length} फ़ोटो सफलतापूर्वक जुड़ गईं!`);
                 } else {
