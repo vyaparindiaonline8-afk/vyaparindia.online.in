@@ -106,6 +106,26 @@ class Product extends Model
         return $val;
     }
 
+    public function getAvailableSizesAttribute(): array
+    {
+        $sizes = [];
+        if ($this->relationLoaded('variants') && $this->variants) {
+            foreach ($this->variants as $v) {
+                $attrs = is_array($v->attributes) ? $v->attributes : (json_decode($v->attributes ?? '[]', true) ?: []);
+                $s = trim($attrs['size'] ?? ($v->variant_name ?? ''));
+                if (preg_match('/(\\d+\\s*mm|\\d+[\\/\\.]\\d+\\s*(?:inch|\")|\\d+\\s*(?:inch|\"))/i', $s, $m)) {
+                    $sizes[] = trim(str_replace(['(', ')'], '', $m[1]));
+                } elseif (!empty($s) && !str_contains(strtoupper($s), 'INNER:') && !str_contains(strtoupper($s), 'OUTER:')) {
+                    $sizes[] = trim(str_replace(['(', ')'], '', $s));
+                }
+            }
+        }
+        if (preg_match('/(\\d+\\s*mm|\\d+[\\/\\.]\\d+\\s*(?:inch|\")|\\d+\\s*(?:inch|\"))/i', $this->name, $m)) {
+            $sizes[] = trim(str_replace(['(', ')'], '', $m[1]));
+        }
+        return array_values(array_unique(array_filter($sizes)));
+    }
+
     public function getVideoEmbedUrlAttribute(): ?string
     {
         if (empty($this->video_url)) {

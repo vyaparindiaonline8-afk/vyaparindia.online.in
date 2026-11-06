@@ -44,6 +44,17 @@ class ProductVariant extends Model
         'attributes' => 'array',
     ];
 
+    public function getTitleAttribute(): string
+    {
+        return $this->attributes['variant_name'] ?? ($this->attributes['title'] ?? '');
+    }
+
+    public function getNameAttribute(): string
+    {
+        return $this->attributes['variant_name'] ?? ($this->attributes['name'] ?? '');
+    }
+
+
     public function getPriceAttribute(): float
     {
         return (float)($this->retail_price ?: ($this->attributes['price'] ?? 0));

@@ -812,15 +812,18 @@
                                 </div>
 
                                 <!-- Product Sizes & Specs Details -->
-                                @if($p->variants && $p->variants->count() > 0)
-                                <div class="flex items-center gap-1.5 flex-wrap text-[10px] bg-slate-50 p-2 rounded-xl border border-slate-200">
-                                    <span class="text-slate-600 font-extrabold flex items-center gap-1">
+                                @php
+                                    $pSizes = $p->available_sizes ?? [];
+                                @endphp
+                                @if(!empty($pSizes))
+                                <div class="flex items-center gap-1.5 flex-wrap text-[10px] bg-gradient-to-r from-indigo-50 to-purple-50 p-2 rounded-xl border border-indigo-200/80 shadow-2xs">
+                                    <span class="text-indigo-950 font-black flex items-center gap-1">
                                         <i class="fa-solid fa-ruler-combined text-indigo-600"></i>
-                                        <span>साइज / वेरिएंट्स:</span>
+                                        <span>साइज (Size):</span>
                                     </span>
-                                    @foreach($p->variants as $var)
-                                        <span class="px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-900 font-bold border border-indigo-200 shadow-2xs">
-                                            {{ $var->title ?: ($var->name ?: 'Standard') }}
+                                    @foreach($pSizes as $sz)
+                                        <span class="px-2.5 py-0.5 rounded-lg bg-white text-indigo-950 font-black border border-indigo-300 shadow-2xs font-mono text-[11px]">
+                                            {{ $sz }}
                                         </span>
                                     @endforeach
                                 </div>
@@ -963,10 +966,15 @@
                                         </td>
                                         <td class="p-3">
                                             <span class="font-extrabold text-gray-900 block truncate max-w-[170px]" title="{{ $p->name }}">{{ $p->name }}</span>
-                                            <div class="flex items-center gap-1.5 mt-0.5">
+                                            <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                                 <span class="text-[9px] text-gray-400 font-mono">SKU: {{ $p->sku ?: 'STD' }}</span>
+                                                @foreach($p->available_sizes ?? [] as $sz)
+                                                    <span class="px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-900 border border-indigo-200 text-[9px] font-black font-mono">
+                                                        📐 {{ $sz }}
+                                                    </span>
+                                                @endforeach
                                                 <button type="button" onclick="triggerMultipleImageUpload({{ $p->id }}, '{{ addslashes($p->name) }}')" class="text-[9px] font-bold text-indigo-600 hover:text-indigo-800">
-                                                    +फ़ोटो जोड़ें
+                                                    +फ़ोटो
                                                 </button>
                                             </div>
                                         </td>
