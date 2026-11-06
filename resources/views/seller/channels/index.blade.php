@@ -536,11 +536,11 @@
                                 <span>व्यू मोड:</span>
                             </span>
                             <div class="inline-flex items-center bg-white/10 p-1 rounded-2xl border border-white/20">
-                                <button type="button" onclick="switchPendingLayout('cards')" id="btnPendingViewCards" class="px-4 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer">
+                                <button type="button" onclick="switchPendingLayout('cards')" id="btnPendingViewCards" class="px-4 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 text-slate-300 hover:text-white cursor-pointer">
                                     <i class="fa-solid fa-grip"></i>
                                     <span>🎴 फ़ोटो कार्ड मोड</span>
                                 </button>
-                                <button type="button" onclick="switchPendingLayout('table')" id="btnPendingViewTable" class="px-4 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 text-slate-300 hover:text-white cursor-pointer">
+                                <button type="button" onclick="switchPendingLayout('table')" id="btnPendingViewTable" class="px-4 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer">
                                     <i class="fa-solid fa-table-cells text-emerald-400"></i>
                                     <span>📊 एक्सेल शीट / लिस्ट मोड</span>
                                 </button>
@@ -579,16 +579,124 @@
                         </div>
                     </div>
 
+<!-- ⚡ QUICK BULK PRESET & APPLY TO ALL BAR -->
+                        <div class="p-3.5 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100 border border-amber-200 rounded-3xl shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
+                            <div class="flex items-center gap-2.5">
+                                <span class="h-8 w-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow-2xs">
+                                    <i class="fa-solid fa-wand-magic-sparkles text-amber-100"></i>
+                                </span>
+                                <div>
+                                    <span class="font-black text-amber-950 block">⚡ एक्सेल 'Apply to All' टूल (सभी {{ count($pendingProducts ?? []) }} प्रोडक्ट्स में 1-क्लिक में भरें)</span>
+                                    <span class="text-[11px] text-amber-800">यहाँ डिफ़ॉल्ट मार्जिन, रिटर्न रिस्क बफ़र, डिलीवरी व GST सेट करके सीधे सभी रोज़ में लागू करें:</span>
+                                </div>
+                            </div>
+
+                            <!-- Inputs Bar -->
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <div class="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-xl border-2 border-amber-400 shadow-xs" title="MRP पर लेस डिस्काउंट % (उदा. 45% या 40%) - सभी आइटम्स की खरीद लागत अपने-आप बदल जाएगी">
+                                    <span class="text-[10px] text-amber-950 font-black">🏷️ Less %:</span>
+                                    <input type="number" step="0.5" min="0" max="99" id="bulkPresetLess" placeholder="उदा. 45" class="w-14 text-xs font-mono font-black text-amber-950 outline-none text-center bg-white rounded border border-amber-300">
+                                    <span class="text-[10px] text-amber-700 font-black">%</span>
+                                </div>
+
+                                <!-- 1-Click Platform Modes (Meesho vs Amazon) -->
+                                <div class="flex items-center gap-1.5 bg-gradient-to-r from-pink-50 to-amber-50 p-1 rounded-xl border border-pink-200 shadow-2xs">
+                                    <button type="button" onclick="setBulkPlatformPreset('meesho')" id="btnModeMeesho" class="px-2.5 py-1 rounded-lg text-[11px] font-black transition flex items-center gap-1 bg-white text-pink-700 hover:bg-pink-600 hover:text-white border border-pink-300 shadow-xs active:scale-95 cursor-pointer" title="Meesho: 0% कमीशन, ₹35 रिटर्न/RTO सुरक्षा बफ़र, ₹38 कूरियर, 25% मार्जिन">
+                                        <span class="text-xs">🌸</span> Meesho मोड (0% फ़ी + ₹35 RTO)
+                                    </button>
+                                    <button type="button" onclick="setBulkPlatformPreset('amazon')" id="btnModeAmazon" class="px-2.5 py-1 rounded-lg text-[11px] font-black transition flex items-center gap-1 bg-white text-amber-900 hover:bg-amber-700 hover:text-white border border-amber-300 shadow-xs active:scale-95 cursor-pointer" title="Amazon: 12% कमीशन, ₹20 रिटर्न बफ़र, ₹45 Easy Ship, 25% मार्जिन">
+                                        <span class="text-xs">🟠</span> Amazon मोड (12% फ़ी + ₹20 RTO)
+                                    </button>
+                                </div>
+
+                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
+                                    <span class="text-[10px] text-gray-500 font-bold">मार्जिन %:</span>
+                                    <input type="number" id="bulkPresetMargin" value="25" class="w-12 text-xs font-mono font-bold text-indigo-700 outline-none text-center">
+                                    <span class="text-[10px] text-gray-400">%</span>
+                                </div>
+
+                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-purple-300 shadow-2xs" title="प्लेटफ़ॉर्म कमीशन % (Amazon: 12%, Meesho: 0%, Flipkart: 10%)">
+                                    <span class="text-[10px] text-purple-700 font-bold">कमीशन %:</span>
+                                    <input type="number" id="bulkPresetFee" value="12" class="w-11 text-xs font-mono font-bold text-purple-700 outline-none text-center">
+                                    <span class="text-[10px] text-gray-400">%</span>
+                                </div>
+
+                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-rose-300 shadow-2xs" title="RTO / रिटर्न नुकसान से सुरक्षा बफ़र">
+                                    <span class="text-[10px] text-rose-700 font-bold">🔄 रिटर्न/RTO:</span>
+                                    <span class="text-[10px] text-gray-400">₹</span>
+                                    <input type="number" id="bulkPresetRto" value="20" class="w-12 text-xs font-mono font-bold text-rose-700 outline-none text-center">
+                                </div>
+
+                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
+                                    <span class="text-[10px] text-gray-500 font-bold">डिलीवरी:</span>
+                                    <span class="text-[10px] text-gray-400">₹</span>
+                                    <input type="number" id="bulkPresetShip" value="45" class="w-12 text-xs font-mono font-bold text-gray-800 outline-none text-center">
+                                </div>
+
+                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
+                                    <span class="text-[10px] text-gray-500 font-bold">पैकिंग:</span>
+                                    <span class="text-[10px] text-gray-400">₹</span>
+                                    <input type="number" id="bulkPresetPack" value="15" class="w-12 text-xs font-mono font-bold text-gray-800 outline-none text-center">
+                                </div>
+
+                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-emerald-300 shadow-2xs" title="सभी प्रोडक्ट्स में एक साथ इन्वेंट्री स्टॉक पीस भरें (उदा. 10, 20 या 50)">
+                                    <span class="text-[10px] text-emerald-800 font-bold">📦 स्टॉक Qty:</span>
+                                    <input type="number" min="0" id="bulkPresetStock" value="20" class="w-12 text-xs font-mono font-bold text-emerald-800 outline-none text-center">
+                                    <span class="text-[10px] text-gray-400">pcs</span>
+                                </div>
+
+                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
+                                    <span class="text-[10px] text-gray-500 font-bold">GST %:</span>
+                                    <select id="bulkPresetGst" class="text-xs font-mono font-bold text-gray-800 bg-transparent outline-none">
+                                        <option value="18" selected>18%</option>
+                                        <option value="12">12%</option>
+                                        <option value="5">5%</option>
+                                        <option value="0">0%</option>
+                                        <option value="28">28%</option>
+                                    </select>
+                                </div>
+
+                                <button type="button" onclick="applyPresetToAllRows()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
+                                    <i class="fa-solid fa-wand-magic-sparkles text-amber-200"></i>
+                                    <span>⚡ लागू करें (Apply)</span>
+                                </button>
+                                <button type="button" onclick="applyPresetAndSaveAll()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer" title="मार्जिन व खर्चे सभी पर लागू करके सीधे डेटाबेस में सुरक्षित सेव करें">
+                                    <i class="fa-solid fa-floppy-disk text-emerald-200"></i>
+                                    <span>💾 लागू करें व सेव करें (Apply & Save)</span>
+                                </button>
+                            </div>
+
+                            <!-- Bulk Combo Management Bar -->
+                            <div class="w-full flex items-center justify-between pt-2.5 border-t border-amber-200/70 flex-wrap gap-2 text-xs">
+                                <div class="flex items-center gap-1.5 text-amber-950 font-black">
+                                    <i class="fa-solid fa-boxes-packing text-amber-700"></i>
+                                    <span>📦 2P, 4P, 6P कॉम्बो बल्क टूल्स:</span>
+                                </div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <button type="button" onclick="bulkRecalcCombos('all')" class="px-3 py-1.5 rounded-xl bg-white border border-amber-300 hover:bg-amber-100 text-amber-950 font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95" title="सभी प्रोडक्ट्स के 2P (₹45 कूरियर), 4P (₹65 कूरियर), 6P (₹85 कूरियर) ऑटो-कैलकुलेट करें">
+                                        <i class="fa-solid fa-calculator text-indigo-600"></i>
+                                        <span>⚡ 2P, 4P, 6P ऑटो-कैलकुलेट (Bulk)</span>
+                                    </button>
+                                    <button type="button" onclick="bulkRecalcAndSaveCombos()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95" title="सभी प्रोडक्ट्स के 2P, 4P, 6P रेट्स री-कैलकुलेट कर तुरंत डेटाबेस में सेव करें">
+                                        <i class="fa-solid fa-floppy-disk text-amber-200"></i>
+                                        <span>💾 सभी कॉम्बो री-कैलकुलेट व सेव करें</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                     <!-- Pending Products List: 1. CARDS VIEW -->
-                    <div id="pendingCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                    <div id="pendingCardsContainer" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                         @forelse($pendingProducts ?? [] as $p)
                             @php
                                 $imgCount = $p->images ? $p->images->count() : 0;
                                 if ($imgCount === 0 && !empty($p->image)) $imgCount = 1;
-                                $pCost = (float)$p->purchase_price;
-                                $mrpVal = (float)($p->mrp ?: ($p->variants->where('mrp', '>', 0)->min('mrp') ?: $p->price));
-                                $lessVal = $p->trade_discount_percent ?: ($p->variants->where('trade_discount_percent', '>', 0)->max('trade_discount_percent') ?: '');
                                 $ue = $p->attributes['unit_economics'] ?? [];
+                                $pCost = (float)($ue['purchase_cost'] ?? $p->purchase_price ?? 0);
+                                $mrpVal = (float)($p->mrp ?: ($p->variants->where('mrp', '>', 0)->min('mrp') ?: $p->price));
+                                $lessVal = ($p->trade_discount_percent !== null && (float)$p->trade_discount_percent > 0)
+                                    ? (float)$p->trade_discount_percent
+                                    : ($p->variants->where('trade_discount_percent', '>', 0)->max('trade_discount_percent') ?: ($ue['trade_discount_percent'] ?? ''));
                                 $marginPct = (float)($ue['margin_pct'] ?? 25);
                                 $rtoBuffer = (float)($ue['rto_buffer'] ?? 20);
                                 $packCost = (float)($ue['packaging'] ?? 15);
@@ -741,113 +849,7 @@
                     </div>
 
                     <!-- Pending Products List: 2. SPREADSHEET TABLE GRID VIEW (Unicommerce / EasyEcom Style) -->
-                    <div id="pendingTableContainer" class="hidden mt-4 space-y-3">
-                        <!-- ⚡ QUICK BULK PRESET & APPLY TO ALL BAR -->
-                        <div class="p-3.5 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100 border border-amber-200 rounded-3xl shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
-                            <div class="flex items-center gap-2.5">
-                                <span class="h-8 w-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow-2xs">
-                                    <i class="fa-solid fa-wand-magic-sparkles text-amber-100"></i>
-                                </span>
-                                <div>
-                                    <span class="font-black text-amber-950 block">⚡ एक्सेल 'Apply to All' टूल (सभी 100 प्रोडक्ट्स में 1-क्लिक में भरें)</span>
-                                    <span class="text-[11px] text-amber-800">यहाँ डिफ़ॉल्ट मार्जिन, रिटर्न रिस्क बफ़र, डिलीवरी व GST सेट करके सीधे सभी रोज़ में लागू करें:</span>
-                                </div>
-                            </div>
-
-                            <!-- Inputs Bar -->
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <div class="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-xl border-2 border-amber-400 shadow-xs" title="MRP पर लेस डिस्काउंट % (उदा. 45% या 40%) - सभी आइटम्स की खरीद लागत अपने-आप बदल जाएगी">
-                                    <span class="text-[10px] text-amber-950 font-black">🏷️ Less %:</span>
-                                    <input type="number" step="0.5" min="0" max="99" id="bulkPresetLess" placeholder="उदा. 45" class="w-14 text-xs font-mono font-black text-amber-950 outline-none text-center bg-white rounded border border-amber-300">
-                                    <span class="text-[10px] text-amber-700 font-black">%</span>
-                                </div>
-
-                                <!-- 1-Click Platform Modes (Meesho vs Amazon) -->
-                                <div class="flex items-center gap-1.5 bg-gradient-to-r from-pink-50 to-amber-50 p-1 rounded-xl border border-pink-200 shadow-2xs">
-                                    <button type="button" onclick="setBulkPlatformPreset('meesho')" id="btnModeMeesho" class="px-2.5 py-1 rounded-lg text-[11px] font-black transition flex items-center gap-1 bg-white text-pink-700 hover:bg-pink-600 hover:text-white border border-pink-300 shadow-xs active:scale-95 cursor-pointer" title="Meesho: 0% कमीशन, ₹35 रिटर्न/RTO सुरक्षा बफ़र, ₹38 कूरियर, 25% मार्जिन">
-                                        <span class="text-xs">🌸</span> Meesho मोड (0% फ़ी + ₹35 RTO)
-                                    </button>
-                                    <button type="button" onclick="setBulkPlatformPreset('amazon')" id="btnModeAmazon" class="px-2.5 py-1 rounded-lg text-[11px] font-black transition flex items-center gap-1 bg-white text-amber-900 hover:bg-amber-700 hover:text-white border border-amber-300 shadow-xs active:scale-95 cursor-pointer" title="Amazon: 12% कमीशन, ₹20 रिटर्न बफ़र, ₹45 Easy Ship, 25% मार्जिन">
-                                        <span class="text-xs">🟠</span> Amazon मोड (12% फ़ी + ₹20 RTO)
-                                    </button>
-                                </div>
-
-                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
-                                    <span class="text-[10px] text-gray-500 font-bold">मार्जिन %:</span>
-                                    <input type="number" id="bulkPresetMargin" value="25" class="w-12 text-xs font-mono font-bold text-indigo-700 outline-none text-center">
-                                    <span class="text-[10px] text-gray-400">%</span>
-                                </div>
-
-                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-purple-300 shadow-2xs" title="प्लेटफ़ॉर्म कमीशन % (Amazon: 12%, Meesho: 0%, Flipkart: 10%)">
-                                    <span class="text-[10px] text-purple-700 font-bold">कमीशन %:</span>
-                                    <input type="number" id="bulkPresetFee" value="12" class="w-11 text-xs font-mono font-bold text-purple-700 outline-none text-center">
-                                    <span class="text-[10px] text-gray-400">%</span>
-                                </div>
-
-                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-rose-300 shadow-2xs" title="RTO / रिटर्न नुकसान से सुरक्षा बफ़र">
-                                    <span class="text-[10px] text-rose-700 font-bold">🔄 रिटर्न/RTO:</span>
-                                    <span class="text-[10px] text-gray-400">₹</span>
-                                    <input type="number" id="bulkPresetRto" value="20" class="w-12 text-xs font-mono font-bold text-rose-700 outline-none text-center">
-                                </div>
-
-                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
-                                    <span class="text-[10px] text-gray-500 font-bold">डिलीवरी:</span>
-                                    <span class="text-[10px] text-gray-400">₹</span>
-                                    <input type="number" id="bulkPresetShip" value="45" class="w-12 text-xs font-mono font-bold text-gray-800 outline-none text-center">
-                                </div>
-
-                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
-                                    <span class="text-[10px] text-gray-500 font-bold">पैकिंग:</span>
-                                    <span class="text-[10px] text-gray-400">₹</span>
-                                    <input type="number" id="bulkPresetPack" value="15" class="w-12 text-xs font-mono font-bold text-gray-800 outline-none text-center">
-                                </div>
-
-                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-emerald-300 shadow-2xs" title="सभी प्रोडक्ट्स में एक साथ इन्वेंट्री स्टॉक पीस भरें (उदा. 10, 20 या 50)">
-                                    <span class="text-[10px] text-emerald-800 font-bold">📦 स्टॉक Qty:</span>
-                                    <input type="number" min="0" id="bulkPresetStock" value="20" class="w-12 text-xs font-mono font-bold text-emerald-800 outline-none text-center">
-                                    <span class="text-[10px] text-gray-400">pcs</span>
-                                </div>
-
-                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
-                                    <span class="text-[10px] text-gray-500 font-bold">GST %:</span>
-                                    <select id="bulkPresetGst" class="text-xs font-mono font-bold text-gray-800 bg-transparent outline-none">
-                                        <option value="18" selected>18%</option>
-                                        <option value="12">12%</option>
-                                        <option value="5">5%</option>
-                                        <option value="0">0%</option>
-                                        <option value="28">28%</option>
-                                    </select>
-                                </div>
-
-                                <button type="button" onclick="applyPresetToAllRows()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
-                                    <i class="fa-solid fa-wand-magic-sparkles text-amber-200"></i>
-                                    <span>⚡ लागू करें (Apply)</span>
-                                </button>
-                                <button type="button" onclick="applyPresetAndSaveAll()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer" title="मार्जिन व खर्चे सभी पर लागू करके सीधे डेटाबेस में सुरक्षित सेव करें">
-                                    <i class="fa-solid fa-floppy-disk text-emerald-200"></i>
-                                    <span>💾 लागू करें व सेव करें (Apply & Save)</span>
-                                </button>
-                            </div>
-
-                            <!-- Bulk Combo Management Bar -->
-                            <div class="w-full flex items-center justify-between pt-2.5 border-t border-amber-200/70 flex-wrap gap-2 text-xs">
-                                <div class="flex items-center gap-1.5 text-amber-950 font-black">
-                                    <i class="fa-solid fa-boxes-packing text-amber-700"></i>
-                                    <span>📦 2P, 4P, 6P कॉम्बो बल्क टूल्स:</span>
-                                </div>
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <button type="button" onclick="bulkRecalcCombos('all')" class="px-3 py-1.5 rounded-xl bg-white border border-amber-300 hover:bg-amber-100 text-amber-950 font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95" title="सभी प्रोडक्ट्स के 2P (₹45 कूरियर), 4P (₹65 कूरियर), 6P (₹85 कूरियर) ऑटो-कैलकुलेट करें">
-                                        <i class="fa-solid fa-calculator text-indigo-600"></i>
-                                        <span>⚡ 2P, 4P, 6P ऑटो-कैलकुलेट (Bulk)</span>
-                                    </button>
-                                    <button type="button" onclick="bulkRecalcAndSaveCombos()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95" title="सभी प्रोडक्ट्स के 2P, 4P, 6P रेट्स री-कैलकुलेट कर तुरंत डेटाबेस में सेव करें">
-                                        <i class="fa-solid fa-floppy-disk text-amber-200"></i>
-                                        <span>💾 सभी कॉम्बो री-कैलकुलेट व सेव करें</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
+                    <div id="pendingTableContainer" class="mt-4 space-y-3">
                         <div class="overflow-x-auto bg-white rounded-3xl border border-gray-200 shadow-sm">
                             <table class="w-full text-left text-xs divide-y divide-gray-200">
                             <thead class="bg-gray-100 text-[10px] font-black uppercase text-gray-600 tracking-wider">
@@ -880,10 +882,12 @@
                                     @php
                                         $imgCount = $p->images ? $p->images->count() : 0;
                                         if ($imgCount === 0 && !empty($p->image)) $imgCount = 1;
-                                        $pCost = (float)$p->purchase_price;
-                                        $mrpVal = (float)($p->mrp ?: ($p->variants->where('mrp', '>', 0)->min('mrp') ?: $p->price));
-                                        $lessVal = $p->trade_discount_percent ?: ($p->variants->where('trade_discount_percent', '>', 0)->max('trade_discount_percent') ?: '');
                                         $ue = $p->attributes['unit_economics'] ?? [];
+                                        $pCost = (float)($ue['purchase_cost'] ?? $p->purchase_price ?? 0);
+                                        $mrpVal = (float)($p->mrp ?: ($p->variants->where('mrp', '>', 0)->min('mrp') ?: $p->price));
+                                        $lessVal = ($p->trade_discount_percent !== null && (float)$p->trade_discount_percent > 0)
+                                            ? (float)$p->trade_discount_percent
+                                            : ($p->variants->where('trade_discount_percent', '>', 0)->max('trade_discount_percent') ?: ($ue['trade_discount_percent'] ?? ''));
                                         $marginPct = (float)($ue['margin_pct'] ?? 25);
                                         $rtoBuffer = (float)($ue['rto_buffer'] ?? 20);
                                         $packCost = (float)($ue['packaging'] ?? 15);

@@ -92,6 +92,20 @@ class Product extends Model
         return 0.00;
     }
 
+    public function getTradeDiscountPercentAttribute($val)
+    {
+        if ($val !== null && (float)$val > 0) {
+            return (float)$val;
+        }
+        $attrs = is_array($this->attributes['attributes'] ?? null) 
+            ? $this->attributes['attributes'] 
+            : json_decode($this->attributes['attributes'] ?? '[]', true);
+        if (!empty($attrs['unit_economics']['trade_discount_percent'])) {
+            return (float)$attrs['unit_economics']['trade_discount_percent'];
+        }
+        return $val;
+    }
+
     public function getVideoEmbedUrlAttribute(): ?string
     {
         if (empty($this->video_url)) {

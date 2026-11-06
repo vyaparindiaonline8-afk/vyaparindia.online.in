@@ -666,6 +666,7 @@ class ChannelController extends Controller
         $attrs = $product->attributes ?? [];
         $ueData = [
             'purchase_cost' => (float)($validated['purchase_price'] ?? $product->purchase_price ?? 0),
+            'trade_discount_percent' => (float)($validated['trade_discount_percent'] ?? $product->trade_discount_percent ?? 0),
             'marketplace_price' => (float)$product->price,
             'margin_pct' => (float)($request->input('margin_pct', 25)),
             'rto_buffer' => (float)($request->input('rto_buffer', 20)),
@@ -762,6 +763,7 @@ class ChannelController extends Controller
             $attrs = $product->attributes ?? [];
             $ueData = [
                 'purchase_cost' => (float)($item['purchase_price'] ?? $product->purchase_price ?? 0),
+                'trade_discount_percent' => (float)($item['trade_discount_percent'] ?? $product->trade_discount_percent ?? 0),
                 'marketplace_price' => (float)$product->price,
                 'margin_pct' => (float)($item['margin_pct'] ?? 25),
                 'rto_buffer' => (float)($item['rto_buffer'] ?? 20),
@@ -1697,6 +1699,7 @@ class ChannelController extends Controller
                 $attrs = $product->attributes ?? [];
                 $ue = $attrs['unit_economics'] ?? [];
                 if (!is_null($targetObj->purchase_price)) $ue['purchase_cost'] = $targetObj->purchase_price;
+                if (!is_null($targetObj->trade_discount_percent)) $ue['trade_discount_percent'] = $targetObj->trade_discount_percent;
                 if (!is_null($margin)) $ue['margin_pct'] = $margin;
                 if (!is_null($rto)) $ue['rto_buffer'] = $rto;
                 if (!is_null($pack)) $ue['packaging'] = $pack;
