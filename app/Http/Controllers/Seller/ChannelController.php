@@ -71,10 +71,7 @@ class ChannelController extends Controller
         })->pluck('product_id')->unique()->toArray();
 
         $stagedAttrProductIds = Product::where('user_id', $userId)
-            ->where(function ($q) {
-                $q->whereJsonContains('attributes->channel_staged', true)
-                  ->orWhereNotNull('attributes->unit_economics');
-            })
+            ->whereJsonContains('attributes->channel_staged', true)
             ->pluck('id')
             ->toArray();
 
@@ -941,10 +938,11 @@ class ChannelController extends Controller
         // Delete all channel listings for this product (whether pending or synced)
         ChannelListing::where('product_id', $product->id)->delete();
 
-        // Clear channel_staged attribute completely
+        // Clear channel_staged attribute and unit_economics completely
         $attrs = $product->attributes ?? [];
         unset($attrs['channel_staged']);
         $attrs['channel_staged'] = false;
+        unset($attrs['unit_economics']);
         $product->attributes = $attrs;
         $product->save();
 
@@ -981,6 +979,7 @@ class ChannelController extends Controller
             $attrs = $p->attributes ?? [];
             unset($attrs['channel_staged']);
             $attrs['channel_staged'] = false;
+            unset($attrs['unit_economics']);
             $p->attributes = $attrs;
             $p->save();
         }

@@ -599,6 +599,18 @@
                                     <span class="text-[10px] text-amber-700 font-black">%</span>
                                 </div>
 
+                                <!-- Layout Switcher Toggle: List vs Cards -->
+                                <div class="flex items-center bg-white p-1 rounded-2xl border-2 border-indigo-400 shadow-2xs">
+                                    <button type="button" onclick="switchPendingLayout('table')" id="btnTopSwitchTable" class="px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer" title="📊 एक्सेल शीट / लिस्ट व्यू (19 आइटम्स)">
+                                        <i class="fa-solid fa-table-cells text-amber-300"></i>
+                                        <span>📊 लिस्ट मोड</span>
+                                    </button>
+                                    <button type="button" onclick="switchPendingLayout('cards')" id="btnTopSwitchCards" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 text-slate-700 hover:text-indigo-900 cursor-pointer" title="🎴 फोटो कार्ड मोड (साइज, फोटो व हटाने का विकल्प)">
+                                        <i class="fa-solid fa-grip text-indigo-600"></i>
+                                        <span>🎴 कार्ड मोड</span>
+                                    </button>
+                                </div>
+
                                 <!-- 1-Click Platform Modes (Meesho vs Amazon) -->
                                 <div class="flex items-center gap-1.5 bg-gradient-to-r from-pink-50 to-amber-50 p-1 rounded-xl border border-pink-200 shadow-2xs">
                                     <button type="button" onclick="setBulkPlatformPreset('meesho')" id="btnModeMeesho" class="px-2.5 py-1 rounded-lg text-[11px] font-black transition flex items-center gap-1 bg-white text-pink-700 hover:bg-pink-600 hover:text-white border border-pink-300 shadow-xs active:scale-95 cursor-pointer" title="Meesho: 0% कमीशन, ₹35 रिटर्न/RTO सुरक्षा बफ़र, ₹38 कूरियर, 25% मार्जिन">
@@ -799,19 +811,43 @@
                                     </div>
                                 </div>
 
-                                <!-- Action Buttons -->
-                                <div class="pt-1 flex items-center justify-between gap-1.5">
-                                    <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="flex-1 py-1.5 px-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-black transition flex items-center justify-center gap-1 shadow-2xs" title="1 पीस खर्च व मुनाफा देखें">
+                                <!-- Product Sizes & Specs Details -->
+                                @if($p->variants && $p->variants->count() > 0)
+                                <div class="flex items-center gap-1.5 flex-wrap text-[10px] bg-slate-50 p-2 rounded-xl border border-slate-200">
+                                    <span class="text-slate-600 font-extrabold flex items-center gap-1">
+                                        <i class="fa-solid fa-ruler-combined text-indigo-600"></i>
+                                        <span>साइज / वेरिएंट्स:</span>
+                                    </span>
+                                    @foreach($p->variants as $var)
+                                        <span class="px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-900 font-bold border border-indigo-200 shadow-2xs">
+                                            {{ $var->title ?: ($var->name ?: 'Standard') }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                                @endif
+
+                                <div class="flex items-center justify-between text-[10px] text-gray-500 px-1">
+                                    <span>📦 स्टॉक: <strong class="text-emerald-700 font-extrabold font-mono">{{ $p->stock_quantity ?? 50 }} pcs</strong></span>
+                                    <span>🏷️ HSN: <strong class="font-mono text-gray-700 font-bold">{{ $p->hsn_code ?: '39174000' }}</strong></span>
+                                </div>
+
+                                <!-- Action Buttons with Prominent Remove from Multichannel Button -->
+                                <div class="pt-1 flex items-center justify-between gap-1.5 flex-wrap">
+                                    <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="flex-1 py-1.5 px-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-black transition flex items-center justify-center gap-1 shadow-2xs cursor-pointer" title="1 पीस खर्च व मुनाफा देखें">
                                         <i class="fa-solid fa-calculator"></i>
                                         <span>1P खर्च</span>
                                     </button>
-                                    <button type="button" onclick="openComboCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="flex-1 py-1.5 px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-[10px] font-black transition flex items-center justify-center gap-1 shadow-2xs" title="2P, 4P, 6P कॉम्बो खर्च व कूरियर पॉपअप खोलें">
+                                    <button type="button" onclick="openComboCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="flex-1 py-1.5 px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-[10px] font-black transition flex items-center justify-center gap-1 shadow-2xs cursor-pointer" title="2P, 4P, 6P कॉम्बो विवरण खोलें">
                                         <i class="fa-solid fa-layer-group"></i>
-                                        <span>2/4/6P विवरण</span>
+                                        <span>2/4/6P</span>
                                     </button>
-                                    <button type="button" onclick="saveTableRowCosting({{ $p->id }}, this)" class="py-1.5 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95" title="इस कार्ड के रेट्स व लेस% को तुरंत सेव करें">
+                                    <button type="button" onclick="saveTableRowCosting({{ $p->id }}, this)" class="py-1.5 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95" title="इस कार्ड के रेट्स सेव करें">
                                         <i class="fa-solid fa-floppy-disk text-xs"></i>
                                         <span>सेव</span>
+                                    </button>
+                                    <button type="button" onclick="unstageProductItem({{ $p->id }}, '{{ addslashes($p->name) }}')" class="py-1.5 px-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-[10px] font-black transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95" title="इस प्रोडक्ट को मल्टी-चैनल कतार से हटाएं (दुकान में 100% सुरक्षित रहेगा)">
+                                        <i class="fa-solid fa-trash-can text-rose-600 text-xs"></i>
+                                        <span>हटाएं</span>
                                     </button>
                                 </div>
                             </div>
@@ -2532,25 +2568,38 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             const table = document.getElementById('pendingTableContainer');
             const btnCards = document.getElementById('btnPendingViewCards');
             const btnTable = document.getElementById('btnPendingViewTable');
-            const btnBulkSave = document.getElementById('btnBulkSaveTable');
+            const btnTopCards = document.getElementById('btnTopSwitchCards');
+            const btnTopTable = document.getElementById('btnTopSwitchTable');
 
-            if (layout === 'table') {
-                if (cards) cards.classList.add('hidden');
-                if (table) table.classList.remove('hidden');
-                if (btnTable) {
-                    btnTable.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer";
-                }
-                if (btnCards) {
-                    btnCards.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-300 hover:text-white cursor-pointer";
-                }
-            } else {
+            if (layout === 'cards') {
                 if (table) table.classList.add('hidden');
                 if (cards) cards.classList.remove('hidden');
                 if (btnCards) {
-                    btnCards.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer";
+                    btnCards.className = "px-4 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-amber-500 text-slate-950 shadow-md cursor-pointer";
                 }
                 if (btnTable) {
-                    btnTable.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-300 hover:text-white cursor-pointer";
+                    btnTable.className = "px-4 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 text-slate-300 hover:text-white cursor-pointer";
+                }
+                if (btnTopCards) {
+                    btnTopCards.className = "px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer";
+                }
+                if (btnTopTable) {
+                    btnTopTable.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 text-slate-700 hover:text-indigo-900 cursor-pointer";
+                }
+            } else {
+                if (cards) cards.classList.add('hidden');
+                if (table) table.classList.remove('hidden');
+                if (btnTable) {
+                    btnTable.className = "px-4 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-amber-500 text-slate-950 shadow-md cursor-pointer";
+                }
+                if (btnCards) {
+                    btnCards.className = "px-4 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 text-slate-300 hover:text-white cursor-pointer";
+                }
+                if (btnTopTable) {
+                    btnTopTable.className = "px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-2xs cursor-pointer";
+                }
+                if (btnTopCards) {
+                    btnTopCards.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 text-slate-700 hover:text-indigo-900 cursor-pointer";
                 }
             }
         }
