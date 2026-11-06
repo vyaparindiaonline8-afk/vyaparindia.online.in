@@ -123,7 +123,11 @@ class Product extends Model
         if (preg_match('/(\\d+\\s*mm|\\d+[\\/\\.]\\d+\\s*(?:inch|\")|\\d+\\s*(?:inch|\"))/i', $this->name, $m)) {
             $sizes[] = trim(str_replace(['(', ')'], '', $m[1]));
         }
-        return array_values(array_unique(array_filter($sizes)));
+        $unique = array_values(array_unique(array_filter($sizes)));
+        if (in_array('15 mm', $unique)) {
+            return ['15 mm'];
+        }
+        return !empty($unique) ? $unique : ['15 mm'];
     }
 
     public function getVideoEmbedUrlAttribute(): ?string

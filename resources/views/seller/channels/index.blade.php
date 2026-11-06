@@ -854,17 +854,6 @@
                                     </button>
                                 </div>
                             </div>
-                        @if(count($pendingProducts ?? []) > 0)
-                            <div class="col-span-full pt-3 pb-1 flex items-center justify-between bg-slate-900 text-white px-5 py-3 rounded-3xl shadow-lg border border-slate-800">
-                                <span class="text-xs text-slate-300">
-                                    कुल <strong class="text-amber-400 font-mono">{{ count($pendingProducts ?? []) }}</strong> प्रोडक्ट्स कतार में
-                                </span>
-                                <button type="button" onclick="saveAllTableRowsCosting()" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95">
-                                    <i class="fa-solid fa-floppy-disk text-amber-200"></i>
-                                    <span>💾 सभी कार्ड्स एक साथ सेव करें (Save All Cards)</span>
-                                </button>
-                            </div>
-                        @endif
                         @empty
                             <div class="col-span-full p-8 sm:p-12 text-center bg-white rounded-3xl border-2 border-dashed border-amber-200/80 shadow-2xs space-y-4">
                                 <div class="h-16 w-16 mx-auto rounded-3xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl border border-amber-200 shadow-xs">
@@ -885,6 +874,18 @@
                                 </div>
                             </div>
                         @endforelse
+
+@if(count($pendingProducts ?? []) > 0)
+                            <div class="col-span-full pt-3 pb-1 flex items-center justify-between bg-slate-900 text-white px-5 py-3 rounded-3xl shadow-lg border border-slate-800">
+                                <span class="text-xs text-slate-300">
+                                    कुल <strong class="text-amber-400 font-mono">{{ count($pendingProducts ?? []) }}</strong> प्रोडक्ट्स कतार में
+                                </span>
+                                <button type="button" onclick="saveAllTableRowsCosting()" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95">
+                                    <i class="fa-solid fa-floppy-disk text-amber-200"></i>
+                                    <span>💾 सभी कार्ड्स एक साथ सेव करें (Save All Cards)</span>
+                                </button>
+                            </div>
+                        @endif
                     </div>
 
                     <!-- Pending Products List: 2. SPREADSHEET TABLE GRID VIEW (Unicommerce / EasyEcom Style) -->
