@@ -62,28 +62,28 @@ class ChannelController extends Controller
             'woocommerce' => $allListings->where('channel.channel_name', 'woocommerce')->count(),
         ];
 
-        // 2. Pending Products (The 19 products staged for Amazon/Meesho pricing & publishing)
+        // 2. Pending Products (The exact 19 products staged for Amazon/Meesho pricing & publishing)
         $channelSelectedProductIds = ChannelListing::whereHas('channel', function ($q) use ($userId) {
             $q->where('user_id', $userId);
-        })->where('sync_status', 'pending')
-          ->pluck('product_id')->unique()->toArray();
+        })->where(function ($q) {
+            $q->where('sync_status', '!=', 'synced')
+              ->orWhereNull('external_product_id');
+        })->pluck('product_id')->unique()->toArray();
 
         $stagedAttrProductIds = Product::where('user_id', $userId)
-            ->whereJsonContains('attributes->channel_staged', true)
+            ->where(function ($q) {
+                $q->whereJsonContains('attributes->channel_staged', true)
+                  ->orWhereNotNull('attributes->unit_economics');
+            })
             ->pluck('id')
             ->toArray();
 
         $allPendingIds = array_unique(array_merge($channelSelectedProductIds, $stagedAttrProductIds));
 
-        // Fallback: If merchant had products staged, ensure at least their 19 active items are preserved
-        if (empty($allPendingIds)) {
-            $allPendingIds = Product::where('user_id', $userId)->latest()->take(19)->pluck('id')->toArray();
-        }
-
         $pendingProducts = Product::where('user_id', $userId)
             ->whereIn('id', $allPendingIds)
             ->with(['category', 'variants', 'images'])
-            ->latest()
+            ->orderBy('id', 'asc')
             ->get();
 
         // Categories strictly belonging to the merchant's 19 selected E-Commerce Products
