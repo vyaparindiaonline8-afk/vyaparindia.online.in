@@ -653,7 +653,7 @@
 
                                 <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-emerald-300 shadow-2xs" title="सभी प्रोडक्ट्स में एक साथ इन्वेंट्री स्टॉक पीस भरें (उदा. 10, 20 या 50)">
                                     <span class="text-[10px] text-emerald-800 font-bold">📦 स्टॉक Qty:</span>
-                                    <input type="number" min="0" id="bulkPresetStock" value="20" class="w-12 text-xs font-mono font-bold text-emerald-800 outline-none text-center">
+                                    <input type="number" min="0" id="bulkPresetStock" value="{{ count($pendingProducts ?? []) > 0 ? ($pendingProducts->first()->stock_quantity ?? 3) : 3 }}" class="w-12 text-xs font-mono font-bold text-emerald-800 outline-none text-center">
                                     <span class="text-[10px] text-gray-400">pcs</span>
                                 </div>
 
@@ -988,7 +988,11 @@
                                 @endif
 
                                 <div class="flex items-center justify-between text-[10px] text-gray-500 px-1">
-                                    <span>📦 स्टॉक: <strong class="text-emerald-700 font-extrabold font-mono" id="card-stock-{{ $p->id }}">{{ $p->stock_quantity ?? 0 }} pcs</strong></span>
+                                    <div class="inline-flex items-center gap-1.5 bg-emerald-50 px-2 py-0.5 rounded-xl border border-emerald-200 shadow-2xs">
+                                        <span class="text-[10px] text-emerald-950 font-bold">📦 स्टॉक:</span>
+                                        <input type="number" min="0" id="card-stock-inp-{{ $p->id }}" value="{{ $p->stock_quantity ?? 3 }}" oninput="syncCardStockToRow({{ $p->id }}, this.value)" class="w-12 px-1 py-0.5 bg-white border border-emerald-300 rounded-lg font-mono font-black text-emerald-900 text-center text-xs outline-none focus:ring-1 focus:ring-emerald-500" placeholder="Qty">
+                                        <span class="text-emerald-700 font-bold text-[10px]">pcs</span>
+                                    </div>
                                     <span>🏷️ HSN: <strong class="font-mono text-gray-700 font-bold">{{ $p->hsn_code ?: '39174000' }}</strong></span>
                                 </div>
 
@@ -2999,6 +3003,19 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             markUnsavedChanges();
         }
 
+        // 2-Way Real-time stock sync from Card input to table row
+        function syncCardStockToRow(prodId, val) {
+            const qty = parseInt(val) || 0;
+            const rowInp = document.getElementById(`row-stock-${prodId}`);
+            if (rowInp) {
+                rowInp.value = qty;
+                updateStockStatusBadge(prodId);
+            }
+            const cardStock = document.getElementById(`card-stock-${prodId}`);
+            if (cardStock) cardStock.textContent = `${qty} pcs`;
+            markUnsavedChanges();
+        }
+
         // 2-Way Real-time recalculation from Card view Less %
         function recalcCardLessToCost(prodId) {
             const cardLess = document.getElementById(`card-less-${prodId}`);
@@ -3071,6 +3088,10 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             const badge = document.getElementById(`row-stock-warn-${prodId}`);
             const cell = document.getElementById(`row-stock-cell-${prodId}`);
             const val = parseInt(inp?.value) || 0;
+            const cardStockInp = document.getElementById(`card-stock-inp-${prodId}`);
+            if (cardStockInp && cardStockInp.value != val) {
+                cardStockInp.value = val;
+            }
             const cardStock = document.getElementById(`card-stock-${prodId}`);
             if (cardStock) cardStock.textContent = `${val} pcs`;
             if (val <= 0) {
@@ -3361,6 +3382,8 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                         stInp.value = stockVal;
                         updateStockStatusBadge(id);
                     }
+                    const cardStockInp = document.getElementById(`card-stock-inp-${id}`);
+                    if (cardStockInp) cardStockInp.value = stockVal;
                     const cardStock = document.getElementById(`card-stock-${id}`);
                     if (cardStock) cardStock.textContent = `${stockVal} pcs`;
                 }
@@ -3416,7 +3439,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 const gst = parseFloat(document.getElementById(`row-gst-${id}`)?.value) || 18;
                 const note = document.getElementById(`row-note-${id}`)?.value || '';
 
-                const stockInp = document.getElementById(`row-stock-${id}`);
+                const stockInp = document.getElementById(`card-stock-inp-${id}`) || document.getElementById(`row-stock-${id}`);
                 const stock = stockInp ? (parseInt(stockInp.value) || 0) : 0;
                 const cardStock = document.getElementById(`card-stock-${id}`);
                 if (cardStock) cardStock.textContent = `${stock} pcs`;
@@ -3510,7 +3533,7 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i>';
 
             const lessVal = parseFloat(document.getElementById(`row-less-${prodId}`)?.value || document.getElementById(`card-less-${prodId}`)?.value) || 0;
-            const stock = parseInt(document.getElementById(`row-stock-${prodId}`)?.value) || 0;
+            const stock = parseInt(document.getElementById(`card-stock-inp-${prodId}`)?.value || document.getElementById(`row-stock-${prodId}`)?.value) || 0;
             try {
                 const res = await fetch(`/seller/channels/products/${prodId}/save-costing`, {
                     method: 'POST',
