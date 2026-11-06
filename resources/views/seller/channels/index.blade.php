@@ -728,6 +728,20 @@
                                 $finalSellingPrice = !empty($ue['marketplace_price']) ? (float)$ue['marketplace_price'] : max($calcSellingPrice, (float)$p->price);
                                 $totalExp = round($packCost + $shipCost + $rtoBuffer + ($finalSellingPrice * $f) + $adsCost + $otherCost, 2);
                                 $netMargin = round($finalSellingPrice - $pCost - $totalExp, 2);
+
+                                // Side-by-Side Platform Prices (Amazon vs Meesho)
+                                $denomAmz = max(0.05, (1 / (1 + $g)) - 0.12);
+                                $fixedAmz = $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
+                                $calcAmz = ceil(($cTax + $fixedAmz + $desiredProfit) / $denomAmz);
+
+                                $denomMsh = max(0.05, (1 / (1 + $g)));
+                                $fixedMsh = max(35, $rtoBuffer) + $packCost + min(38, $shipCost) + $otherCost;
+                                $calcMsh = ceil(($cTax + $fixedMsh + $desiredProfit) / $denomMsh);
+
+                                // 2P, 4P, 6P Combo Rates for Card
+                                $combo2 = !empty($ue['combo_2']) ? (float)$ue['combo_2'] : ceil((($cTax * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $denom);
+                                $combo4 = !empty($ue['combo_4']) ? (float)$ue['combo_4'] : ceil((($cTax * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $denom);
+                                $combo6 = !empty($ue['combo_6']) ? (float)$ue['combo_6'] : ceil((($cTax * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $denom);
                             @endphp
                             <div class="bg-white rounded-3xl border border-gray-200 p-4 shadow-2xs hover:border-indigo-400 hover:shadow-md transition space-y-3.5 pending-card-item" id="pending-card-box-{{ $p->id }}" data-cat-id="{{ $p->category_id ?? 0 }}">
                                 <div class="flex items-start gap-3">
@@ -801,13 +815,85 @@
                                         <span>खर्चे (पैकिंग+कूरियर+फ़ी+ऐड्स):</span>
                                         <span class="font-mono font-bold text-amber-700" id="card-exp-{{ $p->id }}">+₹{{ number_format($totalExp, 2) }}</span>
                                     </div>
-                                    <div class="flex items-center justify-between text-gray-500 text-[10px]">
+
+                                    <!-- खर्चे का अलग-अलग पारदर्शी विवरण (Breakdown) -->
+                                    <div class="grid grid-cols-2 gap-1.5 pt-1 border-t border-gray-100 text-[9px] text-gray-600 font-mono">
+                                        <div class="bg-white/90 px-2 py-0.5 rounded-lg border border-gray-200/70 flex items-center justify-between shadow-2xs">
+                                            <span class="text-gray-500 font-sans">📦 पैकिंग:</span>
+                                            <span class="font-bold text-gray-900" id="card-exp-pack-{{ $p->id }}">₹{{ $packCost }}</span>
+                                        </div>
+                                        <div class="bg-white/90 px-2 py-0.5 rounded-lg border border-gray-200/70 flex items-center justify-between shadow-2xs">
+                                            <span class="text-gray-500 font-sans">🚚 कूरियर:</span>
+                                            <span class="font-bold text-gray-900" id="card-exp-ship-{{ $p->id }}">₹{{ $shipCost }}</span>
+                                        </div>
+                                        <div class="bg-white/90 px-2 py-0.5 rounded-lg border border-rose-200 flex items-center justify-between shadow-2xs">
+                                            <span class="text-rose-700 font-sans">🔄 RTO बफ़र:</span>
+                                            <span class="font-bold text-rose-800" id="card-exp-rto-{{ $p->id }}">₹{{ $rtoBuffer }}</span>
+                                        </div>
+                                        <div class="bg-white/90 px-2 py-0.5 rounded-lg border border-purple-200 flex items-center justify-between shadow-2xs">
+                                            <span class="text-purple-700 font-sans">🏷️ फ़ी+ऐड्स:</span>
+                                            <span class="font-bold text-purple-900" id="card-exp-fee-{{ $p->id }}">₹{{ round(($finalSellingPrice * $f) + $adsCost + $otherCost) }}</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between text-gray-500 text-[10px] pt-1">
                                         <span>शुद्ध मुनाफा / मार्जिन:</span>
                                         <span class="font-mono font-extrabold text-emerald-700" id="card-profit-{{ $p->id }}">₹{{ number_format($desiredProfit, 2) }} ({{ $marginPct }}%)</span>
                                     </div>
                                     <div class="flex items-center justify-between pt-1 border-t border-gray-200">
                                         <span class="font-extrabold text-gray-900">फाइनल सेलिंग रेट:</span>
                                         <span class="font-black text-emerald-700 text-xs font-mono" id="card-price-{{ $p->id }}">₹{{ number_format($finalSellingPrice, 2) }}</span>
+                                    </div>
+
+                                    <!-- दोनों प्लेटफॉर्म के सेलिंग रेट्स (Amazon vs Meesho) -->
+                                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200">
+                                        <div class="bg-gradient-to-br from-amber-50 to-orange-50 p-2 rounded-xl border border-amber-200 text-center shadow-2xs">
+                                            <div class="flex items-center justify-center gap-1 text-[10px] font-black text-amber-950">
+                                                <i class="fa-brands fa-amazon text-amber-600 text-xs"></i>
+                                                <span>Amazon भाव</span>
+                                            </div>
+                                            <div class="text-xs font-black text-amber-950 font-mono mt-0.5" id="card-amz-price-{{ $p->id }}">
+                                                ₹{{ number_format($calcAmz, 2) }}
+                                            </div>
+                                            <div class="text-[8px] text-amber-700 font-semibold">(12% फ़ी सहित)</div>
+                                        </div>
+                                        <div class="bg-gradient-to-br from-pink-50 to-rose-50 p-2 rounded-xl border border-pink-200 text-center shadow-2xs">
+                                            <div class="flex items-center justify-center gap-1 text-[10px] font-black text-pink-950">
+                                                <span class="text-xs">🌸</span>
+                                                <span>Meesho भाव</span>
+                                            </div>
+                                            <div class="text-xs font-black text-pink-950 font-mono mt-0.5" id="card-msh-price-{{ $p->id }}">
+                                                ₹{{ number_format($calcMsh, 2) }}
+                                            </div>
+                                            <div class="text-[8px] text-pink-700 font-semibold">(0% फ़ी, RTO सुरक्षित)</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 2P, 4P, 6P Combo Rates directly on Card -->
+                                <div class="p-2.5 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 rounded-2xl border border-purple-200/80 text-[10px] space-y-1.5 shadow-2xs">
+                                    <div class="flex items-center justify-between font-black text-purple-950">
+                                        <span class="flex items-center gap-1.5">
+                                            <i class="fa-solid fa-layer-group text-purple-600"></i>
+                                            <span>मल्टी-पैक कॉम्बो रेट्स (2 / 4 / 6 पीस):</span>
+                                        </span>
+                                        <button type="button" onclick="openComboCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="text-[9px] text-purple-700 hover:text-purple-900 font-bold underline cursor-pointer" title="कॉम्बो खर्च व मुनाफा विवरण खोलें">
+                                            कैलकुलेटर ↗
+                                        </button>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-1.5 text-center font-mono">
+                                        <div class="bg-white p-1 rounded-xl border border-purple-200 shadow-2xs">
+                                            <div class="text-[8px] font-bold text-gray-500 font-sans">2 पीस पैक</div>
+                                            <div class="text-xs font-black text-indigo-950" id="card-combo2-{{ $p->id }}">₹{{ $combo2 }}</div>
+                                        </div>
+                                        <div class="bg-white p-1 rounded-xl border border-purple-200 shadow-2xs">
+                                            <div class="text-[8px] font-bold text-gray-500 font-sans">4 पीस पैक</div>
+                                            <div class="text-xs font-black text-purple-950" id="card-combo4-{{ $p->id }}">₹{{ $combo4 }}</div>
+                                        </div>
+                                        <div class="bg-white p-1 rounded-xl border border-purple-200 shadow-2xs">
+                                            <div class="text-[8px] font-bold text-gray-500 font-sans">6 पीस पैक</div>
+                                            <div class="text-xs font-black text-emerald-800" id="card-combo6-{{ $p->id }}">₹{{ $combo6 }}</div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -949,6 +1035,15 @@
                                         $combo2 = !empty($ue['combo_2']) ? (float)$ue['combo_2'] : ceil((($cTax * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $denom);
                                         $combo4 = !empty($ue['combo_4']) ? (float)$ue['combo_4'] : ceil((($cTax * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $denom);
                                         $combo6 = !empty($ue['combo_6']) ? (float)$ue['combo_6'] : ceil((($cTax * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $denom);
+
+                                        // Side-by-Side Platform Prices (Amazon vs Meesho)
+                                        $denomAmz = max(0.05, (1 / (1 + $g)) - 0.12);
+                                        $fixedAmz = $rtoBuffer + $packCost + $shipCost + $adsCost + $otherCost;
+                                        $calcAmz = ceil(($cTax + $fixedAmz + $desiredProfit) / $denomAmz);
+
+                                        $denomMsh = max(0.05, (1 / (1 + $g)));
+                                        $fixedMsh = max(35, $rtoBuffer) + $packCost + min(38, $shipCost) + $otherCost;
+                                        $calcMsh = ceil(($cTax + $fixedMsh + $desiredProfit) / $denomMsh);
                                     @endphp
                                     <tr class="hover:bg-indigo-50/20 transition group" id="table-row-{{ $p->id }}" data-id="{{ $p->id }}" data-cat-id="{{ $p->category_id ?? 0 }}">
                                         <td class="p-3 text-center">
@@ -1101,14 +1196,24 @@
 
                                         <!-- 7. Final Selling Price (₹) -->
                                         <td class="p-2 bg-amber-50/50">
-                                            <div class="flex items-center gap-1.5">
-                                                <div class="relative">
-                                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-amber-600 font-bold text-[10px]">₹</span>
-                                                    <input type="number" step="1" id="row-price-{{ $p->id }}" value="{{ $finalSellingPrice }}" oninput="syncManualPriceToCard({{ $p->id }})" class="w-20 pl-5 pr-1.5 py-1 bg-white border border-amber-300 rounded-lg text-xs font-mono font-black text-amber-950 focus:border-amber-500 focus:outline-none">
+                                            <div class="space-y-1">
+                                                <div class="flex items-center gap-1.5">
+                                                    <div class="relative">
+                                                        <span class="absolute left-2 top-1/2 -translate-y-1/2 text-amber-600 font-bold text-[10px]">₹</span>
+                                                        <input type="number" step="1" id="row-price-{{ $p->id }}" value="{{ $finalSellingPrice }}" oninput="syncManualPriceToCard({{ $p->id }})" class="w-20 pl-5 pr-1.5 py-1 bg-white border border-amber-300 rounded-lg text-xs font-mono font-black text-amber-950 focus:border-amber-500 focus:outline-none" title="फाइनल सेलिंग रेट (एडिट कर सकते हैं)">
+                                                    </div>
+                                                    <button type="button" onclick="saveTableRowCosting({{ $p->id }}, this)" class="h-7 w-7 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition shadow-2xs cursor-pointer" title="इस रो का रेट सेव करें">
+                                                        <i class="fa-solid fa-floppy-disk text-xs"></i>
+                                                    </button>
                                                 </div>
-                                                <button type="button" onclick="saveTableRowCosting({{ $p->id }}, this)" class="h-7 w-7 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition shadow-2xs cursor-pointer" title="इस रो का रेट सेव करें">
-                                                    <i class="fa-solid fa-floppy-disk text-xs"></i>
-                                                </button>
+                                                <div class="flex items-center gap-1 text-[9px] font-mono">
+                                                    <span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200 font-bold whitespace-nowrap" title="Amazon अनुमानित भाव (12% फ़ी सहित)">
+                                                        🟠 Amz: ₹<span id="row-amz-price-{{ $p->id }}">{{ $calcAmz }}</span>
+                                                    </span>
+                                                    <span class="px-1.5 py-0.5 rounded bg-pink-100 text-pink-900 border border-pink-200 font-bold whitespace-nowrap" title="Meesho अनुमानित भाव (0% फ़ी, RTO सुरक्षित)">
+                                                        🌸 Msh: ₹<span id="row-msh-price-{{ $p->id }}">{{ $calcMsh }}</span>
+                                                    </span>
+                                                </div>
                                             </div>
                                         </td>
 
@@ -1117,15 +1222,15 @@
                                             <div class="inline-flex items-center gap-1 font-mono text-[10px]">
                                                 <div class="flex flex-col items-center">
                                                     <span class="text-[8px] font-bold text-gray-500">2P ₹</span>
-                                                    <input type="number" id="row-combo2-{{ $p->id }}" value="{{ $combo2 }}" class="w-14 px-1 py-0.5 bg-white border border-gray-300 rounded text-center text-[10px] font-mono font-bold text-indigo-950 focus:border-indigo-500 focus:outline-none" title="2 पीस पैक का सेलिंग रेट (एडिट कर सकते हैं)">
+                                                    <input type="number" id="row-combo2-{{ $p->id }}" value="{{ $combo2 }}" oninput="syncComboToCard({{ $p->id }}, 2, this.value)" class="w-14 px-1 py-0.5 bg-white border border-gray-300 rounded text-center text-[10px] font-mono font-bold text-indigo-950 focus:border-indigo-500 focus:outline-none" title="2 पीस पैक का सेलिंग रेट (एडिट कर सकते हैं)">
                                                 </div>
                                                 <div class="flex flex-col items-center">
                                                     <span class="text-[8px] font-bold text-gray-500">4P ₹</span>
-                                                    <input type="number" id="row-combo4-{{ $p->id }}" value="{{ $combo4 }}" class="w-14 px-1 py-0.5 bg-white border border-gray-300 rounded text-center text-[10px] font-mono font-bold text-indigo-950 focus:border-indigo-500 focus:outline-none" title="4 पीस पैक का सेलिंग रेट (एडिट कर सकते हैं)">
+                                                    <input type="number" id="row-combo4-{{ $p->id }}" value="{{ $combo4 }}" oninput="syncComboToCard({{ $p->id }}, 4, this.value)" class="w-14 px-1 py-0.5 bg-white border border-gray-300 rounded text-center text-[10px] font-mono font-bold text-indigo-950 focus:border-indigo-500 focus:outline-none" title="4 पीस पैक का सेलिंग रेट (एडिट कर सकते हैं)">
                                                 </div>
                                                 <div class="flex flex-col items-center">
                                                     <span class="text-[8px] font-bold text-gray-500">6P ₹</span>
-                                                    <input type="number" id="row-combo6-{{ $p->id }}" value="{{ $combo6 }}" class="w-14 px-1 py-0.5 bg-white border border-gray-300 rounded text-center text-[10px] font-mono font-bold text-indigo-950 focus:border-indigo-500 focus:outline-none" title="6 पीस पैक का सेलिंग रेट (एडिट कर सकते हैं)">
+                                                    <input type="number" id="row-combo6-{{ $p->id }}" value="{{ $combo6 }}" oninput="syncComboToCard({{ $p->id }}, 6, this.value)" class="w-14 px-1 py-0.5 bg-white border border-gray-300 rounded text-center text-[10px] font-mono font-bold text-indigo-950 focus:border-indigo-500 focus:outline-none" title="6 पीस पैक का सेलिंग रेट (एडिट कर सकते हैं)">
                                                 </div>
                                                 <button type="button" onclick="openComboCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="h-8 px-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 flex flex-col items-center justify-center transition shadow-2xs cursor-pointer ml-0.5" title="2P/4P/6P खर्च, कूरियर व मुनाफा पॉपअप में देखें व बदलें">
                                                     <i class="fa-solid fa-eye text-xs"></i>
@@ -2933,6 +3038,44 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 else rC6.textContent = `6P: ₹${c6}`;
             }
 
+            // 🔄 Platform-wise prices (Amazon 12% fee vs Meesho 0% fee)
+            const denomAmz = Math.max(0.05, (1 / (1 + g)) - 0.12);
+            const fixedAmz = rto + pack + ship + ads + others;
+            const calcAmz = Math.ceil((cTax + fixedAmz + desiredProfit) / denomAmz);
+
+            const denomMsh = Math.max(0.05, (1 / (1 + g)));
+            const fixedMsh = Math.max(35, rto) + pack + Math.min(38, ship) + others;
+            const calcMsh = Math.ceil((cTax + fixedMsh + desiredProfit) / denomMsh);
+
+            // Update Amazon & Meesho badges in row and card
+            const rowAmz = document.getElementById(`row-amz-price-${prodId}`);
+            if (rowAmz) rowAmz.textContent = calcAmz;
+            const cardAmz = document.getElementById(`card-amz-price-${prodId}`);
+            if (cardAmz) cardAmz.textContent = `₹${calcAmz.toFixed(2)}`;
+
+            const rowMsh = document.getElementById(`row-msh-price-${prodId}`);
+            if (rowMsh) rowMsh.textContent = calcMsh;
+            const cardMsh = document.getElementById(`card-msh-price-${prodId}`);
+            if (cardMsh) cardMsh.textContent = `₹${calcMsh.toFixed(2)}`;
+
+            // Update Card Combo spans
+            const cardC2 = document.getElementById(`card-combo2-${prodId}`);
+            if (cardC2) cardC2.textContent = `₹${c2}`;
+            const cardC4 = document.getElementById(`card-combo4-${prodId}`);
+            if (cardC4) cardC4.textContent = `₹${c4}`;
+            const cardC6 = document.getElementById(`card-combo6-${prodId}`);
+            if (cardC6) cardC6.textContent = `₹${c6}`;
+
+            // Update Card Expenses Breakdown
+            const cardPack = document.getElementById(`card-exp-pack-${prodId}`);
+            if (cardPack) cardPack.textContent = `₹${pack}`;
+            const cardShip = document.getElementById(`card-exp-ship-${prodId}`);
+            if (cardShip) cardShip.textContent = `₹${ship}`;
+            const cardRto = document.getElementById(`card-exp-rto-${prodId}`);
+            if (cardRto) cardRto.textContent = `₹${rto}`;
+            const cardFee = document.getElementById(`card-exp-fee-${prodId}`);
+            if (cardFee) cardFee.textContent = `₹${Math.round((finalRate * f) + ads + others)}`;
+
             // 🔄 INSTANT LIVE SYNC TO CORRESPONDING PHOTO CARD!
             const cardPrice = document.getElementById(`card-price-${prodId}`);
             if (cardPrice) cardPrice.textContent = `₹${finalRate.toFixed(2)}`;
@@ -2946,6 +3089,13 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
 
             const cardProfit = document.getElementById(`card-profit-${prodId}`);
             if (cardProfit) cardProfit.textContent = `₹${desiredProfit.toFixed(2)} (${marginPct}%)`;
+        }
+
+        // Live sync combo input in table row to card badge
+        function syncComboToCard(prodId, qty, val) {
+            const el = document.getElementById(`card-combo${qty}-${prodId}`);
+            if (el) el.textContent = `₹${val}`;
+            markUnsavedChanges();
         }
 
         // Sync row margin to top preset input when edited so user knows it's ready to apply
