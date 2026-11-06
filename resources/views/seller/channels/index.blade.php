@@ -738,10 +738,15 @@
                                 $fixedMsh = max(35, $rtoBuffer) + $packCost + min(38, $shipCost) + $otherCost;
                                 $calcMsh = ceil(($cTax + $fixedMsh + $desiredProfit) / $denomMsh);
 
-                                // 2P, 4P, 6P Combo Rates for Card
-                                $combo2 = !empty($ue['combo_2']) ? (float)$ue['combo_2'] : ceil((($cTax * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $denom);
-                                $combo4 = !empty($ue['combo_4']) ? (float)$ue['combo_4'] : ceil((($cTax * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $denom);
-                                $combo6 = !empty($ue['combo_6']) ? (float)$ue['combo_6'] : ceil((($cTax * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $denom);
+                                // 2P, 4P, 6P Combo Rates for Amazon
+                                $combo2 = !empty($ue['combo_2']) ? (float)$ue['combo_2'] : ceil((($cTax * 2) + ($desiredProfit * 1.8) + ($rtoBuffer * 1.5) + ($packCost * 1.3) + $shipCost + ($adsCost * 1.2)) / $denomAmz);
+                                $combo4 = !empty($ue['combo_4']) ? (float)$ue['combo_4'] : ceil((($cTax * 4) + ($desiredProfit * 3.5) + ($rtoBuffer * 2.0) + ($packCost * 1.6) + ($shipCost * 1.2) + ($adsCost * 1.5)) / $denomAmz);
+                                $combo6 = !empty($ue['combo_6']) ? (float)$ue['combo_6'] : ceil((($cTax * 6) + ($desiredProfit * 5.0) + ($rtoBuffer * 2.5) + ($packCost * 2.0) + ($shipCost * 1.4) + ($adsCost * 1.8)) / $denomAmz);
+
+                                // 2P, 4P, 6P Combo Rates for Meesho (0% Platform Fee, RTO 35, Courier 38)
+                                $mshCombo2 = ceil((($cTax * 2) + ($desiredProfit * 1.8) + (max(35, $rtoBuffer) * 1.4) + ($packCost * 1.3) + min(38, $shipCost)) / $denomMsh);
+                                $mshCombo4 = ceil((($cTax * 4) + ($desiredProfit * 3.5) + (max(35, $rtoBuffer) * 1.8) + ($packCost * 1.6) + (min(38, $shipCost) * 1.15)) / $denomMsh);
+                                $mshCombo6 = ceil((($cTax * 6) + ($desiredProfit * 5.0) + (max(35, $rtoBuffer) * 2.2) + ($packCost * 2.0) + (min(38, $shipCost) * 1.3)) / $denomMsh);
                             @endphp
                             <div class="bg-white rounded-3xl border border-gray-200 p-4 shadow-2xs hover:border-indigo-400 hover:shadow-md transition space-y-3.5 pending-card-item" id="pending-card-box-{{ $p->id }}" data-cat-id="{{ $p->category_id ?? 0 }}">
                                 <div class="flex items-start gap-3">
@@ -901,8 +906,8 @@
                                     </div>
                                 </div>
 
-                                <!-- 2P, 4P, 6P Combo Rates directly on Card -->
-                                <div class="p-2.5 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 rounded-2xl border border-purple-200/80 text-[10px] space-y-1.5 shadow-2xs">
+                                <!-- 2P, 4P, 6P Combo Rates directly on Card (Amazon & Meesho Side-by-Side) -->
+                                <div class="p-2.5 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 rounded-2xl border border-purple-200/80 text-[10px] space-y-2 shadow-2xs">
                                     <div class="flex items-center justify-between font-black text-purple-950">
                                         <span class="flex items-center gap-1.5">
                                             <i class="fa-solid fa-layer-group text-purple-600"></i>
@@ -912,18 +917,54 @@
                                             कैलकुलेटर ↗
                                         </button>
                                     </div>
-                                    <div class="grid grid-cols-3 gap-1.5 text-center font-mono">
-                                        <div class="bg-white p-1 rounded-xl border border-purple-200 shadow-2xs">
-                                            <div class="text-[8px] font-bold text-gray-500 font-sans">2 पीस पैक</div>
-                                            <div class="text-xs font-black text-indigo-950" id="card-combo2-{{ $p->id }}">₹{{ $combo2 }}</div>
+
+                                    <!-- 🟠 Amazon 2/4/6 Combo Rates Row -->
+                                    <div class="space-y-1">
+                                        <div class="flex items-center justify-between text-[9px] font-black text-amber-950 px-0.5">
+                                            <span class="flex items-center gap-1">
+                                                <i class="fa-brands fa-amazon text-amber-600 text-xs"></i>
+                                                <span>Amazon कॉम्बो भाव:</span>
+                                            </span>
+                                            <span class="text-[8px] text-amber-700 font-medium">(12% फ़ी सहित)</span>
                                         </div>
-                                        <div class="bg-white p-1 rounded-xl border border-purple-200 shadow-2xs">
-                                            <div class="text-[8px] font-bold text-gray-500 font-sans">4 पीस पैक</div>
-                                            <div class="text-xs font-black text-purple-950" id="card-combo4-{{ $p->id }}">₹{{ $combo4 }}</div>
+                                        <div class="grid grid-cols-3 gap-1.5 text-center font-mono">
+                                            <div class="bg-amber-50/70 p-1.5 rounded-xl border border-amber-200 shadow-2xs">
+                                                <div class="text-[8px] font-bold text-amber-800 font-sans">2P Amazon</div>
+                                                <div class="text-xs font-black text-amber-950" id="card-combo2-{{ $p->id }}">₹{{ $combo2 }}</div>
+                                            </div>
+                                            <div class="bg-amber-50/70 p-1.5 rounded-xl border border-amber-200 shadow-2xs">
+                                                <div class="text-[8px] font-bold text-amber-800 font-sans">4P Amazon</div>
+                                                <div class="text-xs font-black text-amber-950" id="card-combo4-{{ $p->id }}">₹{{ $combo4 }}</div>
+                                            </div>
+                                            <div class="bg-amber-50/70 p-1.5 rounded-xl border border-amber-200 shadow-2xs">
+                                                <div class="text-[8px] font-bold text-amber-800 font-sans">6P Amazon</div>
+                                                <div class="text-xs font-black text-amber-950" id="card-combo6-{{ $p->id }}">₹{{ $combo6 }}</div>
+                                            </div>
                                         </div>
-                                        <div class="bg-white p-1 rounded-xl border border-purple-200 shadow-2xs">
-                                            <div class="text-[8px] font-bold text-gray-500 font-sans">6 पीस पैक</div>
-                                            <div class="text-xs font-black text-emerald-800" id="card-combo6-{{ $p->id }}">₹{{ $combo6 }}</div>
+                                    </div>
+
+                                    <!-- 🌸 Meesho 2/4/6 Combo Rates Row -->
+                                    <div class="space-y-1 pt-1.5 border-t border-purple-200/60">
+                                        <div class="flex items-center justify-between text-[9px] font-black text-pink-950 px-0.5">
+                                            <span class="flex items-center gap-1">
+                                                <span class="text-xs">🌸</span>
+                                                <span>Meesho कॉम्बो भाव:</span>
+                                            </span>
+                                            <span class="text-[8px] text-pink-700 font-medium">(0% फ़ी, RTO सुरक्षित)</span>
+                                        </div>
+                                        <div class="grid grid-cols-3 gap-1.5 text-center font-mono">
+                                            <div class="bg-pink-50/70 p-1.5 rounded-xl border border-pink-200 shadow-2xs">
+                                                <div class="text-[8px] font-bold text-pink-800 font-sans">2P Meesho</div>
+                                                <div class="text-xs font-black text-pink-950" id="card-msh-combo2-{{ $p->id }}">₹{{ $mshCombo2 }}</div>
+                                            </div>
+                                            <div class="bg-pink-50/70 p-1.5 rounded-xl border border-pink-200 shadow-2xs">
+                                                <div class="text-[8px] font-bold text-pink-800 font-sans">4P Meesho</div>
+                                                <div class="text-xs font-black text-pink-950" id="card-msh-combo4-{{ $p->id }}">₹{{ $mshCombo4 }}</div>
+                                            </div>
+                                            <div class="bg-pink-50/70 p-1.5 rounded-xl border border-pink-200 shadow-2xs">
+                                                <div class="text-[8px] font-bold text-pink-800 font-sans">6P Meesho</div>
+                                                <div class="text-xs font-black text-pink-950" id="card-msh-combo6-{{ $p->id }}">₹{{ $mshCombo6 }}</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -947,7 +988,7 @@
                                 @endif
 
                                 <div class="flex items-center justify-between text-[10px] text-gray-500 px-1">
-                                    <span>📦 स्टॉक: <strong class="text-emerald-700 font-extrabold font-mono">{{ $p->stock_quantity ?? 50 }} pcs</strong></span>
+                                    <span>📦 स्टॉक: <strong class="text-emerald-700 font-extrabold font-mono" id="card-stock-{{ $p->id }}">{{ $p->stock_quantity ?? 0 }} pcs</strong></span>
                                     <span>🏷️ HSN: <strong class="font-mono text-gray-700 font-bold">{{ $p->hsn_code ?: '39174000' }}</strong></span>
                                 </div>
 
@@ -1075,6 +1116,11 @@
                                         $denomMsh = max(0.05, (1 / (1 + $g)));
                                         $fixedMsh = max(35, $rtoBuffer) + $packCost + min(38, $shipCost) + $otherCost;
                                         $calcMsh = ceil(($cTax + $fixedMsh + $desiredProfit) / $denomMsh);
+
+                                        // 2P, 4P, 6P Combo Rates for Meesho (0% Platform Fee, RTO 35, Courier 38)
+                                        $mshCombo2 = ceil((($cTax * 2) + ($desiredProfit * 1.8) + (max(35, $rtoBuffer) * 1.4) + ($packCost * 1.3) + min(38, $shipCost)) / $denomMsh);
+                                        $mshCombo4 = ceil((($cTax * 4) + ($desiredProfit * 3.5) + (max(35, $rtoBuffer) * 1.8) + ($packCost * 1.6) + (min(38, $shipCost) * 1.15)) / $denomMsh);
+                                        $mshCombo6 = ceil((($cTax * 6) + ($desiredProfit * 5.0) + (max(35, $rtoBuffer) * 2.2) + ($packCost * 2.0) + (min(38, $shipCost) * 1.3)) / $denomMsh);
                                     @endphp
                                     <tr class="hover:bg-indigo-50/20 transition group" id="table-row-{{ $p->id }}" data-id="{{ $p->id }}" data-cat-id="{{ $p->category_id ?? 0 }}">
                                         <td class="p-3 text-center">
@@ -1267,6 +1313,14 @@
                                                     <i class="fa-solid fa-eye text-xs"></i>
                                                     <span class="text-[7px] font-black uppercase">विवरण</span>
                                                 </button>
+                                            </div>
+                                            <div class="flex items-center justify-center gap-1 mt-1 text-[8px] font-mono">
+                                                <span class="px-1 py-0.2 rounded bg-amber-50 text-amber-900 border border-amber-200" title="Amazon 2P/4P/6P भाव">
+                                                    🟠 Amz: <span id="row-amz-combo2-{{ $p->id }}">{{ $combo2 }}</span>/<span id="row-amz-combo4-{{ $p->id }}">{{ $combo4 }}</span>/<span id="row-amz-combo6-{{ $p->id }}">{{ $combo6 }}</span>
+                                                </span>
+                                                <span class="px-1 py-0.2 rounded bg-pink-50 text-pink-900 border border-pink-200" title="Meesho 2P/4P/6P भाव (0% फ़ी)">
+                                                    🌸 Msh: <span id="row-msh-combo2-{{ $p->id }}">{{ $mshCombo2 }}</span>/<span id="row-msh-combo4-{{ $p->id }}">{{ $mshCombo4 }}</span>/<span id="row-msh-combo6-{{ $p->id }}">{{ $mshCombo6 }}</span>
+                                                </span>
                                             </div>
                                         </td>
 
@@ -3017,6 +3071,8 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             const badge = document.getElementById(`row-stock-warn-${prodId}`);
             const cell = document.getElementById(`row-stock-cell-${prodId}`);
             const val = parseInt(inp?.value) || 0;
+            const cardStock = document.getElementById(`card-stock-${prodId}`);
+            if (cardStock) cardStock.textContent = `${val} pcs`;
             if (val <= 0) {
                 if (badge) {
                     badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> 0 स्टॉक';
@@ -3104,13 +3160,40 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             const cardMsh = document.getElementById(`card-msh-price-${prodId}`);
             if (cardMsh) cardMsh.textContent = `₹${calcMsh.toFixed(2)}`;
 
-            // Update Card Combo spans
+            // Meesho Combo calculations (0% fee, RTO 35, ship 38)
+            const mshC2 = Math.ceil(((cTax * 2) + (desiredProfit * 1.8) + (Math.max(35, rto) * 1.4) + (pack * 1.3) + Math.min(38, ship)) / denomMsh);
+            const mshC4 = Math.ceil(((cTax * 4) + (desiredProfit * 3.5) + (Math.max(35, rto) * 1.8) + (pack * 1.6) + (Math.min(38, ship) * 1.15)) / denomMsh);
+            const mshC6 = Math.ceil(((cTax * 6) + (desiredProfit * 5.0) + (Math.max(35, rto) * 2.2) + (pack * 2.0) + (Math.min(38, ship) * 1.3)) / denomMsh);
+
+            // Update Amazon & Meesho Card Combo spans
             const cardC2 = document.getElementById(`card-combo2-${prodId}`);
             if (cardC2) cardC2.textContent = `₹${c2}`;
             const cardC4 = document.getElementById(`card-combo4-${prodId}`);
             if (cardC4) cardC4.textContent = `₹${c4}`;
             const cardC6 = document.getElementById(`card-combo6-${prodId}`);
             if (cardC6) cardC6.textContent = `₹${c6}`;
+
+            const elM2 = document.getElementById(`card-msh-combo2-${prodId}`);
+            if (elM2) elM2.textContent = `₹${mshC2}`;
+            const elM4 = document.getElementById(`card-msh-combo4-${prodId}`);
+            if (elM4) elM4.textContent = `₹${mshC4}`;
+            const elM6 = document.getElementById(`card-msh-combo6-${prodId}`);
+            if (elM6) elM6.textContent = `₹${mshC6}`;
+
+            // Update Table Row combo badges
+            const rAmzC2 = document.getElementById(`row-amz-combo2-${prodId}`);
+            if (rAmzC2) rAmzC2.textContent = c2;
+            const rAmzC4 = document.getElementById(`row-amz-combo4-${prodId}`);
+            if (rAmzC4) rAmzC4.textContent = c4;
+            const rAmzC6 = document.getElementById(`row-amz-combo6-${prodId}`);
+            if (rAmzC6) rAmzC6.textContent = c6;
+
+            const rMshC2 = document.getElementById(`row-msh-combo2-${prodId}`);
+            if (rMshC2) rMshC2.textContent = mshC2;
+            const rMshC4 = document.getElementById(`row-msh-combo4-${prodId}`);
+            if (rMshC4) rMshC4.textContent = mshC4;
+            const rMshC6 = document.getElementById(`row-msh-combo6-${prodId}`);
+            if (rMshC6) rMshC6.textContent = mshC6;
 
             // Update Card Expenses Breakdown
             const cardPack = document.getElementById(`card-exp-pack-${prodId}`);
@@ -3278,6 +3361,8 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                         stInp.value = stockVal;
                         updateStockStatusBadge(id);
                     }
+                    const cardStock = document.getElementById(`card-stock-${id}`);
+                    if (cardStock) cardStock.textContent = `${stockVal} pcs`;
                 }
 
                 const rtoInput = document.getElementById(`row-rto-${id}`);
@@ -3330,6 +3415,11 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 const hsn = document.getElementById(`row-hsn-${id}`)?.value || '';
                 const gst = parseFloat(document.getElementById(`row-gst-${id}`)?.value) || 18;
                 const note = document.getElementById(`row-note-${id}`)?.value || '';
+
+                const stockInp = document.getElementById(`row-stock-${id}`);
+                const stock = stockInp ? (parseInt(stockInp.value) || 0) : 0;
+                const cardStock = document.getElementById(`card-stock-${id}`);
+                if (cardStock) cardStock.textContent = `${stock} pcs`;
 
                 const lessVal = parseFloat(document.getElementById(`row-less-${id}`)?.value) || 0;
                 const c2Val = parseFloat(document.getElementById(`row-combo2-${id}`)?.value) || 0;

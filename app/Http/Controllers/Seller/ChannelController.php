@@ -646,6 +646,14 @@ class ChannelController extends Controller
             $product->gst_percent = (float)$request->input('gst_percent', 18);
         }
 
+        if ($request->has('stock_quantity')) {
+            $sq = max(0, intval($request->input('stock_quantity')));
+            $product->stock_quantity = $sq;
+            if ($product->variants()->exists()) {
+                $product->variants()->update(['stock_quantity' => $sq]);
+            }
+        }
+
         if ($product->variants()->exists()) {
             $vUpdates = [];
             if (isset($validated['purchase_price'])) {
@@ -745,7 +753,11 @@ class ChannelController extends Controller
                 }
             }
             if (isset($item['stock_quantity'])) {
-                $product->stock_quantity = max(0, intval($item['stock_quantity']));
+                $sq = max(0, intval($item['stock_quantity']));
+                $product->stock_quantity = $sq;
+                if ($product->variants()->exists()) {
+                    $product->variants()->update(['stock_quantity' => $sq]);
+                }
             }
             if (isset($item['price']) && $item['price'] > 0) {
                 $product->price = (float)$item['price'];
