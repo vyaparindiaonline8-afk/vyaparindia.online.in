@@ -86,11 +86,11 @@ class ChannelController extends Controller
             ->latest()
             ->get();
 
-        // 3. All store products for the "दुकान कैटलॉग (Available Store Products)" tab with Category groups
-        $storeCategories = Category::whereHas('products', function ($q) use ($userId) {
-            $q->where('user_id', $userId);
-        })->withCount(['products' => function ($q) use ($userId) {
-            $q->where('user_id', $userId);
+        // Categories strictly belonging to the merchant's 19 selected E-Commerce Products
+        $ecomCategories = Category::whereHas('products', function ($q) use ($userId, $allPendingIds) {
+            $q->where('user_id', $userId)->whereIn('id', $allPendingIds);
+        })->withCount(['products' => function ($q) use ($userId, $allPendingIds) {
+            $q->where('user_id', $userId)->whereIn('id', $allPendingIds);
         }])->get();
 
         $allStoreProducts = Product::where('user_id', $userId)
@@ -133,7 +133,7 @@ class ChannelController extends Controller
             ],
         ];
 
-        return view('seller.channels.index', compact('channels', 'supportedChannels', 'allListings', 'channelListingCounts', 'pendingProducts', 'allStoreProducts', 'storeCategories', 'allPendingIds', 'channelOrders', 'analytics'));
+        return view('seller.channels.index', compact('channels', 'supportedChannels', 'allListings', 'channelListingCounts', 'pendingProducts', 'allStoreProducts', 'ecomCategories', 'allPendingIds', 'channelOrders', 'analytics'));
     }
 
     // Connect or Update a Channel (Supports Partial Saves - fill 1 or 2 fields now, rest later)
