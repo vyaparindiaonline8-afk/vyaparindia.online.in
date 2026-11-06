@@ -62,12 +62,9 @@ class ChannelController extends Controller
             'woocommerce' => $allListings->where('channel.channel_name', 'woocommerce')->count(),
         ];
 
-        // 2. Pending Products (The exact 19 products staged for Amazon/Meesho pricing & publishing)
+        // 2. Multichannel Products (All products staged for Amazon/Meesho pricing & publishing, regardless of sync status)
         $channelSelectedProductIds = ChannelListing::whereHas('channel', function ($q) use ($userId) {
             $q->where('user_id', $userId);
-        })->where(function ($q) {
-            $q->where('sync_status', '!=', 'synced')
-              ->orWhereNull('external_product_id');
         })->pluck('product_id')->unique()->toArray();
 
         $stagedAttrProductIds = Product::where('user_id', $userId)
@@ -525,7 +522,8 @@ class ChannelController extends Controller
 
                     $attrs = $prod->attributes ?? [];
                     if ($res['success']) {
-                        unset($attrs['channel_staged']);
+                        // Keep channel_staged = true so products always remain manageable in multichannel workspace
+                        $attrs['channel_staged'] = true;
                         $attrs['amazon_sync'] = [
                             'status' => 'synced',
                             'submission_id' => $res['submission_id'] ?? null,
@@ -572,11 +570,10 @@ class ChannelController extends Controller
                 // Staged mock listing / other channel sync
                 foreach ($selectedProducts as $product) {
                     $attrs = $product->attributes ?? [];
-                    if (isset($attrs['channel_staged'])) {
-                        unset($attrs['channel_staged']);
-                        $product->attributes = $attrs;
-                        $product->save();
-                    }
+                    // Keep channel_staged = true so products always remain in multichannel workspace
+                    $attrs['channel_staged'] = true;
+                    $product->attributes = $attrs;
+                    $product->save();
 
                     $externalId = strtoupper($channel->channel_name) . '-' . rand(10000, 99999);
                     $listingUrl = $channel->store_url ? rtrim($channel->store_url, '/') . '/dp/' . $externalId : null;
