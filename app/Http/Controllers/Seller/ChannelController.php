@@ -32,18 +32,7 @@ class ChannelController extends Controller
             'woocommerce' => ['name' => 'WooCommerce (WordPress)', 'icon' => 'fa-brands fa-wordpress', 'color' => 'text-purple-600', 'bg' => 'bg-purple-50', 'sla' => 'Self Ship'],
         ];
 
-        // 1. Clean out mock / dummy listings so "Live Published" strictly shows real confirmed syncs
-        ChannelListing::whereHas('channel', function ($q) use ($userId) {
-            $q->where('user_id', $userId);
-        })->where(function ($q) {
-            $q->where('external_product_id', 'like', 'AMZN-%')
-              ->orWhere('external_product_id', 'like', 'MEESHO-%')
-              ->orWhere('external_product_id', 'like', 'FLIPKART-%')
-              ->orWhere('external_product_id', 'like', 'SHOPIFY-%')
-              ->orWhere('external_product_id', 'like', 'WOOCOMMERCE-%')
-              ->orWhere('external_product_id', 'like', 'shp_%')
-              ->orWhere('external_product_id', 'like', 'woo_%');
-        })->delete();
+        // 1. Confirmed Live Published Listings
 
         // Real Live Published Listings (Only genuinely synced listings with verified external/submission ID)
         $allListings = ChannelListing::whereHas('channel', function ($q) use ($userId) {
@@ -604,7 +593,14 @@ class ChannelController extends Controller
             return back()->with('warning', "⚠️ {$syncedCount} प्रोडक्ट्स सिंक हुए, लेकिन {$failedCount} में Amazon SP-API रुकावट आई: " . ($diagnosticReports[0] ?? ''));
         }
 
-        return back()->with('success', "✅ {$syncedCount} प्रोडक्ट्स सफलतापूर्वक कनेक्टेड मार्केट्स (Amazon / Meesho / Flipkart) पर लाइव सिंक हो गए!");
+        $activeTargetChannels = $connectedChannels->pluck('channel_name')->map(fn($c) => ucfirst($c))->values()->all();
+        $channelDisplayStr = implode(' / ', $activeTargetChannels);
+        $prodCount = $selectedProducts->count();
+
+        return back()->with('success', "✅ {$prodCount} प्रोडक्ट्स (कुल {$syncedCount} लिस्टिंग्स) सफलतापूर्वक कनेक्टेड मार्केट्स ({$channelDisplayStr}) पर लाइव सिंक हो गए!")
+            ->with('just_published', true)
+            ->with('published_channels', $connectedChannels->pluck('channel_name')->values()->all())
+            ->with('synced_count', $syncedCount);
     }
     // AJAX: Save Inline Product Costing & Unit Economics Breakdown
     public function saveProductCosting(Request $request, Product $product)

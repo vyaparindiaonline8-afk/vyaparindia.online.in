@@ -106,9 +106,39 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 space-y-7">
         
         @if(session('success'))
-            <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 shadow-xs">
-                <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
-                <span>{{ session('success') }}</span>
+            <div class="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 text-white border border-emerald-500/40 shadow-xl space-y-3">
+                <div class="flex items-center justify-between flex-wrap gap-2 border-b border-emerald-500/20 pb-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="h-8 w-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg border border-emerald-500/30">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </span>
+                        <div>
+                            <span class="text-xs sm:text-sm font-black text-emerald-300 block">{{ session('success') }}</span>
+                            <span class="text-[11px] text-slate-300">आपके प्रोडक्ट्स कनेक्टेड प्लेटफॉर्म पर लाइव सिंक हो चुके हैं। आप सीधे सेलर पैनल में लाइव स्थिति चेक कर सकते हैं:</span>
+                        </div>
+                    </div>
+                    <button type="button" onclick="openMarketplaceSellerPortals()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black text-xs shadow-md transition flex items-center gap-2 active:scale-95 cursor-pointer">
+                        <i class="fa-solid fa-arrow-up-right-from-square text-amber-300"></i>
+                        <span>🌐 दोनों पैनल Chrome में अलग-अलग टैब में खोलें</span>
+                    </button>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap pt-1 text-xs">
+                    <span class="text-[11px] text-slate-400 font-bold mr-1">सीधे पोर्टल लिंक:</span>
+                    <a href="https://sellercentral.amazon.in/inventory" target="_blank" class="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold transition flex items-center gap-1.5 shadow-xs">
+                        <i class="fa-brands fa-amazon text-amber-400"></i>
+                        <span>Amazon Seller Central Inventory</span>
+                        <i class="fa-solid fa-external-link text-[10px]"></i>
+                    </a>
+                    <a href="https://supplier.meesho.com/panel/v3/new/catalogues" target="_blank" class="px-3.5 py-1.5 rounded-xl bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 border border-pink-500/40 font-bold transition flex items-center gap-1.5 shadow-xs">
+                        <i class="fa-solid fa-cart-shopping text-pink-400"></i>
+                        <span>Meesho Supplier Panel Catalogues</span>
+                        <i class="fa-solid fa-external-link text-[10px]"></i>
+                    </a>
+                    <button type="button" onclick="switchMarketplaceTab('published')" class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-layer-group text-emerald-400"></i>
+                        <span>इसी पेज पर लाइव पब्लिश्ड टैब देखें</span>
+                    </button>
+                </div>
             </div>
         @endif
 
@@ -1288,12 +1318,12 @@
                                                     </button>
                                                 </div>
                                                 <div class="flex items-center gap-1 text-[9px] font-mono">
-                                                    <span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200 font-bold whitespace-nowrap" title="Amazon अनुमानित भाव (12% फ़ी सहित)">
+                                                    <button type="button" onclick="applyChannelPriceToRow({{ $p->id }}, 'amazon', {{ $calcAmz }})" class="px-1.5 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 font-extrabold whitespace-nowrap cursor-pointer transition shadow-2xs hover:scale-105 active:scale-95" title="क्लिक करें: Final Selling Price में ₹{{ $calcAmz }} (Amazon 12% फ़ी सहित भाव) भरें">
                                                         🟠 Amz: ₹<span id="row-amz-price-{{ $p->id }}">{{ $calcAmz }}</span>
-                                                    </span>
-                                                    <span class="px-1.5 py-0.5 rounded bg-pink-100 text-pink-900 border border-pink-200 font-bold whitespace-nowrap" title="Meesho अनुमानित भाव (0% फ़ी, RTO सुरक्षित)">
+                                                    </button>
+                                                    <button type="button" onclick="applyChannelPriceToRow({{ $p->id }}, 'meesho', {{ $calcMsh }})" class="px-1.5 py-0.5 rounded bg-pink-100 hover:bg-pink-200 text-pink-950 border border-pink-300 font-extrabold whitespace-nowrap cursor-pointer transition shadow-2xs hover:scale-105 active:scale-95" title="क्लिक करें: Final Selling Price में ₹{{ $calcMsh }} (Meesho 0% फ़ी, RTO सुरक्षित भाव) भरें">
                                                         🌸 Msh: ₹<span id="row-msh-price-{{ $p->id }}">{{ $calcMsh }}</span>
-                                                    </span>
+                                                    </button>
                                                 </div>
                                             </div>
                                         </td>
@@ -1319,12 +1349,12 @@
                                                 </button>
                                             </div>
                                             <div class="flex items-center justify-center gap-1 mt-1 text-[8px] font-mono">
-                                                <span class="px-1 py-0.2 rounded bg-amber-50 text-amber-900 border border-amber-200" title="Amazon 2P/4P/6P भाव">
+                                                <button type="button" onclick="applyChannelComboToRow({{ $p->id }}, 'amazon', {{ $combo2 }}, {{ $combo4 }}, {{ $combo6 }})" class="px-1 py-0.5 rounded bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 cursor-pointer transition hover:scale-105 active:scale-95" title="क्लिक करें: ऊपर के 2P/4P/6P बॉक्स में Amazon कॉम्बो रेट्स भरें">
                                                     🟠 Amz: <span id="row-amz-combo2-{{ $p->id }}">{{ $combo2 }}</span>/<span id="row-amz-combo4-{{ $p->id }}">{{ $combo4 }}</span>/<span id="row-amz-combo6-{{ $p->id }}">{{ $combo6 }}</span>
-                                                </span>
-                                                <span class="px-1 py-0.2 rounded bg-pink-50 text-pink-900 border border-pink-200" title="Meesho 2P/4P/6P भाव (0% फ़ी)">
+                                                </button>
+                                                <button type="button" onclick="applyChannelComboToRow({{ $p->id }}, 'meesho', {{ $mshCombo2 }}, {{ $mshCombo4 }}, {{ $mshCombo6 }})" class="px-1 py-0.5 rounded bg-pink-50 hover:bg-pink-100 text-pink-900 border border-pink-300 cursor-pointer transition hover:scale-105 active:scale-95" title="क्लिक करें: ऊपर के 2P/4P/6P बॉक्स में Meesho कॉम्बो रेट्स भरें">
                                                     🌸 Msh: <span id="row-msh-combo2-{{ $p->id }}">{{ $mshCombo2 }}</span>/<span id="row-msh-combo4-{{ $p->id }}">{{ $mshCombo4 }}</span>/<span id="row-msh-combo6-{{ $p->id }}">{{ $mshCombo6 }}</span>
-                                                </span>
+                                                </button>
                                             </div>
                                         </td>
 
@@ -1859,7 +1889,37 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
 
     <script>
         // Switcher between Pending E-Commerce Queue vs Live Published
-        function switchMarketplaceTab(tab) {
+        
+        // Open Marketplace Seller Portals in Chrome tabs
+        function openMarketplaceSellerPortals() {
+            window.open('https://sellercentral.amazon.in/inventory', '_blank');
+            window.open('https://supplier.meesho.com/panel/v3/new/catalogues', '_blank');
+        }
+
+        // Apply Channel Price (Amazon / Meesho) to Table Row
+        function applyChannelPriceToRow(prodId, channel, price) {
+            const inp = document.getElementById(`row-price-${prodId}`);
+            if (inp) {
+                inp.value = Math.round(price);
+                syncManualPriceToCard(prodId);
+                const name = channel === 'amazon' ? 'Amazon' : 'Meesho';
+                showChannelToast(`✓ #${prodId} पर ${name} भाव (₹${Math.round(price)}) लोड हो गया! '💾 सेव' दबाकर सुरक्षित करें।`);
+            }
+        }
+
+        // Apply Channel Combo Rates to Table Row (2P, 4P, 6P)
+        function applyChannelComboToRow(prodId, channel, c2, c4, c6) {
+            const c2Inp = document.getElementById(`row-combo2-${prodId}`);
+            const c4Inp = document.getElementById(`row-combo4-${prodId}`);
+            const c6Inp = document.getElementById(`row-combo6-${prodId}`);
+            if (c2Inp) { c2Inp.value = Math.round(c2); syncComboToCard(prodId, 2, Math.round(c2)); }
+            if (c4Inp) { c4Inp.value = Math.round(c4); syncComboToCard(prodId, 4, Math.round(c4)); }
+            if (c6Inp) { c6Inp.value = Math.round(c6); syncComboToCard(prodId, 6, Math.round(c6)); }
+            const name = channel === 'amazon' ? 'Amazon' : 'Meesho';
+            showChannelToast(`✓ #${prodId} पर ${name} के 2P (₹${Math.round(c2)}), 4P (₹${Math.round(c4)}), 6P (₹${Math.round(c6)}) कॉम्बो रेट्स लोड हो गए!`);
+        }
+
+function switchMarketplaceTab(tab) {
             const penView = document.getElementById('viewPendingMarketplaces');
             const pubView = document.getElementById('viewPublishedMarketplaces');
             const btnPen = document.getElementById('btnTabPendingMarketplaces');
@@ -3439,8 +3499,11 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
                 const gst = parseFloat(document.getElementById(`row-gst-${id}`)?.value) || 18;
                 const note = document.getElementById(`row-note-${id}`)?.value || '';
 
-                const stockInp = document.getElementById(`card-stock-inp-${id}`) || document.getElementById(`row-stock-${id}`);
-                const stock = stockInp ? (parseInt(stockInp.value) || 0) : 0;
+                const isCardsView = !document.getElementById('pendingCardsContainer')?.classList.contains('hidden');
+                const stockInp = isCardsView 
+                    ? (document.getElementById(`card-stock-inp-${id}`) || document.getElementById(`row-stock-${id}`))
+                    : (document.getElementById(`row-stock-${id}`) || document.getElementById(`card-stock-inp-${id}`));
+                const stock = stockInp ? (parseInt(stockInp.value, 10) || 0) : 0;
                 const cardStock = document.getElementById(`card-stock-${id}`);
                 if (cardStock) cardStock.textContent = `${stock} pcs`;
 
@@ -3533,7 +3596,11 @@ Ultra-realistic commercial product photograph of a modern white PTMT Bib Cock Ta
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i>';
 
             const lessVal = parseFloat(document.getElementById(`row-less-${prodId}`)?.value || document.getElementById(`card-less-${prodId}`)?.value) || 0;
-            const stock = parseInt(document.getElementById(`card-stock-inp-${prodId}`)?.value || document.getElementById(`row-stock-${prodId}`)?.value) || 0;
+            const isCardsView = !document.getElementById('pendingCardsContainer')?.classList.contains('hidden');
+            const stockInpEl = isCardsView 
+                ? (document.getElementById(`card-stock-inp-${prodId}`) || document.getElementById(`row-stock-${prodId}`))
+                : (document.getElementById(`row-stock-${prodId}`) || document.getElementById(`card-stock-inp-${prodId}`));
+            const stock = stockInpEl ? (parseInt(stockInpEl.value, 10) || 0) : 0;
             try {
                 const res = await fetch(`/seller/channels/products/${prodId}/save-costing`, {
                     method: 'POST',
@@ -4323,6 +4390,40 @@ document.addEventListener('change', function(e) {
         }
     }
 });
+
+        @if(session('just_published'))
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'सफलतापूर्वक लाइव सिंक हो गया!',
+                    html: `
+                        <div class="space-y-3 text-left text-xs font-sans">
+                            <p class="text-gray-800 font-bold leading-relaxed">{{ session('success') }}</p>
+                            <p class="text-gray-600">क्या आप Amazon और Meesho सेलर पोर्टल में लाइव कैटलॉग देखना चाहते हैं?</p>
+                            <div class="grid grid-cols-2 gap-2 pt-2">
+                                <a href="https://sellercentral.amazon.in/inventory" target="_blank" class="p-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-950 font-black text-center flex items-center justify-center gap-1.5 transition">
+                                    <i class="fa-brands fa-amazon text-amber-600"></i> Amazon Inventory
+                                </a>
+                                <a href="https://supplier.meesho.com/panel/v3/new/catalogues" target="_blank" class="p-2.5 rounded-xl bg-pink-50 hover:bg-pink-100 border border-pink-300 text-pink-950 font-black text-center flex items-center justify-center gap-1.5 transition">
+                                    <i class="fa-solid fa-cart-shopping text-pink-600"></i> Meesho Catalogues
+                                </a>
+                            </div>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: '🌐 दोनों पोर्टल नए Chrome टैब में खोलें',
+                    cancelButtonText: 'यहीं रहें (Done)',
+                    confirmButtonColor: '#4f46e5'
+                }).then((res) => {
+                    if (res.isConfirmed) {
+                        openMarketplaceSellerPortals();
+                    }
+                });
+            }
+        });
+        @endif
+
 </script>
 
 
