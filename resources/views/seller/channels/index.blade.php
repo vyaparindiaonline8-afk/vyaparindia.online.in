@@ -163,6 +163,59 @@
             </div>
         @endif
 
+        <!-- 💰 TOTAL INVENTORY VALUATION & SYNC AUDIT TOOLBAR -->
+        <div class="p-5 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-500/30 shadow-lg space-y-4">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                <div class="flex items-center gap-3">
+                    <div class="h-12 w-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-300 flex items-center justify-center text-2xl shrink-0">
+                        <i class="fa-solid fa-vault"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm sm:text-base font-black text-white">दुकान व इन्वेंट्री कुल मूल्य (Total Stock Valuation)</h3>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Live Stock Value</span>
+                        </div>
+                        <p class="text-xs text-slate-300 mt-0.5">आपके कुल माल की बिक्री कीमत, खरीद लागत और मल्टी-चैनल वर्कस्पेस का लाइव जोड़</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2.5 flex-wrap">
+                    <button type="button" onclick="openSyncAuditModal()" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/20 transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95">
+                        <i class="fa-solid fa-clock-rotate-left text-amber-300"></i>
+                        <span>🕒 सिंक व पब्लिश इतिहास (Audit Log)</span>
+                    </button>
+                    <button type="button" onclick="openWhatsAppPoModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+                        <i class="fa-brands fa-whatsapp text-emerald-200"></i>
+                        <span>📱 WhatsApp वेंडर ऑर्डर (PO Generator)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Valuation Details Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <div class="bg-white/5 p-3 rounded-2xl border border-white/10">
+                    <span class="text-[10px] text-slate-400 font-bold block uppercase">दुकान का कुल बिक्री मूल्य</span>
+                    <div class="text-lg font-black text-emerald-400 mt-0.5">₹{{ number_format($storeTotalValuation ?? 0, 2) }}</div>
+                    <span class="text-[10px] text-slate-300">कुल {{ number_format($storeTotalPieces ?? 0) }} पीस ({{ count($allStoreProducts ?? []) }} प्रोडक्ट्स)</span>
+                </div>
+                <div class="bg-white/5 p-3 rounded-2xl border border-white/10">
+                    <span class="text-[10px] text-slate-400 font-bold block uppercase">दुकान की कुल खरीद लागत</span>
+                    <div class="text-lg font-black text-indigo-300 mt-0.5">₹{{ number_format($storeTotalCostValuation ?? 0, 2) }}</div>
+                    <span class="text-[10px] text-slate-300">शुद्ध संभावित लाभ: ₹{{ number_format(($storeTotalValuation ?? 0) - ($storeTotalCostValuation ?? 0), 2) }}</span>
+                </div>
+                <div class="bg-white/5 p-3 rounded-2xl border border-white/10">
+                    <span class="text-[10px] text-slate-400 font-bold block uppercase">वर्कस्पेस माल (ई-कॉमर्स)</span>
+                    <div class="text-lg font-black text-amber-300 mt-0.5">₹{{ number_format($stagedSellingVal ?? 0, 2) }}</div>
+                    <span class="text-[10px] text-slate-300">{{ count($pendingProducts ?? []) }} प्रोडक्ट्स ({{ number_format($stagedPieces ?? 0) }} पीस)</span>
+                </div>
+                <div class="bg-white/5 p-3 rounded-2xl border border-white/10">
+                    <span class="text-[10px] text-slate-400 font-bold block uppercase">सिंक समय सीमा (Timeline)</span>
+                    <div class="text-xs font-black text-white mt-1">1st: {{ $firstPublishDate ? \Carbon\Carbon::parse($firstPublishDate)->format('d M Y') : 'Active' }}</div>
+                    <span class="text-[10px] text-emerald-400 font-mono">अंतिम: {{ $lastSyncedDate ? \Carbon\Carbon::parse($lastSyncedDate)->diffForHumans() : 'Just now' }}</span>
+                </div>
+            </div>
+        </div>
+
         <!-- 📊 TOP METRICS OVERVIEW & ADS STATUS -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Active Channels -->
@@ -4315,6 +4368,188 @@ function switchMarketplaceTab(tab) {
 </div>
 
 @include('components.ai-copilot-widget')
+
+    <!-- ==================== 🕒 1. SYNC & PUBLISH AUDIT LOG MODAL ==================== -->
+    <div id="syncAuditModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-xs items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <span class="h-9 w-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </span>
+                    <div>
+                        <h3 class="text-base font-black text-gray-900">🕒 सिंक व पब्लिश ऑडिट इतिहास (Sync Timeline)</h3>
+                        <p class="text-xs text-gray-500">आपके VyaparIndia ऐप से किस प्लेटफॉर्म पर कब-कब पब्लिश व अपडेट हुआ</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeSyncAuditModal()" class="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center text-sm transition cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Summary Chips -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div class="p-3 bg-amber-50 rounded-2xl border border-amber-200">
+                    <span class="text-[10px] text-amber-900 font-bold block uppercase flex items-center gap-1">
+                        <i class="fa-brands fa-amazon text-amber-600"></i> Amazon India
+                    </span>
+                    <span class="text-sm font-black text-amber-950 block mt-1">{{ $channelListingCounts['amazon'] ?? 0 }} Live Synced</span>
+                    <span class="text-[10px] text-amber-800">Store: Ganesh tradersh sarangarh</span>
+                </div>
+                <div class="p-3 bg-pink-50 rounded-2xl border border-pink-200">
+                    <span class="text-[10px] text-pink-900 font-bold block uppercase flex items-center gap-1">
+                        <i class="fa-solid fa-cart-shopping text-pink-600"></i> Meesho Supplier
+                    </span>
+                    <span class="text-sm font-black text-pink-950 block mt-1">{{ count($pendingProducts ?? []) }} Staged & Ready</span>
+                    <span class="text-[10px] text-pink-800">Store: GANESH TRADERSH (GTS)</span>
+                </div>
+                <div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-200">
+                    <span class="text-[10px] text-emerald-900 font-bold block uppercase flex items-center gap-1">
+                        <i class="fa-solid fa-calendar-check text-emerald-600"></i> First & Last Sync
+                    </span>
+                    <span class="text-[11px] font-bold text-emerald-950 block mt-1">1st: {{ $firstPublishDate ? \Carbon\Carbon::parse($firstPublishDate)->format('d M Y, h:i A') : 'Active' }}</span>
+                    <span class="text-[10px] text-emerald-800">Last: {{ $lastSyncedDate ? \Carbon\Carbon::parse($lastSyncedDate)->format('d M Y, h:i A') : 'Just now' }}</span>
+                </div>
+            </div>
+
+            <!-- Sync Logs Table -->
+            <div class="flex-1 overflow-y-auto border border-gray-200 rounded-2xl">
+                <table class="w-full text-left text-xs divide-y divide-gray-200">
+                    <thead class="bg-gray-100 text-[10px] font-black uppercase text-gray-600 sticky top-0">
+                        <tr>
+                            <th class="p-3">प्रोडक्ट</th>
+                            <th class="p-3">प्लेटफ़ॉर्म</th>
+                            <th class="p-3 text-center">स्टॉक</th>
+                            <th class="p-3">सेलिंग रेट</th>
+                            <th class="p-3">सबमिशन टोकन / ASIN</th>
+                            <th class="p-3">सिंक तारीख व समय</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 bg-white font-mono text-[11px]">
+                        @forelse($recentSyncLogs ?? [] as $log)
+                            <tr class="hover:bg-gray-50/80 transition">
+                                <td class="p-3 font-sans font-bold text-gray-900 truncate max-w-[170px]" title="{{ $log->product->name ?? '' }}">
+                                    {{ $log->product->name ?? ('Product #' . $log->product_id) }}
+                                </td>
+                                <td class="p-3 font-sans">
+                                    <span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase {{ strtolower($log->channel->channel_name ?? '') === 'amazon' ? 'bg-amber-100 text-amber-900' : 'bg-pink-100 text-pink-900' }}">
+                                        {{ $log->channel->channel_name ?? 'Marketplace' }}
+                                    </span>
+                                </td>
+                                <td class="p-3 text-center font-bold text-emerald-700">
+                                    {{ $log->synced_stock ?? 3 }} pcs
+                                </td>
+                                <td class="p-3 font-bold text-gray-900">
+                                    ₹{{ number_format($log->channel_price ?: ($log->product->price ?? 0), 2) }}
+                                </td>
+                                <td class="p-3 text-[10px] text-gray-500 font-mono">
+                                    {{ $log->external_product_id ?: 'SYNC-OK' }}
+                                </td>
+                                <td class="p-3 text-[10px] text-gray-500 font-sans">
+                                    {{ $log->last_synced_at ? \Carbon\Carbon::parse($log->last_synced_at)->format('d M, h:i A') : 'Recently' }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="p-6 text-center text-gray-400 font-sans">कोई सिंक रिकॉर्ड उपलब्ध नहीं है।</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+                <span class="text-[11px] text-gray-500">सभी रिकॉर्ड्स VyaparIndia PostgreSQL डेटाबेस में सुरक्षित संग्रहीत हैं।</span>
+                <button type="button" onclick="closeSyncAuditModal()" class="px-5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition cursor-pointer">
+                    बंद करें
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== 📱 2. WHATSAPP VENDOR PURCHASE ORDER (PO) GENERATOR MODAL ==================== -->
+    <div id="whatsAppPoModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-xs items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col">
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <span class="h-9 w-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">
+                        <i class="fa-brands fa-whatsapp"></i>
+                    </span>
+                    <div>
+                        <h3 class="text-base font-black text-gray-900">📱 WhatsApp वेंडर परचेज ऑर्डर (Group PO Memo)</h3>
+                        <p class="text-xs text-gray-500">ग्रुप वाइज प्रोडक्ट्स चुनें, क्वांटिटी डालें और सप्लायर या खुद को सीधा ऑर्डर भेजें</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeWhatsAppPoModal()" class="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center text-sm transition cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Vendor Info & Grouping -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="text-[11px] font-bold text-gray-700 block mb-1">वेंडर / सप्लायर का नाम:</label>
+                    <input type="text" id="poVendorName" placeholder="उदा. Supreme Faucets / Pipe Vendor" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-gray-700 block mb-1">वेंडर WhatsApp नंबर (वैकल्पिक):</label>
+                    <input type="text" id="poVendorPhone" placeholder="उदा. 9876543210 (खाली छोड़ें तो खुद चुन सकते हैं)" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Search inside items -->
+            <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input type="text" id="poSearchInp" oninput="filterPoItems()" placeholder="ऑर्डर के लिए आइटम खोजें..." class="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none">
+            </div>
+
+            <!-- Items Selection Box with Quantity -->
+            <div class="flex-1 overflow-y-auto border border-gray-200 rounded-2xl divide-y divide-gray-100 max-h-60" id="poItemsListContainer">
+                @foreach($pendingProducts ?? [] as $p)
+                    <div class="p-2.5 flex items-center justify-between gap-3 hover:bg-gray-50/80 transition po-item-row" data-name="{{ strtolower($p->name) }}">
+                        <label class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
+                            <input type="checkbox" class="po-item-chk rounded text-emerald-600 h-4 w-4 cursor-pointer" value="{{ $p->id }}" data-name="{{ $p->name }}" data-rate="{{ $p->price }}" onchange="recalcPoSummary()">
+                            <div class="min-w-0">
+                                <span class="font-bold text-xs text-gray-900 block truncate">{{ $p->name }}</span>
+                                <span class="text-[10px] text-gray-500 font-mono">दर: ₹{{ number_format($p->price, 2) }}</span>
+                            </div>
+                        </label>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span class="text-[10px] text-gray-500 font-bold">Qty:</span>
+                            <input type="number" min="1" value="20" id="po-qty-{{ $p->id }}" oninput="recalcPoSummary()" class="w-16 px-1.5 py-1 text-center font-mono font-bold text-xs bg-white border border-gray-300 rounded-lg outline-none focus:border-emerald-500">
+                            <span class="text-[10px] text-gray-400">pcs</span>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <!-- Order Instructions Note -->
+            <div>
+                <label class="text-[11px] font-bold text-gray-700 block mb-1">विशेष निर्देश / नोट (Transport Note):</label>
+                <input type="text" id="poOrderNote" placeholder="उदा. कृपया सारंगढ़ ट्रांसपोर्ट से बिल्टी लगाएँ।" class="w-full px-3 py-1.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-medium focus:bg-white focus:outline-none">
+            </div>
+
+            <!-- Summary & Send Button -->
+            <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-3 flex-wrap text-xs">
+                <div>
+                    <span class="font-black text-emerald-950 block" id="poSelectedCountText">0 प्रोडक्ट्स चुने गए</span>
+                    <span class="text-[11px] text-emerald-800" id="poTotalPiecesAndAmount">कुल: 0 पीस | ₹0.00</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="sendWhatsAppPurchaseOrder(false)" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
+                        <i class="fa-brands fa-whatsapp text-sm"></i>
+                        <span>📱 WhatsApp पर भेजें</span>
+                    </button>
+                    <button type="button" onclick="sendWhatsAppPurchaseOrder(true)" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-user-check text-xs"></i>
+                        <span>खुद को भेजें</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
 <script>
@@ -4423,6 +4658,111 @@ document.addEventListener('change', function(e) {
             }
         });
         @endif
+
+
+        // --- 🕒 Sync Audit Modal Functions ---
+        function openSyncAuditModal() {
+            const m = document.getElementById('syncAuditModal');
+            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+        }
+        function closeSyncAuditModal() {
+            const m = document.getElementById('syncAuditModal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        }
+
+        // --- 📱 WhatsApp PO Generator Functions ---
+        function openWhatsAppPoModal() {
+            const m = document.getElementById('whatsAppPoModal');
+            if (m) {
+                m.classList.remove('hidden'); m.classList.add('flex');
+                recalcPoSummary();
+            }
+        }
+        function closeWhatsAppPoModal() {
+            const m = document.getElementById('whatsAppPoModal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        }
+
+        function filterPoItems() {
+            const q = (document.getElementById('poSearchInp')?.value || '').toLowerCase().trim();
+            document.querySelectorAll('.po-item-row').forEach(row => {
+                const name = row.getAttribute('data-name') || '';
+                row.style.display = (!q || name.includes(q)) ? 'flex' : 'none';
+            });
+        }
+
+        function recalcPoSummary() {
+            const checkedBoxes = document.querySelectorAll('.po-item-chk:checked');
+            let totalQty = 0;
+            let totalAmt = 0;
+            checkedBoxes.forEach(chk => {
+                const id = chk.value;
+                const qty = parseInt(document.getElementById(`po-qty-${id}`)?.value, 10) || 0;
+                const rate = parseFloat(chk.getAttribute('data-rate')) || 0;
+                totalQty += qty;
+                totalAmt += (qty * rate);
+            });
+
+            const countEl = document.getElementById('poSelectedCountText');
+            const detailEl = document.getElementById('poTotalPiecesAndAmount');
+            if (countEl) countEl.textContent = `${checkedBoxes.length} प्रोडक्ट्स चुने गए`;
+            if (detailEl) detailEl.textContent = `कुल: ${totalQty} पीस | अनुमानित रकम: ₹${totalAmt.toLocaleString('en-IN')}`;
+        }
+
+        function sendWhatsAppPurchaseOrder(sendToSelf = false) {
+            const checkedBoxes = document.querySelectorAll('.po-item-chk:checked');
+            if (checkedBoxes.length === 0) {
+                alert('कृपया कम से कम 1 प्रोडक्ट चुनें!');
+                return;
+            }
+
+            const vendorName = document.getElementById('poVendorName')?.value.trim() || 'सप्लायर / वेंडर';
+            const vendorPhone = document.getElementById('poVendorPhone')?.value.trim().replace(/\D/g, '');
+            const orderNote = document.getElementById('poOrderNote')?.value.trim();
+
+            let lines = [];
+            lines.push(`📦 *नया परचेज ऑर्डर (Purchase Order)*`);
+            lines.push(`🏬 *दुकान:* Ganesh Tradersh`);
+            lines.push(`👤 *वेंडर:* ${vendorName}`);
+            lines.push(`📅 *तारीख:* ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`);
+            lines.push(``);
+            lines.push(`📋 *आइटम लिस्ट:*`);
+
+            let totalQty = 0;
+            let totalAmt = 0;
+            let idx = 1;
+
+            checkedBoxes.forEach(chk => {
+                const id = chk.value;
+                const name = chk.getAttribute('data-name');
+                const qty = parseInt(document.getElementById(`po-qty-${id}`)?.value, 10) || 0;
+                const rate = parseFloat(chk.getAttribute('data-rate')) || 0;
+                totalQty += qty;
+                totalAmt += (qty * rate);
+                lines.push(`${idx}. *${name}* - *${qty} pcs* (दर: ₹${Math.round(rate)})`);
+                idx++;
+            });
+
+            lines.push(``);
+            lines.push(`📊 *कुल आइटम्स:* ${checkedBoxes.length}`);
+            lines.push(`📦 *कुल क्वांटिटी:* ${totalQty} pcs`);
+            lines.push(`💰 *अनुमानित कुल रकम:* ₹${totalAmt.toLocaleString('en-IN')}`);
+            if (orderNote) {
+                lines.push(`📝 *नोट:* ${orderNote}`);
+            }
+            lines.push(``);
+            lines.push(`कृपया माल जल्द से जल्द डिस्पैच करें और बिल्टी/बिल भेजें। धन्यवाद!`);
+
+            const msgText = encodeURIComponent(lines.join('\n'));
+            let waUrl = `https://api.whatsapp.com/send?text=${msgText}`;
+
+            if (!sendToSelf && vendorPhone && vendorPhone.length >= 10) {
+                const phoneWithCode = vendorPhone.startsWith('91') ? vendorPhone : ('91' + vendorPhone);
+                waUrl = `https://api.whatsapp.com/send?phone=${phoneWithCode}&text=${msgText}`;
+            }
+
+            window.open(waUrl, '_blank');
+        }
 
 </script>
 

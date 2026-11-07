@@ -94,15 +94,18 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-3xl p-6 border border-gray-200 shadow-xs flex items-center justify-between">
+            <div class="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-950 text-white rounded-3xl p-6 border border-indigo-500/30 shadow-md flex items-center justify-between">
                 <div>
-                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Stock Control</span>
-                    <div class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full mt-2 inline-block">
-                        Auto-Deduct on Order
+                    <span class="text-xs font-bold text-amber-300 uppercase tracking-wider block">कुल इन्वेंट्री मूल्य (Valuation)</span>
+                    <div class="text-xl sm:text-2xl font-black text-emerald-400 mt-1">₹{{ number_format($totalSellingVal ?? 0, 2) }}</div>
+                    <div class="text-[11px] text-slate-300 mt-1 flex items-center gap-1.5 flex-wrap">
+                        <span>कुल पीस: <strong class="text-white">{{ number_format($totalStockPieces ?? 0) }}</strong></span>
+                        <span>•</span>
+                        <span>लागत: <strong class="text-indigo-200">₹{{ number_format($totalCostVal ?? 0, 2) }}</strong></span>
                     </div>
                 </div>
-                <div class="h-12 w-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
-                    <i class="fa-solid fa-arrows-spin"></i>
+                <div class="h-12 w-12 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center text-xl shrink-0">
+                    <i class="fa-solid fa-coins"></i>
                 </div>
             </div>
         </div>

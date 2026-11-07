@@ -116,7 +116,30 @@ class ChannelController extends Controller
             ],
         ];
 
-        return view('seller.channels.index', compact('channels', 'supportedChannels', 'allListings', 'channelListingCounts', 'pendingProducts', 'allStoreProducts', 'ecomCategories', 'allPendingIds', 'channelOrders', 'analytics'));
+        // Sync & Publish Audit Details
+        $firstPublishDate = ChannelListing::whereHas('channel', fn($q) => $q->where('user_id', $userId))->where('sync_status', 'synced')->min('created_at');
+        $lastSyncedDate = ChannelListing::whereHas('channel', fn($q) => $q->where('user_id', $userId))->where('sync_status', 'synced')->max('last_synced_at');
+
+        $stagedPieces = $pendingProducts->sum('stock_quantity');
+        $stagedSellingVal = $pendingProducts->sum(fn($p) => ($p->stock_quantity ?? 0) * ($p->price ?? 0));
+
+        $storeTotalPieces = $allStoreProducts->sum('stock_quantity');
+        $storeTotalValuation = $allStoreProducts->sum(fn($p) => ($p->stock_quantity ?? 0) * ($p->price ?? 0));
+        $storeTotalCostValuation = $allStoreProducts->sum(fn($p) => ($p->stock_quantity ?? 0) * ($p->purchase_price ?: ($p->price * 0.7)));
+
+        $recentSyncLogs = ChannelListing::whereHas('channel', fn($q) => $q->where('user_id', $userId))
+            ->with(['channel', 'product'])
+            ->latest('last_synced_at')
+            ->take(15)
+            ->get();
+
+        return view('seller.channels.index', compact(
+            'channels', 'supportedChannels', 'allListings', 'channelListingCounts', 
+            'pendingProducts', 'allStoreProducts', 'ecomCategories', 'allPendingIds', 
+            'channelOrders', 'analytics', 'firstPublishDate', 'lastSyncedDate', 
+            'stagedPieces', 'stagedSellingVal', 'storeTotalPieces', 'storeTotalValuation', 
+            'storeTotalCostValuation', 'recentSyncLogs'
+        ));
     }
 
     // Connect or Update a Channel (Supports Partial Saves - fill 1 or 2 fields now, rest later)

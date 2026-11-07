@@ -548,13 +548,21 @@ class CatalogIngestionController extends Controller
 
         $totalCatalogItems = Product::where('user_id', $sellerId)->count();
         $lowStockCount = Product::where('user_id', $sellerId)
-            ->where('track_inventory', true)
+            ->where(function ($q) {
+                $q->where('track_inventory', true)
+                  ->orWhereNull('track_inventory');
+            })
             ->where('stock_quantity', '<=', 5)
+            ->where('stock_quantity', '>', 0)
             ->count();
         $outOfStockCount = Product::where('user_id', $sellerId)
-            ->where('track_inventory', true)
             ->where('stock_quantity', '<=', 0)
             ->count();
+
+        $allProds = Product::where('user_id', $sellerId)->get();
+        $totalStockPieces = $allProds->sum('stock_quantity');
+        $totalSellingVal = $allProds->sum(fn($p) => ($p->stock_quantity ?? 0) * ($p->price ?? 0));
+        $totalCostVal = $allProds->sum(fn($p) => ($p->stock_quantity ?? 0) * ($p->purchase_price ?: ($p->price * 0.7)));
 
         $sellerCategories = Category::whereHas('products', function ($q) use ($sellerId) {
             $q->where('user_id', $sellerId);
@@ -572,7 +580,7 @@ class CatalogIngestionController extends Controller
 
         $galleryImages = self::getAllGalleryImages($sellerId);
 
-        return view('seller.inventory.index', compact('products', 'totalCatalogItems', 'lowStockCount', 'outOfStockCount', 'sellerCategories', 'pendingJobs', 'sellerPage', 'galleryImages'));
+        return view('seller.inventory.index', compact('products', 'totalCatalogItems', 'lowStockCount', 'outOfStockCount', 'sellerCategories', 'pendingJobs', 'sellerPage', 'galleryImages', 'totalStockPieces', 'totalSellingVal', 'totalCostVal'));
     }
 
     /**
