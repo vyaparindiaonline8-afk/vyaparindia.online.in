@@ -268,7 +268,19 @@ public function publishProduct(Channel $channel, Product $product): array
 
             $data = $res->json() ?? [];
 
-            if ($res->successful() || in_array($res->status(), [200, 201, 202])) {
+            $status = $data['status'] ?? 'ACCEPTED';
+            $issues = $data['issues'] ?? [];
+
+            // Amazon returns HTTP 200 even on validation failure with status "INVALID" and issues
+            $hasErrors = ($status === 'INVALID');
+            foreach ($issues as $iss) {
+                if (($iss['severity'] ?? '') === 'ERROR') {
+                    $hasErrors = true;
+                    break;
+                }
+            }
+
+            if (($res->successful() || in_array($res->status(), [200, 201, 202])) && !$hasErrors) {
                 $status = $data['status'] ?? 'ACCEPTED';
                 $submissionId = $data['submissionId'] ?? ('AMZN-' . rand(100000, 999999));
 
@@ -332,6 +344,13 @@ public function publishProduct(Channel $channel, Product $product): array
             return [
                 'diagnosis' => 'Merchant Token (सेलर आईडी) दर्ज नहीं है: Amazon SP-API को आपका मर्चेंट टोकन चाहिए।',
                 'solution' => 'Amazon Seller Central में Settings -> Account Info -> Your Merchant Token (13-14 अक्षरों का कोड) कॉपी करें और यहाँ "API सेटिंग्स बदलें" में "Merchant Token" वाले बॉक्स में पेस्ट करके सेव करें।'
+            ];
+        }
+
+        if (str_contains($codeStr, '4000004') || str_contains($msgStr, 'PRODUCT') || str_contains($codeStr, '90220') || str_contains($msgStr, 'External Product ID') || str_contains($msgStr, 'offer-only')) {
+            return [
+                'diagnosis' => 'Amazon बारकोड / GTIN Exemption आवश्यक: Amazon पर नया प्रोडक्ट जोड़ने के लिए EAN/UPC बारकोड या Plumbing/Hardware कैटेगरी में GTIN Exemption अप्रूवल चाहिए।',
+                'solution' => 'Amazon Seller Central में Catalog -> Apply for GTIN Exemption पर जाएँ (बिना बारकोड लिस्टिंग के लिए), या ऊपर दिए "📥 कतार शीट (Excel)" बटन से 1-क्लिक में फ्लैट फाइल डाउनलोड कर Seller Central में "Add Products via Upload" करें।'
             ];
         }
 
