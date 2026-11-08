@@ -246,6 +246,9 @@ class AiImageEnhancerService
 
         return [
             'success' => $successCount > 0,
+            'message' => $successCount > 0 
+                ? "{$successCount} फोटो सफलतापूर्वक HD स्टूडियो व्हाइट बैकग्राउंड में बदल दी गईं!" 
+                : "AI प्रोसेसिंग पूर्ण नहीं हो सकी। कृपया पुनः प्रयास करें।",
             'folder' => $folderName,
             'total_found' => count($folderImages),
             'success_count' => $successCount,
@@ -286,9 +289,61 @@ class AiImageEnhancerService
             ->update(['image_path' => $newUrl]);
 
         // 3. Update Media Vault
-        SellerMedia::where('user_id', $userId)
-            ->where('file_path', $oldUrl)
-            ->update(['file_path' => $newUrl]);
+        $updatedMedia = SellerMedia::where('user_id', $userId)
+            ->where(function($q) use ($oldUrl) {
+                $q->where('file_path', $oldUrl)
+                  ->orWhere('file_path', 'like', '%' . basename(parse_url($oldUrl, PHP_URL_PATH)));
+            })
+            ->update([
+                'file_path' => $newUrl,
+                'filename' => basename(parse_url($newUrl, PHP_URL_PATH)),
+            ]);
+
+        if (!$updatedMedia) {
+            try {
+                SellerMedia::create([
+                    'user_id' => $userId,
+                    'filename' => basename(parse_url($newUrl, PHP_URL_PATH)),
+                    'file_path' => $newUrl,
+                    'category_type' => \App\Http\Controllers\Seller\CatalogIngestionController::detectFolderForImage(basename($oldUrl)),
+                    'is_universal' => false,
+                    'permission_granted' => true,
+                    'is_assigned' => count($affectedProductNames) > 0,
+                ]);
+            } catch (\Throwable $e) {}
+        }
+
+        // 4. Update Custom Crop JSON Registry if old URL is saved there
+        try {
+            $cropsFile = storage_path('app/gallery_crops_' . $userId . '.json');
+            if (file_exists($cropsFile)) {
+                $crops = json_decode(file_get_contents($cropsFile), true);
+                if (is_array($crops)) {
+                    $changed = false;
+                    foreach ($crops as &$cItem) {
+                        $cUrl = $cItem['url'] ?? '';
+                        if ($cUrl === $oldUrl || basename(parse_url($cUrl, PHP_URL_PATH)) === basename(parse_url($oldUrl, PHP_URL_PATH))) {
+                            $cItem['url'] = $newUrl;
+                            $cItem['asset_url'] = $newUrl;
+                            $cItem['filename'] = basename(parse_url($newUrl, PHP_URL_PATH));
+                            $changed = true;
+                        }
+                    }
+                    unset($cItem);
+                    if ($changed) {
+                        file_put_contents($cropsFile, json_encode($crops, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning("Could not update crops registry on swap: " . $e->getMessage());
+        }
+
+        // 5. Invalidate Cloudinary cache so gallery re-fetches immediately
+        try {
+            \Illuminate\Support\Facades\Cache::forget('cloudinary_resources_vyaparindia');
+            \Illuminate\Support\Facades\Cache::store('file')->forget('cloudinary_resources_vyaparindia');
+        } catch (\Throwable $e) {}
 
         return $affectedProductNames;
     }
