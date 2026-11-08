@@ -103,6 +103,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
 
 
     // 🤖 Multi-Channel E-Commerce & AI Listing Routes
+    Route::get('/pricing-calculator', [ChannelController::class, 'pricingCalculator'])->name('pricing_calculator');
     Route::prefix('channels')->name('channels.')->group(function () {
         Route::get('/', [ChannelController::class, 'index'])->name('index');
         Route::post('/store', [ChannelController::class, 'storeChannel'])->name('store');
@@ -126,6 +127,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/simulate-order', [\App\Http\Controllers\Seller\ChannelWebhookController::class, 'simulateOrder'])->name('simulateOrder');
         Route::get('/export-sheet', [ChannelController::class, 'exportSheet'])->name('export_sheet');
         Route::post('/import-sheet', [ChannelController::class, 'importSheet'])->name('import_sheet');
+        Route::get('/pricing-calculator', [ChannelController::class, 'pricingCalculator'])->name('pricing_calculator');
     });
 
     // 🚚 Smart Shipping & Anti-RTO Routes

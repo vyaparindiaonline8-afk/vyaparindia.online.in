@@ -89,6 +89,10 @@
 
                     <!-- Hub Navigation Group -->
                     <div class="flex items-center gap-2">
+                        <a href="{{ route('seller.pricing_calculator') }}" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs shadow-xs transition flex items-center gap-1.5 hover:scale-102 active:scale-98" title="मार्केटप्लेस यूनिट इकोनॉमिक्स व प्रॉफिट तुलना कैलकुलेटर">
+                            <i class="fa-solid fa-calculator text-amber-300"></i>
+                            <span>🧮 प्रॉफिट कैलकुलेटर</span>
+                        </a>
                         <a href="{{ route('seller.channels.inventory') }}" class="px-3 py-2 rounded-xl bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs border border-gray-200 shadow-2xs transition flex items-center gap-1.5" title="सभी चैनलों की लाइव इन्वेंटरी देखें">
                             <i class="fa-solid fa-boxes-stacked text-indigo-600"></i>
                             <span>Omnichannel Stock</span>

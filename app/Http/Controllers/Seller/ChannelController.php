@@ -1793,4 +1793,22 @@ class ChannelController extends Controller
 
         return redirect()->route('seller.channels.index')->with('success', "🎉 शानदार! मल्टी-चैनल एक्सेल शीट से {$updatedCount} प्रोडक्ट्स / वैरियंट्स के MRP, Less %, खरीद लागत (With GST) व रेट्स सफलतापूर्वक अपडेट हो गए!");
     }
+
+    /**
+     * Dedicated Marketplace Unit Economics & Multi-Platform Profit Comparison Calculator
+     */
+    public function pricingCalculator(\Illuminate\Http\Request $request)
+    {
+        $userId = \Illuminate\Support\Facades\Auth::id();
+        $products = \App\Models\Product::where('user_id', $userId)
+            ->select('id', 'name', 'sku', 'price', 'purchase_price', 'trade_discount_percent', 'mrp', 'attributes')
+            ->orderBy('name')
+            ->get();
+
+        $defaultCost = (float)$request->input('cost', 250);
+        $defaultMrp = (float)$request->input('mrp', 340);
+        $defaultDiscount = (float)$request->input('discount', 0);
+
+        return view('seller.calculator.index', compact('products', 'defaultCost', 'defaultMrp', 'defaultDiscount'));
+    }
 }
