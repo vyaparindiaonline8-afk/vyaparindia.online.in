@@ -256,6 +256,18 @@ public function publishProduct(Channel $channel, Product $product): array
             ]
         ];
 
+        // 🏷️ Attach Box MRP / Maximum Retail Price so Amazon renders strikethrough MRP & customer savings %
+        $strikeMrp = (float)($product->box_mrp ?: ($product->mrp ?: 0));
+        if ($strikeMrp > $price) {
+            $payload['attributes']['list_price'] = [
+                [
+                    'currency' => 'INR',
+                    'value_with_tax' => $strikeMrp,
+                    'marketplace_id' => self::MARKETPLACE_ID_INDIA
+                ]
+            ];
+        }
+
         try {
             $res = Http::withToken($accessToken)
                 ->withHeaders([

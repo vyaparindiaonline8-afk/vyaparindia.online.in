@@ -90,50 +90,163 @@
                 </div>
             </div>
 
-            <!-- Price, MRP, Cost & Photos -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-amber-50/40 p-4 rounded-2xl border border-amber-200/70">
-                <div>
-                    <label class="block text-xs font-black text-amber-950 mb-1">
-                        📦 डिब्बा MRP (प्रिंटेड भाव ₹)
-                    </label>
-                    <input type="number" name="mrp" id="prod_mrp" value="{{ old('mrp') }}" step="0.01" placeholder="उदा. 340.00" oninput="recalcProdCost()" class="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 bg-white text-xs font-black text-amber-950 focus:border-amber-500 focus:outline-hidden shadow-2xs">
-                    <span class="text-[10px] text-amber-800 block mt-0.5 font-bold">डिब्बे पर छपा वास्तविक MRP</span>
+                        <!-- Pricing, Catalog Costing & Box MRP Section -->
+            <div class="bg-gradient-to-br from-amber-50/60 via-indigo-50/30 to-emerald-50/40 p-5 rounded-3xl border border-amber-200/80 space-y-4 shadow-xs">
+                
+                <!-- Section Header -->
+                <div class="flex items-center justify-between border-b border-amber-200/60 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center text-xs font-black shadow-xs">
+                            <i class="fa-solid fa-calculator"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-xs font-black text-gray-900 uppercase tracking-wider">मूल्य निर्धारण व लागत हिसाब (Pricing & Costing)</h3>
+                            <p class="text-[10px] text-gray-500 font-medium">कैटलॉग लिस्ट रेट, डिब्बे पर छपा वास्तविक प्रिंटेड MRP व सेलिंग प्राइस</p>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800">
+                        ⚖️ Legal Metrology Verified
+                    </span>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-black text-amber-950 mb-1">
-                        🏷️ डिस्काउंट (Less %)
-                    </label>
-                    <input type="number" name="trade_discount_percent" id="prod_discount" value="{{ old('trade_discount_percent') }}" step="0.5" min="0" max="99" placeholder="उदा. 45" oninput="recalcProdCost()" class="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 bg-white text-xs font-black text-amber-950 focus:border-amber-500 focus:outline-hidden shadow-2xs">
-                    <span class="text-[10px] text-amber-800 block mt-0.5 font-bold">MRP पर लेस %</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+                    <!-- 1. Catalog List MRP -->
+                    <div class="bg-white p-3 rounded-2xl border border-amber-200 shadow-2xs">
+                        <label class="block text-[11px] font-black text-amber-950 mb-1 flex items-center gap-1">
+                            <span>📋 कैटलॉग लिस्ट रेट (₹)</span>
+                        </label>
+                        <input type="number" name="mrp" id="prod_mrp" value="{{ old('mrp') }}" step="0.01" min="0" placeholder="उदा. 340.00" oninput="recalcProdPricing()" class="w-full px-3 py-2 rounded-xl border border-amber-300 bg-amber-50/30 text-xs font-black text-amber-950 focus:border-amber-500 focus:bg-white focus:outline-hidden">
+                        <span class="text-[10px] text-amber-800 block mt-1 font-semibold leading-tight">कंपनी कैटलॉग का भाव</span>
+                    </div>
+
+                    <!-- 2. Trade Discount % -->
+                    <div class="bg-white p-3 rounded-2xl border border-amber-200 shadow-2xs">
+                        <label class="block text-[11px] font-black text-amber-950 mb-1 flex items-center gap-1">
+                            <span>🏷️ ट्रेड लेस (Less %)</span>
+                        </label>
+                        <input type="number" name="trade_discount_percent" id="prod_discount" value="{{ old('trade_discount_percent') }}" step="0.5" min="0" max="99" placeholder="उदा. 45" oninput="recalcProdPricing()" class="w-full px-3 py-2 rounded-xl border border-amber-300 bg-amber-50/30 text-xs font-black text-amber-950 focus:border-amber-500 focus:bg-white focus:outline-hidden">
+                        <span class="text-[10px] text-amber-800 block mt-1 font-semibold leading-tight">कैटलॉग पर डिस्काउंट %</span>
+                    </div>
+
+                    <!-- 3. Purchase Cost -->
+                    <div class="bg-white p-3 rounded-2xl border-2 border-indigo-300 shadow-2xs">
+                        <label class="block text-[11px] font-black text-indigo-950 mb-1 flex items-center gap-1">
+                            <span>💰 खरीद लागत (Cost ₹)</span>
+                        </label>
+                        <input type="number" name="purchase_price" id="prod_cost" value="{{ old('purchase_price') }}" step="0.01" min="0" placeholder="उदा. 187.00" oninput="recalcProdPricing()" class="w-full px-3 py-2 rounded-xl border border-indigo-400 bg-indigo-50/50 text-xs font-black text-indigo-950 focus:border-indigo-600 focus:bg-white focus:outline-hidden">
+                        <span class="text-[10px] text-indigo-700 block mt-1 font-semibold leading-tight">आपकी शुद्ध खरीद लागत</span>
+                    </div>
+
+                    <!-- 4. Real Printed Box MRP (OPTIONAL) -->
+                    <div class="bg-white p-3 rounded-2xl border-2 border-purple-300 shadow-2xs relative">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-[11px] font-black text-purple-950 flex items-center gap-1">
+                                <span>📦 डिब्बा MRP (प्रिंटेड ₹)</span>
+                            </label>
+                            <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 uppercase">वैकल्पिक</span>
+                        </div>
+                        <input type="number" name="box_mrp" id="prod_box_mrp" value="{{ old('box_mrp') }}" step="0.01" min="0" placeholder="उदा. 599.00" oninput="recalcProdPricing()" class="w-full px-3 py-2 rounded-xl border border-purple-400 bg-purple-50/40 text-xs font-black text-purple-950 focus:border-purple-600 focus:bg-white focus:outline-hidden">
+                        <span class="text-[10px] text-purple-800 block mt-1 font-semibold leading-tight">डिब्बे पर छपा वास्तविक MRP</span>
+                    </div>
+
+                    <!-- 5. Final Selling Price -->
+                    <div class="bg-white p-3 rounded-2xl border-2 border-emerald-400 shadow-2xs">
+                        <label class="block text-[11px] font-black text-emerald-950 mb-1 flex items-center gap-1">
+                            <span>🏷️ सेलिंग प्राइस (₹) <span class="text-rose-500">*</span></span>
+                        </label>
+                        <input type="number" name="price" id="prod_price" value="{{ old('price') }}" step="0.01" required min="0.01" placeholder="उदा. 349.00" oninput="recalcProdPricing()" class="w-full px-3 py-2 rounded-xl border border-emerald-400 bg-emerald-50/40 text-xs font-black text-emerald-950 focus:border-emerald-600 focus:bg-white focus:outline-hidden">
+                        <span class="text-[10px] text-emerald-800 block mt-1 font-semibold leading-tight">ग्राहक को बेचने का भाव</span>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-black text-indigo-950 mb-1">
-                        💰 खरीद लागत (Purchase Cost ₹)
-                    </label>
-                    <input type="number" name="purchase_price" id="prod_cost" value="{{ old('purchase_price') }}" step="0.01" placeholder="उदा. 187.00" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-indigo-400 bg-indigo-50/50 text-xs font-black text-indigo-950 focus:border-indigo-600 focus:outline-hidden shadow-2xs">
-                    <span class="text-[10px] text-indigo-700 block mt-0.5 font-bold">आपकी शुद्ध खरीद लागत</span>
+                <!-- Live Dynamic Analytics & Validation Card -->
+                <div id="pricing_live_status" class="hidden rounded-2xl p-3 border transition-all">
+                    <!-- Populated dynamically by JavaScript -->
                 </div>
 
-                <div>
-                    <label class="block text-xs font-black text-emerald-950 mb-1">
-                        🏷️ सेलिंग प्राइस (Selling Price ₹) <span class="text-rose-500">*</span>
-                    </label>
-                    <input type="number" name="price" id="prod_price" value="{{ old('price') }}" step="0.01" required placeholder="उदा. 499.00" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-emerald-400 bg-emerald-50/40 text-xs font-black text-emerald-950 focus:border-emerald-600 focus:outline-hidden shadow-2xs">
-                    <span class="text-[10px] text-emerald-800 block mt-0.5 font-bold">ग्राहक को बेचने का भाव</span>
+                <!-- Over-MRP Red Warning Banner -->
+                <div id="mrp_warning_banner" class="hidden rounded-2xl p-3.5 bg-rose-50 border-2 border-rose-400 text-rose-900 transition-all flex items-start gap-3">
+                    <i class="fa-solid fa-triangle-exclamation text-rose-600 text-lg mt-0.5"></i>
+                    <div>
+                        <h4 class="text-xs font-black text-rose-900">⚠️ कानूनी चेतावनी (Legal Metrology Act Alert):</h4>
+                        <p id="mrp_warning_text" class="text-xs font-medium text-rose-800 mt-0.5"></p>
+                    </div>
                 </div>
+
             </div>
 
             <script>
-            function recalcProdCost() {
-                const mrp = parseFloat(document.getElementById('prod_mrp')?.value) || 0;
+            function recalcProdPricing() {
+                const listMrp = parseFloat(document.getElementById('prod_mrp')?.value) || 0;
                 const disc = parseFloat(document.getElementById('prod_discount')?.value) || 0;
-                if (mrp > 0 && disc > 0) {
-                    const cost = Math.round((mrp * (1 - (disc / 100))) * 100) / 100;
+                let cost = parseFloat(document.getElementById('prod_cost')?.value) || 0;
+                const boxMrp = parseFloat(document.getElementById('prod_box_mrp')?.value) || 0;
+                const sellingPrice = parseFloat(document.getElementById('prod_price')?.value) || 0;
+
+                // Auto calculate Cost if List MRP and Less% provided
+                if (listMrp > 0 && disc > 0 && (!cost || document.activeElement.id === 'prod_mrp' || document.activeElement.id === 'prod_discount')) {
+                    cost = Math.round((listMrp * (1 - (disc / 100))) * 100) / 100;
                     document.getElementById('prod_cost').value = cost.toFixed(2);
                 }
+
+                const liveContainer = document.getElementById('pricing_live_status');
+                const warningBanner = document.getElementById('mrp_warning_banner');
+                const warningText = document.getElementById('mrp_warning_text');
+
+                // 1. Box MRP vs Selling Price Check
+                if (boxMrp > 0 && sellingPrice > boxMrp) {
+                    warningBanner.classList.remove('hidden');
+                    warningText.innerText = `सेलिंग प्राइस (₹${sellingPrice.toFixed(2)}) डिब्बे पर छपे वास्तविक प्रिंटेड MRP (₹${boxMrp.toFixed(2)}) से अधिक नहीं हो सकता! कृपया सेलिंग प्राइस को कम करें.`;
+                    document.getElementById('prod_price').classList.add('border-rose-500', 'bg-rose-50');
+                } else {
+                    warningBanner.classList.add('hidden');
+                    document.getElementById('prod_price').classList.remove('border-rose-500', 'bg-rose-50');
+                }
+
+                // 2. Dynamic Discount & Margin calculation
+                let badges = [];
+
+                if (boxMrp > 0 && sellingPrice > 0 && sellingPrice <= boxMrp) {
+                    const discountPercent = Math.round(((boxMrp - sellingPrice) / boxMrp) * 100);
+                    const saving = (boxMrp - sellingPrice).toFixed(2);
+                    badges.push(`
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-100 text-purple-900 text-xs font-black border border-purple-200">
+                            <i class="fa-solid fa-tags text-purple-600"></i>
+                            ग्राहक छूट: <strong>${discountPercent}% OFF</strong> (डिब्बे MRP ₹${boxMrp.toFixed(2)} पर <strong>₹${saving} की बचत</strong>)
+                        </span>
+                    `);
+                }
+
+                if (cost > 0 && sellingPrice > 0) {
+                    const margin = (sellingPrice - cost).toFixed(2);
+                    const marginPercent = Math.round(((sellingPrice - cost) / sellingPrice) * 100);
+                    if (margin >= 0) {
+                        badges.push(`
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-100 text-emerald-900 text-xs font-black border border-emerald-200">
+                                <i class="fa-solid fa-sack-dollar text-emerald-600"></i>
+                                आपका ग्रॉस मुनाफ़ा: <strong>₹${margin}</strong> (${marginPercent}% मार्जिन)
+                            </span>
+                        `);
+                    } else {
+                        badges.push(`
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-100 text-rose-900 text-xs font-black border border-rose-200">
+                                <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
+                                ⚠️ घाटा चेतावनी: लागत ₹${cost.toFixed(2)} से कम में बिक रहा है! (घाटा ₹${Math.abs(margin)})
+                            </span>
+                        `);
+                    }
+                }
+
+                if (badges.length > 0) {
+                    liveContainer.innerHTML = `<div class="flex flex-wrap items-center gap-2">${badges.join('')}</div>`;
+                    liveContainer.className = 'rounded-2xl p-3 bg-white/80 border border-gray-200 shadow-2xs block';
+                } else {
+                    liveContainer.className = 'hidden';
+                }
             }
+
+            // Run once on page load if values exist
+            document.addEventListener('DOMContentLoaded', recalcProdPricing);
             </script>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

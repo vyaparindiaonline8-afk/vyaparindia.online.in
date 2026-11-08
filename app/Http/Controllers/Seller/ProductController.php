@@ -169,6 +169,7 @@ class ProductController extends Controller
             'description' => 'required|string',
             'price' => 'required|numeric',
             'mrp' => 'nullable|numeric|min:0',
+            'box_mrp' => 'nullable|numeric|min:0',
             'purchase_price' => 'nullable|numeric|min:0',
             'trade_discount_percent' => 'nullable|numeric|min:0|max:100',
             'category_id' => 'nullable|exists:categories,id',
@@ -226,6 +227,11 @@ class ProductController extends Controller
             }
         }
 
+                if ($request->filled('box_mrp')) {
+            $product->box_mrp = (float)$request->box_mrp;
+            $product->save();
+        }
+
         return redirect()->route('seller.products.index')->with('success', 'Product created successfully with gallery & video.');
     }
 
@@ -252,6 +258,10 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric',
+            'mrp' => 'nullable|numeric|min:0',
+            'box_mrp' => 'nullable|numeric|min:0',
+            'purchase_price' => 'nullable|numeric|min:0',
+            'trade_discount_percent' => 'nullable|numeric|min:0|max:100',
             'category_id' => 'nullable|exists:categories,id',
             'new_category_name' => 'nullable|string|max:100',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:8192',
@@ -303,6 +313,11 @@ class ProductController extends Controller
             $updateData['trade_discount_percent'] = $request->filled('trade_discount_percent') ? (float)$request->trade_discount_percent : null;
         }
         $product->update($updateData);
+
+        if ($request->has('box_mrp')) {
+            $product->box_mrp = $request->filled('box_mrp') ? (float)$request->box_mrp : null;
+            $product->save();
+        }
 
         // 🖼️ Upload New Additional Gallery Images
         if ($request->hasFile('images')) {

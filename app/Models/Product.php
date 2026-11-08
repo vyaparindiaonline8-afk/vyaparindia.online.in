@@ -23,6 +23,7 @@ class Product extends Model
         'cost_price_3',
         'price_effective_date',
         'mrp',
+        'box_mrp',
         'gst_percent',
         'stock_quantity',
         'track_inventory',
@@ -105,6 +106,34 @@ class Product extends Model
         }
         return $val;
     }
+
+    public function getBoxMrpAttribute(): ?float
+    {
+        $attrs = is_array($this->attributes['attributes'] ?? null) 
+            ? $this->attributes['attributes'] 
+            : json_decode($this->attributes['attributes'] ?? '[]', true);
+        if (isset($attrs['box_mrp']) && is_numeric($attrs['box_mrp'])) {
+            return (float)$attrs['box_mrp'];
+        }
+        return null;
+    }
+
+    public function setBoxMrpAttribute($val): void
+    {
+        $attrs = is_array($this->attributes['attributes'] ?? null) 
+            ? $this->attributes['attributes'] 
+            : (json_decode($this->attributes['attributes'] ?? '[]', true) ?: []);
+        if (!is_array($attrs)) {
+            $attrs = [];
+        }
+        if ($val !== null && $val !== '' && is_numeric($val)) {
+            $attrs['box_mrp'] = (float)$val;
+        } else {
+            unset($attrs['box_mrp']);
+        }
+        $this->attributes['attributes'] = json_encode($attrs);
+    }
+
 
     public function getAvailableSizesAttribute(): array
     {

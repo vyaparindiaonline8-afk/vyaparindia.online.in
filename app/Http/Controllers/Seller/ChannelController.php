@@ -634,6 +634,7 @@ class ChannelController extends Controller
 
         $validated = $request->validate([
             'mrp' => 'nullable|numeric|min:0',
+            'box_mrp' => 'nullable|numeric|min:0',
             'purchase_price' => 'nullable|numeric|min:0',
             'trade_discount_percent' => 'nullable|numeric|min:0|max:100',
             'price' => 'required|numeric|min:1',
@@ -660,6 +661,9 @@ class ChannelController extends Controller
         }
         if ($request->has('trade_discount_percent')) {
             $product->trade_discount_percent = $validated['trade_discount_percent'];
+        }
+        if ($request->has('box_mrp')) {
+            $product->box_mrp = $request->filled('box_mrp') ? (float)$request->input('box_mrp') : null;
         }
         $product->price = $validated['price'];
 
@@ -762,6 +766,9 @@ class ChannelController extends Controller
                 if ($product->variants()->exists()) {
                     $product->variants()->update(['mrp' => $mrpVal]);
                 }
+            }
+            if (isset($item['box_mrp'])) {
+                $product->box_mrp = (is_numeric($item['box_mrp']) && (float)$item['box_mrp'] > 0) ? (float)$item['box_mrp'] : null;
             }
             if (isset($item['purchase_price'])) {
                 $product->purchase_price = (float)$item['purchase_price'];
