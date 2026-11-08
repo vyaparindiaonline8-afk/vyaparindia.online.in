@@ -418,6 +418,10 @@
         function filterGalleryByFolder(folder) {
             activeFolder = folder;
             const targetFolder = (folder || 'ALL').toLowerCase().trim();
+            const lbl = document.getElementById('aiEnhanceFolderName');
+            if (lbl) {
+                lbl.innerText = (folder === 'ALL' || !folder) ? 'सभी फोटो' : folder;
+            }
 
             document.querySelectorAll('.folder-chip-btn').forEach(btn => {
                 const btnFolder = (btn.getAttribute('data-folder-name') || '').toLowerCase().trim();
@@ -933,7 +937,180 @@
             });
             updateSelectedCount();
         });
+
+        // ==========================================
+        // ✨ AI IMAGE ENHANCER & BACKGROUND CLEANER
+        // ==========================================
+        async function triggerAiEnhanceFolder() {
+            // Check if any specific checkboxes are selected first
+            const selectedCheckboxes = Array.from(document.querySelectorAll('.img-checkbox:checked'));
+            const selectedUrls = selectedCheckboxes.map(cb => cb.value);
+
+            let mode = 'folder';
+            let targetLabel = '';
+            let payload = {};
+
+            if (selectedUrls.length > 0) {
+                mode = 'selected';
+                targetLabel = `चुनी हुई ${selectedUrls.length} फोटो`;
+            } else {
+                const folder = (typeof activeFolder !== 'undefined' && activeFolder) ? activeFolder : 'ALL';
+                targetLabel = folder === 'ALL' ? 'इस गैलरी की सभी फोटो' : `फ़ोल्डर "${folder}" की सभी फोटो`;
+                payload.folder = folder;
+            }
+
+            const confirmMsg = `✨ क्या आप ${targetLabel} को AI सुपर-रिज़ॉल्यूशन और 100% शुद्ध सफेद बैकग्राउंड (#FFFFFF) में बदलना चाहते हैं?\n\n✓ मूल (Original) फोटो का बैकअप सुरक्षित रहेगा\n✓ जुड़े हुए सभी प्रोडक्ट कार्ड में नया साफ फोटो ऑटोमैटिक लग जाएगा\n✓ 1-क्लिक अनडू (Undo) उपलब्ध रहेगा`;
+            
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+
+            const modal = document.getElementById('aiEnhanceModal');
+            const bar = document.getElementById('aiEnhanceProgressBar');
+            const status = document.getElementById('aiEnhanceModalStatus');
+            if (modal) modal.classList.remove('hidden');
+            if (bar) bar.style.width = '35%';
+            if (status) status.innerText = `AI इंजन ${targetLabel} प्रोसेस कर रहा है...`;
+
+            try {
+                let res, data;
+                if (mode === 'selected') {
+                    // Process selected images one by one
+                    let doneCount = 0;
+                    for (let i = 0; i < selectedUrls.length; i++) {
+                        const url = selectedUrls[i];
+                        if (status) status.innerText = `प्रोसेसिंग: ${i + 1} / ${selectedUrls.length} फोटो...`;
+                        if (bar) bar.style.width = `${Math.round(((i + 1) / selectedUrls.length) * 90)}%`;
+
+                        const singleRes = await fetch("{{ route('seller.catalog.gallery.ai_enhance_single') }}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken
+                            },
+                            body: JSON.stringify({ image_url: url })
+                        });
+                        const singleData = await singleRes.json();
+                        if (singleData.success) doneCount++;
+                    }
+                    data = { success: doneCount > 0, success_count: doneCount, affected_products_count: doneCount };
+                } else {
+                    res = await fetch("{{ route('seller.catalog.gallery.ai_enhance_folder') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    data = await res.json();
+                }
+
+                if (bar) bar.style.width = '100%';
+
+                if (data.success) {
+                    if (status) status.innerText = `सफलता! ${data.success_count || 1} फोटो साफ होकर HD बन चुकी हैं!`;
+                    setTimeout(() => {
+                        if (modal) modal.classList.add('hidden');
+                        alert(`🎉 बधाई! ${targetLabel} की ${data.success_count || 1} फोटो सफलतापूर्वक HD स्टूडियो व्हाइट बैकग्राउंड में बदल दी गई हैं!\n\n✓ सभी प्रोडक्ट कार्ड्स में नई साफ फोटो ऑटोमैटिक लिंक हो गई है.`);
+                        location.reload();
+                    }, 800);
+                } else {
+                    if (modal) modal.classList.add('hidden');
+                    alert(data.message || data.error || 'AI प्रोसेसिंग में समस्या आई।');
+                }
+            } catch (err) {
+                if (modal) modal.classList.add('hidden');
+                console.error('AI Enhance Error:', err);
+                alert('नेटवर्क एरर या टाइमआउट। कृपया पुनः प्रयास करें।');
+            }
+        }
+
+        async function triggerAiEnhanceSingle(imageUrl, name) {
+            if (!confirm(`✨ क्या आप "${name}" की फोटो को AI HD सुपर-रिज़ॉल्यूशन व शुद्ध सफेद बैकग्राउंड में बदलना चाहते हैं?`)) {
+                return;
+            }
+
+            const modal = document.getElementById('aiEnhanceModal');
+            const bar = document.getElementById('aiEnhanceProgressBar');
+            const status = document.getElementById('aiEnhanceModalStatus');
+            if (modal) modal.classList.remove('hidden');
+            if (bar) bar.style.width = '50%';
+            if (status) status.innerText = `"${name}" की फोटो को HD स्टूडियो में बदला जा रहा है...`;
+
+            try {
+                const res = await fetch("{{ route('seller.catalog.gallery.ai_enhance_single') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({ image_url: imageUrl })
+                });
+                const data = await res.json();
+                if (bar) bar.style.width = '100%';
+
+                if (data.success) {
+                    setTimeout(() => {
+                        if (modal) modal.classList.add('hidden');
+                        alert(`🎉 फोटो सफलतापूर्वक 1200x1200px HD व्हाइट बैकग्राउंड में बदल गई!\n\nजुड़े हुए प्रोडक्ट्स: ${(data.affected_products || []).join(', ') || 'अपडेट हो गए'}`);
+                        location.reload();
+                    }, 500);
+                } else {
+                    if (modal) modal.classList.add('hidden');
+                    alert(data.error || 'इमेज एन्हांस नहीं हो पाई।');
+                }
+            } catch (err) {
+                if (modal) modal.classList.add('hidden');
+                alert('नेटवर्क एरर। कृपया पुनः प्रयास करें।');
+            }
+        }
+
+        async function triggerRevertImage(imageUrl) {
+            if (!confirm(`⏪ क्या आप इस फोटो को वापस अपनी पुरानी (Original) फोटो में रीस्टोर करना चाहते हैं?`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch("{{ route('seller.catalog.gallery.revert') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({ image_url: imageUrl })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.message || 'रीस्टोर नहीं हो सका।');
+                }
+            } catch (err) {
+                alert('नेटवर्क एरर।');
+            }
+        }
+
     </script>
+    
+    <!-- ✨ AI Processing Modal -->
+    <div id="aiEnhanceModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl border border-purple-200 animate-in fade-in zoom-in duration-200">
+            <div class="h-16 w-16 mx-auto rounded-3xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-blue-600 text-white flex items-center justify-center text-2xl shadow-lg shadow-purple-600/30 animate-pulse">
+                <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-black text-gray-900" id="aiEnhanceModalTitle">AI फोटो स्टूडियो चल रहा है...</h3>
+                <p class="text-xs text-gray-500 mt-1" id="aiEnhanceModalDesc">धुंधलापन हटाया जा रहा है, किनारे शार्प हो रहे हैं और 100% शुद्ध सफेद स्टूडियो बैकग्राउंड तैयार हो रहा है।</p>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                <div id="aiEnhanceProgressBar" class="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 h-3 rounded-full transition-all duration-300" style="width: 25%"></div>
+            </div>
+            <p class="text-[11px] text-purple-700 font-bold" id="aiEnhanceModalStatus">कृपया प्रतीक्षा करें... (यह प्रक्रिया आपके मूल बैकअप को सुरक्षित रखती है)</p>
+        </div>
+    </div>
+
     @include('components.ai-copilot-widget')
 </body>
 </html>
