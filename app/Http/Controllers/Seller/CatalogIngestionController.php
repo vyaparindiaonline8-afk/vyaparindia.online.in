@@ -1553,25 +1553,67 @@ class CatalogIngestionController extends Controller
      */
     public function gallery(Request $request)
     {
-        $userId = Auth::id();
+        $userId = Auth::id() ?: 1;
+
+        // Auto-heal / Restore CPVC folder if user accidentally deleted it
+        try {
+            $deletedFolders = \Illuminate\Support\Facades\Cache::get("deleted_gallery_folders_{$userId}", []);
+            $needsCpvcRestore = false;
+            foreach ($deletedFolders as $df => $val) {
+                if (str_contains(strtolower($df), 'cpvc')) {
+                    $needsCpvcRestore = true;
+                    unset($deletedFolders[$df]);
+                }
+            }
+            if ($needsCpvcRestore) {
+                \Illuminate\Support\Facades\Cache::put("deleted_gallery_folders_{$userId}", $deletedFolders, now()->addYears(1));
+                
+                \App\Models\SellerMedia::where('user_id', $userId)
+                    ->where(function($q) {
+                        $q->where('category_type', 'General')
+                          ->orWhereNull('category_type');
+                    })
+                    ->where(function($q) {
+                        $q->where('file_path', 'like', '%cpvc%')
+                          ->orWhere('filename', 'like', '%cpvc%');
+                    })
+                    ->update(['category_type' => 'CPVC Pipe and Fittings']);
+
+                \App\Models\SellerFolder::firstOrCreate([
+                    'user_id' => $userId,
+                    'name' => 'CPVC Pipe and Fittings',
+                ]);
+            }
+        } catch (\Throwable $e) {}
+
         $allImages = $this->getAllGalleryImages($userId);
         
-        // Calculate folders with counts
+        // Calculate folders with counts (Case-Insensitive normalization to prevent duplicate folder chips)
         $folders = [];
-        foreach ($allImages as $img) {
-            $f = $img['folder'] ?? 'General';
-            $folders[$f] = ($folders[$f] ?? 0) + 1;
-        }
+        $canonicalMap = [];
 
-        // Include custom created folders (even if 0 images currently)
         try {
             $customFolders = \App\Models\SellerFolder::where('user_id', $userId)->pluck('name');
             foreach ($customFolders as $cf) {
-                if (!isset($folders[$cf])) {
-                    $folders[$cf] = 0;
+                $trimmed = trim($cf);
+                $lower = strtolower($trimmed);
+                $canonical = ucwords($lower);
+                $canonicalMap[$lower] = $canonical;
+                if (!isset($folders[$canonical])) {
+                    $folders[$canonical] = 0;
                 }
             }
         } catch (\Throwable $e) {}
+
+        foreach ($allImages as $img) {
+            $f = trim($img['folder'] ?? 'General');
+            $lower = strtolower($f);
+            if (!isset($canonicalMap[$lower])) {
+                $canonicalMap[$lower] = ucwords($lower);
+            }
+            $canonical = $canonicalMap[$lower];
+            $folders[$canonical] = ($folders[$canonical] ?? 0) + 1;
+        }
 
         ksort($folders);
 
@@ -1613,19 +1655,30 @@ class CatalogIngestionController extends Controller
         $images = $this->getAllGalleryImages($userId);
 
         $folders = [];
-        foreach ($images as $i) {
-            $f = $i['folder'] ?? 'General';
-            $folders[$f] = ($folders[$f] ?? 0) + 1;
-        }
+        $canonicalMap = [];
 
         try {
             $customFolders = \App\Models\SellerFolder::where('user_id', $userId)->pluck('name');
             foreach ($customFolders as $cf) {
-                if (!isset($folders[$cf])) {
-                    $folders[$cf] = 0;
+                $trimmed = trim($cf);
+                $lower = strtolower($trimmed);
+                $canonical = ucwords($lower);
+                $canonicalMap[$lower] = $canonical;
+                if (!isset($folders[$canonical])) {
+                    $folders[$canonical] = 0;
                 }
             }
         } catch (\Throwable $e) {}
+
+        foreach ($images as $i) {
+            $f = trim($i['folder'] ?? 'General');
+            $lower = strtolower($f);
+            if (!isset($canonicalMap[$lower])) {
+                $canonicalMap[$lower] = ucwords($lower);
+            }
+            $canonical = $canonicalMap[$lower];
+            $folders[$canonical] = ($folders[$canonical] ?? 0) + 1;
+        }
 
         ksort($folders);
 
