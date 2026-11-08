@@ -633,6 +633,7 @@ class ChannelController extends Controller
         }
 
         $validated = $request->validate([
+            'mrp' => 'nullable|numeric|min:0',
             'purchase_price' => 'nullable|numeric|min:0',
             'trade_discount_percent' => 'nullable|numeric|min:0|max:100',
             'price' => 'required|numeric|min:1',
@@ -646,6 +647,13 @@ class ChannelController extends Controller
             'combo_6' => 'nullable|numeric|min:0',
         ]);
 
+        if ($request->has('mrp')) {
+            $mrpVal = $request->filled('mrp') ? (float)$request->input('mrp') : null;
+            $product->mrp = $mrpVal;
+            if ($product->variants()->exists()) {
+                $product->variants()->update(['mrp' => $mrpVal]);
+            }
+        }
         if ($request->has('purchase_price')) {
             $product->purchase_price = $validated['purchase_price'];
             $product->net_landing_cost = $validated['purchase_price'];
@@ -748,6 +756,13 @@ class ChannelController extends Controller
                 : Product::where('id', $prodId)->where('user_id', $userId)->first();
             if (!$product) continue;
 
+            if (isset($item['mrp'])) {
+                $mrpVal = (float)$item['mrp'];
+                $product->mrp = $mrpVal;
+                if ($product->variants()->exists()) {
+                    $product->variants()->update(['mrp' => $mrpVal]);
+                }
+            }
             if (isset($item['purchase_price'])) {
                 $product->purchase_price = (float)$item['purchase_price'];
                 $product->net_landing_cost = (float)$item['purchase_price'];

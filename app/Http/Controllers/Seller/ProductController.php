@@ -168,6 +168,9 @@ class ProductController extends Controller
             'name' => 'required|string|max:255|unique:products,name',
             'description' => 'required|string',
             'price' => 'required|numeric',
+            'mrp' => 'nullable|numeric|min:0',
+            'purchase_price' => 'nullable|numeric|min:0',
+            'trade_discount_percent' => 'nullable|numeric|min:0|max:100',
             'category_id' => 'nullable|exists:categories,id',
             'new_category_name' => 'nullable|string|max:100',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
@@ -199,6 +202,10 @@ class ProductController extends Controller
             'slug' => Str::slug($request->name) ?: ('prod-' . time()),
             'description' => $request->description,
             'price' => $request->price,
+            'mrp' => $request->filled('mrp') ? (float)$request->mrp : null,
+            'purchase_price' => $request->filled('purchase_price') ? (float)$request->purchase_price : null,
+            'net_landing_cost' => $request->filled('purchase_price') ? (float)$request->purchase_price : null,
+            'trade_discount_percent' => $request->filled('trade_discount_percent') ? (float)$request->trade_discount_percent : null,
             'category_id' => $categoryId,
             'image' => $imageName,
             'video_url' => $request->video_url,
@@ -274,7 +281,7 @@ class ProductController extends Controller
             $imageName = $request->input('existing_image_url');
         }
 
-        $product->update([
+        $updateData = [
             'name' => $request->name,
             'slug' => Str::slug($request->name) ?: $product->slug,
             'description' => $request->description,
@@ -284,7 +291,18 @@ class ProductController extends Controller
             'category_id' => $categoryId,
             'image' => $imageName,
             'video_url' => $request->video_url,
-        ]);
+        ];
+        if ($request->has('mrp')) {
+            $updateData['mrp'] = $request->filled('mrp') ? (float)$request->mrp : null;
+        }
+        if ($request->has('purchase_price')) {
+            $updateData['purchase_price'] = $request->filled('purchase_price') ? (float)$request->purchase_price : null;
+            $updateData['net_landing_cost'] = $updateData['purchase_price'];
+        }
+        if ($request->has('trade_discount_percent')) {
+            $updateData['trade_discount_percent'] = $request->filled('trade_discount_percent') ? (float)$request->trade_discount_percent : null;
+        }
+        $product->update($updateData);
 
         // 🖼️ Upload New Additional Gallery Images
         if ($request->hasFile('images')) {

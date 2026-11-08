@@ -920,16 +920,17 @@
 
                                 <!-- Unit Economics Breakdown Badge -->
                                 <div class="p-2.5 bg-slate-50 rounded-2xl border border-gray-100 text-[11px] space-y-1">
-                                    @if($mrpVal > 0)
-                                    <div class="flex items-center justify-between text-amber-900 text-[10px] font-bold pb-1 border-b border-gray-100">
-                                        <span>MRP: <strong class="font-mono">₹{{ number_format($mrpVal, 2) }}</strong></span>
+                                    <div class="flex items-center justify-between text-amber-900 text-[10px] font-bold pb-1 border-b border-gray-100 gap-1 flex-wrap">
+                                        <div class="inline-flex items-center gap-1 bg-white px-1.5 py-0.5 rounded border border-amber-300 shadow-2xs">
+                                            <span class="text-[10px] text-amber-950 font-black">MRP ₹:</span>
+                                            <input type="number" step="any" min="0" id="card-mrp-{{ $p->id }}" value="{{ $mrpVal > 0 ? $mrpVal : '' }}" oninput="recalcCardMrpAndLessToCost({{ $p->id }})" class="w-14 px-1 py-0.5 bg-white font-mono font-black text-amber-950 text-center text-[10px] outline-none" placeholder="MRP">
+                                        </div>
                                         <div class="inline-flex items-center gap-1 bg-amber-50/70 px-2 py-0.5 rounded-lg border border-amber-200">
                                             <span class="text-[10px] text-amber-950 font-bold">Less:</span>
-                                            <input type="number" step="0.5" min="0" max="99" id="card-less-{{ $p->id }}" data-mrp="{{ $mrpVal }}" value="{{ $lessVal !== '' && $lessVal > 0 ? $lessVal : '' }}" oninput="recalcCardLessToCost({{ $p->id }})" class="w-12 px-1 py-0.5 bg-white border border-amber-300 rounded font-mono font-black text-amber-900 text-center text-[10px] outline-none" placeholder="Less%">
+                                            <input type="number" step="0.5" min="0" max="99" id="card-less-{{ $p->id }}" data-mrp="{{ $mrpVal }}" value="{{ $lessVal !== '' && $lessVal > 0 ? $lessVal : '' }}" oninput="recalcCardMrpAndLessToCost({{ $p->id }})" class="w-12 px-1 py-0.5 bg-white border border-amber-300 rounded font-mono font-black text-amber-900 text-center text-[10px] outline-none" placeholder="Less%">
                                             <span class="text-rose-600 font-black">%</span>
                                         </div>
                                     </div>
-                                    @endif
                                     <div class="flex items-center justify-between">
                                         <span class="text-gray-500 font-medium">खरीद लागत (P.Cost):</span>
                                         <span class="font-bold text-gray-800 font-mono" id="card-cost-{{ $p->id }}">₹{{ number_format($pCost, 2) }}</span>
@@ -1264,12 +1265,18 @@
                                         </td>
 
                                         <!-- MRP & Less % -->
-                                        <td class="p-2 bg-amber-50/40 text-center font-mono font-bold text-amber-950">
-                                            @if($mrpVal > 0)
-                                                ₹{{ number_format($mrpVal, 2) }}
-                                            @else
-                                                <span class="text-gray-400 text-[10px]">-</span>
-                                            @endif
+                                        <td class="p-2 bg-amber-50/40 text-center">
+                                            <div class="inline-flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-amber-300 shadow-2xs">
+                                                <span class="text-[10px] text-amber-700 font-black">₹</span>
+                                                <input type="number" step="any" min="0" 
+                                                    id="row-mrp-{{ $p->id }}" 
+                                                    data-prod-id="{{ $p->id }}"
+                                                    value="{{ $mrpVal > 0 ? $mrpVal : '' }}" 
+                                                    oninput="recalcRowMrpAndLessToCost({{ $p->id }})" 
+                                                    class="w-16 px-1 py-0.5 bg-white font-mono font-black text-amber-950 text-center text-xs outline-none" 
+                                                    title="वास्तविक डिब्बा MRP (प्रिंटेड भाव ₹)" 
+                                                    placeholder="MRP">
+                                            </div>
                                         </td>
                                         <td class="p-2 bg-amber-50/40 text-center">
                                             <div class="inline-flex items-center gap-0.5">
@@ -3568,8 +3575,10 @@ function switchMarketplaceTab(tab) {
                 const c2Val = parseFloat(document.getElementById(`row-combo2-${id}`)?.value) || 0;
                 const c4Val = parseFloat(document.getElementById(`row-combo4-${id}`)?.value) || 0;
                 const c6Val = parseFloat(document.getElementById(`row-combo6-${id}`)?.value) || 0;
+                const mrpVal = parseFloat(document.getElementById(`row-mrp-${id}`)?.value) || null;
                 items.push({
                     product_id: parseInt(id),
+                    mrp: mrpVal,
                     stock_quantity: stock,
                     purchase_price: cost,
                     trade_discount_percent: lessVal,
@@ -3659,6 +3668,7 @@ function switchMarketplaceTab(tab) {
                 : (document.getElementById(`row-stock-${prodId}`) || document.getElementById(`card-stock-inp-${prodId}`));
             const stock = stockInpEl ? (parseInt(stockInpEl.value, 10) || 0) : 0;
             try {
+                const mrpSingle = parseFloat(document.getElementById(`row-mrp-${prodId}`)?.value || document.getElementById(`card-mrp-${prodId}`)?.value) || null;
                 const res = await fetch(`/seller/channels/products/${prodId}/save-costing`, {
                     method: 'POST',
                     headers: {
@@ -3667,6 +3677,7 @@ function switchMarketplaceTab(tab) {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
                     body: JSON.stringify({
+                        mrp: mrpSingle,
                         stock_quantity: stock,
                         purchase_price: cost,
                         trade_discount_percent: lessVal,
@@ -4767,6 +4778,41 @@ document.addEventListener('change', function(e) {
 
             window.open(waUrl, '_blank');
         }
+
+
+    function recalcRowMrpAndLessToCost(prodId) {
+        const mrpInp = document.getElementById(`row-mrp-${prodId}`);
+        const lessInp = document.getElementById(`row-less-${prodId}`);
+        const costInp = document.getElementById(`row-cost-${prodId}`);
+        const mrp = parseFloat(mrpInp?.value) || 0;
+        const less = parseFloat(lessInp?.value) || 0;
+        if (mrp > 0 && less > 0) {
+            const cost = Math.round((mrp * (1 - (less / 100))) * 100) / 100;
+            if (costInp) costInp.value = cost.toFixed(2);
+            const cardCost = document.getElementById(`card-cost-${prodId}`);
+            if (cardCost) cardCost.value = cost.toFixed(2);
+        }
+        const cardMrp = document.getElementById(`card-mrp-${prodId}`);
+        if (cardMrp && mrpInp) cardMrp.value = mrpInp.value;
+        if (lessInp) lessInp.setAttribute('data-mrp', mrp);
+    }
+
+    function recalcCardMrpAndLessToCost(prodId) {
+        const cardMrp = document.getElementById(`card-mrp-${prodId}`);
+        const cardLess = document.getElementById(`card-less-${prodId}`);
+        const cardCost = document.getElementById(`card-cost-${prodId}`);
+        const mrp = parseFloat(cardMrp?.value) || 0;
+        const less = parseFloat(cardLess?.value) || 0;
+        if (mrp > 0 && less > 0) {
+            const cost = Math.round((mrp * (1 - (less / 100))) * 100) / 100;
+            if (cardCost) cardCost.value = cost.toFixed(2);
+            const rowCost = document.getElementById(`row-cost-${prodId}`);
+            if (rowCost) rowCost.value = cost.toFixed(2);
+        }
+        const rowMrp = document.getElementById(`row-mrp-${prodId}`);
+        if (rowMrp && cardMrp) rowMrp.value = cardMrp.value;
+        if (cardLess) cardLess.setAttribute('data-mrp', mrp);
+    }
 
 </script>
 

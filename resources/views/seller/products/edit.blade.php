@@ -103,12 +103,53 @@
                 </div>
             </div>
 
-            <!-- Price & Cover Photo -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Price, MRP, Cost & Trade Discount -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-amber-50/40 p-4 rounded-2xl border border-amber-200/70">
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Selling Price (₹) <span class="text-rose-500">*</span></label>
-                    <input type="number" name="price" value="{{ old('price', $product->price) }}" step="0.01" required class="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs font-bold focus:border-blue-500 focus:outline-hidden">
+                    <label class="block text-xs font-black text-amber-950 mb-1">
+                        📦 डिब्बा MRP (प्रिंटेड भाव ₹)
+                    </label>
+                    <input type="number" name="mrp" id="edit_prod_mrp" value="{{ old('mrp', $product->mrp) }}" step="0.01" placeholder="उदा. 340.00" oninput="recalcEditProdCost()" class="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 bg-white text-xs font-black text-amber-950 focus:border-amber-500 focus:outline-hidden shadow-2xs">
+                    <span class="text-[10px] text-amber-800 block mt-0.5 font-bold">डिब्बे पर छपा वास्तविक MRP</span>
                 </div>
+
+                <div>
+                    <label class="block text-xs font-black text-amber-950 mb-1">
+                        🏷️ डिस्काउंट (Less %)
+                    </label>
+                    <input type="number" name="trade_discount_percent" id="edit_prod_discount" value="{{ old('trade_discount_percent', $product->trade_discount_percent) }}" step="0.5" min="0" max="99" placeholder="उदा. 45" oninput="recalcEditProdCost()" class="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 bg-white text-xs font-black text-amber-950 focus:border-amber-500 focus:outline-hidden shadow-2xs">
+                    <span class="text-[10px] text-amber-800 block mt-0.5 font-bold">MRP पर लेस %</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-black text-indigo-950 mb-1">
+                        💰 खरीद लागत (Purchase Cost ₹)
+                    </label>
+                    <input type="number" name="purchase_price" id="edit_prod_cost" value="{{ old('purchase_price', $product->purchase_price) }}" step="0.01" placeholder="उदा. 187.00" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-indigo-400 bg-indigo-50/50 text-xs font-black text-indigo-950 focus:border-indigo-600 focus:outline-hidden shadow-2xs">
+                    <span class="text-[10px] text-indigo-700 block mt-0.5 font-bold">आपकी शुद्ध खरीद लागत</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-black text-emerald-950 mb-1">
+                        🏷️ सेलिंग प्राइस (Selling Price ₹) <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="number" name="price" id="edit_prod_price" value="{{ old('price', $product->price) }}" step="0.01" required class="w-full px-3.5 py-2.5 rounded-xl border-2 border-emerald-400 bg-emerald-50/40 text-xs font-black text-emerald-950 focus:border-emerald-600 focus:outline-hidden shadow-2xs">
+                    <span class="text-[10px] text-emerald-800 block mt-0.5 font-bold">ग्राहक को बेचने का भाव</span>
+                </div>
+            </div>
+
+            <script>
+            function recalcEditProdCost() {
+                const mrp = parseFloat(document.getElementById('edit_prod_mrp')?.value) || 0;
+                const disc = parseFloat(document.getElementById('edit_prod_discount')?.value) || 0;
+                if (mrp > 0 && disc > 0) {
+                    const cost = Math.round((mrp * (1 - (disc / 100))) * 100) / 100;
+                    document.getElementById('edit_prod_cost').value = cost.toFixed(2);
+                }
+            }
+            </script>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                 <div class="space-y-2">
                     <div class="flex items-center justify-between">
