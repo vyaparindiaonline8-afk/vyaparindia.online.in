@@ -1194,7 +1194,12 @@ class CatalogIngestionController extends Controller
             return trim($explicitCategory);
         }
 
-        return 'General';
+        $n = strtolower($name);
+        if (str_contains($n, 'tap') || str_contains($n, 'cock') || str_contains($n, 'bib') || str_contains($n, 'ptmt')) {
+            return 'PTMT Taps & Fittings';
+        }
+
+        return 'CPVC Pipe and Fittings';
     }
 
     /**
@@ -1529,11 +1534,6 @@ class CatalogIngestionController extends Controller
 
             $folder = self::detectFolderForImage($img['name'] ?? '', $explicit);
 
-            $deletedFolders = \Illuminate\Support\Facades\Cache::get("deleted_gallery_folders_{$userId}", []);
-            if (!empty($deletedFolders) && isset($deletedFolders[strtolower(trim($folder))])) {
-                $folder = 'General';
-            }
-
             $img['folder'] = $folder;
             $img['category'] = $folder;
             $img['image'] = $img['asset_url'] ?? ($img['url'] ?? '');
@@ -1555,36 +1555,64 @@ class CatalogIngestionController extends Controller
     {
         $userId = Auth::id() ?: 1;
 
-        // Auto-heal / Restore CPVC folder if user accidentally deleted it
+        // Auto-heal / Restore CPVC folder & Re-link all media with catalog products
         try {
-            $deletedFolders = \Illuminate\Support\Facades\Cache::get("deleted_gallery_folders_{$userId}", []);
-            $needsCpvcRestore = false;
-            foreach ($deletedFolders as $df => $val) {
-                if (str_contains(strtolower($df), 'cpvc')) {
-                    $needsCpvcRestore = true;
-                    unset($deletedFolders[$df]);
-                }
-            }
-            if ($needsCpvcRestore) {
-                \Illuminate\Support\Facades\Cache::put("deleted_gallery_folders_{$userId}", $deletedFolders, now()->addYears(1));
+            \Illuminate\Support\Facades\Cache::forget("deleted_gallery_folders_{$userId}");
+            \Illuminate\Support\Facades\Cache::store('file')->forget("deleted_gallery_folders_{$userId}");
+
+            $products = \App\Models\Product::where('user_id', $userId)->with('category')->get();
+            foreach ($products as $p) {
+                if (!$p->image) continue;
                 
+                $fName = 'CPVC Pipe and Fittings';
+                $pNameLower = strtolower($p->name);
+                
+                if (str_contains($pNameLower, 'tap') || str_contains($pNameLower, 'cock') || str_contains($pNameLower, 'ptmt')) {
+                    $fName = 'PTMT Taps & Fittings';
+                } elseif ($p->category && !empty($p->category->name) && strtolower($p->category->name) !== 'general') {
+                    $fName = $p->category->name;
+                } elseif ($p->group_name && strtolower($p->group_name) !== 'general') {
+                    $fName = $p->group_name;
+                }
+
+                $baseFn = basename(parse_url($p->image, PHP_URL_PATH));
                 \App\Models\SellerMedia::where('user_id', $userId)
-                    ->where(function($q) {
-                        $q->where('category_type', 'General')
-                          ->orWhereNull('category_type');
+                    ->where(function($q) use ($p, $baseFn) {
+                        $q->where('file_path', $p->image)
+                          ->orWhere('file_path', 'like', '%' . $baseFn);
                     })
-                    ->where(function($q) {
-                        $q->where('file_path', 'like', '%cpvc%')
-                          ->orWhere('filename', 'like', '%cpvc%');
-                    })
-                    ->update(['category_type' => 'CPVC Pipe and Fittings']);
+                    ->update(['category_type' => $fName]);
 
                 \App\Models\SellerFolder::firstOrCreate([
                     'user_id' => $userId,
-                    'name' => 'CPVC Pipe and Fittings',
+                    'name' => $fName,
                 ]);
             }
-        } catch (\Throwable $e) {}
+
+            // For any remaining SellerMedia without a folder or in General
+            $remaining = \App\Models\SellerMedia::where('user_id', $userId)
+                ->where(function($q) {
+                    $q->where('category_type', 'General')
+                      ->orWhereNull('category_type');
+                })->get();
+
+            foreach ($remaining as $rm) {
+                $fn = strtolower($rm->filename ?? $rm->file_path);
+                if (str_contains($fn, 'tap') || str_contains($fn, 'cock') || str_contains($fn, 'ptmt')) {
+                    $rm->category_type = 'PTMT Taps & Fittings';
+                } else {
+                    $rm->category_type = 'CPVC Pipe and Fittings';
+                }
+                $rm->save();
+            }
+
+            \App\Models\SellerFolder::firstOrCreate([
+                'user_id' => $userId,
+                'name' => 'CPVC Pipe and Fittings',
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Gallery restore error: ' . $e->getMessage());
+        }
 
         $allImages = $this->getAllGalleryImages($userId);
         
