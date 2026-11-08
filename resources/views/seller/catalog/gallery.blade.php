@@ -154,6 +154,10 @@
             </div>
 
             <div class="flex items-center gap-2 flex-wrap" id="bulkActionGroup">
+                <button type="button" id="bulkAiEnhanceBtn" onclick="triggerAiEnhanceFolder()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-xs font-black flex items-center gap-2 transition shadow-md shadow-purple-500/20">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                    <span>✨ AI स्टूडियो: <span id="aiEnhanceFolderName">इस फोल्डर की फोटो</span> को HD व व्हाइट करें</span>
+                </button>
                 <button type="button" onclick="selectAllImages(true)" class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition">
                     Select All
                 </button>
@@ -187,6 +191,12 @@
                         
                         <!-- Overlay Action Bar -->
                         <div class="overlay-actions opacity-0 group-hover:opacity-100 absolute inset-0 bg-black/40 backdrop-blur-[2px] rounded-xl flex items-center justify-center gap-1.5 transition-opacity duration-200" onclick="event.stopPropagation()">
+                            <button type="button" onclick="event.stopPropagation(); triggerAiEnhanceSingle({{ json_encode($img['url']) }}, {{ json_encode($img['name']) }})" class="h-8 w-8 rounded-lg bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center text-xs shadow-md transition" title="✨ AI HD Clean & Pure White BG">
+                                <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                            </button>
+                            <button type="button" onclick="event.stopPropagation(); triggerRevertImage({{ json_encode($img['url']) }})" class="h-8 w-8 rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center text-xs shadow-md transition" title="⏪ Revert to Original Backup">
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </button>
                             <button type="button" onclick="event.stopPropagation(); openPreviewModal('{{ $img['asset_url'] }}', {{ json_encode($img['name']) }})" class="h-8 w-8 rounded-lg bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center text-xs shadow-md transition" title="Preview Full Image">
                                 <i class="fa-solid fa-expand"></i>
                             </button>

@@ -173,6 +173,9 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/gallery/update-details', [CatalogIngestionController::class, 'updateMediaDetails'])->name('gallery.update_details');
         Route::post('/gallery/delete', [CatalogIngestionController::class, 'deleteFromGallery'])->name('gallery.delete');
         Route::post('/gallery/bulk-delete', [CatalogIngestionController::class, 'bulkDeleteFromGallery'])->name('gallery.bulk_delete');
+        Route::post('/gallery/ai-enhance-folder', [CatalogIngestionController::class, 'aiEnhanceFolder'])->name('gallery.ai_enhance_folder');
+        Route::post('/gallery/ai-enhance-single', [CatalogIngestionController::class, 'aiEnhanceSingle'])->name('gallery.ai_enhance_single');
+        Route::post('/gallery/revert-image', [CatalogIngestionController::class, 'revertImageEnhancement'])->name('gallery.revert');
 
         // 📄 Page 2: Interactive PDF Studio (Side-by-Side Editable Canvas + Live Gallery)
         Route::get('/pdf-studio', [CatalogIngestionController::class, 'pdfStudio'])->name('pdf_studio');

@@ -2037,6 +2037,54 @@ class CatalogIngestionController extends Controller
     /**
      * Create an empty custom Image Folder for seller.
      */
+    
+    /**
+     * AI Studio: Bulk Enhance all images in a folder/category
+     */
+    public function aiEnhanceFolder(Request $request)
+    {
+        $folder = trim($request->input('folder', 'ALL'));
+        $userId = Auth::id() ?: 1;
+
+        $res = \App\Services\AiImageEnhancerService::enhanceFolder($folder, $userId);
+
+        return response()->json($res);
+    }
+
+    /**
+     * AI Studio: Enhance a single image
+     */
+    public function aiEnhanceSingle(Request $request)
+    {
+        $request->validate([
+            'image_url' => 'required|string',
+        ]);
+
+        $imageUrl = trim($request->input('image_url'));
+        $userId = Auth::id() ?: 1;
+
+        $res = \App\Services\AiImageEnhancerService::enhanceImage($imageUrl, $userId);
+
+        return response()->json($res);
+    }
+
+    /**
+     * AI Studio: Revert an enhanced image to original backup
+     */
+    public function revertImageEnhancement(Request $request)
+    {
+        $request->validate([
+            'image_url' => 'required|string',
+        ]);
+
+        $imageUrl = trim($request->input('image_url'));
+        $userId = Auth::id() ?: 1;
+
+        $res = \App\Services\AiImageEnhancerService::revertImage($imageUrl, $userId);
+
+        return response()->json($res);
+    }
+
     public function createFolder(Request $request)
     {
         $request->validate([
