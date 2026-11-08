@@ -11,12 +11,7 @@ RUN apk add --no-cache \
     postgresql-dev \
     sqlite-dev \
     oniguruma-dev \
-    libzip-dev \
-    python3 \
-    py3-pip \
-    py3-pillow \
-    py3-numpy \
-    py3-requests
+    libzip-dev
 
 # Install PHP extensions
 RUN docker-php-ext-install pdo pdo_pgsql pdo_sqlite pdo_mysql mbstring exif pcntl bcmath gd zip
