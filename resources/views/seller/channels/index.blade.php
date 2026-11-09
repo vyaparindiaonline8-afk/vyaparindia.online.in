@@ -656,6 +656,10 @@
                                 <i class="fa-solid fa-file-arrow-up text-amber-300"></i>
                                 <span>शीट अपलोड</span>
                             </button>
+                            <button type="button" onclick="openShippingRateManagerModal()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-300 hover:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer hover:scale-102 active:scale-98" title="Amazon, Meesho, Flipkart आदि सभी प्लेटफ़ॉर्म्स के कूरियर दरें (वेट-स्लैब्स) देखें व बदलें">
+                                <i class="fa-solid fa-truck-ramp-box text-sky-400"></i>
+                                <span>🚚 कूरियर रेट मास्टर</span>
+                            </button>
                             <button type="button" id="btnBulkSaveTable" onclick="saveAllTableRowsCosting()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95" title="कतार के सभी प्रोडक्ट्स के रेट्स, लेस% व मार्जिन एक साथ सेव करें">
                                 <i class="fa-solid fa-floppy-disk text-amber-200"></i>
                                 <span>💾 सभी सेव करें (Save All)</span>
@@ -1395,7 +1399,7 @@
                                     <th class="p-3 min-w-[90px] bg-indigo-50 text-indigo-950 font-black" title="मार्केटप्लेस के लिए आपका मनपसंद मुनाफा %">मार्जिन (%)</th>
                                     <th class="p-3 min-w-[95px] bg-rose-50 text-rose-950 font-black" title="रिटर्न/RTO नुकसान से सुरक्षा (₹ या %)">🔄 रिटर्न बफ़र (₹/%)</th>
                                     <th class="p-3 min-w-[80px]">पैकिंग (₹)</th>
-                                    <th class="p-3 min-w-[100px] bg-sky-50 text-sky-950 font-black">कूरियर (₹+GST)</th>
+                                    <th class="p-3 min-w-[110px] bg-sky-50 text-sky-950 font-black" title="प्रोडक्ट का वजन (kg) व कूरियर दर">वजन & कूरियर (₹+GST)</th>
                                     <th class="p-3 min-w-[100px] bg-purple-50 text-purple-950 font-black">कमीशन फ़ी (%+GST)</th>
                                     <th class="p-3 min-w-[80px]">ऐड्स (₹)</th>
                                     <th class="p-3 min-w-[75px] bg-purple-50 text-purple-950 font-black">HSN कोड</th>
@@ -1585,8 +1589,13 @@
                                             </div>
                                         </td>
 
-                                        <!-- 3. Courier / Shipping (₹) -->
+                                        <!-- 3. Courier / Shipping (₹) + Weight (kg) -->
                                         <td class="p-2 bg-sky-50/30">
+                                            <div class="flex items-center gap-1 mb-1 justify-center">
+                                                <span class="text-[9px] text-slate-500 font-bold" title="प्रोडक्ट का शुद्ध वजन (kg)">⚖️</span>
+                                                <input type="number" step="0.05" min="0.01" max="50" id="row-weight-{{ $p->id }}" value="{{ (float)($ue['weight_kg'] ?? 0.35) }}" oninput="onProductWeightChange({{ $p->id }})" class="w-14 px-1 py-0.5 bg-white border border-sky-300 rounded text-center text-[10px] font-mono font-black text-sky-950 focus:border-sky-500 focus:outline-none" title="वजन डालें (उदा. 0.35kg, 0.5kg, 1.2kg) - सभी प्लेटफ़ॉर्म्स के कूरियर रेट्स अपने-आप बदलेंगे">
+                                                <span class="text-[9px] text-sky-800 font-bold">kg</span>
+                                            </div>
                                             <div class="relative">
                                                 <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-sky-400 text-[10px]">₹</span>
                                                 <input type="number" id="row-ship-{{ $p->id }}" value="{{ $shipCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 pl-4 pr-1 py-1 bg-white border border-sky-300 rounded-lg text-xs font-mono font-bold text-sky-950 focus:border-sky-500 focus:outline-none" title="कूरियर दर">
@@ -2970,6 +2979,211 @@ function switchMarketplaceTab(tab) {
 
         
         // --- 🛡️ RTO DRAIN & RISK BUDGETING SIMULATOR LOGIC ---
+        
+        // --- 🚚 PLATFORM COURIER RATE MASTER MODAL LOGIC ---
+        let currentShipModalTab = 'amazon';
+
+        function openShippingRateManagerModal() {
+            renderShippingMasterTable(currentShipModalTab);
+            const m = document.getElementById('shippingRateManagerModal');
+            if (m) {
+                m.classList.remove('hidden');
+                m.classList.add('flex');
+            }
+        }
+
+        function closeShippingRateManagerModal() {
+            const m = document.getElementById('shippingRateManagerModal');
+            if (m) {
+                m.classList.add('hidden');
+                m.classList.remove('flex');
+            }
+        }
+
+        function switchShippingPlatformTab(platform) {
+            currentShipModalTab = platform;
+            ['amazon', 'meesho', 'flipkart', 'direct'].forEach(p => {
+                const btn = document.getElementById(`tabBtnShip_${p}`);
+                if (btn) {
+                    if (p === platform) {
+                        btn.className = "px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-amber-500 text-slate-950 shadow-xs cursor-pointer";
+                    } else {
+                        btn.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-gray-100 text-gray-700 hover:text-gray-900 cursor-pointer";
+                    }
+                }
+            });
+            renderShippingMasterTable(platform);
+        }
+
+        function renderShippingMasterTable(platform) {
+            const container = document.getElementById('shippingMasterTablesContainer');
+            if (!container) return;
+
+            let rates = PLATFORM_SHIPPING_RATES.filter(r => r.carrier === platform);
+            if (!rates.length) {
+                // Populate standard fallback slabs if none exists
+                const fallbacks = {
+                    amazon: [
+                        { weight: 0.5, rate: 55, gst_percent: 18, label: '0.5 kg (Amazon Easy Ship ₹55)' },
+                        { weight: 1.0, rate: 75, gst_percent: 18, label: '1.0 kg (Amazon Easy Ship ₹75)' },
+                        { weight: 2.0, rate: 112, gst_percent: 18, label: '2.0 kg (Amazon Easy Ship ₹112)' },
+                        { weight: 3.0, rate: 145, gst_percent: 18, label: '3.0 kg (Amazon Easy Ship ₹145)' }
+                    ],
+                    meesho: [
+                        { weight: 0.5, rate: 38, gst_percent: 18, label: '0.5 kg (Meesho 3PL ₹38)' },
+                        { weight: 1.0, rate: 52, gst_percent: 18, label: '1.0 kg (Meesho 3PL ₹52)' },
+                        { weight: 2.0, rate: 75, gst_percent: 18, label: '2.0 kg (Meesho 3PL ₹75)' },
+                        { weight: 3.0, rate: 95, gst_percent: 18, label: '3.0 kg (Meesho 3PL ₹95)' }
+                    ],
+                    flipkart: [
+                        { weight: 0.5, rate: 48, gst_percent: 18, label: '0.5 kg (Flipkart Ekart ₹48)' },
+                        { weight: 1.0, rate: 68, gst_percent: 18, label: '1.0 kg (Flipkart Ekart ₹68)' },
+                        { weight: 2.0, rate: 98, gst_percent: 18, label: '2.0 kg (Flipkart Ekart ₹98)' },
+                        { weight: 3.0, rate: 125, gst_percent: 18, label: '3.0 kg (Flipkart Ekart ₹125)' }
+                    ],
+                    direct: [
+                        { weight: 0.5, rate: 45, gst_percent: 18, label: '0.5 kg (Self / Shiprocket ₹45)' },
+                        { weight: 1.0, rate: 70, gst_percent: 18, label: '1.0 kg (Self / Shiprocket ₹70)' },
+                        { weight: 2.0, rate: 105, gst_percent: 18, label: '2.0 kg (Self / Shiprocket ₹105)' },
+                        { weight: 3.0, rate: 140, gst_percent: 18, label: '3.0 kg (Self / Shiprocket ₹140)' }
+                    ]
+                };
+                rates = fallbacks[platform] || fallbacks.amazon;
+            }
+
+            rates.sort((a, b) => parseFloat(a.weight) - parseFloat(b.weight));
+
+            let html = `
+                <div class="overflow-x-auto rounded-2xl border border-gray-200 shadow-2xs">
+                    <table class="w-full text-left text-xs divide-y divide-gray-200">
+                        <thead class="bg-gray-50 text-[10px] font-black uppercase text-gray-600">
+                            <tr>
+                                <th class="p-3">वजन स्लैब (Weight kg)</th>
+                                <th class="p-3">बेस कूरियर दर (₹ बिना GST)</th>
+                                <th class="p-3">GST (%)</th>
+                                <th class="p-3">कुल देय दर (With 18% GST)</th>
+                                <th class="p-3">विवरण / लेबल</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 text-xs font-mono" id="shipModalTbody">
+            `;
+
+            rates.forEach((r, idx) => {
+                const baseRate = parseFloat(r.rate) || 0;
+                const gst = parseFloat(r.gst_percent) || 18;
+                const totalWithGst = (baseRate * (1 + (gst / 100))).toFixed(2);
+                html += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-3 font-bold text-gray-900">
+                            <input type="number" step="0.1" min="0.1" value="${r.weight}" data-field="weight" data-idx="${idx}" class="w-16 px-2 py-1 bg-white border border-gray-300 rounded font-bold text-center"> kg
+                        </td>
+                        <td class="p-3">
+                            <div class="relative w-28">
+                                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
+                                <input type="number" step="1" value="${baseRate}" data-field="rate" data-idx="${idx}" oninput="updateShipModalRowTotal(${idx})" id="modalShipRate_${idx}" class="w-full pl-5 pr-2 py-1 bg-white border border-sky-300 rounded font-black text-sky-950 text-right">
+                            </div>
+                        </td>
+                        <td class="p-3">
+                            <input type="number" value="${gst}" data-field="gst_percent" data-idx="${idx}" oninput="updateShipModalRowTotal(${idx})" id="modalShipGst_${idx}" class="w-12 px-1 py-1 bg-white border border-gray-200 rounded font-bold text-center">%
+                        </td>
+                        <td class="p-3 font-bold text-emerald-700" id="modalShipTotal_${idx}">
+                            ₹${totalWithGst}
+                        </td>
+                        <td class="p-3">
+                            <input type="text" value="${r.label || ''}" data-field="label" data-idx="${idx}" placeholder="उदा. 0.5kg Easy Ship" class="w-48 px-2 py-1 bg-white border border-gray-200 rounded text-xs text-gray-800">
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function updateShipModalRowTotal(idx) {
+            const rateInp = document.getElementById(`modalShipRate_${idx}`);
+            const gstInp = document.getElementById(`modalShipGst_${idx}`);
+            const totalSpan = document.getElementById(`modalShipTotal_${idx}`);
+            if (rateInp && gstInp && totalSpan) {
+                const r = parseFloat(rateInp.value) || 0;
+                const g = parseFloat(gstInp.value) || 18;
+                totalSpan.textContent = `₹${(r * (1 + (g / 100))).toFixed(2)}`;
+            }
+        }
+
+        async function savePlatformShippingRatesMaster() {
+            const tbody = document.getElementById('shipModalTbody');
+            if (!tbody) return;
+
+            const rows = tbody.querySelectorAll('tr');
+            const items = [];
+            rows.forEach((row, idx) => {
+                const w = parseFloat(row.querySelector('input[data-field="weight"]')?.value) || 0.5;
+                const r = parseFloat(row.querySelector('input[data-field="rate"]')?.value) || 55;
+                const g = parseFloat(row.querySelector('input[data-field="gst_percent"]')?.value) || 18;
+                const l = row.querySelector('input[data-field="label"]')?.value || '';
+                items.push({
+                    carrier: currentShipModalTab,
+                    weight: w,
+                    rate: r,
+                    gst_percent: g,
+                    label: l
+                });
+            });
+
+            const btn = document.getElementById('btnSaveShippingMaster');
+            const origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> सेव हो रहा है...';
+
+            try {
+                const res = await fetch('/seller/channels/shipping-rates/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ rates: items })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    // Update in-memory rates array
+                    items.forEach(newItem => {
+                        const existingIdx = PLATFORM_SHIPPING_RATES.findIndex(r => r.carrier === newItem.carrier && parseFloat(r.weight) === newItem.weight);
+                        if (existingIdx !== -1) {
+                            PLATFORM_SHIPPING_RATES[existingIdx] = newItem;
+                        } else {
+                            PLATFORM_SHIPPING_RATES.push(newItem);
+                        }
+                    });
+
+                    // Recalculate all products with newly saved courier rates!
+                    document.querySelectorAll('#pendingTableTbody tr[data-id]').forEach(r => {
+                        const id = r.getAttribute('data-id');
+                        if (id) {
+                            onProductWeightChange(id);
+                        }
+                    });
+
+                    showChannelToast(`✓ ${currentShipModalTab.toUpperCase()} के कूरियर रेट्स डेटाबेस में सेव हो गए और सभी प्रोडक्ट्स पर लागू हो गए!`);
+                    closeShippingRateManagerModal();
+                } else {
+                    alert(data.message || 'कूरियर दरें सेव नहीं हो सकीं!');
+                }
+            } catch (err) {
+                alert('त्रुटि: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+        }
+
         function toggleRtoBudgetSimulator() {
             const panel = document.getElementById('rtoBudgetSimulatorPanel');
             if (!panel) return;
@@ -3694,6 +3908,44 @@ function switchMarketplaceTab(tab) {
         }
 
         // Real-Time Table Row Unit Economics Recalculator with Margin %, RTO Buffer, GST & Card Sync
+        
+        // --- 🚚 DYNAMIC MULTI-PLATFORM SHIPPING RATES ENGINE ---
+        let PLATFORM_SHIPPING_RATES = @json($shippingRates ?? []);
+
+        function getPlatformCourierRate(platform, weightKg) {
+            const platformRates = PLATFORM_SHIPPING_RATES.filter(r => r.carrier === platform && r.is_active !== false);
+            if (!platformRates.length) {
+                // Reliable defaults if database table not yet populated
+                if (platform === 'meesho') return (weightKg <= 0.5) ? 38 : (weightKg <= 1.0 ? 52 : (weightKg <= 2.0 ? 75 : 95));
+                if (platform === 'flipkart') return (weightKg <= 0.5) ? 48 : (weightKg <= 1.0 ? 68 : (weightKg <= 2.0 ? 98 : 125));
+                if (platform === 'direct') return (weightKg <= 0.5) ? 45 : (weightKg <= 1.0 ? 70 : (weightKg <= 2.0 ? 105 : 140));
+                return (weightKg <= 0.5) ? 55 : (weightKg <= 1.0 ? 75 : (weightKg <= 2.0 ? 112 : 145)); // Amazon default
+            }
+            platformRates.sort((a, b) => parseFloat(a.weight) - parseFloat(b.weight));
+            for (let r of platformRates) {
+                if (weightKg <= parseFloat(r.weight)) {
+                    return parseFloat(r.rate);
+                }
+            }
+            return parseFloat(platformRates[platformRates.length - 1].rate);
+        }
+
+        function onProductWeightChange(prodId) {
+            const wInp = document.getElementById(`row-weight-${prodId}`);
+            const weightKg = parseFloat(wInp?.value) || 0.35;
+
+            // Automatically pick the courier rate for this weight
+            const amzShipRate = getPlatformCourierRate('amazon', weightKg);
+            const shipInp = document.getElementById(`row-ship-${prodId}`);
+            if (shipInp) {
+                shipInp.value = amzShipRate;
+            }
+
+            recalcTableRow(prodId);
+            markUnsavedChanges();
+            showChannelToast(`⚖️ वजन ${weightKg}kg अनुसार कूरियर दर ₹${amzShipRate} लागू हो गई!`);
+        }
+
         function recalcTableRow(prodId) {
             const cost = parseFloat(document.getElementById(`row-cost-${prodId}`)?.value) || 0;
             const marginPct = parseFloat(document.getElementById(`row-margin-${prodId}`)?.value) || 25;
@@ -3796,13 +4048,24 @@ function switchMarketplaceTab(tab) {
             const marginAmtSpan = document.getElementById(`row-margin-amt-${prodId}`);
             if (marginAmtSpan) marginAmtSpan.textContent = `₹${desiredProfit} लाभ`;
 
-            // Update combo previews with smart weight slabs:
-            // 2P: 0.5kg slab (₹55 base + 18% GST = ₹64.90)
-            // 4P: 1.0kg slab (₹75 base + 18% GST = ₹88.50)
-            // 6P: 2.0kg slab (₹112 base + 18% GST = ₹132.16)
-            const ship2Cost = actualShipCost; // 0.5kg slab
-            const ship4Cost = 75 * 1.18;      // 1.0kg slab
-            const ship6Cost = 112 * 1.18;     // 2.0kg slab
+            // Read product weight (kg) for dynamic platform courier mapping
+            const weightKg = parseFloat(document.getElementById(`row-weight-${prodId}`)?.value) || 0.35;
+
+            // Platform-specific courier rates driven by weight
+            const amzShipBase = getPlatformCourierRate('amazon', weightKg);
+            const amzShipWithGst = amzShipBase * 1.18;
+
+            const mshShipBase = getPlatformCourierRate('meesho', weightKg);
+            const mshShipWithGst = mshShipBase * 1.18;
+
+            // Combo Weight Slabs based on exact product weight multiples
+            const w2 = weightKg * 2;
+            const w4 = weightKg * 4;
+            const w6 = weightKg * 6;
+
+            const ship2Cost = getPlatformCourierRate('amazon', w2) * 1.18;
+            const ship4Cost = getPlatformCourierRate('amazon', w4) * 1.18;
+            const ship6Cost = getPlatformCourierRate('amazon', w6) * 1.18;
 
             const c2 = Math.ceil(((cTax * 2) + (desiredProfit * 1.8) + (rto * 1.5) + (pack * 1.3) + ship2Cost + (ads * 1.2)) / denom);
             const c4 = Math.ceil(((cTax * 4) + (desiredProfit * 3.5) + (rto * 2.0) + (pack * 1.6) + ship4Cost + (ads * 1.5)) / denom);
@@ -3824,13 +4087,13 @@ function switchMarketplaceTab(tab) {
                 else rC6.textContent = `6P: ₹${c6}`;
             }
 
-            // 🔄 Platform-wise prices (Amazon 12% fee vs Meesho 0% fee)
+            // 🔄 Platform-wise prices (Amazon 12% fee + GST vs Meesho 0% fee)
             const denomAmz = Math.max(0.05, (1 / (1 + g)) - 0.12);
-            const fixedAmz = rto + pack + ship + ads + others;
+            const fixedAmz = rto + pack + amzShipWithGst + ads + others;
             const calcAmz = Math.ceil((cTax + fixedAmz + desiredProfit) / denomAmz);
 
             const denomMsh = Math.max(0.05, (1 / (1 + g)));
-            const fixedMsh = Math.max(35, rto) + pack + Math.min(38, ship) + others;
+            const fixedMsh = Math.max(35, rto) + pack + mshShipWithGst + others;
             const calcMsh = Math.ceil((cTax + fixedMsh + desiredProfit) / denomMsh);
 
             // Update Amazon & Meesho badges in row and card
@@ -4160,6 +4423,7 @@ function switchMarketplaceTab(tab) {
                 const marginPct = parseFloat(document.getElementById(`row-margin-${id}`)?.value) || 25;
                 const rto = parseFloat(document.getElementById(`row-rto-${id}`)?.value) || 0;
                 const rtoMode = document.getElementById(`row-rto-mode-${id}`)?.value || 'fixed';
+                const weightKg = parseFloat(document.getElementById(`row-weight-${id}`)?.value) || 0.35;
                 const feeGstVal = document.getElementById(`row-fee-gst-${id}`) ? document.getElementById(`row-fee-gst-${id}`).checked : true;
                 const price = parseFloat(document.getElementById(`row-price-${id}`)?.value) || 0;
                 const pack = parseFloat(document.getElementById(`row-pack-${id}`)?.value) || 0;
@@ -4194,6 +4458,7 @@ function switchMarketplaceTab(tab) {
                     rto_buffer: rto,
                     rto_mode: rtoMode,
                     fee_gst_included: feeGstVal,
+                    weight_kg: weightKg,
                     price: price,
                     packaging: pack,
                     shipping: ship,
@@ -4277,6 +4542,7 @@ function switchMarketplaceTab(tab) {
             const marginPct = parseFloat(document.getElementById(`row-margin-${prodId}`)?.value) || 25;
             const rto = parseFloat(document.getElementById(`row-rto-${prodId}`)?.value) || 0;
             const rtoMode = document.getElementById(`row-rto-mode-${prodId}`)?.value || 'fixed';
+            const weightKg = parseFloat(document.getElementById(`row-weight-${prodId}`)?.value) || 0.35;
             const feeGstVal = document.getElementById(`row-fee-gst-${prodId}`) ? document.getElementById(`row-fee-gst-${prodId}`).checked : true;
             const price = parseFloat(document.getElementById(`row-price-${prodId}`)?.value) || 0;
             const pack = parseFloat(document.getElementById(`row-pack-${prodId}`)?.value) || 0;
@@ -4321,6 +4587,7 @@ function switchMarketplaceTab(tab) {
                         rto_buffer: rto,
                         rto_mode: rtoMode,
                         fee_gst_included: feeGstVal,
+                        weight_kg: weightKg,
                         price: price,
                         packaging: pack,
                         shipping: ship,
@@ -5483,3 +5750,64 @@ document.addEventListener('change', function(e) {
 </script>
 
 
+
+    <!-- 🚚 PLATFORM COURIER RATE MASTER MODAL (AMAZON, MEESHO, FLIPKART, DIRECT) -->
+    <div id="shippingRateManagerModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-4 overflow-y-auto" onclick="closeShippingRateManagerModal()">
+        <div class="bg-white rounded-3xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in duration-200 my-auto" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-2xl bg-sky-600 text-white flex items-center justify-center text-lg font-bold shadow-md">
+                        <i class="fa-solid fa-truck-ramp-box"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-black text-sm sm:text-base text-gray-900">प्लेटफ़ॉर्म-वार कूरियर दर मास्टर (Platform Courier Master)</h3>
+                            <span class="text-[10px] bg-sky-50 text-sky-700 font-bold px-2 py-0.5 rounded-md border border-sky-200">100% Database Driven</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-0.5">यहाँ आप Amazon, Meesho, Flipkart आदि के वजन अनुसार कूरियर रेट्स बदल सकते हैं। कोई भी रेट हार्डकोड नहीं रहेगा।</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeShippingRateManagerModal()" class="text-gray-400 hover:text-gray-600 p-1 cursor-pointer">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Platform Tabs -->
+            <div class="flex items-center gap-2 border-b border-gray-200 pb-2">
+                <button type="button" onclick="switchShippingPlatformTab('amazon')" id="tabBtnShip_amazon" class="px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 bg-amber-500 text-slate-950 shadow-xs cursor-pointer">
+                    <span>🟠 Amazon Easy Ship</span>
+                </button>
+                <button type="button" onclick="switchShippingPlatformTab('meesho')" id="tabBtnShip_meesho" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-gray-100 text-gray-700 hover:text-gray-900 cursor-pointer">
+                    <span>🌸 Meesho Logistics</span>
+                </button>
+                <button type="button" onclick="switchShippingPlatformTab('flipkart')" id="tabBtnShip_flipkart" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-gray-100 text-gray-700 hover:text-gray-900 cursor-pointer">
+                    <span>⚡ Flipkart Ekart</span>
+                </button>
+                <button type="button" onclick="switchShippingPlatformTab('direct')" id="tabBtnShip_direct" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-gray-100 text-gray-700 hover:text-gray-900 cursor-pointer">
+                    <span>📦 Direct / Self Ship</span>
+                </button>
+            </div>
+
+            <!-- Rates Tables Container -->
+            <div id="shippingMasterTablesContainer" class="space-y-3">
+                <!-- Dynamically populated or rendered -->
+            </div>
+
+            <!-- Footer & Actions -->
+            <div class="pt-3 flex items-center justify-between border-t border-gray-100 flex-wrap gap-2">
+                <span class="text-xs text-gray-500">
+                    *सभी कूरियर दरों पर सरकार का <strong>18% GST</strong> जुड़ता है, जिसका लाइव ब्रेकडाउन टेबल में दिखता है।
+                </span>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeShippingRateManagerModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition cursor-pointer">
+                        रद्द करें
+                    </button>
+                    <button type="button" id="btnSaveShippingMaster" onclick="savePlatformShippingRatesMaster()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+                        <i class="fa-solid fa-floppy-disk text-sky-200"></i>
+                        <span>💾 कूरियर दरें सेव करें (Save Rates)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>

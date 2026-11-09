@@ -134,15 +134,32 @@ class ChannelController extends Controller
             ->get();
 
         try {
-            $shippingRates = \App\Models\ShippingRate::where('is_active', true)->orderBy('weight')->get();
+            $shippingRates = \App\Models\ShippingRate::where('is_active', true)->orderBy('carrier')->orderBy('weight')->get();
         } catch (\Throwable $e) {
             $shippingRates = collect();
         }
         if ($shippingRates->isEmpty()) {
             $shippingRates = collect([
-                (object)['weight' => 0.5, 'rate' => 55, 'gst_percent' => 18, 'label' => '0.5 kg (₹55 + 18% GST)'],
-                (object)['weight' => 1.0, 'rate' => 75, 'gst_percent' => 18, 'label' => '1.0 kg (₹75 + 18% GST)'],
-                (object)['weight' => 2.0, 'rate' => 112, 'gst_percent' => 18, 'label' => '2.0 kg (₹112 + 18% GST)'],
+                // Amazon Easy Ship
+                (object)['carrier' => 'amazon', 'weight' => 0.5, 'rate' => 55, 'gst_percent' => 18, 'label' => '0.5 kg (Amazon ₹55)'],
+                (object)['carrier' => 'amazon', 'weight' => 1.0, 'rate' => 75, 'gst_percent' => 18, 'label' => '1.0 kg (Amazon ₹75)'],
+                (object)['carrier' => 'amazon', 'weight' => 2.0, 'rate' => 112, 'gst_percent' => 18, 'label' => '2.0 kg (Amazon ₹112)'],
+                (object)['carrier' => 'amazon', 'weight' => 3.0, 'rate' => 145, 'gst_percent' => 18, 'label' => '3.0 kg (Amazon ₹145)'],
+                // Meesho Logistics
+                (object)['carrier' => 'meesho', 'weight' => 0.5, 'rate' => 38, 'gst_percent' => 18, 'label' => '0.5 kg (Meesho ₹38)'],
+                (object)['carrier' => 'meesho', 'weight' => 1.0, 'rate' => 52, 'gst_percent' => 18, 'label' => '1.0 kg (Meesho ₹52)'],
+                (object)['carrier' => 'meesho', 'weight' => 2.0, 'rate' => 75, 'gst_percent' => 18, 'label' => '2.0 kg (Meesho ₹75)'],
+                (object)['carrier' => 'meesho', 'weight' => 3.0, 'rate' => 95, 'gst_percent' => 18, 'label' => '3.0 kg (Meesho ₹95)'],
+                // Flipkart Ekart
+                (object)['carrier' => 'flipkart', 'weight' => 0.5, 'rate' => 48, 'gst_percent' => 18, 'label' => '0.5 kg (Flipkart ₹48)'],
+                (object)['carrier' => 'flipkart', 'weight' => 1.0, 'rate' => 68, 'gst_percent' => 18, 'label' => '1.0 kg (Flipkart ₹68)'],
+                (object)['carrier' => 'flipkart', 'weight' => 2.0, 'rate' => 98, 'gst_percent' => 18, 'label' => '2.0 kg (Flipkart ₹98)'],
+                (object)['carrier' => 'flipkart', 'weight' => 3.0, 'rate' => 125, 'gst_percent' => 18, 'label' => '3.0 kg (Flipkart ₹125)'],
+                // Direct / Self Ship
+                (object)['carrier' => 'direct', 'weight' => 0.5, 'rate' => 45, 'gst_percent' => 18, 'label' => '0.5 kg (Direct ₹45)'],
+                (object)['carrier' => 'direct', 'weight' => 1.0, 'rate' => 70, 'gst_percent' => 18, 'label' => '1.0 kg (Direct ₹70)'],
+                (object)['carrier' => 'direct', 'weight' => 2.0, 'rate' => 105, 'gst_percent' => 18, 'label' => '2.0 kg (Direct ₹105)'],
+                (object)['carrier' => 'direct', 'weight' => 3.0, 'rate' => 140, 'gst_percent' => 18, 'label' => '3.0 kg (Direct ₹140)'],
             ]);
         }
 
@@ -718,6 +735,7 @@ class ChannelController extends Controller
             'rto_buffer' => (float)($request->input('rto_buffer', 20)),
             'rto_mode' => $request->input('rto_mode', 'fixed'),
             'fee_gst_included' => $request->boolean('fee_gst_included', true),
+            'weight_kg' => (float)($request->input('weight_kg', 0.35)),
             'packaging' => (float)($validated['packaging'] ?? 15),
             'shipping' => (float)($validated['shipping'] ?? 45),
             'platform_fee_pct' => (float)($validated['platform_fee_pct'] ?? 12),
@@ -833,6 +851,7 @@ class ChannelController extends Controller
                 'rto_buffer' => (float)($item['rto_buffer'] ?? 20),
                 'rto_mode' => $item['rto_mode'] ?? 'fixed',
                 'fee_gst_included' => isset($item['fee_gst_included']) ? (bool)$item['fee_gst_included'] : true,
+                'weight_kg' => (float)($item['weight_kg'] ?? 0.35),
                 'packaging' => (float)($item['packaging'] ?? 15),
                 'shipping' => (float)($item['shipping'] ?? 45),
                 'platform_fee_pct' => (float)($item['platform_fee_pct'] ?? 12),
@@ -869,6 +888,52 @@ class ChannelController extends Controller
             'saved_count' => $savedCount,
             'message' => "शानदार! {$savedCount} प्रोडक्ट्स के मार्जिन, खर्चे व सेलिंग रेट्स एक साथ सेव हो गए!",
         ]);
+    }
+
+
+    // AJAX: Get all active platform shipping rates
+    public function getShippingRates()
+    {
+        try {
+            $rates = \App\Models\ShippingRate::where('is_active', true)->orderBy('carrier')->orderBy('weight')->get();
+        } catch (\Throwable $e) {
+            $rates = collect();
+        }
+        return response()->json(['success' => true, 'rates' => $rates]);
+    }
+
+    // AJAX: Save/Update Platform-wise Shipping Rates Master
+    public function saveShippingRates(Request $request)
+    {
+        $items = $request->input('rates', []);
+        if (empty($items)) {
+            return response()->json(['success' => false, 'message' => 'कोई कूरियर रेट डेटा नहीं मिला।'], 422);
+        }
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            foreach ($items as $item) {
+                $carrier = $item['carrier'] ?? 'amazon';
+                $weight = (float)($item['weight'] ?? 0.5);
+                $rate = (float)($item['rate'] ?? 55);
+                $gst = (float)($item['gst_percent'] ?? 18);
+                $label = $item['label'] ?? null;
+                \App\Models\ShippingRate::updateOrCreate(
+                    ['carrier' => $carrier, 'weight' => $weight],
+                    [
+                        'zone' => 'standard',
+                        'rate' => $rate,
+                        'gst_percent' => $gst,
+                        'label' => $label,
+                        'is_active' => true,
+                    ]
+                );
+            }
+            \Illuminate\Support\Facades\DB::commit();
+            return response()->json(['success' => true, 'message' => 'सभी प्लेटफ़ॉर्म्स के कूरियर रेट्स सुरक्षित सेव हो गए!']);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'सेव करने में त्रुटि: ' . $e->getMessage()], 500);
+        }
     }
 
     public function stageProducts(Request $request)

@@ -128,6 +128,8 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::get('/export-sheet', [ChannelController::class, 'exportSheet'])->name('export_sheet');
         Route::post('/import-sheet', [ChannelController::class, 'importSheet'])->name('import_sheet');
         Route::get('/pricing-calculator', [ChannelController::class, 'pricingCalculator'])->name('pricing_calculator');
+        Route::get('/shipping-rates', [ChannelController::class, 'getShippingRates'])->name('getShippingRates');
+        Route::post('/shipping-rates/save', [ChannelController::class, 'saveShippingRates'])->name('saveShippingRates');
     });
 
     // 🚚 Smart Shipping & Anti-RTO Routes
