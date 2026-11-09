@@ -796,17 +796,229 @@
                             <div class="w-full flex items-center justify-between pt-2.5 border-t border-amber-200/70 flex-wrap gap-2 text-xs">
                                 <div class="flex items-center gap-1.5 text-amber-950 font-black">
                                     <i class="fa-solid fa-boxes-packing text-amber-700"></i>
-                                    <span>📦 2P, 4P, 6P कॉम्बो बल्क टूल्स:</span>
+                                    <span>📦 कॉम्बो स्लैब व RTO बजट टूल्स:</span>
                                 </div>
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <button type="button" onclick="bulkRecalcCombos('all')" class="px-3 py-1.5 rounded-xl bg-white border border-amber-300 hover:bg-amber-100 text-amber-950 font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95" title="सभी प्रोडक्ट्स के 2P (₹45 कूरियर), 4P (₹65 कूरियर), 6P (₹85 कूरियर) ऑटो-कैलकुलेट करें">
+                                    <button type="button" onclick="toggleRtoBudgetSimulator()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 via-orange-600 to-amber-600 hover:from-rose-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer" title="वास्तविक RTO चपत (Forward ₹65 + Return ₹65 + Pack ₹15 = ₹145) व ब्रेक-ईवन सिम्युलेटर खोलें">
+                                        <i class="fa-solid fa-shield-halved text-rose-200"></i>
+                                        <span>🛡️ RTO चपत व रिस्क सिम्युलेटर (Break-Even Engine)</span>
+                                    </button>
+                                    <button type="button" onclick="bulkRecalcCombos('all')" class="px-3 py-1.5 rounded-xl bg-white border border-amber-300 hover:bg-amber-100 text-amber-950 font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95" title="सभी प्रोडक्ट्स के 2P (0.5kg=₹55), 4P (1.0kg=₹75), 6P (2.0kg=₹112) वजन स्लैब के अनुसार ऑटो-कैलकुलेट करें">
                                         <i class="fa-solid fa-calculator text-indigo-600"></i>
-                                        <span>⚡ 2P, 4P, 6P ऑटो-कैलकुलेट (Bulk)</span>
+                                        <span>⚡ 2P, 4P, 6P ऑटो-कैलकुलेट (वेट स्लैब)</span>
                                     </button>
                                     <button type="button" onclick="bulkRecalcAndSaveCombos()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95" title="सभी प्रोडक्ट्स के 2P, 4P, 6P रेट्स री-कैलकुलेट कर तुरंत डेटाबेस में सेव करें">
                                         <i class="fa-solid fa-floppy-disk text-amber-200"></i>
                                         <span>💾 सभी कॉम्बो री-कैलकुलेट व सेव करें</span>
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 🛡️ INTERACTIVE RTO DRAIN & RISK BUDGETING ENGINE (EXPANDABLE) -->
+                        <div id="rtoBudgetSimulatorPanel" class="hidden mt-4 p-5 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white rounded-3xl border-2 border-rose-500/40 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-200">
+                            <!-- Header -->
+                            <div class="flex items-center justify-between border-b border-white/10 pb-3 flex-wrap gap-2">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center font-bold text-lg shadow-md">
+                                        <i class="fa-solid fa-shield-halved"></i>
+                                    </span>
+                                    <div>
+                                        <h3 class="font-black text-base text-white flex items-center gap-2">
+                                            <span>🛡️ RTO वास्तविक चपत, खर्च व ब्रेक-ईवन बजट इंजन</span>
+                                            <span class="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-bold">100 Parcels Stress-Test</span>
+                                        </h3>
+                                        <p class="text-xs text-slate-300 mt-0.5">
+                                            फॉरवर्ड कूरियर, रिवर्स वापसी चपत, नष्ट पैकिंग व ऐड्स सरप्लस के आधार पर जानिए कि कितने RTO पर आपका मुनाफा शून्य (NIL) होगा।
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" onclick="resetRtoSimulatorDefaults()" class="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer">
+                                        <i class="fa-solid fa-arrow-rotate-left"></i>
+                                        <span>डिफ़ॉल्ट रीसेट</span>
+                                    </button>
+                                    <button type="button" onclick="toggleRtoBudgetSimulator()" class="h-8 w-8 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center text-sm cursor-pointer">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 3 Core Sections: 1. Inputs & Pools, 2. RTO Drain Formula, 3. Break-Even Results -->
+                            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                                <!-- Col 1: Order Batch & Budget Inputs (4 cols) -->
+                                <div class="lg:col-span-4 bg-white/5 p-4 rounded-2xl border border-white/10 space-y-3 text-xs">
+                                    <div class="font-black text-amber-400 flex items-center gap-1.5 border-b border-white/10 pb-1.5">
+                                        <i class="fa-solid fa-sliders"></i>
+                                        <span>1. बैच साइज़ व बजट सेटिंग्स</span>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-2.5">
+                                        <div>
+                                            <label class="block text-[10px] text-slate-400 font-bold">📦 कुल पार्सल (Batch):</label>
+                                            <input type="number" id="sim_batch_size" value="100" min="1" oninput="runRtoSimulation()" class="w-full mt-1 px-2.5 py-1.5 bg-slate-900 border border-white/20 rounded-xl text-center font-mono font-bold text-white text-xs">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] text-slate-400 font-bold">💰 शुद्ध लाभ लक्ष्य (₹/pc):</label>
+                                            <input type="number" id="sim_target_profit" value="25" min="0" oninput="runRtoSimulation()" class="w-full mt-1 px-2.5 py-1.5 bg-slate-900 border border-emerald-500/40 rounded-xl text-center font-mono font-bold text-emerald-400 text-xs">
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-[10px] text-slate-400 font-bold">🔄 RTO रिस्क बफ़र (₹ प्रति पीस):</label>
+                                        <input type="number" id="sim_rto_buffer" value="20" min="0" oninput="runRtoSimulation()" class="w-full mt-1 px-2.5 py-1.5 bg-slate-900 border border-rose-500/40 rounded-xl text-center font-mono font-bold text-rose-400 text-xs">
+                                    </div>
+
+                                    <!-- Ads & Packing Budget vs Actual (The Surplus Engine) -->
+                                    <div class="pt-2 border-t border-white/10 space-y-2">
+                                        <span class="text-[11px] font-bold text-purple-300 block">📊 सरप्लस इंजन (बजट vs वास्तविक खर्च):</span>
+                                        
+                                        <div class="grid grid-cols-2 gap-2 text-[10px]">
+                                            <div class="bg-slate-900/80 p-2 rounded-xl border border-white/10">
+                                                <span class="text-slate-400 block font-bold">📢 ऐड्स बजट (₹):</span>
+                                                <input type="number" id="sim_ads_budget" value="10" min="0" oninput="runRtoSimulation()" class="w-full mt-1 px-2 py-1 bg-slate-800 border border-white/10 rounded font-mono font-bold text-center text-xs text-white">
+                                                <span class="text-slate-400 block mt-1">वास्तविक खर्च (₹):</span>
+                                                <input type="number" id="sim_ads_actual" value="6" min="0" oninput="runRtoSimulation()" class="w-full mt-1 px-2 py-1 bg-slate-800 border border-emerald-500/40 rounded font-mono font-bold text-center text-xs text-emerald-400">
+                                            </div>
+
+                                            <div class="bg-slate-900/80 p-2 rounded-xl border border-white/10">
+                                                <span class="text-slate-400 block font-bold">📦 पैकिंग बजट (₹):</span>
+                                                <input type="number" id="sim_pack_budget" value="15" min="0" oninput="runRtoSimulation()" class="w-full mt-1 px-2 py-1 bg-slate-800 border border-white/10 rounded font-mono font-bold text-center text-xs text-white">
+                                                <span class="text-slate-400 block mt-1">वास्तविक खर्च (₹):</span>
+                                                <input type="number" id="sim_pack_actual" value="12" min="0" oninput="runRtoSimulation()" class="w-full mt-1 px-2 py-1 bg-slate-800 border border-emerald-500/40 rounded font-mono font-bold text-center text-xs text-emerald-400">
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-center justify-between text-[11px] bg-indigo-950/60 p-2 rounded-xl border border-indigo-500/30 font-bold">
+                                            <span class="text-indigo-300">खर्च से कुल बचत (Surplus):</span>
+                                            <span id="sim_surplus_badge" class="font-mono text-emerald-400">+₹700 बचत</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Col 2: The Real RTO Drain Calculator (4 cols) -->
+                                <div class="lg:col-span-4 bg-white/5 p-4 rounded-2xl border border-white/10 space-y-3 text-xs flex flex-col justify-between">
+                                    <div class="space-y-3">
+                                        <div class="font-black text-rose-400 flex items-center gap-1.5 border-b border-white/10 pb-1.5">
+                                            <i class="fa-solid fa-triangle-exclamation"></i>
+                                            <span>2. वास्तविक 1 RTO पार्सल की चपत (Cash Drain)</span>
+                                        </div>
+
+                                        <div class="space-y-2 text-[11px]">
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-slate-300">जावक डिलीवरी (Forward Ship + GST):</span>
+                                                <div class="w-20">
+                                                    <input type="number" id="sim_fwd_ship" value="65" oninput="runRtoSimulation()" class="w-full px-2 py-1 bg-slate-900 border border-white/20 rounded font-mono font-bold text-right text-rose-300 text-xs">
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-slate-300">वापसी डिलीवरी (Reverse Ship + GST):</span>
+                                                <div class="w-20">
+                                                    <input type="number" id="sim_rev_ship" value="65" oninput="runRtoSimulation()" class="w-full px-2 py-1 bg-slate-900 border border-white/20 rounded font-mono font-bold text-right text-rose-300 text-xs">
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-slate-300">नष्ट पैकेजिंग (बॉक्स + टेप + लेबल):</span>
+                                                <div class="w-20">
+                                                    <input type="number" id="sim_wasted_pack" value="15" oninput="runRtoSimulation()" class="w-full px-2 py-1 bg-slate-900 border border-white/20 rounded font-mono font-bold text-right text-rose-300 text-xs">
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-slate-300">सामान डैमेज/स्क्रैच रिस्क:</span>
+                                                <div class="w-20">
+                                                    <input type="number" id="sim_damage_loss" value="0" oninput="runRtoSimulation()" class="w-full px-2 py-1 bg-slate-900 border border-white/20 rounded font-mono font-bold text-right text-rose-300 text-xs">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Big Total Drain Pill -->
+                                    <div class="bg-rose-950/70 p-3 rounded-2xl border-2 border-rose-500/50 space-y-1">
+                                        <div class="flex items-center justify-between text-xs">
+                                            <span class="font-black text-rose-200">1 RTO पार्सल पर कुल नुकसान:</span>
+                                            <strong class="text-lg font-mono font-black text-rose-400" id="sim_total_drain_per_rto">₹145.00</strong>
+                                        </div>
+                                        <p class="text-[10px] text-rose-300/80 leading-tight">
+                                            *कूरियर डिलीवरी सेवा पूरी होने के कारण जीएसटी का इनपुट टैक्स रिफंड नहीं मिलता, जिससे पूरा ₹130 कूरियर + ₹15 पैकिंग सेलर की जेब से जाता है।
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Col 3: Break-Even Engine & Thresholds (4 cols) -->
+                                <div class="lg:col-span-4 bg-white/5 p-4 rounded-2xl border border-white/10 space-y-3 text-xs flex flex-col justify-between">
+                                    <div class="space-y-3">
+                                        <div class="font-black text-emerald-400 flex items-center gap-1.5 border-b border-white/10 pb-1.5">
+                                            <i class="fa-solid fa-chart-pie"></i>
+                                            <span>3. ब्रेक-ईवन थ्रेशोल्ड (सुरक्षा सीमा)</span>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-emerald-500/30 flex items-center justify-between">
+                                                <div>
+                                                    <span class="text-[10px] text-emerald-400 font-bold block">🟢 100% सेफ RTO सीमा (Safe Zone):</span>
+                                                    <span class="text-[9px] text-slate-400">यहाँ तक आपका मूल ₹2,500 मुनाफ़ा सुरक्षित रहेगा</span>
+                                                </div>
+                                                <span class="text-base font-black font-mono text-emerald-300" id="sim_safe_rto_badge">18.6%</span>
+                                            </div>
+
+                                            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-rose-500/40 flex items-center justify-between">
+                                                <div>
+                                                    <span class="text-[10px] text-rose-400 font-black block">🔴 मुनाफ़ा शून्य होने की सीमा (NIL Profit):</span>
+                                                    <span class="text-[9px] text-slate-400">इसके बाद अपनी जेब से घर का पैसा लगेगा</span>
+                                                </div>
+                                                <span class="text-base font-black font-mono text-rose-400" id="sim_nil_profit_badge">35.8%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Budget Pool Breakdown -->
+                                    <div class="bg-indigo-950/60 p-2.5 rounded-xl border border-indigo-500/30 text-[10px] space-y-1">
+                                        <div class="flex justify-between text-slate-300">
+                                            <span>RTO बफ़र पूल (100 × ₹20):</span>
+                                            <strong class="font-mono text-white" id="sim_pool_rto">₹2,000</strong>
+                                        </div>
+                                        <div class="flex justify-between text-slate-300">
+                                            <span>ऐड्स व पैकिंग बचत पूल:</span>
+                                            <strong class="font-mono text-emerald-400" id="sim_pool_surplus">+₹700</strong>
+                                        </div>
+                                        <div class="flex justify-between text-slate-300">
+                                            <span>मूल शुद्ध मुनाफ़ा पूल:</span>
+                                            <strong class="font-mono text-indigo-300" id="sim_pool_profit">₹2,500</strong>
+                                        </div>
+                                        <div class="flex justify-between text-amber-300 pt-1 border-t border-white/10 font-bold">
+                                            <span>कुल सुरक्षा कवच (Buffer + Surplus + Profit):</span>
+                                            <strong class="font-mono" id="sim_pool_total">₹5,200</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Live Interactive RTO Test Slider -->
+                            <div class="bg-slate-900/90 p-4 rounded-2xl border border-white/10 space-y-3">
+                                <div class="flex items-center justify-between flex-wrap gap-2">
+                                    <span class="text-xs font-black text-amber-400 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-gamepad text-rose-400"></i>
+                                        <span>लाइव RTO स्ट्रेस-टेस्ट स्लाइडर: चलाकर देखें क्या बचेगा!</span>
+                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-slate-300">वर्तमान RTO दर:</span>
+                                        <span class="text-sm font-black font-mono px-2.5 py-0.5 rounded-lg bg-indigo-600 text-white" id="sim_slider_val_badge">15% RTO (15 पार्सल)</span>
+                                    </div>
+                                </div>
+
+                                <div class="relative pt-1">
+                                    <input type="range" id="sim_rto_slider" min="0" max="50" step="1" value="15" oninput="runRtoSimulation()" class="w-full h-2.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-rose-500">
+                                    <div class="flex justify-between text-[10px] text-slate-400 mt-1 font-mono font-bold">
+                                        <span>0% (आदर्श स्थिति)</span>
+                                        <span class="text-emerald-400">18% (सुरक्षित सीमा)</span>
+                                        <span class="text-rose-400">35% (मुनाफ़ा शून्य NIL)</span>
+                                        <span>50% (भारी नुकसान)</span>
+                                    </div>
+                                </div>
+
+                                <!-- Dynamic Live Result Card -->
+                                <div id="sim_live_status_card" class="p-3.5 rounded-2xl border flex items-center justify-between flex-wrap gap-3">
+                                    <!-- Populated by runRtoSimulation() -->
                                 </div>
                             </div>
                         </div>
@@ -2756,6 +2968,171 @@ function switchMarketplaceTab(tab) {
         // --- 📦 COMBO CALCULATOR MODAL LOGIC (2P, 4P, 6P) ---
         let activeComboProductId = null;
 
+        
+        // --- 🛡️ RTO DRAIN & RISK BUDGETING SIMULATOR LOGIC ---
+        function toggleRtoBudgetSimulator() {
+            const panel = document.getElementById('rtoBudgetSimulatorPanel');
+            if (!panel) return;
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                runRtoSimulation();
+                panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else {
+                panel.classList.add('hidden');
+            }
+        }
+
+        function resetRtoSimulatorDefaults() {
+            if (document.getElementById('sim_batch_size')) document.getElementById('sim_batch_size').value = 100;
+            if (document.getElementById('sim_target_profit')) document.getElementById('sim_target_profit').value = 25;
+            if (document.getElementById('sim_rto_buffer')) document.getElementById('sim_rto_buffer').value = 20;
+            if (document.getElementById('sim_ads_budget')) document.getElementById('sim_ads_budget').value = 10;
+            if (document.getElementById('sim_ads_actual')) document.getElementById('sim_ads_actual').value = 6;
+            if (document.getElementById('sim_pack_budget')) document.getElementById('sim_pack_budget').value = 15;
+            if (document.getElementById('sim_pack_actual')) document.getElementById('sim_pack_actual').value = 12;
+            if (document.getElementById('sim_fwd_ship')) document.getElementById('sim_fwd_ship').value = 65;
+            if (document.getElementById('sim_rev_ship')) document.getElementById('sim_rev_ship').value = 65;
+            if (document.getElementById('sim_wasted_pack')) document.getElementById('sim_wasted_pack').value = 15;
+            if (document.getElementById('sim_damage_loss')) document.getElementById('sim_damage_loss').value = 0;
+            if (document.getElementById('sim_rto_slider')) document.getElementById('sim_rto_slider').value = 15;
+            runRtoSimulation();
+        }
+
+        function runRtoSimulation() {
+            const batch = parseInt(document.getElementById('sim_batch_size')?.value) || 100;
+            const targetProfitPerPc = parseFloat(document.getElementById('sim_target_profit')?.value) || 25;
+            const rtoBufferPerPc = parseFloat(document.getElementById('sim_rto_buffer')?.value) || 20;
+
+            const adsBudget = parseFloat(document.getElementById('sim_ads_budget')?.value) || 10;
+            const adsActual = parseFloat(document.getElementById('sim_ads_actual')?.value) || 6;
+            const packBudget = parseFloat(document.getElementById('sim_pack_budget')?.value) || 15;
+            const packActual = parseFloat(document.getElementById('sim_pack_actual')?.value) || 12;
+
+            const fwdShip = parseFloat(document.getElementById('sim_fwd_ship')?.value) || 65;
+            const revShip = parseFloat(document.getElementById('sim_rev_ship')?.value) || 65;
+            const wastedPack = parseFloat(document.getElementById('sim_wasted_pack')?.value) || 15;
+            const damageLoss = parseFloat(document.getElementById('sim_damage_loss')?.value) || 0;
+
+            const drainPerRto = fwdShip + revShip + wastedPack + damageLoss;
+            const drainEl = document.getElementById('sim_total_drain_per_rto');
+            if (drainEl) drainEl.textContent = `₹${drainPerRto.toFixed(2)}`;
+
+            // Surplus Engine
+            const adsSurplus = (adsBudget - adsActual) * batch;
+            const packSurplus = (packBudget - packActual) * batch;
+            const totalSurplus = adsSurplus + packSurplus;
+
+            const surplusBadge = document.getElementById('sim_surplus_badge');
+            if (surplusBadge) {
+                if (totalSurplus >= 0) {
+                    surplusBadge.className = 'font-mono text-emerald-400 font-bold';
+                    surplusBadge.textContent = `+₹${totalSurplus.toFixed(0)} बचत`;
+                } else {
+                    surplusBadge.className = 'font-mono text-rose-400 font-bold';
+                    surplusBadge.textContent = `-₹${Math.abs(totalSurplus).toFixed(0)} ओवर-रन!`;
+                }
+            }
+
+            // Budget Pools
+            const rtoBufferPool = rtoBufferPerPc * batch;
+            const targetProfitPool = targetProfitPerPc * batch;
+            const totalAvailableBuffer = Math.max(0, rtoBufferPool + totalSurplus);
+            const totalShield = totalAvailableBuffer + targetProfitPool;
+
+            if (document.getElementById('sim_pool_rto')) document.getElementById('sim_pool_rto').textContent = `₹${rtoBufferPool.toLocaleString('en-IN')}`;
+            if (document.getElementById('sim_pool_surplus')) document.getElementById('sim_pool_surplus').textContent = (totalSurplus >= 0 ? '+' : '-') + `₹${Math.abs(totalSurplus).toLocaleString('en-IN')}`;
+            if (document.getElementById('sim_pool_profit')) document.getElementById('sim_pool_profit').textContent = `₹${targetProfitPool.toLocaleString('en-IN')}`;
+            if (document.getElementById('sim_pool_total')) document.getElementById('sim_pool_total').textContent = `₹${totalShield.toLocaleString('en-IN')}`;
+
+            // Thresholds
+            const safeRtoCount = drainPerRto > 0 ? (totalAvailableBuffer / drainPerRto) : 0;
+            const safeRtoPct = ((safeRtoCount / batch) * 100);
+
+            const nilProfitRtoCount = drainPerRto > 0 ? (totalShield / drainPerRto) : 0;
+            const nilProfitRtoPct = ((nilProfitRtoCount / batch) * 100);
+
+            if (document.getElementById('sim_safe_rto_badge')) {
+                document.getElementById('sim_safe_rto_badge').textContent = `${safeRtoPct.toFixed(1)}% (${Math.floor(safeRtoCount)} पार्सल)`;
+            }
+            if (document.getElementById('sim_nil_profit_badge')) {
+                document.getElementById('sim_nil_profit_badge').textContent = `${nilProfitRtoPct.toFixed(1)}% (${Math.floor(nilProfitRtoCount)} पार्सल)`;
+            }
+
+            // Slider evaluation
+            const sliderVal = parseInt(document.getElementById('sim_rto_slider')?.value) || 0;
+            const currentRtoCount = Math.round((sliderVal / 100) * batch);
+            if (document.getElementById('sim_slider_val_badge')) {
+                document.getElementById('sim_slider_val_badge').textContent = `${sliderVal}% RTO (${currentRtoCount} पार्सल)`;
+            }
+
+            const totalRtoDrain = currentRtoCount * drainPerRto;
+            const remainingBuffer = totalAvailableBuffer - totalRtoDrain;
+
+            let finalNetProfit = 0;
+            const statusCard = document.getElementById('sim_live_status_card');
+            if (statusCard) {
+                if (remainingBuffer >= 0) {
+                    finalNetProfit = targetProfitPool;
+                    const bufferLeft = remainingBuffer;
+                    statusCard.className = 'p-3.5 rounded-2xl border border-emerald-500/50 bg-emerald-950/40 flex items-center justify-between flex-wrap gap-3';
+                    statusCard.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="w-10 h-10 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-circle-check"></i></span>
+                            <div>
+                                <span class="text-sm font-black text-emerald-400 block">🟢 सुरक्षित ज़ोन (100% मुनाफ़ा सुरक्षित!)</span>
+                                <span class="text-xs text-slate-300">${currentRtoCount} RTO का नुकसान (₹${totalRtoDrain.toLocaleString('en-IN')}) आपके RTO बफ़र से कट गया। बफ़र में अभी भी ₹${bufferLeft.toLocaleString('en-IN')} सरप्लस शेष है!</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] text-slate-400 block font-bold">शुद्ध इन-हैंड कमाई:</span>
+                            <span class="text-lg font-black font-mono text-emerald-300">₹${(finalNetProfit + bufferLeft).toLocaleString('en-IN')}</span>
+                        </div>`;
+                } else if (Math.abs(remainingBuffer) < targetProfitPool) {
+                    finalNetProfit = targetProfitPool - Math.abs(remainingBuffer);
+                    const dipped = Math.abs(remainingBuffer);
+                    statusCard.className = 'p-3.5 rounded-2xl border border-amber-500/50 bg-amber-950/40 flex items-center justify-between flex-wrap gap-3';
+                    statusCard.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                            <div>
+                                <span class="text-sm font-black text-amber-300 block">🟡 चेतावनी: RTO बफ़र समाप्त, मुनाफ़े में से कटाई जारी!</span>
+                                <span class="text-xs text-slate-300">RTO नुकसान (₹${totalRtoDrain.toLocaleString('en-IN')}) बफ़र से ₹${dipped.toLocaleString('en-IN')} ज्यादा हो गया, जो आपके ₹${targetProfitPool.toLocaleString('en-IN')} मुनाफ़े से कट रहा है।</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] text-slate-400 block font-bold">बचा हुआ शुद्ध मुनाफ़ा:</span>
+                            <span class="text-lg font-black font-mono text-amber-300">₹${finalNetProfit.toLocaleString('en-IN')}</span>
+                            <span class="text-[10px] text-rose-300 block font-bold">(-₹${dipped.toLocaleString('en-IN')} मुनाफे से कटा)</span>
+                        </div>`;
+                } else {
+                    finalNetProfit = targetProfitPool - Math.abs(remainingBuffer);
+                    const lossAmount = Math.abs(finalNetProfit);
+                    statusCard.className = 'p-3.5 rounded-2xl border border-rose-500 bg-rose-950/70 flex items-center justify-between flex-wrap gap-3';
+                    statusCard.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold text-lg animate-pulse"><i class="fa-solid fa-skull-crossbones"></i></span>
+                            <div>
+                                <span class="text-sm font-black text-rose-400 block">🔴 गंभीर चेतावनी: मुनाफ़ा शून्य (NIL PROFIT) व जेब से घाटा!</span>
+                                <span class="text-xs text-rose-200">RTO ${sliderVal}% पर कुल नुकसान ₹${totalRtoDrain.toLocaleString('en-IN')} हुआ जिसने सारा बफ़र व ₹${targetProfitPool.toLocaleString('en-IN')} मुनाफ़ा खत्म कर दिया।</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] text-rose-300 block font-bold">जेब से शुद्ध घाटा (Net Loss):</span>
+                            <span class="text-lg font-black font-mono text-rose-400">-₹${lossAmount.toLocaleString('en-IN')}</span>
+                            <span class="text-[10px] text-amber-300 block font-bold">👉 COD वेरिफिकेशन चालू करें या RTO बफ़र बढ़ाएं!</span>
+                        </div>`;
+                }
+            }
+        }
+
+        function setModalComboShip(qty, rate) {
+            const inp = document.getElementById(`combo${qty}_ship`);
+            if (inp) {
+                inp.value = rate;
+                recalcComboModalLive(qty);
+            }
+        }
+
         function openComboCalculatorModal(prodId, prodName) {
             activeComboProductId = prodId;
             document.getElementById('comboModalProdName').textContent = prodName;
@@ -2772,26 +3149,27 @@ function switchMarketplaceTab(tab) {
             document.getElementById('comboModalBaseCost').textContent = '₹' + cost.toFixed(2);
             document.getElementById('comboModalGstRate').textContent = gstRate + '% GST';
 
-            // 2P
+            // Smart Weight Slabs Preload:
+            // 2P: 0.5kg slab = ₹55 base
+            // 4P: 1.0kg slab = ₹75 base
+            // 6P: 2.0kg slab = ₹112 base
             document.getElementById('combo2_cost').textContent = 'खरीद: ₹' + (cost * 2).toFixed(2);
             document.getElementById('combo2_margin').value = marginPct;
-            document.getElementById('combo2_ship').value = 45;
+            document.getElementById('combo2_ship').value = 55;
             document.getElementById('combo2_pack').value = 20;
             document.getElementById('combo2_rto').value = 30;
             document.getElementById('combo2_fee').value = feePct;
 
-            // 4P
             document.getElementById('combo4_cost').textContent = 'खरीद: ₹' + (cost * 4).toFixed(2);
             document.getElementById('combo4_margin').value = marginPct;
-            document.getElementById('combo4_ship').value = 65;
+            document.getElementById('combo4_ship').value = 75;
             document.getElementById('combo4_pack').value = 25;
             document.getElementById('combo4_rto').value = 40;
             document.getElementById('combo4_fee').value = feePct;
 
-            // 6P
             document.getElementById('combo6_cost').textContent = 'खरीद: ₹' + (cost * 6).toFixed(2);
             document.getElementById('combo6_margin').value = marginPct;
-            document.getElementById('combo6_ship').value = 85;
+            document.getElementById('combo6_ship').value = 112;
             document.getElementById('combo6_pack').value = 30;
             document.getElementById('combo6_rto').value = 50;
             document.getElementById('combo6_fee').value = feePct;
@@ -2826,14 +3204,19 @@ function switchMarketplaceTab(tab) {
             const marginPct = parseFloat(document.getElementById(`combo${qty}_margin`)?.value) || 25;
             const feePct = parseFloat(document.getElementById(`combo${qty}_fee`)?.value) || 12;
 
+            // Courier with 18% GST
+            const shipWithGst = ship > 0 ? (ship * 1.18) : 0;
+            const shipBadge = document.getElementById(`combo${qty}_ship_badge`);
+            if (shipBadge) shipBadge.textContent = `₹${ship} + 18% GST = ₹${shipWithGst.toFixed(1)}`;
+
             const totalCost = unitCost * qty;
             const g = gstRate / 100;
-            const f = feePct / 100;
+            const f = (feePct * 1.18) / 100; // Amazon 18% GST on fee
             const cTax = g > 0 ? (totalCost / (1 + g)) : totalCost;
             const denom = Math.max(0.05, (1 / (1 + g)) - f);
 
             const profitTarget = totalCost * (marginPct / 100);
-            const fixedExp = ship + pack + rto;
+            const fixedExp = shipWithGst + pack + rto;
             const calculatedSellingRate = Math.ceil((cTax + fixedExp + profitTarget) / denom);
 
             const finalPrice = (overrideRate > 0) ? overrideRate : calculatedSellingRate;
@@ -2919,20 +3302,25 @@ function switchMarketplaceTab(tab) {
                 const f = feePct / 100;
                 const denom = Math.max(0.05, (1 / (1 + g)) - f);
 
-                // 2P: 2x cost, ₹45 ship, ₹20 pack, ₹30 rto
+                // Automatic Weight Slab Rates (with 18% GST):
+                // 2P: 0.5kg slab (₹55 + 18% GST = ₹64.90)
+                // 4P: 1.0kg slab (₹75 + 18% GST = ₹88.50)
+                // 6P: 2.0kg slab (₹112 + 18% GST = ₹132.16)
+                const ship2 = 55 * 1.18;
+                const ship4 = 75 * 1.18;
+                const ship6 = 112 * 1.18;
+
                 const cTax2 = g > 0 ? ((cost * 2) / (1 + g)) : (cost * 2);
                 const p2 = (cost * 2) * (marginPct / 100);
-                const c2 = Math.ceil((cTax2 + 45 + 20 + 30 + p2) / denom);
+                const c2 = Math.ceil((cTax2 + ship2 + 20 + 30 + p2) / denom);
 
-                // 4P: 4x cost, ₹65 ship, ₹25 pack, ₹40 rto
                 const cTax4 = g > 0 ? ((cost * 4) / (1 + g)) : (cost * 4);
                 const p4 = (cost * 4) * (marginPct / 100);
-                const c4 = Math.ceil((cTax4 + 65 + 25 + 40 + p4) / denom);
+                const c4 = Math.ceil((cTax4 + ship4 + 25 + 40 + p4) / denom);
 
-                // 6P: 6x cost, ₹85 ship, ₹30 pack, ₹50 rto
                 const cTax6 = g > 0 ? ((cost * 6) / (1 + g)) : (cost * 6);
                 const p6 = (cost * 6) * (marginPct / 100);
-                const c6 = Math.ceil((cTax6 + 85 + 30 + 50 + p6) / denom);
+                const c6 = Math.ceil((cTax6 + ship6 + 30 + 50 + p6) / denom);
 
                 const r2 = document.getElementById(`row-combo2-${id}`);
                 if (r2) r2.value = c2;
@@ -3408,10 +3796,17 @@ function switchMarketplaceTab(tab) {
             const marginAmtSpan = document.getElementById(`row-margin-amt-${prodId}`);
             if (marginAmtSpan) marginAmtSpan.textContent = `₹${desiredProfit} लाभ`;
 
-            // Update combo previews in table row (GST-Gap protected with shared courier)
-            const c2 = Math.ceil(((cTax * 2) + (desiredProfit * 1.8) + (rto * 1.5) + (pack * 1.3) + actualShipCost + (ads * 1.2)) / denom);
-            const c4 = Math.ceil(((cTax * 4) + (desiredProfit * 3.5) + (rto * 2.0) + (pack * 1.6) + (actualShipCost * 1.15) + (ads * 1.5)) / denom);
-            const c6 = Math.ceil(((cTax * 6) + (desiredProfit * 5.0) + (rto * 2.5) + (pack * 2.0) + (actualShipCost * 1.3) + (ads * 1.8)) / denom);
+            // Update combo previews with smart weight slabs:
+            // 2P: 0.5kg slab (₹55 base + 18% GST = ₹64.90)
+            // 4P: 1.0kg slab (₹75 base + 18% GST = ₹88.50)
+            // 6P: 2.0kg slab (₹112 base + 18% GST = ₹132.16)
+            const ship2Cost = actualShipCost; // 0.5kg slab
+            const ship4Cost = 75 * 1.18;      // 1.0kg slab
+            const ship6Cost = 112 * 1.18;     // 2.0kg slab
+
+            const c2 = Math.ceil(((cTax * 2) + (desiredProfit * 1.8) + (rto * 1.5) + (pack * 1.3) + ship2Cost + (ads * 1.2)) / denom);
+            const c4 = Math.ceil(((cTax * 4) + (desiredProfit * 3.5) + (rto * 2.0) + (pack * 1.6) + ship4Cost + (ads * 1.5)) / denom);
+            const c6 = Math.ceil(((cTax * 6) + (desiredProfit * 5.0) + (rto * 2.5) + (pack * 2.0) + ship6Cost + (ads * 1.8)) / denom);
 
             const rC2 = document.getElementById(`row-combo2-${prodId}`);
             if (rC2) {
@@ -4288,10 +4683,19 @@ function switchMarketplaceTab(tab) {
                         <!-- Expenses -->
                         <div class="space-y-1.5 text-[11px]">
                             <div class="flex items-center justify-between">
-                                <span class="text-gray-600">कूरियर / डिलीवरी:</span>
-                                <div class="relative w-20">
-                                    <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">₹</span>
-                                    <input type="number" id="combo2_ship" value="45" oninput="recalcComboModalLive(2)" class="w-full pl-4 pr-1 py-0.5 bg-white border border-gray-300 rounded text-right font-mono font-bold text-gray-800">
+                                <div>
+                                    <span class="text-gray-600 block">कूरियर (0.5kg स्लैब):</span>
+                                    <span class="text-[8px] text-sky-700 font-bold block" id="combo2_ship_badge">₹55 + 18% GST = ₹64.9</span>
+                                </div>
+                                <div class="flex flex-col items-end gap-1">
+                                    <div class="relative w-20">
+                                        <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">₹</span>
+                                        <input type="number" id="combo2_ship" value="55" oninput="recalcComboModalLive(2)" class="w-full pl-4 pr-1 py-0.5 bg-white border border-gray-300 rounded text-right font-mono font-bold text-gray-800">
+                                    </div>
+                                    <div class="flex items-center gap-0.5">
+                                        <button type="button" onclick="setModalComboShip(2, 55)" class="px-1 py-0.2 text-[8px] bg-sky-100 hover:bg-sky-200 text-sky-900 rounded font-bold border border-sky-200 cursor-pointer">0.5k: ₹55</button>
+                                        <button type="button" onclick="setModalComboShip(2, 75)" class="px-1 py-0.2 text-[8px] bg-sky-100 hover:bg-sky-200 text-sky-900 rounded font-bold border border-sky-200 cursor-pointer">1k: ₹75</button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="flex items-center justify-between">
@@ -4350,10 +4754,20 @@ function switchMarketplaceTab(tab) {
                         <!-- Expenses -->
                         <div class="space-y-1.5 text-[11px]">
                             <div class="flex items-center justify-between">
-                                <span class="text-gray-600">कूरियर / डिलीवरी:</span>
-                                <div class="relative w-20">
-                                    <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">₹</span>
-                                    <input type="number" id="combo4_ship" value="65" oninput="recalcComboModalLive(4)" class="w-full pl-4 pr-1 py-0.5 bg-white border border-gray-300 rounded text-right font-mono font-bold text-gray-800">
+                                <div>
+                                    <span class="text-gray-600 block">कूरियर (1.0kg स्लैब):</span>
+                                    <span class="text-[8px] text-sky-700 font-bold block" id="combo4_ship_badge">₹75 + 18% GST = ₹88.5</span>
+                                </div>
+                                <div class="flex flex-col items-end gap-1">
+                                    <div class="relative w-20">
+                                        <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">₹</span>
+                                        <input type="number" id="combo4_ship" value="75" oninput="recalcComboModalLive(4)" class="w-full pl-4 pr-1 py-0.5 bg-white border border-gray-300 rounded text-right font-mono font-bold text-gray-800">
+                                    </div>
+                                    <div class="flex items-center gap-0.5">
+                                        <button type="button" onclick="setModalComboShip(4, 55)" class="px-1 py-0.2 text-[8px] bg-sky-100 hover:bg-sky-200 text-sky-900 rounded font-bold border border-sky-200 cursor-pointer">0.5k: ₹55</button>
+                                        <button type="button" onclick="setModalComboShip(4, 75)" class="px-1 py-0.2 text-[8px] bg-sky-100 hover:bg-sky-200 text-sky-900 rounded font-bold border border-sky-200 cursor-pointer">1k: ₹75</button>
+                                        <button type="button" onclick="setModalComboShip(4, 112)" class="px-1 py-0.2 text-[8px] bg-sky-100 hover:bg-sky-200 text-sky-900 rounded font-bold border border-sky-200 cursor-pointer">2k: ₹112</button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="flex items-center justify-between">
@@ -4412,10 +4826,19 @@ function switchMarketplaceTab(tab) {
                         <!-- Expenses -->
                         <div class="space-y-1.5 text-[11px]">
                             <div class="flex items-center justify-between">
-                                <span class="text-gray-600">कूरियर / डिलीवरी:</span>
-                                <div class="relative w-20">
-                                    <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">₹</span>
-                                    <input type="number" id="combo6_ship" value="85" oninput="recalcComboModalLive(6)" class="w-full pl-4 pr-1 py-0.5 bg-white border border-gray-300 rounded text-right font-mono font-bold text-gray-800">
+                                <div>
+                                    <span class="text-gray-600 block">कूरियर (2.0kg स्लैब):</span>
+                                    <span class="text-[8px] text-sky-700 font-bold block" id="combo6_ship_badge">₹112 + 18% GST = ₹132.2</span>
+                                </div>
+                                <div class="flex flex-col items-end gap-1">
+                                    <div class="relative w-20">
+                                        <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">₹</span>
+                                        <input type="number" id="combo6_ship" value="112" oninput="recalcComboModalLive(6)" class="w-full pl-4 pr-1 py-0.5 bg-white border border-gray-300 rounded text-right font-mono font-bold text-gray-800">
+                                    </div>
+                                    <div class="flex items-center gap-0.5">
+                                        <button type="button" onclick="setModalComboShip(6, 75)" class="px-1 py-0.2 text-[8px] bg-sky-100 hover:bg-sky-200 text-sky-900 rounded font-bold border border-sky-200 cursor-pointer">1k: ₹75</button>
+                                        <button type="button" onclick="setModalComboShip(6, 112)" class="px-1 py-0.2 text-[8px] bg-sky-100 hover:bg-sky-200 text-sky-900 rounded font-bold border border-sky-200 cursor-pointer">2k: ₹112</button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="flex items-center justify-between">
