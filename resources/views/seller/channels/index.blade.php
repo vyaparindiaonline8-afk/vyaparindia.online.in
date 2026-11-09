@@ -1301,7 +1301,7 @@
 
                                         <!-- 1.2 Store / App Original Selling Price (Non-destructive Reference) -->
                                         <td class="p-2 bg-blue-50/40 text-center">
-                                            <span class="inline-block px-2.5 py-1 bg-white border border-blue-200 rounded-lg font-mono font-black text-xs text-blue-900 shadow-2xs" title="ऐप/दुकान में डाला गया मूल सेलिंग रेट">
+                                            <span id="row-store-price-{{ $p->id }}" class="inline-block px-2.5 py-1 bg-white border border-blue-200 rounded-lg font-mono font-black text-xs text-blue-900 shadow-2xs" title="दुकान / ऑनलाइन बिक्री भाव">
                                                 ₹{{ number_format($p->price, 2) }}
                                             </span>
                                         </td>
@@ -1376,6 +1376,7 @@
                                                     <div class="relative">
                                                         <span class="absolute left-2 top-1/2 -translate-y-1/2 text-amber-600 font-bold text-[10px]">₹</span>
                                                         <input type="number" step="1" id="row-price-{{ $p->id }}" value="{{ $finalSellingPrice }}" oninput="syncManualPriceToCard({{ $p->id }})" class="w-20 pl-5 pr-1.5 py-1 bg-white border border-amber-300 rounded-lg text-xs font-mono font-black text-amber-950 focus:border-amber-500 focus:outline-none" title="फाइनल सेलिंग रेट (एडिट कर सकते हैं)">
+                                                        <div id="row-mrp-alert-{{ $p->id }}" class="mt-1"></div>
                                                     </div>
                                                     <button type="button" onclick="saveTableRowCosting({{ $p->id }}, this)" class="h-7 w-7 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition shadow-2xs cursor-pointer" title="इस रो का रेट सेव करें">
                                                         <i class="fa-solid fa-floppy-disk text-xs"></i>
@@ -3256,9 +3257,29 @@ function switchMarketplaceTab(tab) {
             const fixedExp = rto + pack + ship + ads + others;
             const finalRate = Math.ceil((cTax + fixedExp + desiredProfit) / denom);
 
-            // Update row price input
+            // Update row price input & live Store/Online selling price 1
             const priceInput = document.getElementById(`row-price-${prodId}`);
             if (priceInput) priceInput.value = finalRate;
+
+            const storePriceSpan = document.getElementById(`row-store-price-${prodId}`);
+            if (storePriceSpan) storePriceSpan.textContent = `₹${finalRate.toFixed(2)}`;
+
+            // Live MRP Compliance & Combo Warning Check
+            const rowMrp = parseFloat(document.getElementById(`row-mrp-${prodId}`)?.value) || 0;
+            const mrpAlertEl = document.getElementById(`row-mrp-alert-${prodId}`);
+            if (mrpAlertEl) {
+                if (rowMrp > 0 && finalRate > rowMrp) {
+                    const diff = Math.round(finalRate - rowMrp);
+                    mrpAlertEl.innerHTML = `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 text-[9px] font-black animate-pulse shadow-2xs" title="ऑनलाइन भाव MRP से ज्यादा है!"><i class="fa-solid fa-triangle-exclamation text-rose-600"></i> MRP से ₹${diff} ऊपर! 👉 2P/4P कॉम्बो बेचें</span>`;
+                    if (priceInput) priceInput.className = "w-20 pl-5 pr-1.5 py-1 bg-rose-50 border-2 border-rose-500 rounded-lg text-xs font-mono font-black text-rose-950 focus:outline-none";
+                } else if (rowMrp > 0) {
+                    mrpAlertEl.innerHTML = `<span class="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[8px] font-bold"><i class="fa-solid fa-check text-emerald-600"></i> MRP सुरक्षित</span>`;
+                    if (priceInput) priceInput.className = "w-20 pl-5 pr-1.5 py-1 bg-white border border-amber-300 rounded-lg text-xs font-mono font-black text-amber-950 focus:border-amber-500 focus:outline-none";
+                } else {
+                    mrpAlertEl.innerHTML = '';
+                    if (priceInput) priceInput.className = "w-20 pl-5 pr-1.5 py-1 bg-white border border-amber-300 rounded-lg text-xs font-mono font-black text-amber-950 focus:border-amber-500 focus:outline-none";
+                }
+            }
 
             // Update margin amount badge in table row
             const marginAmtSpan = document.getElementById(`row-margin-amt-${prodId}`);
@@ -3543,7 +3564,7 @@ function switchMarketplaceTab(tab) {
         async function saveAllTableRowsCosting() {
             const rows = document.querySelectorAll('#pendingTableTbody tr[data-id]');
             if (!rows.length) {
-                alert('कोई प्रोडक्ट मौजूद नहीं है!');
+                alert('कोई प्रोडक्ट्स उपलब्ध नहीं हैं!');
                 return;
             }
 
@@ -3602,36 +3623,60 @@ function switchMarketplaceTab(tab) {
             const btn = document.getElementById('btnBulkSaveTable');
             const origHtml = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>सेव हो रहा है...</span>';
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+            const CHUNK_SIZE = 15;
+            let totalSaved = 0;
+            let hasError = false;
 
             try {
-                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
-                const res = await fetch('/seller/channels/save-all-costing', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken
-                    },
-                    body: JSON.stringify({ items: items })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    showChannelToast(`✓ ${data.saved_count} प्रोडक्ट्स के मार्जिन व रेट्स सेव हो गए!`);
-                    clearUnsavedChanges();
-                    btn.innerHTML = '<i class="fa-solid fa-check text-emerald-300"></i> <span>सफलतापूर्वक सेव हुआ!</span>';
-                    setTimeout(() => {
-                        btn.innerHTML = origHtml;
-                        btn.disabled = false;
-                    }, 2500);
-                } else {
-                    alert(data.message || 'सेव करने में त्रुटि आई।');
+                for (let i = 0; i < items.length; i += CHUNK_SIZE) {
+                    const chunk = items.slice(i, i + CHUNK_SIZE);
+                    const progress = Math.min(i + CHUNK_SIZE, items.length);
+                    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>सेव हो रहा है (${progress}/${items.length})...</span>`;
+
+                    let attempts = 0;
+                    let success = false;
+                    while (attempts < 2 && !success) {
+                        attempts++;
+                        try {
+                            const res = await fetch('/seller/channels/save-all-costing', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                    'X-CSRF-TOKEN': csrfToken
+                                },
+                                body: JSON.stringify({ items: chunk })
+                            });
+                            if (res.ok) {
+                                const data = await res.json();
+                                if (data.success) {
+                                    totalSaved += (data.saved_count || chunk.length);
+                                    success = true;
+                                } else {
+                                    throw new Error(data.message || 'त्रुटि आई');
+                                }
+                            } else {
+                                throw new Error(`HTTP ${res.status}`);
+                            }
+                        } catch (err) {
+                            if (attempts >= 2) throw err;
+                            await new Promise(r => setTimeout(r, 600));
+                        }
+                    }
+                }
+
+                showChannelToast(`✓ सभी ${totalSaved} प्रोडक्ट्स के मार्जिन, कूरियर व स्टॉक सुरक्षित सेव हो गए!`);
+                clearUnsavedChanges();
+                btn.innerHTML = '<i class="fa-solid fa-check text-emerald-300"></i> <span>सफलतापूर्वक सेव हुआ!</span>';
+                setTimeout(() => {
                     btn.innerHTML = origHtml;
                     btn.disabled = false;
-                }
-            } catch(e) {
-                console.error(e);
-                alert('नेटवर्क त्रुटि: सेव नहीं हो पाया।');
+                }, 2500);
+            } catch (e) {
+                console.error('Batch save error:', e);
+                showChannelToast('⚠️ कुछ डेटा सेव हुआ (' + totalSaved + '/' + items.length + ')। नेटवर्क फिर से जांचें।');
                 btn.innerHTML = origHtml;
                 btn.disabled = false;
             }

@@ -751,7 +751,9 @@ class ChannelController extends Controller
 
         $isOwnerOrAdmin = Auth::user() && Auth::user()->isOwnerOrAdmin();
         $savedCount = 0;
-        foreach ($items as $item) {
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            foreach ($items as $item) {
             $prodId = $item['product_id'] ?? null;
             if (!$prodId) continue;
 
@@ -837,6 +839,12 @@ class ChannelController extends Controller
                 'last_synced_at' => now(),
             ]);
             $savedCount++;
+            }
+            \Illuminate\Support\Facades\DB::commit();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            \Illuminate\Support\Facades\Log::error("saveAllProductCosting error: " . $e->getMessage());
+            return response()->json(["success" => false, "message" => "डेटाबेस सेव त्रुटि: " . $e->getMessage()], 500);
         }
 
         return response()->json([
