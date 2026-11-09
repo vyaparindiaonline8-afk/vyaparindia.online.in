@@ -130,6 +130,8 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::get('/pricing-calculator', [ChannelController::class, 'pricingCalculator'])->name('pricing_calculator');
         Route::get('/shipping-rates', [ChannelController::class, 'getShippingRates'])->name('getShippingRates');
         Route::post('/shipping-rates/save', [ChannelController::class, 'saveShippingRates'])->name('saveShippingRates');
+        Route::get('/pnl-budget', [ChannelController::class, 'pnlBudgetReport'])->name('pnl_budget');
+        Route::post('/pnl-budget/save-settings', [ChannelController::class, 'savePnlBudgetSettings'])->name('save_pnl_budget_settings');
     });
 
     // 🚚 Smart Shipping & Anti-RTO Routes
