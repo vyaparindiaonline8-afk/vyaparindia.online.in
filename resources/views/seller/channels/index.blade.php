@@ -1149,10 +1149,10 @@
                                     <th class="p-3 min-w-[170px]">प्रोडक्ट का नाम & SKU</th>
                                     <th class="p-3 min-w-[70px] text-center font-mono text-gray-500">ID</th>
                                     <th class="p-3 min-w-[90px] bg-emerald-50 text-emerald-950 font-black text-center" title="उपलब्ध इन्वेंट्री / स्टॉक की संख्या">📦 स्टॉक (Qty)</th>
-                                    <th class="p-3 min-w-[95px] bg-amber-50 text-amber-950 font-black">MRP (लिस्ट ₹)</th>
+                                    <th class="p-3 min-w-[110px] bg-amber-50 text-amber-950 font-black" title="कंपनी कैटलॉग की प्राइस लिस्ट (List Price)">प्राइस लिस्ट (Price List ₹)</th>
                                     <th class="p-3 min-w-[75px] bg-amber-50 text-amber-950 font-black">Less %</th>
                                     <th class="p-3 min-w-[105px] bg-slate-50 text-slate-900 font-extrabold" title="आपकी खरीद लागत (GST सहित)">खरीद लागत (With GST ₹)</th>
-                                    <th class="p-3 min-w-[105px] bg-blue-50 text-blue-950 font-black" title="दुकान / ऐप का रिटेल बिक्री भाव (Selling Price 1)">सेलिंग भाव 1 (दुकान ₹)</th>
+                                    <th class="p-3 min-w-[115px] bg-blue-50 text-blue-950 font-black" title="अमेज़न 1 पीस बिक्री दर (Selling Price 1)">सेलिंग भाव 1 (Amz सिंगल ₹)</th>
                                     <th class="p-3 min-w-[90px] bg-indigo-50 text-indigo-950 font-black" title="मार्केटप्लेस के लिए आपका मनपसंद मुनाफा %">मार्जिन (%)</th>
                                     <th class="p-3 min-w-[85px] bg-rose-50 text-rose-950 font-black" title="रिटर्न/RTO नुकसान से सुरक्षा">🔄 रिटर्न बफ़र (₹)</th>
                                     <th class="p-3 min-w-[70px]">पैकिंग (₹)</th>
