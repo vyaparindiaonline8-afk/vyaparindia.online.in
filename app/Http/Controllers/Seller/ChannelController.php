@@ -133,12 +133,25 @@ class ChannelController extends Controller
             ->take(15)
             ->get();
 
+        try {
+            $shippingRates = \App\Models\ShippingRate::where('is_active', true)->orderBy('weight')->get();
+        } catch (\Throwable $e) {
+            $shippingRates = collect();
+        }
+        if ($shippingRates->isEmpty()) {
+            $shippingRates = collect([
+                (object)['weight' => 0.5, 'rate' => 55, 'gst_percent' => 18, 'label' => '0.5 kg (₹55 + 18% GST)'],
+                (object)['weight' => 1.0, 'rate' => 75, 'gst_percent' => 18, 'label' => '1.0 kg (₹75 + 18% GST)'],
+                (object)['weight' => 2.0, 'rate' => 112, 'gst_percent' => 18, 'label' => '2.0 kg (₹112 + 18% GST)'],
+            ]);
+        }
+
         return view('seller.channels.index', compact(
             'channels', 'supportedChannels', 'allListings', 'channelListingCounts', 
             'pendingProducts', 'allStoreProducts', 'ecomCategories', 'allPendingIds', 
             'channelOrders', 'analytics', 'firstPublishDate', 'lastSyncedDate', 
             'stagedPieces', 'stagedSellingVal', 'storeTotalPieces', 'storeTotalValuation', 
-            'storeTotalCostValuation', 'recentSyncLogs'
+            'storeTotalCostValuation', 'recentSyncLogs', 'shippingRates'
         ));
     }
 
@@ -703,6 +716,8 @@ class ChannelController extends Controller
             'marketplace_price' => (float)$product->price,
             'margin_pct' => (float)($request->input('margin_pct', 25)),
             'rto_buffer' => (float)($request->input('rto_buffer', 20)),
+            'rto_mode' => $request->input('rto_mode', 'fixed'),
+            'fee_gst_included' => $request->boolean('fee_gst_included', true),
             'packaging' => (float)($validated['packaging'] ?? 15),
             'shipping' => (float)($validated['shipping'] ?? 45),
             'platform_fee_pct' => (float)($validated['platform_fee_pct'] ?? 12),
@@ -816,6 +831,8 @@ class ChannelController extends Controller
                 'marketplace_price' => (float)$product->price,
                 'margin_pct' => (float)($item['margin_pct'] ?? 25),
                 'rto_buffer' => (float)($item['rto_buffer'] ?? 20),
+                'rto_mode' => $item['rto_mode'] ?? 'fixed',
+                'fee_gst_included' => isset($item['fee_gst_included']) ? (bool)$item['fee_gst_included'] : true,
                 'packaging' => (float)($item['packaging'] ?? 15),
                 'shipping' => (float)($item['shipping'] ?? 45),
                 'platform_fee_pct' => (float)($item['platform_fee_pct'] ?? 12),

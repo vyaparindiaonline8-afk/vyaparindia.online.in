@@ -708,34 +708,61 @@
                                     </button>
                                 </div>
 
-                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
-                                    <span class="text-[10px] text-gray-500 font-bold">मार्जिन %:</span>
-                                    <input type="number" id="bulkPresetMargin" value="25" class="w-12 text-xs font-mono font-bold text-indigo-700 outline-none text-center">
-                                    <span class="text-[10px] text-gray-400">%</span>
+                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-indigo-300 shadow-2xs" title="आपका शुद्ध लाभ मार्जिन %">
+                                    <span class="text-[10px] text-indigo-950 font-black">मार्जिन %:</span>
+                                    <input type="number" id="bulkPresetMargin" value="25" class="w-11 text-xs font-mono font-black text-indigo-700 outline-none text-center">
+                                    <span class="text-[10px] text-indigo-400 font-bold">%</span>
                                 </div>
 
-                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-purple-300 shadow-2xs" title="प्लेटफ़ॉर्म कमीशन % (Amazon: 12%, Meesho: 0%, Flipkart: 10%)">
-                                    <span class="text-[10px] text-purple-700 font-bold">कमीशन %:</span>
-                                    <input type="number" id="bulkPresetFee" value="12" class="w-11 text-xs font-mono font-bold text-purple-700 outline-none text-center">
-                                    <span class="text-[10px] text-gray-400">%</span>
+                                <div class="flex items-center gap-1.5 bg-white px-2 py-1 rounded-xl border border-purple-300 shadow-2xs" title="प्लेटफ़ॉर्म कमीशन % (Amazon: 12% या 9%, Meesho: 0%)">
+                                    <span class="text-[10px] text-purple-900 font-bold">कमीशन %:</span>
+                                    <input type="number" id="bulkPresetFee" value="12" class="w-10 text-xs font-mono font-bold text-purple-700 outline-none text-center">
+                                    <label class="inline-flex items-center gap-0.5 text-[9px] text-purple-900 font-black cursor-pointer bg-purple-50 px-1 py-0.5 rounded border border-purple-200" title="Amazon फ़ीस पर 18% GST (उदा. ₹56.64 बिल अनुसार)">
+                                        <input type="checkbox" id="bulkPresetFeeGst" checked class="rounded text-purple-600 focus:ring-0 w-3 h-3">
+                                        <span>+GST</span>
+                                    </label>
                                 </div>
 
-                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-rose-300 shadow-2xs" title="RTO / रिटर्न नुकसान से सुरक्षा बफ़र">
-                                    <span class="text-[10px] text-rose-700 font-bold">🔄 रिटर्न/RTO:</span>
-                                    <span class="text-[10px] text-gray-400">₹</span>
-                                    <input type="number" id="bulkPresetRto" value="20" class="w-12 text-xs font-mono font-bold text-rose-700 outline-none text-center">
+                                <div class="flex items-center gap-1 bg-white px-2 py-1 rounded-xl border border-rose-300 shadow-2xs" title="RTO / रिटर्न नुकसान से सुरक्षा बफ़र (₹ या %)">
+                                    <span class="text-[10px] text-rose-800 font-bold">🔄 RTO:</span>
+                                    <select id="bulkPresetRtoMode" class="text-[10px] font-black bg-rose-50 border border-rose-200 text-rose-900 rounded px-1 py-0.5 outline-none cursor-pointer">
+                                        <option value="fixed" selected>₹ फिक्स</option>
+                                        <option value="pct">% लागत</option>
+                                    </select>
+                                    <input type="number" id="bulkPresetRto" value="20" class="w-11 text-xs font-mono font-bold text-rose-700 outline-none text-center">
                                 </div>
 
-                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
-                                    <span class="text-[10px] text-gray-500 font-bold">डिलीवरी:</span>
-                                    <span class="text-[10px] text-gray-400">₹</span>
-                                    <input type="number" id="bulkPresetShip" value="45" class="w-12 text-xs font-mono font-bold text-gray-800 outline-none text-center">
+                                <div class="flex items-center gap-1.5 bg-white px-2 py-1 rounded-xl border border-sky-300 shadow-2xs" title="कूरियर डिलीवरी स्लैब (0.5kg=₹55, 1kg=₹75, 2kg=₹112)">
+                                    <span class="text-[10px] text-sky-900 font-bold">🚚 कूरियर:</span>
+                                    <span class="text-[10px] text-gray-400 font-bold">₹</span>
+                                    <input type="number" id="bulkPresetShip" value="55" class="w-11 text-xs font-mono font-bold text-sky-900 outline-none text-center">
+                                    <div class="flex items-center gap-0.5">
+                                        <button type="button" onclick="setBulkCourier(55)" class="px-1.5 py-0.5 text-[8px] font-black bg-sky-100 hover:bg-sky-200 text-sky-900 rounded border border-sky-300 cursor-pointer" title="0.5 kg (₹55 + 18% GST = ₹64.90)">0.5k</button>
+                                        <button type="button" onclick="setBulkCourier(75)" class="px-1.5 py-0.5 text-[8px] font-black bg-sky-100 hover:bg-sky-200 text-sky-900 rounded border border-sky-300 cursor-pointer" title="1.0 kg (₹75 + 18% GST = ₹88.50)">1k</button>
+                                        <button type="button" onclick="setBulkCourier(112)" class="px-1.5 py-0.5 text-[8px] font-black bg-sky-100 hover:bg-sky-200 text-sky-900 rounded border border-sky-300 cursor-pointer" title="2.0 kg (₹112 + 18% GST = ₹132.16)">2k</button>
+                                    </div>
                                 </div>
 
-                                <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
-                                    <span class="text-[10px] text-gray-500 font-bold">पैकिंग:</span>
-                                    <span class="text-[10px] text-gray-400">₹</span>
-                                    <input type="number" id="bulkPresetPack" value="15" class="w-12 text-xs font-mono font-bold text-gray-800 outline-none text-center">
+                                <div class="flex items-center gap-1 bg-white px-2 py-1 rounded-xl border border-amber-300 shadow-2xs" title="पैकिंग खर्च (बॉक्स, टेप, पन्नी)">
+                                    <span class="text-[10px] text-gray-700 font-bold">📦 पैकिंग:</span>
+                                    <span class="text-[10px] text-gray-400 font-bold">₹</span>
+                                    <input type="number" id="bulkPresetPack" value="15" class="w-10 text-xs font-mono font-bold text-gray-800 outline-none text-center">
+                                    <div class="flex items-center gap-0.5">
+                                        <button type="button" onclick="setBulkPack(5)" class="px-1.5 py-0.5 text-[8px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded border border-slate-200 cursor-pointer">5</button>
+                                        <button type="button" onclick="setBulkPack(10)" class="px-1.5 py-0.5 text-[8px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded border border-slate-200 cursor-pointer">10</button>
+                                        <button type="button" onclick="setBulkPack(15)" class="px-1.5 py-0.5 text-[8px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded border border-slate-200 cursor-pointer">15</button>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-1 bg-white px-2 py-1 rounded-xl border border-gray-300 shadow-2xs" title="ऐड्स व मार्केटिंग खर्च">
+                                    <span class="text-[10px] text-gray-700 font-bold">📢 ऐड्स:</span>
+                                    <span class="text-[10px] text-gray-400 font-bold">₹</span>
+                                    <input type="number" id="bulkPresetAds" value="10" class="w-10 text-xs font-mono font-bold text-gray-800 outline-none text-center">
+                                    <div class="flex items-center gap-0.5">
+                                        <button type="button" onclick="setBulkAds(0)" class="px-1.5 py-0.5 text-[8px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded border border-slate-200 cursor-pointer">0</button>
+                                        <button type="button" onclick="setBulkAds(5)" class="px-1.5 py-0.5 text-[8px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded border border-slate-200 cursor-pointer">5</button>
+                                        <button type="button" onclick="setBulkAds(10)" class="px-1.5 py-0.5 text-[8px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded border border-slate-200 cursor-pointer">10</button>
+                                    </div>
                                 </div>
 
                                 <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-emerald-300 shadow-2xs" title="सभी प्रोडक्ट्स में एक साथ इन्वेंट्री स्टॉक पीस भरें (उदा. 10, 20 या 50)">
@@ -1154,11 +1181,11 @@
                                     <th class="p-3 min-w-[105px] bg-slate-50 text-slate-900 font-extrabold" title="आपकी खरीद लागत (GST सहित)">खरीद लागत (With GST ₹)</th>
                                     <th class="p-3 min-w-[115px] bg-blue-50 text-blue-950 font-black" title="अमेज़न 1 पीस बिक्री दर (Selling Price 1)">सेलिंग भाव 1 (Amz सिंगल ₹)</th>
                                     <th class="p-3 min-w-[90px] bg-indigo-50 text-indigo-950 font-black" title="मार्केटप्लेस के लिए आपका मनपसंद मुनाफा %">मार्जिन (%)</th>
-                                    <th class="p-3 min-w-[85px] bg-rose-50 text-rose-950 font-black" title="रिटर्न/RTO नुकसान से सुरक्षा">🔄 रिटर्न बफ़र (₹)</th>
-                                    <th class="p-3 min-w-[70px]">पैकिंग (₹)</th>
-                                    <th class="p-3 min-w-[75px]">कूरियर (₹)</th>
-                                    <th class="p-3 min-w-[75px]">फ़ी (%)</th>
-                                    <th class="p-3 min-w-[75px]">ऐड्स (₹)</th>
+                                    <th class="p-3 min-w-[95px] bg-rose-50 text-rose-950 font-black" title="रिटर्न/RTO नुकसान से सुरक्षा (₹ या %)">🔄 रिटर्न बफ़र (₹/%)</th>
+                                    <th class="p-3 min-w-[80px]">पैकिंग (₹)</th>
+                                    <th class="p-3 min-w-[100px] bg-sky-50 text-sky-950 font-black">कूरियर (₹+GST)</th>
+                                    <th class="p-3 min-w-[100px] bg-purple-50 text-purple-950 font-black">कमीशन फ़ी (%+GST)</th>
+                                    <th class="p-3 min-w-[80px]">ऐड्स (₹)</th>
                                     <th class="p-3 min-w-[75px] bg-purple-50 text-purple-950 font-black">HSN कोड</th>
                                     <th class="p-3 min-w-[75px] bg-purple-50 text-purple-950 font-black">GST %</th>
                                     <th class="p-3 min-w-[120px] bg-amber-50 text-amber-950 font-black">फाइनल सेलिंग (₹)</th>
@@ -1322,35 +1349,71 @@
                                             </span>
                                         </td>
 
-                                        <!-- 1.8 Return / RTO Buffer (₹) -->
+                                        <!-- 1.8 Return / RTO Buffer (₹ or %) -->
                                         <td class="p-2 bg-rose-50/40">
-                                            <div class="relative">
-                                                <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-rose-400 text-[10px]">₹</span>
-                                                <input type="number" id="row-rto-{{ $p->id }}" value="{{ (float)($ue['rto_buffer'] ?? 20) }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 pl-4 pr-1.5 py-1 bg-white border border-rose-300 rounded-lg text-xs font-mono font-bold text-rose-700 focus:border-rose-500 focus:outline-none" title="रिटर्न/RTO नुकसान बफ़र">
+                                            <div class="flex items-center gap-1">
+                                                <input type="number" id="row-rto-{{ $p->id }}" value="{{ (float)($ue['rto_buffer'] ?? 20) }}" oninput="recalcTableRow({{ $p->id }})" class="w-12 px-1 py-1 bg-white border border-rose-300 rounded-lg text-xs font-mono font-bold text-rose-700 text-center focus:border-rose-500 focus:outline-none" title="रिटर्न/RTO नुकसान बफ़र">
+                                                <select id="row-rto-mode-{{ $p->id }}" onchange="recalcTableRow({{ $p->id }})" class="text-[10px] font-black bg-white border border-rose-200 text-rose-800 rounded px-1 py-1 outline-none cursor-pointer" title="RTO फिक्स ₹ में या खरीद लागत के % में">
+                                                    <option value="fixed" {{ ($ue['rto_mode'] ?? 'fixed') === 'fixed' ? 'selected' : '' }}>₹</option>
+                                                    <option value="pct" {{ ($ue['rto_mode'] ?? 'fixed') === 'pct' ? 'selected' : '' }}>%</option>
+                                                </select>
                                             </div>
+                                            <span id="row-rto-amt-{{ $p->id }}" class="text-[8px] text-rose-700 font-bold block font-mono mt-0.5 whitespace-nowrap">
+                                                ₹{{ (float)($ue['rto_buffer'] ?? 20) }} बफ़र
+                                            </span>
                                         </td>
 
                                         <!-- 2. Packaging (₹) -->
                                         <td class="p-2">
-                                            <input type="number" id="row-pack-{{ $p->id }}" value="{{ $packCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono text-gray-800 focus:border-indigo-500 focus:outline-none">
+                                            <input type="number" id="row-pack-{{ $p->id }}" value="{{ $packCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 px-1.5 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono text-center text-gray-800 focus:border-indigo-500 focus:outline-none">
+                                            <div class="flex items-center gap-0.5 mt-0.5 justify-center">
+                                                <button type="button" onclick="setRowPack({{ $p->id }}, 5)" class="px-1 py-0.2 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[8px] font-bold transition cursor-pointer" title="₹5 पैकिंग">₹5</button>
+                                                <button type="button" onclick="setRowPack({{ $p->id }}, 10)" class="px-1 py-0.2 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[8px] font-bold transition cursor-pointer" title="₹10 पैकिंग">₹10</button>
+                                                <button type="button" onclick="setRowPack({{ $p->id }}, 15)" class="px-1 py-0.2 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[8px] font-bold transition cursor-pointer" title="₹15 पैकिंग">₹15</button>
+                                            </div>
                                         </td>
 
                                         <!-- 3. Courier / Shipping (₹) -->
-                                        <td class="p-2">
-                                            <input type="number" id="row-ship-{{ $p->id }}" value="{{ $shipCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono text-gray-800 focus:border-indigo-500 focus:outline-none">
+                                        <td class="p-2 bg-sky-50/30">
+                                            <div class="relative">
+                                                <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-sky-400 text-[10px]">₹</span>
+                                                <input type="number" id="row-ship-{{ $p->id }}" value="{{ $shipCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 pl-4 pr-1 py-1 bg-white border border-sky-300 rounded-lg text-xs font-mono font-bold text-sky-950 focus:border-sky-500 focus:outline-none" title="कूरियर दर">
+                                            </div>
+                                            <div class="flex items-center gap-0.5 mt-0.5 justify-center flex-wrap">
+                                                <button type="button" onclick="setRowCourier({{ $p->id }}, 55)" class="px-1 py-0.2 rounded bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-200 text-[8px] font-bold transition cursor-pointer" title="0.5kg स्लैब: ₹55 + 18% GST">0.5k</button>
+                                                <button type="button" onclick="setRowCourier({{ $p->id }}, 75)" class="px-1 py-0.2 rounded bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-200 text-[8px] font-bold transition cursor-pointer" title="1.0kg स्लैब: ₹75 + 18% GST">1k</button>
+                                                <button type="button" onclick="setRowCourier({{ $p->id }}, 112)" class="px-1 py-0.2 rounded bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-200 text-[8px] font-bold transition cursor-pointer" title="2.0kg स्लैब: ₹112 + 18% GST">2k</button>
+                                            </div>
+                                            <span id="row-ship-amt-{{ $p->id }}" class="text-[8px] text-sky-800 font-bold block font-mono mt-0.5 whitespace-nowrap">
+                                                ₹{{ $shipCost }} + 18% = ₹{{ number_format($shipCost * 1.18, 1) }}
+                                            </span>
                                         </td>
 
                                         <!-- 4. Marketplace Platform Fee (%) -->
-                                        <td class="p-2">
-                                            <div class="relative">
-                                                <input type="number" id="row-fee-{{ $p->id }}" value="{{ $feePct }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 pl-2 pr-4 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono text-gray-800 focus:border-indigo-500 focus:outline-none">
-                                                <span class="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]">%</span>
+                                        <td class="p-2 bg-purple-50/20">
+                                            <div class="flex items-center gap-1">
+                                                <div class="relative">
+                                                    <input type="number" id="row-fee-{{ $p->id }}" value="{{ $feePct }}" oninput="recalcTableRow({{ $p->id }})" class="w-14 pl-1.5 pr-3 py-1 bg-white border border-purple-200 rounded-lg text-xs font-mono font-bold text-purple-900 focus:border-purple-500 focus:outline-none">
+                                                    <span class="absolute right-1 top-1/2 -translate-y-1/2 text-purple-400 text-[10px]">%</span>
+                                                </div>
+                                                <label class="inline-flex items-center gap-0.5 text-[8px] text-purple-900 font-bold cursor-pointer" title="Amazon 18% GST फ़ीस में शामिल करें">
+                                                    <input type="checkbox" id="row-fee-gst-{{ $p->id }}" onchange="recalcTableRow({{ $p->id }})" {{ (!isset($ue['fee_gst_included']) || $ue['fee_gst_included']) ? 'checked' : '' }} class="rounded text-purple-600 focus:ring-0 w-2.5 h-2.5">
+                                                    <span>+GST</span>
+                                                </label>
                                             </div>
+                                            <span id="row-fee-amt-{{ $p->id }}" class="text-[8px] text-purple-700 font-bold block font-mono mt-0.5 whitespace-nowrap">
+                                                कमीशन हिसाब...
+                                            </span>
                                         </td>
 
                                         <!-- 5. Ads & Marketing (₹) -->
                                         <td class="p-2">
-                                            <input type="number" id="row-ads-{{ $p->id }}" value="{{ $adsCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono text-gray-800 focus:border-indigo-500 focus:outline-none">
+                                            <input type="number" id="row-ads-{{ $p->id }}" value="{{ $adsCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 px-1.5 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono text-center text-gray-800 focus:border-indigo-500 focus:outline-none">
+                                            <div class="flex items-center gap-0.5 mt-0.5 justify-center">
+                                                <button type="button" onclick="setRowAds({{ $p->id }}, 0)" class="px-1 py-0.2 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[8px] font-bold transition cursor-pointer" title="₹0 ऐड्स">₹0</button>
+                                                <button type="button" onclick="setRowAds({{ $p->id }}, 5)" class="px-1 py-0.2 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[8px] font-bold transition cursor-pointer" title="₹5 ऐड्स">₹5</button>
+                                                <button type="button" onclick="setRowAds({{ $p->id }}, 10)" class="px-1 py-0.2 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[8px] font-bold transition cursor-pointer" title="₹10 ऐड्स">₹10</button>
+                                            </div>
                                         </td>
 
                                         <!-- HSN Code (Towards end before Selling Price) -->
@@ -2939,6 +3002,12 @@ function switchMarketplaceTab(tab) {
                 prefLayout = localStorage.getItem('vyapar_channel_layout') || 'table';
             } catch(e) {}
             switchPendingLayout(prefLayout);
+
+            // Populate live badges (MRP alert, courier with GST, Amazon fee with GST, RTO) for all rows
+            document.querySelectorAll('#pendingTableTbody tr[data-id]').forEach(row => {
+                const id = row.getAttribute('data-id');
+                if (id) recalcTableRow(id);
+            });
         });
 
         // Direct 1-Click Image Upload from Card / Table
@@ -3240,22 +3309,61 @@ function switchMarketplaceTab(tab) {
         function recalcTableRow(prodId) {
             const cost = parseFloat(document.getElementById(`row-cost-${prodId}`)?.value) || 0;
             const marginPct = parseFloat(document.getElementById(`row-margin-${prodId}`)?.value) || 25;
-            const rto = parseFloat(document.getElementById(`row-rto-${prodId}`)?.value) || 0;
+            
+            // RTO Mode: Fixed ₹ or % of Purchase Cost
+            const rtoMode = document.getElementById(`row-rto-mode-${prodId}`)?.value || 'fixed';
+            const rtoInputVal = parseFloat(document.getElementById(`row-rto-${prodId}`)?.value) || 0;
+            const rto = (rtoMode === 'pct') ? Math.round(cost * (rtoInputVal / 100)) : rtoInputVal;
+            const rtoAmtSpan = document.getElementById(`row-rto-amt-${prodId}`);
+            if (rtoAmtSpan) {
+                if (rtoMode === 'pct') {
+                    rtoAmtSpan.textContent = `₹${rto} (${rtoInputVal}% लागत)`;
+                } else {
+                    rtoAmtSpan.textContent = `₹${rto} बफ़र`;
+                }
+            }
+
             const pack = parseFloat(document.getElementById(`row-pack-${prodId}`)?.value) || 0;
             const ship = parseFloat(document.getElementById(`row-ship-${prodId}`)?.value) || 0;
+            
+            // Courier breakdown with 18% GST (e.g. ₹55 + 18% = ₹64.90)
+            const shipWithGst = ship > 0 ? (ship * 1.18) : 0;
+            const shipAmtSpan = document.getElementById(`row-ship-amt-${prodId}`);
+            if (shipAmtSpan) {
+                shipAmtSpan.textContent = `₹${ship} + 18% = ₹${shipWithGst.toFixed(1)}`;
+            }
+
             const feePct = parseFloat(document.getElementById(`row-fee-${prodId}`)?.value) || 12;
+            const feeGstChecked = document.getElementById(`row-fee-gst-${prodId}`) ? document.getElementById(`row-fee-gst-${prodId}`).checked : true;
+            
             const ads = parseFloat(document.getElementById(`row-ads-${prodId}`)?.value) || 0;
             const others = parseFloat(document.getElementById(`row-others-${prodId}`)?.value) || 0;
             const gstRate = parseFloat(document.getElementById(`row-gst-${prodId}`)?.value) || 18;
 
             const desiredProfit = Math.round(cost * (marginPct / 100));
-            // Gap GST Formula: net margin protected after paying output GST minus ITC on cost and fee
+            
+            // Gap GST Formula:
+            // When feeWithGst is true: Amazon charges 18% GST on referral fee (effective fee = feePct * 1.18)
+            const feeEffectivePct = feeGstChecked ? (feePct * 1.18) : feePct;
             const g = gstRate / 100;
-            const f = feePct / 100;
+            const f = feeEffectivePct / 100;
             const cTax = g > 0 ? (cost / (1 + g)) : cost;
             const denom = Math.max(0.05, (1 / (1 + g)) - f);
-            const fixedExp = rto + pack + ship + ads + others;
+            
+            // Courier cash outflow: ship with 18% GST added
+            const actualShipCost = shipWithGst > 0 ? shipWithGst : ship;
+            const fixedExp = rto + pack + actualShipCost + ads + others;
             const finalRate = Math.ceil((cTax + fixedExp + desiredProfit) / denom);
+
+            // Update live Commission Breakdown Badge
+            const feeAmtSpan = document.getElementById(`row-fee-amt-${prodId}`);
+            if (feeAmtSpan) {
+                const baseFeeVal = finalRate * (feePct / 100);
+                const gstFeeVal = baseFeeVal * 0.18;
+                const totalFeeVal = feeGstChecked ? (baseFeeVal + gstFeeVal) : baseFeeVal;
+                feeAmtSpan.textContent = `₹${baseFeeVal.toFixed(1)} ${feeGstChecked ? '+ GST = ₹' + totalFeeVal.toFixed(1) : '(GST अलग)'}`;
+                feeAmtSpan.title = `Amazon कमीशन: ₹${baseFeeVal.toFixed(2)} + 18% GST (₹${gstFeeVal.toFixed(2)}) = कुल ₹${(baseFeeVal + gstFeeVal).toFixed(2)}`;
+            }
 
             // Update row price input & live Store/Online selling price 1
             const priceInput = document.getElementById(`row-price-${prodId}`);
@@ -3270,10 +3378,25 @@ function switchMarketplaceTab(tab) {
             if (mrpAlertEl) {
                 if (rowMrp > 0 && finalRate > rowMrp) {
                     const diff = Math.round(finalRate - rowMrp);
-                    mrpAlertEl.innerHTML = `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 text-[9px] font-black animate-pulse shadow-2xs" title="ऑनलाइन भाव MRP से ज्यादा है!"><i class="fa-solid fa-triangle-exclamation text-rose-600"></i> MRP से ₹${diff} ऊपर! 👉 2P/4P कॉम्बो बेचें</span>`;
+                    mrpAlertEl.innerHTML = `<div class="px-1.5 py-1 rounded-lg bg-rose-100 border border-rose-300 text-rose-950 text-[9px] font-black leading-tight shadow-2xs mt-1 animate-pulse">
+                        <div class="flex items-center gap-1 text-rose-700">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <span>🚨 MRP से ₹${diff} ऊपर!</span>
+                        </div>
+                        <div class="text-[8px] text-rose-800 font-mono mt-0.5">
+                            (MRP ₹${rowMrp} vs सेलिंग ₹${finalRate})
+                        </div>
+                        <div class="text-[8px] text-indigo-700 font-extrabold mt-0.5">
+                            👉 2P/4P कॉम्बो बेचें
+                        </div>
+                    </div>`;
                     if (priceInput) priceInput.className = "w-20 pl-5 pr-1.5 py-1 bg-rose-50 border-2 border-rose-500 rounded-lg text-xs font-mono font-black text-rose-950 focus:outline-none";
                 } else if (rowMrp > 0) {
-                    mrpAlertEl.innerHTML = `<span class="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[8px] font-bold"><i class="fa-solid fa-check text-emerald-600"></i> MRP सुरक्षित</span>`;
+                    const diffUnder = Math.round(rowMrp - finalRate);
+                    mrpAlertEl.innerHTML = `<div class="px-1 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[8px] font-bold text-emerald-800 mt-1 flex items-center gap-1">
+                        <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                        <span>MRP सुरक्षित (₹${diffUnder} कम)</span>
+                    </div>`;
                     if (priceInput) priceInput.className = "w-20 pl-5 pr-1.5 py-1 bg-white border border-amber-300 rounded-lg text-xs font-mono font-black text-amber-950 focus:border-amber-500 focus:outline-none";
                 } else {
                     mrpAlertEl.innerHTML = '';
@@ -3285,10 +3408,10 @@ function switchMarketplaceTab(tab) {
             const marginAmtSpan = document.getElementById(`row-margin-amt-${prodId}`);
             if (marginAmtSpan) marginAmtSpan.textContent = `₹${desiredProfit} लाभ`;
 
-            // Update combo previews in table row (GST-Gap protected)
-            const c2 = Math.ceil(((cTax * 2) + (desiredProfit * 1.8) + (rto * 1.5) + (pack * 1.3) + ship + (ads * 1.2)) / denom);
-            const c4 = Math.ceil(((cTax * 4) + (desiredProfit * 3.5) + (rto * 2.0) + (pack * 1.6) + (ship * 1.2) + (ads * 1.5)) / denom);
-            const c6 = Math.ceil(((cTax * 6) + (desiredProfit * 5.0) + (rto * 2.5) + (pack * 2.0) + (ship * 1.4) + (ads * 1.8)) / denom);
+            // Update combo previews in table row (GST-Gap protected with shared courier)
+            const c2 = Math.ceil(((cTax * 2) + (desiredProfit * 1.8) + (rto * 1.5) + (pack * 1.3) + actualShipCost + (ads * 1.2)) / denom);
+            const c4 = Math.ceil(((cTax * 4) + (desiredProfit * 3.5) + (rto * 2.0) + (pack * 1.6) + (actualShipCost * 1.15) + (ads * 1.5)) / denom);
+            const c6 = Math.ceil(((cTax * 6) + (desiredProfit * 5.0) + (rto * 2.5) + (pack * 2.0) + (actualShipCost * 1.3) + (ads * 1.8)) / denom);
 
             const rC2 = document.getElementById(`row-combo2-${prodId}`);
             if (rC2) {
@@ -3394,6 +3517,47 @@ function switchMarketplaceTab(tab) {
         }
 
         // Sync row margin to top preset input when edited so user knows it's ready to apply
+        
+        // Quick button handlers for row and bulk inputs
+        function setRowCourier(prodId, rate) {
+            const inp = document.getElementById(`row-ship-${prodId}`);
+            if (inp) {
+                inp.value = rate;
+                recalcTableRow(prodId);
+            }
+        }
+
+        function setRowPack(prodId, rate) {
+            const inp = document.getElementById(`row-pack-${prodId}`);
+            if (inp) {
+                inp.value = rate;
+                recalcTableRow(prodId);
+            }
+        }
+
+        function setRowAds(prodId, rate) {
+            const inp = document.getElementById(`row-ads-${prodId}`);
+            if (inp) {
+                inp.value = rate;
+                recalcTableRow(prodId);
+            }
+        }
+
+        function setBulkCourier(rate) {
+            const inp = document.getElementById('bulkPresetShip');
+            if (inp) inp.value = rate;
+        }
+
+        function setBulkPack(rate) {
+            const inp = document.getElementById('bulkPresetPack');
+            if (inp) inp.value = rate;
+        }
+
+        function setBulkAds(rate) {
+            const inp = document.getElementById('bulkPresetAds');
+            if (inp) inp.value = rate;
+        }
+
         function syncMarginToPreset(prodId) {
             const val = parseFloat(document.getElementById(`row-margin-${prodId}`)?.value);
             if (!isNaN(val) && val > 0) {
@@ -3407,10 +3571,15 @@ function switchMarketplaceTab(tab) {
         function copyRowSettingsToAll(sourceProdId) {
             const margin = parseFloat(document.getElementById(`row-margin-${sourceProdId}`)?.value) || 25;
             const rto = parseFloat(document.getElementById(`row-rto-${sourceProdId}`)?.value) || 20;
-            const ship = parseFloat(document.getElementById(`row-ship-${sourceProdId}`)?.value) || 45;
+            const rtoMode = document.getElementById(`row-rto-mode-${sourceProdId}`)?.value || 'fixed';
+            const ship = parseFloat(document.getElementById(`row-ship-${sourceProdId}`)?.value) || 55;
             const pack = parseFloat(document.getElementById(`row-pack-${sourceProdId}`)?.value) || 15;
             const fee = parseFloat(document.getElementById(`row-fee-${sourceProdId}`)?.value) || 12;
+            const feeGst = document.getElementById(`row-fee-gst-${sourceProdId}`) ? document.getElementById(`row-fee-gst-${sourceProdId}`).checked : true;
             const gst = document.getElementById(`row-gst-${sourceProdId}`)?.value || '18';
+
+            if (document.getElementById('bulkPresetRtoMode')) document.getElementById('bulkPresetRtoMode').value = rtoMode;
+            if (document.getElementById('bulkPresetFeeGst')) document.getElementById('bulkPresetFeeGst').checked = feeGst;
 
             // Also sync to top preset toolbar
             if (document.getElementById('bulkPresetMargin')) document.getElementById('bulkPresetMargin').value = margin;
@@ -3427,6 +3596,12 @@ function switchMarketplaceTab(tab) {
 
                 const rInp = document.getElementById(`row-rto-${id}`);
                 if (rInp) rInp.value = rto;
+
+                const rModeSel = document.getElementById(`row-rto-mode-${id}`);
+                if (rModeSel) rModeSel.value = rtoMode;
+
+                const fGstChk = document.getElementById(`row-fee-gst-${id}`);
+                if (fGstChk) fGstChk.checked = feeGst;
 
                 const sInp = document.getElementById(`row-ship-${id}`);
                 if (sInp) sInp.value = ship;
@@ -3491,12 +3666,18 @@ function switchMarketplaceTab(tab) {
 
             const rtoRaw = document.getElementById('bulkPresetRto')?.value;
             const rto = (rtoRaw !== '' && !isNaN(parseFloat(rtoRaw))) ? parseFloat(rtoRaw) : 20;
+            const rtoMode = document.getElementById('bulkPresetRtoMode')?.value || 'fixed';
+
+            const feeGstChecked = document.getElementById('bulkPresetFeeGst') ? document.getElementById('bulkPresetFeeGst').checked : true;
 
             const shipRaw = document.getElementById('bulkPresetShip')?.value;
-            const ship = (shipRaw !== '' && !isNaN(parseFloat(shipRaw))) ? parseFloat(shipRaw) : 45;
+            const ship = (shipRaw !== '' && !isNaN(parseFloat(shipRaw))) ? parseFloat(shipRaw) : 55;
 
             const packRaw = document.getElementById('bulkPresetPack')?.value;
             const pack = (packRaw !== '' && !isNaN(parseFloat(packRaw))) ? parseFloat(packRaw) : 15;
+
+            const adsRaw = document.getElementById('bulkPresetAds')?.value;
+            const ads = (adsRaw !== '' && !isNaN(parseFloat(adsRaw))) ? parseFloat(adsRaw) : 10;
 
             const gst = document.getElementById('bulkPresetGst')?.value || '18';
 
@@ -3536,6 +3717,15 @@ function switchMarketplaceTab(tab) {
                 const rtoInput = document.getElementById(`row-rto-${id}`);
                 if (rtoInput) rtoInput.value = rto;
 
+                const rtoModeSel = document.getElementById(`row-rto-mode-${id}`);
+                if (rtoModeSel) rtoModeSel.value = rtoMode;
+
+                const feeGstChk = document.getElementById(`row-fee-gst-${id}`);
+                if (feeGstChk) feeGstChk.checked = feeGstChecked;
+
+                const adsInp = document.getElementById(`row-ads-${id}`);
+                if (adsInp) adsInp.value = ads;
+
                 const shipInput = document.getElementById(`row-ship-${id}`);
                 if (shipInput) shipInput.value = ship;
 
@@ -3574,6 +3764,8 @@ function switchMarketplaceTab(tab) {
                 const cost = parseFloat(document.getElementById(`row-cost-${id}`)?.value) || 0;
                 const marginPct = parseFloat(document.getElementById(`row-margin-${id}`)?.value) || 25;
                 const rto = parseFloat(document.getElementById(`row-rto-${id}`)?.value) || 0;
+                const rtoMode = document.getElementById(`row-rto-mode-${id}`)?.value || 'fixed';
+                const feeGstVal = document.getElementById(`row-fee-gst-${id}`) ? document.getElementById(`row-fee-gst-${id}`).checked : true;
                 const price = parseFloat(document.getElementById(`row-price-${id}`)?.value) || 0;
                 const pack = parseFloat(document.getElementById(`row-pack-${id}`)?.value) || 0;
                 const ship = parseFloat(document.getElementById(`row-ship-${id}`)?.value) || 0;
@@ -3605,6 +3797,8 @@ function switchMarketplaceTab(tab) {
                     trade_discount_percent: lessVal,
                     margin_pct: marginPct,
                     rto_buffer: rto,
+                    rto_mode: rtoMode,
+                    fee_gst_included: feeGstVal,
                     price: price,
                     packaging: pack,
                     shipping: ship,
@@ -3687,6 +3881,8 @@ function switchMarketplaceTab(tab) {
             const cost = parseFloat(document.getElementById(`row-cost-${prodId}`)?.value) || 0;
             const marginPct = parseFloat(document.getElementById(`row-margin-${prodId}`)?.value) || 25;
             const rto = parseFloat(document.getElementById(`row-rto-${prodId}`)?.value) || 0;
+            const rtoMode = document.getElementById(`row-rto-mode-${prodId}`)?.value || 'fixed';
+            const feeGstVal = document.getElementById(`row-fee-gst-${prodId}`) ? document.getElementById(`row-fee-gst-${prodId}`).checked : true;
             const price = parseFloat(document.getElementById(`row-price-${prodId}`)?.value) || 0;
             const pack = parseFloat(document.getElementById(`row-pack-${prodId}`)?.value) || 0;
             const ship = parseFloat(document.getElementById(`row-ship-${prodId}`)?.value) || 0;
@@ -3728,6 +3924,8 @@ function switchMarketplaceTab(tab) {
                         trade_discount_percent: lessVal,
                         margin_pct: marginPct,
                         rto_buffer: rto,
+                        rto_mode: rtoMode,
+                        fee_gst_included: feeGstVal,
                         price: price,
                         packaging: pack,
                         shipping: ship,
