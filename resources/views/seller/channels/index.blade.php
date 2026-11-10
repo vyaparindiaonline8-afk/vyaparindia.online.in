@@ -3056,7 +3056,19 @@ function switchMarketplaceTab(tab) {
             if (document.getElementById('ledger_pack')) document.getElementById('ledger_pack').textContent = `+₹${packing.toFixed(2)}`;
             if (document.getElementById('ledger_ship')) document.getElementById('ledger_ship').textContent = `+₹${shipWithGst.toFixed(2)} (मूल ₹${ship} + 18% GST)`;
             if (document.getElementById('ledger_rto')) document.getElementById('ledger_rto').textContent = `+₹${rto.toFixed(2)}`;
+            const platformLabel = (platform === 'meesho') ? 'Meesho' : ((platform === 'flipkart') ? 'Flipkart' : ((platform === 'direct') ? 'Direct Store' : 'Amazon'));
             if (document.getElementById('ledger_fee')) document.getElementById('ledger_fee').textContent = `+₹${totalFeeWithGst.toFixed(2)} (${feePct}% फ़ी + GST)`;
+            
+            // Detailed GST & ITC Population
+            if (document.getElementById('ledger_platform_name')) document.getElementById('ledger_platform_name').textContent = platformLabel;
+            if (document.getElementById('ledger_gst_rate_span')) document.getElementById('ledger_gst_rate_span').textContent = `${prodGstRate}%`;
+            if (document.getElementById('ledger_output_gst')) document.getElementById('ledger_output_gst').textContent = `+₹${outputGst.toFixed(2)}`;
+            if (document.getElementById('ledger_purchase_itc')) document.getElementById('ledger_purchase_itc').textContent = `-₹${purchaseGstItc.toFixed(2)}`;
+            if (document.getElementById('ledger_courier_itc')) document.getElementById('ledger_courier_itc').textContent = `-₹${courierGstItc.toFixed(2)}`;
+            if (document.getElementById('ledger_comm_itc')) {
+                document.getElementById('ledger_comm_itc').textContent = (commGstItc > 0) ? `-₹${commGstItc.toFixed(2)}` : '₹0.00 (0% फ़ी)';
+            }
+            if (document.getElementById('ledger_gst_net_badge')) document.getElementById('ledger_gst_net_badge').textContent = `शुद्ध देय: ₹${netCashGst.toFixed(2)}`;
             if (document.getElementById('ledger_gst')) document.getElementById('ledger_gst').textContent = `+₹${netCashGst.toFixed(2)} (शुद्ध नकद देय)`;
             if (document.getElementById('ledger_total')) document.getElementById('ledger_total').textContent = `₹${finalRate.toFixed(2)}`;
 
@@ -5249,9 +5261,45 @@ function switchMarketplaceTab(tab) {
                             <span>6. मार्केटप्लेस कमीशन फ़ी (12% + 18% GST):</span>
                             <span class="font-bold" id="ledger_fee">+₹0.00</span>
                         </div>
-                        <div class="flex items-center justify-between text-amber-300">
-                            <span>7. सरकारी आउटपुट GST (ITC कटौती बाद शुद्ध देय):</span>
-                            <span class="font-bold" id="ledger_gst">+₹0.00</span>
+                        <!-- 7. Detailed GST & ITC Breakdown Box (Output GST vs Input ITC Adjustments) -->
+                        <div class="mt-2 pt-2 border-t border-white/10 space-y-1.5 bg-white/5 p-3 rounded-2xl border border-white/10 text-[10px]">
+                            <div class="flex items-center justify-between text-amber-300 font-bold uppercase pb-1 border-b border-white/10">
+                                <span class="flex items-center gap-1.5">
+                                    <i class="fa-solid fa-scale-balanced text-amber-400"></i>
+                                    <span>7. सरकारी GST व इनपुट ITC बहीखाता (Adjustments)</span>
+                                </span>
+                                <span class="font-mono text-emerald-300 font-black" id="ledger_gst_net_badge">शुद्ध देय: ₹0.00</span>
+                            </div>
+                            
+                            <!-- Gross Output GST collected from buyer -->
+                            <div class="flex items-center justify-between text-slate-300 pl-2 border-l-2 border-amber-400">
+                                <span>📦 ग्राहक से वसूला गया कुल आउटपुट GST (<span id="ledger_gst_rate_span" class="text-amber-200 font-bold">18%</span>):</span>
+                                <span class="font-bold text-amber-300 font-mono" id="ledger_output_gst">+₹0.00</span>
+                            </div>
+
+                            <!-- Input Tax Credits (ITC) Deductions -->
+                            <div class="text-[9px] text-slate-400 font-sans font-bold pt-0.5">माइनस इनपुट टैक्स क्रेडिट (ITC - जो पहले ही चुका दिया और सरकार से वापस कटेगा):</div>
+                            
+                            <div class="flex items-center justify-between text-slate-300 pl-2 border-l-2 border-emerald-400">
+                                <span>🔹 माल खरीद पर इनपुट GST (Purchase ITC):</span>
+                                <span class="font-bold text-emerald-300 font-mono" id="ledger_purchase_itc">-₹0.00</span>
+                            </div>
+
+                            <div class="flex items-center justify-between text-slate-300 pl-2 border-l-2 border-emerald-400">
+                                <span>🔹 कूरियर डिलीवरी सेवा पर इनपुट GST (18% ITC):</span>
+                                <span class="font-bold text-emerald-300 font-mono" id="ledger_courier_itc">-₹0.00</span>
+                            </div>
+
+                            <div class="flex items-center justify-between text-slate-300 pl-2 border-l-2 border-emerald-400">
+                                <span>🔹 <span id="ledger_platform_name" class="font-black text-white">Amazon</span> कमीशन फ़ी पर इनपुट GST:</span>
+                                <span class="font-bold text-emerald-300 font-mono" id="ledger_comm_itc">-₹0.00</span>
+                            </div>
+
+                            <!-- Net Cash GST Payable to Govt -->
+                            <div class="flex items-center justify-between pt-1.5 border-t border-white/10 font-bold text-[11px] text-white">
+                                <span class="text-amber-300">🏛️ सरकार को शुद्ध नकद GST (देय):</span>
+                                <span class="font-mono text-amber-300 font-black text-xs" id="ledger_gst">+₹0.00</span>
+                            </div>
                         </div>
                         <div class="flex items-center justify-between text-slate-300 pt-1 border-t border-white/20 font-sans font-bold text-xs text-white">
                             <span>🎯 कुल फाइनल सेलिंग भाव (Gross Price):</span>
