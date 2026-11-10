@@ -3132,6 +3132,14 @@ function switchMarketplaceTab(tab) {
 
             const rowFee = parseFloat(document.getElementById(`row-fee-${prodId}`)?.value);
             if (document.getElementById('calcPlatformFeePercent')) document.getElementById('calcPlatformFeePercent').value = (!isNaN(rowFee) && rowFee >= 0) ? rowFee : 12;
+            
+            // Auto-align platform dropdown with current product row fee
+            const platSel = document.getElementById('calcModalPlatformSelect');
+            if (platSel) {
+                if (rowFee === 0) platSel.value = 'meesho';
+                else if (rowFee === 10) platSel.value = 'flipkart';
+                else platSel.value = 'amazon';
+            }
 
             const rowGst = document.getElementById(`row-gst-${prodId}`)?.value;
             if (rowGst && document.getElementById('calcProductGst')) {
