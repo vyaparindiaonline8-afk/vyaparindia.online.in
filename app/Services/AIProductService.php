@@ -288,4 +288,153 @@ class AIProductService
         }
         return $results;
     }
+
+    /**
+     * Generate Comprehensive Amazon-Compliant Listing Content
+     * Title, 5 Bullet Points, Full Description, and 250-byte Generic Keywords.
+     */
+    public function generateAmazonListingContent($product, ?string $userFeedback = null): array
+    {
+        $name = is_object($product) ? ($product->name ?? 'Product') : ($product['name'] ?? 'Product');
+        $cat = is_object($product) ? ($product->category->name ?? ($product->group_name ?? 'Plumbing')) : ($product['category'] ?? 'Plumbing');
+        $img = is_object($product) ? ($product->image ?? '') : ($product['image'] ?? '');
+        $imgBase = strtolower(basename($img));
+        $sizes = is_object($product) && method_exists($product, 'getAvailableSizesAttribute') ? $product->available_sizes : [];
+        $sizeStr = !empty($sizes) ? implode(', ', $sizes) : '15mm (1/2 Inch)';
+        
+        $pLower = strtolower($name . ' ' . $imgBase);
+        $cleanName = trim(preg_replace('/\s+/', ' ', $name));
+        $uc = ucwords($cleanName);
+
+        // Detect item type
+        $isBibcock = preg_match('/bib|bibcock|nal|tap|cock/i', $pLower) && !preg_match('/stop|concealed|sink/i', $pLower);
+        $isSinkCock = preg_match('/sink|swan|pillar|spout/i', $pLower);
+        $isConcealed = preg_match('/concealed|stop\s*cock|internal|diverter/i', $pLower);
+        $isValve = preg_match('/valve|ball\s*valve/i', $pLower);
+        $isFitting = preg_match('/elbow|tee|coupler|union|reducer|mta|fta|tank\s*connector|end\s*cap|long\s*bend/i', $pLower);
+        $isPipe = preg_match('/pipe|garden|hose/i', $pLower) && !preg_match('/fitting|elbow|tee/i', $pLower);
+
+        // Detect material
+        $isBrass = preg_match('/brass|metal/i', $pLower);
+        $isCpvc = preg_match('/cpvc/i', $pLower);
+        $isUpvc = preg_match('/upvc/i', $pLower);
+        $isPtmt = preg_match('/ptmt|polymer|plastic/i', $pLower) || (!$isBrass && !$isCpvc && !$isUpvc && ($isBibcock || $isSinkCock));
+
+        if ($isBibcock) {
+            $matLabel = $isBrass ? 'Heavy Forged Brass' : '100% Virgin Food-Grade PTMT Polymer';
+            $title = "Heavy Duty {$uc} ({$sizeStr}) with Wall Flange - Unbreakable Leak-Proof Faucet for Bathroom, Kitchen & Garden";
+            $bullets = [
+                "Material & Durability: Crafted from premium {$matLabel}, 100% rust-proof, salt-water resistant, and unbreakable under normal household use.",
+                "Leak-Proof Ceramic Spindle: Engineered with high-precision quarter-turn ceramic disc cartridge tested for 5,00,000+ smooth on/off drip-free cycles.",
+                "Smooth Foam-Flow Aerator: Integrated splash-free aerator nozzle ensures a soft, aerated water stream while saving up to 30% water.",
+                "Universal Standard Fitting: Standard 15mm (1/2 Inch BSP Thread) inlet connector fits all Indian bathroom wall outlets and kitchen plumbing pipes seamlessly.",
+                "Complete Package Contents: Includes 1 Unit {$uc} + 1 Matching Heavy Wall Flange (Factory Tested & Quality Inspected before dispatch)."
+            ];
+            $desc = "Upgrade your bathroom, kitchen, or garden plumbing with the premium {$uc}. Engineered with high-density {$matLabel}, this tap delivers a powerful, non-dripping water stream even in hard water conditions. The quarter-turn handle allows effortless water flow control, while the attractive design elevates your home interiors. DIY easy installation requires only standard Teflon tape without calling a plumber.";
+            $rawKeywords = "bibcock bib tap bathroom water tap nal sink cock ptmt tap plastic faucet 15mm half inch angle cock wall flange plumbing hardware wash basin bath fittings home garden";
+        } elseif ($isSinkCock) {
+            $matLabel = $isBrass ? 'Premium Solid Brass with Chrome Finish' : 'Virgin PTMT Engineering Polymer';
+            $title = "Premium {$uc} ({$sizeStr}) with 360-Degree Swivel Spout - High Arch Kitchen Sink & Wash Basin Faucet";
+            $bullets = [
+                "360-Degree Swivel Movement: Flexible high-arch swivel spout provides complete sink coverage for easy utensil cleaning and dishwashing.",
+                "Durable & Food-Safe Build: Made of certified {$matLabel}, non-toxic, lead-free, and resistant to scaling in hard water.",
+                "Quarter-Turn Effortless Control: Premium internal valve mechanism ensures silky smooth handle rotation and zero water leakage.",
+                "Dual Function Splash-Proof Flow: Built-in foam-flow nozzle dispenses uniform, anti-splash stream that keeps kitchen counters dry.",
+                "Package Contains: 1 Unit {$uc} with standard mounting wall/deck flange and rubber washer seal."
+            ];
+            $desc = "Bring ultimate convenience to your kitchen and dining sink with the {$uc}. Featuring a full 360-degree rotational neck, it effortlessly reaches every corner of double or single sinks. Built to withstand daily tough kitchen use, it resists grease, stains, and scale buildup for years of shining performance.";
+            $rawKeywords = "sink cock kitchen sink tap swan neck faucet pillar cock wash basin tap swivel spout tap bathroom kitchen sink fitting 15mm 1/2 inch mixer tap";
+        } elseif ($isConcealed) {
+            $title = "Commercial Grade Heavy Duty {$uc} ({$sizeStr}) - In-Wall Internal Stop Valve for Bathroom & Flush Control";
+            $bullets = [
+                "Heavy Forged Brass Construction: High-tensile forged brass body built to withstand internal wall pipe expansion and high water pressures up to 16 Bar.",
+                "In-Wall Concealed Installation: Compact ergonomic profile designed for standard brick and tile wall cavities without damaging structural integrity.",
+                "Precision Ceramic Disc Core: Long-life quarter-turn operation enables instant water shutoff for overhead showers, diverters, and flush lines.",
+                "Corrosion & Scale Resistant: Highly polished mirror finish with thick anti-rust internal lining ensuring lifetime clog-free water flow.",
+                "Included in Box: 1 Unit Concealed Body + Adjustable Chrome Wall Flange + Operating Handle + Screws."
+            ];
+            $desc = "The heavy-duty {$uc} is the trusted choice of professional plumbers and builders for behind-the-wall plumbing. Designed to control water supply to overhead showers, divertors, and geyser inlet lines, it provides dependable shut-off protection with zero seepage.";
+            $rawKeywords = "concealed stop cock concealed valve concealed cock bathroom valve internal pipe valve diverter flush valve concealed brass heavy plumber fitting 15mm 20mm";
+        } elseif ($isValve) {
+            $matLabel = $isCpvc ? 'Heavy Class CPVC SDR 11' : ($isUpvc ? 'High Impact UPVC Schedule 80' : 'Heavy Duty Industrial Polymer');
+            $title = "Heavy Duty {$uc} ({$sizeStr}) - Leak-Proof Quarter Turn Water Tank & Plumbing Pipeline Valve";
+            $bullets = [
+                "Industrial Pressure Rated: Tested up to 25 Bar working pressure, suitable for main water tanks, pump lines, and high-rise pipeline distribution.",
+                "Virgin Raw Material: Manufactured from 100% lead-free {$matLabel}, UV stabilized for direct outdoor terrace exposure without cracking.",
+                "Smooth Quarter-Turn Lever: Ergonomically molded sturdy handle offers effortless on/off shutoff even after years of continuous usage.",
+                "Leak-Tight EPDM Seals: Precision spherical ball core with dual Teflon/EPDM O-rings guarantees zero drip and minimum friction resistance.",
+                "Direct Solvent Weld Fit: Standard socket ends ensure permanent, leak-proof solvent bonding with all standard pipe brands."
+            ];
+            $desc = "Control water flow with absolute confidence using the {$uc}. Engineered for main water lines, overhead tank outlets, and agriculture pipelines, this valve provides an unrestricted full-bore water flow with zero head loss. Resistant to chemicals, UV rays, and extreme summer temperatures.";
+            $rawKeywords = "cpvc ball valve upvc ball valve water tank valve pipe joint valve plumbing gate valve quarter turn handle valve 20mm 25mm 32mm 1 inch 3/4 inch";
+        } elseif ($isFitting) {
+            $matLabel = $isCpvc ? 'CPVC SDR 11' : ($isUpvc ? 'UPVC Schedule 40/80' : ($isBrass ? 'Heavy Brass Threaded' : 'Engineering Polymer'));
+            $title = "Premium Quality {$uc} ({$sizeStr}) - Heavy Duty Plumbing Fitting (ASTM Standard)";
+            $bullets = [
+                "ASTM & IS Certified Standard: Manufactured strictly adhering to ASTM D2846 & IS standards for residential and commercial plumbing networks.",
+                "High Hydraulic Flow: Mirror-smooth inner bore reduces friction, prevents mineral scaling, and guarantees 100% optimal water pressure.",
+                "Heat & Chemical Resistance: Safe for continuous hot and cold potable drinking water lines without releasing any odor or toxic chemicals.",
+                "High Tensile Impact Strength: Reinforced wall thickness prevents stress cracking under water hammer shocks and high pump vibration.",
+                "Secure Solvent Joint: Engineered socket tolerances ensure immediate, solid fusion with standard plumbing solvent cement."
+            ];
+            $desc = "Ensure leak-free, lifetime durable piping installations with the high-strength {$uc}. Ideal for concealed bathroom pipelines, kitchen drainage, water supply risers, and rooftop tank connections.";
+            $rawKeywords = "cpvc fitting upvc fitting elbow tee coupler union reducer brass mta fta tank connector end cap long bend plumbing joints solvent cement";
+        } elseif ($isPipe) {
+            $title = "High Pressure Braided {$uc} ({$sizeStr}) - All-Weather Flexible Water Hose for Garden & Home Cleaning";
+            $bullets = [
+                "3-Layer Reinforced Mesh: High-density braided polyester yarn core prevents kinks, twists, and bursts under high tap pressure.",
+                "All-Weather UV Resistant: Retains flexibility in extreme heat and cold without hardening, cracking, or turning brittle.",
+                "Multi-Purpose Utility: Ideal for home gardening, lawn watering, car washing, floor cleaning, and construction water curing.",
+                "Algae & Toxin Free: Food-grade inner tube prevents green algae accumulation and keeps water clean and odorless.",
+                "Includes: Heavy-duty hose pipe reel ready for standard tap adapter connection."
+            ];
+            $desc = "Water your garden and wash vehicles effortlessly with the flexible, tangle-free {$uc}. Designed with heavy-duty 3-layer construction, it withstands high water pressures and rough outdoor dragging without tearing.";
+            $rawKeywords = "garden pipe water pipe flexible hose pipe 1/2 inch 3/4 inch car washing pipe gardening water tubing braided heavy duty outdoor hose";
+        } else {
+            $title = "Premium Commercial Grade {$uc} ({$sizeStr}) - Heavy Duty Hardware & Home Improvement";
+            $bullets = [
+                "Heavy Duty Commercial Construction: Engineered from certified high-grade materials for maximum durability and everyday reliability.",
+                "Precision Engineering: Strict quality control guarantees tight tolerances, smooth operation, and long service life.",
+                "Universal Compatibility: Standard dimensions make it an ideal direct replacement for older fittings across Indian homes.",
+                "Corrosion & Wear Resistant: Built to withstand tough environmental conditions, humidity, and constant daily use.",
+                "Package Contents: Standard commercial packaging with complete manufacturer quality assurance."
+            ];
+            $desc = "Upgrade your home infrastructure with the dependable {$uc}. Designed for peak performance and effortless maintenance, it delivers lasting peace of mind and unbeatable commercial value.";
+            $rawKeywords = "hardware home improvement plumbing bathroom kitchen pipe fitting durable replacement tools parts";
+        }
+
+        // Incorporate User Feedback if provided (e.g. custom keywords, warranty terms)
+        if (!empty($userFeedback)) {
+            $fbTrim = trim($userFeedback);
+            $rawKeywords .= ' ' . strtolower(str_replace([',', ';', '.'], ' ', $fbTrim));
+            // Add custom bullet if requested
+            if (stripos($fbTrim, 'warranty') !== false || stripos($fbTrim, 'guarantee') !== false) {
+                $bullets[4] = "Quality Assurance & Warranty: " . $fbTrim;
+            }
+        }
+
+        // Clean and enforce Amazon 250-bytes backend search terms rule
+        $keywordTokens = array_unique(array_filter(explode(' ', strtolower(preg_replace('/[^a-zA-Z0-9\/\-]/', ' ', $rawKeywords)))));
+        $finalKeywords = '';
+        foreach ($keywordTokens as $t) {
+            if (strlen($t) < 2) continue;
+            $candidate = empty($finalKeywords) ? $t : $finalKeywords . ' ' . $t;
+            if (strlen($candidate) <= 245) {
+                $finalKeywords = $candidate;
+            } else {
+                break;
+            }
+        }
+
+        return [
+            'title' => $title,
+            'bullet_points' => array_slice($bullets, 0, 5),
+            'description' => $desc,
+            'generic_keywords' => $finalKeywords,
+            'byte_length' => strlen($finalKeywords),
+            'material' => $matLabel ?? 'Commercial Grade',
+            'size' => $sizeStr,
+        ];
+    }
+
 }

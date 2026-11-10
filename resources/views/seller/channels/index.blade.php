@@ -807,6 +807,10 @@
                                     <span>📦 कॉम्बो स्लैब व RTO बजट टूल्स:</span>
                                 </div>
                                 <div class="flex items-center gap-2 flex-wrap">
+                                    <button type="button" onclick="openBulkListingAiModal()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer" title="AI से सभी 19 प्रोडक्ट्स के अमेज़न टाइटल्स, 5 बुलेट पॉइंट्स, विवरण और 250 बाइट्स जेनेरिक कीवर्ड्स एक साथ तैयार करें">
+                                        <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                                        <span>🤖 AI से सभी लिस्टिंग्स तैयार करें (Bulk Amazon Copy)</span>
+                                    </button>
                                     <button type="button" onclick="toggleRtoBudgetSimulator()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 via-orange-600 to-amber-600 hover:from-rose-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer" title="वास्तविक RTO चपत (Forward ₹65 + Return ₹65 + Pack ₹15 = ₹145) व ब्रेक-ईवन सिम्युलेटर खोलें">
                                         <i class="fa-solid fa-shield-halved text-rose-200"></i>
                                         <span>🛡️ RTO चपत व रिस्क सिम्युलेटर (Break-Even Engine)</span>
@@ -1340,6 +1344,10 @@
                                     <button type="button" onclick="openComboCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="flex-1 py-1.5 px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-[10px] font-black transition flex items-center justify-center gap-1 shadow-2xs cursor-pointer" title="2P, 4P, 6P कॉम्बो विवरण खोलें">
                                         <i class="fa-solid fa-layer-group"></i>
                                         <span>2/4/6P</span>
+                                    </button>
+                                    <button type="button" onclick="openListingContentModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="py-1.5 px-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-[10px] font-black transition flex items-center justify-center gap-1 shadow-2xs cursor-pointer" title="📝 अमेज़न लिस्टिंग कंटेंट (टाइटल, 5 बुलेट पॉइंट्स, विवरण व 250 बाइट्स कीवर्ड्स)">
+                                        <i class="fa-solid fa-file-lines text-amber-600 text-xs"></i>
+                                        <span>लिस्टिंग</span>
                                     </button>
                                     <button type="button" onclick="saveTableRowCosting({{ $p->id }}, this)" class="py-1.5 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95" title="इस कार्ड के रेट्स सेव करें">
                                         <i class="fa-solid fa-floppy-disk text-xs"></i>
@@ -5815,3 +5823,545 @@ document.addEventListener('change', function(e) {
             </div>
         </div>
     </div>
+
+
+    <!-- ==================== 📝 1. SINGLE PRODUCT AMAZON LISTING CONTENT MODAL ==================== -->
+    <div id="listingContentModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-4 overflow-y-auto" onclick="closeListingContentModal()">
+        <div class="bg-white rounded-3xl max-w-3xl w-full p-5 sm:p-6 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in duration-200 my-auto max-h-[92vh] flex flex-col" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center text-xl font-bold shrink-0">
+                        <i class="fa-brands fa-amazon"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-black text-sm sm:text-base text-gray-900">अमेज़न लिस्टिंग कंटेंट मैनेजर (SEO & Keywords)</h3>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800" id="listingModalCategoryBadge">Plumbing</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-0.5" id="listingModalHeaderSub">टाइटल, 5 बुलेट पॉइंट्स, विस्तृत विवरण और 250 बाइट्स जेनेरिक सर्च कीवर्ड्स</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeListingContentModal()" class="text-gray-400 hover:text-gray-600 p-1 cursor-pointer">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Product Quick Overview Strip -->
+            <div class="flex items-center justify-between bg-amber-50/70 p-2.5 rounded-2xl border border-amber-200 text-xs shrink-0 flex-wrap gap-2">
+                <div class="flex items-center gap-2.5">
+                    <img id="listingModalThumb" src="" class="w-10 h-10 object-contain rounded-lg border border-amber-200 bg-white p-0.5 hidden">
+                    <div>
+                        <span class="text-[10px] text-amber-800 font-bold block">मूल नाम:</span>
+                        <strong class="text-gray-900 text-xs" id="listingModalOriginalName">Product Name</strong>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 rounded-xl bg-white border border-amber-300 text-[10px] font-bold text-gray-700" id="listingModalSizesBadge">15mm (1/2")</span>
+                </div>
+            </div>
+
+            <!-- Scrollable Content Fields -->
+            <div class="overflow-y-auto flex-1 pr-1 space-y-3.5 text-xs">
+                <!-- 1. Amazon SEO Title -->
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="font-black text-gray-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-heading text-amber-600"></i>
+                            <span>1. अमेज़न हाई-कन्वर्टिंग SEO टाइटल (Product Title):</span>
+                        </label>
+                        <span class="text-[10px] text-gray-400 font-mono" id="listingTitleLength">0 chars</span>
+                    </div>
+                    <input type="text" id="listingModalTitle" oninput="document.getElementById('listingTitleLength').textContent = this.value.length + ' chars'" placeholder="उदा. Heavy Duty PTMT Bib Cock Water Tap (15mm / 1/2 Inch) with Wall Flange..." class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl font-bold text-gray-900 focus:bg-white focus:border-amber-500 focus:outline-none text-xs">
+                </div>
+
+                <!-- 2. The 5 Amazon Bullet Points -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="font-black text-gray-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-list-check text-indigo-600"></i>
+                            <span>2. मुख्य 5 बुलेट पॉइंट्स (About this item):</span>
+                        </label>
+                        <span class="text-[10px] text-indigo-600 font-semibold">अमेज़न सेलर सेंट्रल मानक</span>
+                    </div>
+
+                    <!-- Bullet 1: Material & Build -->
+                    <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-200 space-y-1">
+                        <span class="text-[10px] font-black text-indigo-950 block">• बुलेट 1 (मटीरियल व मजबूती / Material & Grade):</span>
+                        <input type="text" id="listingModalBullet1" placeholder="उदा. 100% Virgin Food-Grade PTMT Polymer (Unbreakable & Corrosion-Free)" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-800 focus:border-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Bullet 2: Leakproof / Mechanism -->
+                    <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-200 space-y-1">
+                        <span class="text-[10px] font-black text-indigo-950 block">• बुलेट 2 (लीक-प्रूफ व स्पिंडल टेस्टिंग / Leakproof Testing):</span>
+                        <input type="text" id="listingModalBullet2" placeholder="उदा. Heavy-duty ceramic disc quarter-turn spindle tested for 5,00,000+ on/off cycles" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-800 focus:border-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Bullet 3: Flow & Technology -->
+                    <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-200 space-y-1">
+                        <span class="text-[10px] font-black text-indigo-950 block">• बुलेट 3 (वाटर फ्लो व एरेटर / Flow & Aerator):</span>
+                        <input type="text" id="listingModalBullet3" placeholder="उदा. German-engineered foam flow aerator saves water while ensuring smooth splash-free stream" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-800 focus:border-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Bullet 4: Fitting Size & Specs -->
+                    <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-200 space-y-1">
+                        <span class="text-[10px] font-black text-indigo-950 block">• बुलेट 4 (साइज व थ्रेड फिटिंग / Standard Fitting Size):</span>
+                        <input type="text" id="listingModalBullet4" placeholder="उदा. Standard 15mm (1/2 Inch BSP Thread) suitable for all Indian bathroom connections" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-800 focus:border-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Bullet 5: Package Contents & Warranty -->
+                    <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-200 space-y-1">
+                        <span class="text-[10px] font-black text-indigo-950 block">• बुलेट 5 (पैकेज सामग्री व वारंटी / Box Contents & Warranty):</span>
+                        <input type="text" id="listingModalBullet5" placeholder="उदा. 1 Unit Tap + 1 Heavy Matching Wall Flange (Quality Inspected & Leak Tested)" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-800 focus:border-indigo-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- 3. Product Description -->
+                <div>
+                    <label class="font-black text-gray-900 block mb-1">3. विस्तृत उत्पाद विवरण (Product Description):</label>
+                    <textarea id="listingModalDesc" rows="3" placeholder="उत्पाद का उपयोग, फिटिंग का तरीका, और क्वालिटी गारंटी विवरण..." class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-medium text-gray-800 focus:bg-white focus:border-amber-500 focus:outline-none leading-relaxed"></textarea>
+                </div>
+
+                <!-- 4. Generic Backend Search Keywords (250 bytes limit) -->
+                <div class="p-3 bg-purple-50/70 rounded-2xl border border-purple-200 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="font-black text-purple-950 flex items-center gap-1.5">
+                            <i class="fa-solid fa-tags text-purple-600"></i>
+                            <span>4. जेनेरिक वर्ड्स / सर्च कीवर्ड्स (Generic Search Terms):</span>
+                        </label>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white border border-purple-300" id="listingKeywordsByteBadge">
+                            0 / 249 Bytes
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-purple-800 leading-tight">
+                        *अमेज़न पर कॉमा (,) नहीं लगाना होता, केवल स्पेस देकर शब्द लिखें। ग्राहक जिस नाम से खोजते हैं (उदा. <code class="bg-white px-1 rounded">nal, bib tap, 15mm tap</code>) वही शब्द डालें।
+                    </p>
+                    <textarea id="listingModalKeywords" oninput="updateListingKeywordByteCount()" rows="2" placeholder="bibcock bib tap bathroom water tap nal sink cock ptmt tap 15mm half inch angle cock wall flange plumbing hardware wash basin" class="w-full px-3 py-2 bg-white border border-purple-300 rounded-xl text-xs font-mono font-bold text-purple-950 focus:border-purple-600 focus:outline-none"></textarea>
+                </div>
+
+                <!-- 5. User Feedback / AI Guidance Input -->
+                <div class="p-3 bg-indigo-50/80 rounded-2xl border border-indigo-200 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <label class="font-black text-indigo-950 flex items-center gap-1 text-[11px]">
+                            <i class="fa-solid fa-wand-magic-sparkles text-indigo-600"></i>
+                            <span>AI को निर्देश / अतिरिक्त कीवर्ड्स दें (User Feedback):</span>
+                        </label>
+                        <span class="text-[10px] text-indigo-600">वैकल्पिक</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="listingModalFeedback" placeholder="उदा. 'nal और pani ka tap कीवर्ड्स जोड़ो', '3 साल की वारंटी जोड़ो'" class="flex-1 px-3 py-1.5 bg-white border border-indigo-300 rounded-xl text-xs text-indigo-950 focus:outline-none">
+                        <button type="button" id="btnAiRegenSingle" onclick="aiGenerateSingleListing()" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 shrink-0">
+                            <i class="fa-solid fa-bolt-lightning text-amber-300"></i>
+                            <span>✨ AI से लिखें</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="pt-3 border-t border-gray-100 flex items-center justify-between shrink-0 flex-wrap gap-2">
+                <button type="button" onclick="closeListingContentModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition cursor-pointer">
+                    रद्द करें
+                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="btnSaveListingSingle" onclick="saveSingleListingContent()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+                        <i class="fa-solid fa-floppy-disk text-amber-200"></i>
+                        <span>💾 सुरक्षित सेव करें (Save Listing)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== 🤖 2. BULK AI LISTING GENERATOR & REVIEW DRAWER ==================== -->
+    <div id="bulkListingAiModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-4 overflow-y-auto" onclick="closeBulkListingAiModal()">
+        <div class="bg-white rounded-3xl max-w-5xl w-full p-5 sm:p-6 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in duration-200 my-auto max-h-[94vh] flex flex-col" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center text-xl font-bold shadow-md shrink-0">
+                        <i class="fa-solid fa-brain"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-black text-base text-gray-900">🤖 AI अमेज़न लिस्टिंग कॉपीराइटर (Bulk Amazon Copy Engine)</h3>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-900" id="bulkListingTotalBadge">19 Products</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-0.5">
+                            AI आपकी लिस्ट के नाम, फोटो, साइज और मटीरियल को पढ़कर सभी प्रोडक्ट्स के लिए <strong>टाइटल, 5 बुलेट पॉइंट्स, विवरण और 250 बाइट्स जेनेरिक कीवर्ड्स</strong> तैयार करता है।
+                        </p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeBulkListingAiModal()" class="text-gray-400 hover:text-gray-600 p-1 cursor-pointer">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Interactive User Feedback Prompt Bar -->
+            <div class="p-3.5 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 rounded-2xl border border-purple-200 shrink-0 space-y-2">
+                <div class="flex items-center justify-between text-xs">
+                    <span class="font-black text-purple-950 flex items-center gap-1.5">
+                        <i class="fa-solid fa-comments text-purple-600"></i>
+                        <span>AI को निर्देश / कस्टम फीडबैक (Prompt the AI):</span>
+                    </span>
+                    <span class="text-[10px] text-purple-700">सभी 19 प्रोडक्ट्स में एक साथ लागू होगा</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="bulkListingUserPrompt" placeholder="उदा. 'सभी में 3 साल की लीकेज वारंटी जोड़ो', 'nal, kitchen sink, bathroom fittings कीवर्ड्स जोड़ो'" class="flex-1 px-3 py-2 bg-white border border-purple-300 rounded-xl text-xs font-semibold text-purple-950 focus:border-purple-600 focus:outline-none shadow-2xs">
+                    <button type="button" id="btnRunBulkAiGen" onclick="runBulkAiListingGeneration()" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs transition flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95 shrink-0">
+                        <i class="fa-solid fa-bolt-lightning text-amber-300"></i>
+                        <span>⚡ AI जनरेट करें</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading Spinner State -->
+            <div id="bulkListingLoadingState" class="hidden py-16 text-center space-y-3">
+                <div class="inline-block animate-spin text-purple-600 text-3xl">
+                    <i class="fa-solid fa-circle-notch"></i>
+                </div>
+                <h4 class="font-black text-sm text-gray-900">AI सभी प्रोडक्ट्स के नाम, साइज और फोटो का विश्लेषण कर रहा है...</h4>
+                <p class="text-xs text-gray-500 max-w-md mx-auto">
+                    अमेज़न A9 एल्गोरिदम के अनुसार 5 बुलेट पॉइंट्स, 250 बाइट्स बैकएंड कीवर्ड्स और आकर्षक टाइटल्स लिखे जा रहे हैं।
+                </p>
+            </div>
+
+            <!-- Results Accordion/Cards Container -->
+            <div id="bulkListingResultsContainer" class="overflow-y-auto flex-1 pr-1 space-y-3 text-xs">
+                <!-- Dynamically populated via JS -->
+            </div>
+
+            <!-- Bottom Actions Bar -->
+            <div id="bulkListingFooterBar" class="pt-3 border-t border-gray-100 flex items-center justify-between shrink-0 flex-wrap gap-2 bg-gray-50/80 -mx-6 -mb-6 p-4 px-6 rounded-b-3xl">
+                <div class="text-xs text-gray-600">
+                    <span class="font-bold text-gray-900" id="bulkListingReadyCount">0</span> प्रोडक्ट्स तैयार हैं। रेट्स और इन्वेंट्री 100% सुरक्षित रहेंगी।
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeBulkListingAiModal()" class="px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-xs transition cursor-pointer">
+                        रद्द करें
+                    </button>
+                    <button type="button" id="btnApplyAllBulkListings" onclick="applyBulkListingContentToDatabase()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95">
+                        <i class="fa-solid fa-cloud-arrow-up text-amber-300"></i>
+                        <span>🚀 सभी 19 लिस्टिंग्स 1-क्लिक में लागू करें (Apply to All)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 🛠️ JAVASCRIPT LOGIC FOR LISTING CONTENT ==================== -->
+    <script>
+        let activeListingProductId = null;
+        let bulkGeneratedListingsData = [];
+
+        // Open Single Product Listing Modal
+        async function openListingContentModal(prodId, prodName) {
+            activeListingProductId = prodId;
+            document.getElementById('listingModalOriginalName').textContent = prodName || `Product #${prodId}`;
+            document.getElementById('listingContentModal').classList.remove('hidden');
+            document.getElementById('listingContentModal').classList.add('flex');
+
+            try {
+                const res = await fetch(`/seller/channels/listing-content/${prodId}`);
+                const json = await res.json();
+                if (json.success && json.data) {
+                    const d = json.data;
+                    document.getElementById('listingModalTitle').value = d.title || prodName;
+                    document.getElementById('listingTitleLength').textContent = (d.title || prodName).length + ' chars';
+                    document.getElementById('listingModalDesc').value = d.description || '';
+                    document.getElementById('listingModalCategoryBadge').textContent = d.category || 'Plumbing';
+
+                    const bullets = d.bullet_points || [];
+                    for (let i = 1; i <= 5; i++) {
+                        const el = document.getElementById(`listingModalBullet${i}`);
+                        if (el) el.value = bullets[i - 1] || '';
+                    }
+
+                    document.getElementById('listingModalKeywords').value = d.generic_keywords || '';
+                    updateListingKeywordByteCount();
+
+                    const thumb = document.getElementById('listingModalThumb');
+                    if (d.image) {
+                        thumb.src = d.image;
+                        thumb.classList.remove('hidden');
+                    } else {
+                        thumb.classList.add('hidden');
+                    }
+
+                    const sizes = d.sizes || [];
+                    document.getElementById('listingModalSizesBadge').textContent = sizes.length ? sizes.join(', ') : '15mm (1/2")';
+                }
+            } catch (err) {
+                console.error('Failed to load listing content:', err);
+            }
+        }
+
+        function closeListingContentModal() {
+            document.getElementById('listingContentModal').classList.add('hidden');
+            document.getElementById('listingContentModal').classList.remove('flex');
+            activeListingProductId = null;
+        }
+
+        function updateListingKeywordByteCount() {
+            const kw = document.getElementById('listingModalKeywords')?.value || '';
+            const bytes = new TextEncoder().encode(kw).length;
+            const badge = document.getElementById('listingKeywordsByteBadge');
+            if (badge) {
+                badge.textContent = `${bytes} / 249 Bytes`;
+                if (bytes > 249) {
+                    badge.className = "px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-100 text-rose-800 border border-rose-300 animate-pulse";
+                } else {
+                    badge.className = "px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white text-purple-950 border border-purple-300";
+                }
+            }
+        }
+
+        // AI Generate for Single Product
+        async function aiGenerateSingleListing() {
+            if (!activeListingProductId) return;
+            const btn = document.getElementById('btnAiRegenSingle');
+            const origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> जनरेट हो रहा है...`;
+
+            const feedback = document.getElementById('listingModalFeedback')?.value || '';
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            try {
+                const res = await fetch(`/seller/channels/listing-content/${activeListingProductId}/ai-generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token
+                    },
+                    body: JSON.stringify({ user_feedback: feedback })
+                });
+                const json = await res.json();
+                if (json.success && json.data) {
+                    const d = json.data;
+                    document.getElementById('listingModalTitle').value = d.title;
+                    document.getElementById('listingTitleLength').textContent = d.title.length + ' chars';
+                    document.getElementById('listingModalDesc').value = d.description;
+
+                    const bullets = d.bullet_points || [];
+                    for (let i = 1; i <= 5; i++) {
+                        const el = document.getElementById(`listingModalBullet${i}`);
+                        if (el) el.value = bullets[i - 1] || '';
+                    }
+
+                    document.getElementById('listingModalKeywords').value = d.generic_keywords || '';
+                    updateListingKeywordByteCount();
+
+                    showChannelToast('✨ AI ने अमेज़न मानक के अनुसार 5 बुलेट पॉइंट्स व कीवर्ड्स तैयार कर दिए!');
+                }
+            } catch (err) {
+                alert('AI जनरेट करने में त्रुटि हुई। कृपया दोबारा प्रयास करें।');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+        }
+
+        // Save Single Product Listing Content
+        async function saveSingleListingContent() {
+            if (!activeListingProductId) return;
+            const btn = document.getElementById('btnSaveListingSingle');
+            const origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> सेव हो रहा है...`;
+
+            const title = document.getElementById('listingModalTitle')?.value.trim();
+            const desc = document.getElementById('listingModalDesc')?.value.trim();
+            const keywords = document.getElementById('listingModalKeywords')?.value.trim();
+            const bullets = [];
+            for (let i = 1; i <= 5; i++) {
+                const bVal = document.getElementById(`listingModalBullet${i}`)?.value.trim();
+                if (bVal) bullets.push(bVal);
+            }
+
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            try {
+                const res = await fetch(`/seller/channels/listing-content/${activeListingProductId}/save`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        description: desc,
+                        bullet_points: bullets,
+                        generic_keywords: keywords
+                    })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    const rowNameEl = document.getElementById(`row-name-${activeListingProductId}`);
+                    if (rowNameEl && title) rowNameEl.textContent = title;
+                    showChannelToast(json.message || 'कंटेंट सुरक्षित सेव हो गया!');
+                    closeListingContentModal();
+                } else {
+                    alert(json.message || 'सेव करने में समस्या हुई।');
+                }
+            } catch (err) {
+                alert('नेटवर्क त्रुटि। कृपया दोबारा प्रयास करें।');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+        }
+
+        // Open Bulk AI Listing Modal
+        function openBulkListingAiModal() {
+            document.getElementById('bulkListingAiModal').classList.remove('hidden');
+            document.getElementById('bulkListingAiModal').classList.add('flex');
+            if (!bulkGeneratedListingsData.length) {
+                runBulkAiListingGeneration();
+            }
+        }
+
+        function closeBulkListingAiModal() {
+            document.getElementById('bulkListingAiModal').classList.add('hidden');
+            document.getElementById('bulkListingAiModal').classList.remove('flex');
+        }
+
+        // Run Bulk AI Generation
+        async function runBulkAiListingGeneration() {
+            const loadingBox = document.getElementById('bulkListingLoadingState');
+            const resultsBox = document.getElementById('bulkListingResultsContainer');
+            const btn = document.getElementById('btnRunBulkAiGen');
+
+            loadingBox.classList.remove('hidden');
+            resultsBox.classList.add('hidden');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> तैयार हो रहा है...`;
+
+            const feedback = document.getElementById('bulkListingUserPrompt')?.value || '';
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            try {
+                const res = await fetch('/seller/channels/listing-content/bulk-generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token
+                    },
+                    body: JSON.stringify({ user_feedback: feedback })
+                });
+                const json = await res.json();
+                if (json.success && Array.isArray(json.items)) {
+                    bulkGeneratedListingsData = json.items;
+                    renderBulkListingCards(json.items);
+                } else {
+                    alert(json.message || 'त्रुटि हुई।');
+                }
+            } catch (err) {
+                alert('नेटवर्क समस्या। कृपया पुनः प्रयास करें।');
+            } finally {
+                loadingBox.classList.add('hidden');
+                resultsBox.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerHTML = `<span>⚡ AI री-जेनरेट करें</span>`;
+            }
+        }
+
+        // Render Bulk Listing Cards
+        function renderBulkListingCards(items) {
+            const container = document.getElementById('bulkListingResultsContainer');
+            container.innerHTML = '';
+            document.getElementById('bulkListingTotalBadge').textContent = `${items.length} Products Ready`;
+            document.getElementById('bulkListingReadyCount').textContent = items.length;
+
+            items.forEach((item, idx) => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-2xl border border-gray-200 hover:border-purple-300 transition space-y-3 shadow-2xs";
+
+                const bulletsHtml = (item.bullet_points || []).map((b, i) => `
+                    <div class="flex items-start gap-1.5 text-[11px] text-gray-700">
+                        <span class="font-bold text-indigo-700 shrink-0">•</span>
+                        <span class="leading-tight">${b}</span>
+                    </div>
+                `).join('');
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-3 pb-2 border-b border-gray-100">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-lg bg-purple-100 text-purple-900 flex items-center justify-center font-bold text-xs shrink-0">${idx + 1}</span>
+                            <div>
+                                <span class="text-[10px] text-gray-400 block">मूल नाम: ${item.original_name}</span>
+                                <h4 class="font-black text-xs text-gray-900 leading-snug">${item.title}</h4>
+                            </div>
+                        </div>
+                        <div class="shrink-0 flex items-center gap-1.5">
+                            <span class="px-2 py-0.5 rounded-lg bg-gray-100 text-gray-700 text-[10px] font-mono font-bold">HSN: ${item.hsn}</span>
+                            <span class="px-2 py-0.5 rounded-lg bg-purple-50 text-purple-800 text-[10px] font-bold border border-purple-200">${item.material}</span>
+                        </div>
+                    </div>
+
+                    <!-- 5 Bullets -->
+                    <div class="bg-gray-50/70 p-3 rounded-xl border border-gray-200 space-y-1">
+                        <span class="text-[10px] font-black text-gray-500 uppercase tracking-wider block">5 मुख्य बुलेट पॉइंट्स (About this item):</span>
+                        ${bulletsHtml}
+                    </div>
+
+                    <!-- Generic Keywords Strip -->
+                    <div class="flex items-center justify-between bg-purple-50/70 p-2 rounded-xl border border-purple-200 text-[10px] flex-wrap gap-1">
+                        <div class="flex items-center gap-1 text-purple-900 font-bold">
+                            <i class="fa-solid fa-tags text-purple-600"></i>
+                            <span>सर्च कीवर्ड्स:</span>
+                            <span class="font-mono text-purple-950 font-normal truncate max-w-xl">${item.generic_keywords}</span>
+                        </div>
+                        <span class="font-mono text-[9px] font-bold text-purple-700 bg-white px-2 py-0.5 rounded-md border border-purple-200">${item.byte_length} Bytes</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Apply All Bulk Listings to Database
+        async function applyBulkListingContentToDatabase() {
+            if (!bulkGeneratedListingsData.length) {
+                alert('कोई लिस्टिंग डेटा उपलब्ध नहीं है।');
+                return;
+            }
+
+            const btn = document.getElementById('btnApplyAllBulkListings');
+            const origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> सभी 19 प्रोडक्ट्स में लागू हो रहा है...`;
+
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            try {
+                const res = await fetch('/seller/channels/listing-content/bulk-apply', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token
+                    },
+                    body: JSON.stringify({ items: bulkGeneratedListingsData })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    showChannelToast(json.message);
+                    closeBulkListingAiModal();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1200);
+                } else {
+                    alert(json.message || 'लागू करने में समस्या हुई।');
+                }
+            } catch (err) {
+                alert('नेटवर्क समस्या। कृपया पुनः प्रयास करें।');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+        }
+    </script>

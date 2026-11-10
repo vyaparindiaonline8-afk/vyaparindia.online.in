@@ -132,6 +132,11 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/shipping-rates/save', [ChannelController::class, 'saveShippingRates'])->name('saveShippingRates');
         Route::get('/pnl-budget', [ChannelController::class, 'pnlBudgetReport'])->name('pnl_budget');
         Route::post('/pnl-budget/save-settings', [ChannelController::class, 'savePnlBudgetSettings'])->name('save_pnl_budget_settings');
+        Route::get('/listing-content/{productId}', [ChannelController::class, 'getListingContent'])->name('get_listing_content');
+        Route::post('/listing-content/{productId}/save', [ChannelController::class, 'saveListingContent'])->name('save_listing_content');
+        Route::post('/listing-content/{productId}/ai-generate', [ChannelController::class, 'aiGenerateListingContent'])->name('ai_generate_listing_content');
+        Route::post('/listing-content/bulk-generate', [ChannelController::class, 'bulkAiGenerateListingContent'])->name('bulk_ai_generate_listing_content');
+        Route::post('/listing-content/bulk-apply', [ChannelController::class, 'bulkApplyListingContent'])->name('bulk_apply_listing_content');
     });
 
     // 🚚 Smart Shipping & Anti-RTO Routes

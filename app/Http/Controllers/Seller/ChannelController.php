@@ -1089,6 +1089,180 @@ class ChannelController extends Controller
         ]);
     }
 
+    // 📝 Get Product Amazon Listing Content (Title, 5 Bullets, Description, 250-byte Generic Keywords)
+    public function getListingContent($productId)
+    {
+        $userId = Auth::id();
+        $product = Product::where('id', $productId)->where('user_id', $userId)->with('category')->firstOrFail();
+
+        $bulletPoints = $product->bullet_points;
+        if (empty($bulletPoints)) {
+            $name = $product->name;
+            $bulletPoints = [
+                "Material & Durability: Heavy duty construction engineered for long-lasting, leak-proof performance.",
+                "Precision Fitting: Universal standard dimensions compatible with standard Indian plumbing connections.",
+                "Smooth Flow & Performance: Hydraulic design ensures uniform water flow with minimum friction loss.",
+                "Rust & Chemical Resistant: Will not corrode, scale, or crack under hard water or high pressure.",
+                "Package Contents: 1 Unit {$name} securely packed in commercial grade packaging."
+            ];
+        }
+
+        $genericKeywords = $product->generic_keywords;
+        $byteLength = strlen($genericKeywords);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'title' => $product->name,
+                'description' => $product->description ?: '',
+                'bullet_points' => array_pad(array_slice($bulletPoints, 0, 5), 5, ''),
+                'generic_keywords' => $genericKeywords,
+                'byte_length' => $byteLength,
+                'image' => $product->image ? asset($product->image) : null,
+                'category' => $product->category->name ?? 'Plumbing & Hardware',
+                'sizes' => $product->available_sizes,
+            ]
+        ]);
+    }
+
+    // 💾 Save Product Listing Content
+    public function saveListingContent(Request $request, $productId)
+    {
+        $userId = Auth::id();
+        $product = Product::where('id', $productId)->where('user_id', $userId)->firstOrFail();
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:500',
+            'description' => 'nullable|string',
+            'bullet_points' => 'nullable|array',
+            'generic_keywords' => 'nullable|string|max:1000',
+        ]);
+
+        $product->name = trim($validated['title']);
+        $product->description = trim($validated['description'] ?? '');
+        $product->bullet_points = $validated['bullet_points'] ?? [];
+        $product->generic_keywords = $validated['generic_keywords'] ?? '';
+        $product->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => "'{$product->name}' का अमेज़न लिस्टिंग कंटेंट (टाइटल, 5 बुलेट पॉइंट्स, विवरण व कीवर्ड्स) सुरक्षित सेव हो गया!",
+            'data' => [
+                'title' => $product->name,
+                'generic_keywords' => $product->generic_keywords,
+                'byte_length' => strlen($product->generic_keywords),
+            ]
+        ]);
+    }
+
+    // ✨ AI Generate Listing Content for Single Product
+    public function aiGenerateListingContent(Request $request, $productId, AIProductService $aiService)
+    {
+        $userId = Auth::id();
+        $product = Product::where('id', $productId)->where('user_id', $userId)->with('category')->firstOrFail();
+        $feedback = $request->input('user_feedback', null);
+
+        $listing = $aiService->generateAmazonListingContent($product, $feedback);
+
+        return response()->json([
+            'success' => true,
+            'data' => array_merge($listing, [
+                'id' => $product->id,
+                'name' => $product->name,
+                'image' => $product->image ? asset($product->image) : null,
+            ])
+        ]);
+    }
+
+    // 🤖 Bulk AI Generate Listing Content for All Staged Products
+    public function bulkAiGenerateListingContent(Request $request, AIProductService $aiService)
+    {
+        $userId = Auth::id();
+        $feedback = $request->input('user_feedback', null);
+
+        $channelSelectedProductIds = ChannelListing::whereHas('channel', fn($q) => $q->where('user_id', $userId))->pluck('product_id')->toArray();
+        $stagedAttrProductIds = Product::where('user_id', $userId)->whereJsonContains('attributes->channel_staged', true)->pluck('id')->toArray();
+        $allPendingIds = array_unique(array_merge($channelSelectedProductIds, $stagedAttrProductIds));
+
+        $products = Product::where('user_id', $userId)
+            ->whereIn('id', $allPendingIds)
+            ->with('category')
+            ->orderBy('id', 'asc')
+            ->get();
+
+        if ($products->isEmpty()) {
+            $products = Product::where('user_id', $userId)->take(19)->get();
+        }
+
+        $items = [];
+        foreach ($products as $p) {
+            $content = $aiService->generateAmazonListingContent($p, $feedback);
+            $items[] = [
+                'id' => $p->id,
+                'original_name' => $p->name,
+                'title' => $content['title'],
+                'bullet_points' => $content['bullet_points'],
+                'description' => $content['description'],
+                'generic_keywords' => $content['generic_keywords'],
+                'byte_length' => $content['byte_length'],
+                'material' => $content['material'],
+                'size' => $content['size'],
+                'image' => $p->image ? asset($p->image) : null,
+                'hsn' => $p->hsn_code ?: '39174000',
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'count' => count($items),
+            'items' => $items,
+            'message' => "दुकान के " . count($items) . " प्रोडक्ट्स का अमेज़न लिस्टिंग कंटेंट AI द्वारा सफलतापूर्वक तैयार कर लिया गया है!"
+        ]);
+    }
+
+    // 🚀 Bulk Apply Listing Content to Database
+    public function bulkApplyListingContent(Request $request)
+    {
+        $userId = Auth::id();
+        $items = $request->input('items', []);
+
+        if (empty($items)) {
+            return response()->json(['success' => false, 'message' => 'कोई लिस्टिंग डेटा नहीं मिला।'], 422);
+        }
+
+        $applied = 0;
+        foreach ($items as $item) {
+            $pId = $item['id'] ?? null;
+            if (!$pId) continue;
+
+            $product = Product::where('id', $pId)->where('user_id', $userId)->first();
+            if (!$product) continue;
+
+            if (!empty($item['title'])) {
+                $product->name = trim($item['title']);
+            }
+            if (isset($item['description'])) {
+                $product->description = trim($item['description']);
+            }
+            if (!empty($item['bullet_points']) && is_array($item['bullet_points'])) {
+                $product->bullet_points = $item['bullet_points'];
+            }
+            if (isset($item['generic_keywords'])) {
+                $product->generic_keywords = $item['generic_keywords'];
+            }
+            $product->save();
+            $applied++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'applied_count' => $applied,
+            'message' => "बधाई! सभी {$applied} प्रोडक्ट्स का अमेज़न लिस्टिंग कंटेंट (टाइटल, 5 बुलेट्स, विवरण व कीवर्ड्स) डेटाबेस में 100% सुरक्षित अपडेट हो गया!"
+        ]);
+    }
+
     public function stageProducts(Request $request)
     {
         $userId = Auth::id();

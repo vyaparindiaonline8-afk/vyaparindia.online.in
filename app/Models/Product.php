@@ -135,6 +135,57 @@ class Product extends Model
     }
 
 
+    public function getBulletPointsAttribute(): array
+    {
+        $attrs = is_array($this->attributes['attributes'] ?? null) 
+            ? $this->attributes['attributes'] 
+            : json_decode($this->attributes['attributes'] ?? '[]', true);
+        if (!empty($attrs['bullet_points']) && is_array($attrs['bullet_points'])) {
+            return array_values(array_filter($attrs['bullet_points']));
+        }
+        $desc = $this->attributes['description'] ?? '';
+        $bullets = [];
+        if (preg_match_all('/^[•\-\*]\s*(.+)$/m', $desc, $matches)) {
+            $bullets = array_slice(array_map('trim', $matches[1]), 0, 5);
+        }
+        return $bullets;
+    }
+
+    public function setBulletPointsAttribute($val): void
+    {
+        $attrs = is_array($this->attributes['attributes'] ?? null) 
+            ? $this->attributes['attributes'] 
+            : (json_decode($this->attributes['attributes'] ?? '[]', true) ?: []);
+        if (!is_array($attrs)) $attrs = [];
+        $attrs['bullet_points'] = is_array($val) ? array_values(array_filter($val)) : [];
+        $this->attributes['attributes'] = json_encode($attrs);
+    }
+
+    public function getGenericKeywordsAttribute(): string
+    {
+        $attrs = is_array($this->attributes['attributes'] ?? null) 
+            ? $this->attributes['attributes'] 
+            : json_decode($this->attributes['attributes'] ?? '[]', true);
+        if (!empty($attrs['generic_keywords'])) {
+            return trim($attrs['generic_keywords']);
+        }
+        return trim($this->attributes['tags'] ?? '');
+    }
+
+    public function setGenericKeywordsAttribute($val): void
+    {
+        $clean = trim(str_replace([',', ';', "
+", ""], ' ', (string)$val));
+        $clean = preg_replace('/\s+/', ' ', $clean);
+        $attrs = is_array($this->attributes['attributes'] ?? null) 
+            ? $this->attributes['attributes'] 
+            : (json_decode($this->attributes['attributes'] ?? '[]', true) ?: []);
+        if (!is_array($attrs)) $attrs = [];
+        $attrs['generic_keywords'] = $clean;
+        $this->attributes['attributes'] = json_encode($attrs);
+        $this->attributes['tags'] = $clean;
+    }
+
     public function getAvailableSizesAttribute(): array
     {
         $sizes = [];
