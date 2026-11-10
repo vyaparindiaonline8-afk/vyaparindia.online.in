@@ -137,6 +137,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/listing-content/{productId}/ai-generate', [ChannelController::class, 'aiGenerateListingContent'])->name('ai_generate_listing_content');
         Route::post('/listing-content/bulk-generate', [ChannelController::class, 'bulkAiGenerateListingContent'])->name('bulk_ai_generate_listing_content');
         Route::post('/listing-content/bulk-apply', [ChannelController::class, 'bulkApplyListingContent'])->name('bulk_apply_listing_content');
+        Route::post('/amazon-attributes/auto-fill', [ChannelController::class, 'autoFillAmazonAttributes'])->name('auto_fill_amazon_attributes');
     });
 
     // 🚚 Smart Shipping & Anti-RTO Routes

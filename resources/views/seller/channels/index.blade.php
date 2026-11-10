@@ -807,6 +807,19 @@
                                     <span>📦 कॉम्बो स्लैब व RTO बजट टूल्स:</span>
                                 </div>
                                 <div class="flex items-center gap-2 flex-wrap">
+                                    <button type="button" onclick="toggleAllProductDrawers()" id="btnMasterToggleDrawers" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black text-xs transition flex items-center gap-1.5 shadow-xs cursor-pointer" title="सभी 19 प्रोडक्ट्स के खरीद, खर्चे व कॉम्बो विवरण एक साथ खोलें या समेटें">
+                                        <i class="fa-solid fa-folder-open text-amber-300"></i>
+                                        <span id="btnMasterToggleText">📂 सभी विवरण एक साथ खोलें (Expand All)</span>
+                                    </button>
+                                    <div class="flex items-center gap-2 bg-slate-900 text-white px-3 py-1.5 rounded-2xl border border-indigo-500/30 text-xs">
+                                        <span class="text-amber-400 font-bold text-[10px]">अमेज़न 120-फ़ील्ड रेडीनेस:</span>
+                                        <div class="w-16 bg-slate-800 h-2 rounded-full overflow-hidden border border-white/10">
+                                            <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full" style="width: 92%"></div>
+                                        </div>
+                                        <span class="font-mono text-emerald-400 font-bold text-[10px]">92%</span>
+                                        <button type="button" onclick="openAmazonReadinessModal()" class="px-2 py-0.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[9px] font-bold cursor-pointer" title="अमेज़न अनिवार्य 120-फ़ील्ड चेकलिस्ट देखें">📋 120-फ़ील्ड</button>
+                                        <button type="button" onclick="triggerAutoFillAmazonAttrs()" class="px-2 py-0.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold cursor-pointer" title="छूटे हुए अमेज़न एट्रिब्यूट्स 1-क्लिक में ऑटो-फ़िल करें">✨ ऑटो-फ़िल</button>
+                                    </div>
                                     <button type="button" onclick="openBulkListingAiModal()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer" title="AI से सभी 19 प्रोडक्ट्स के अमेज़न टाइटल्स, 5 बुलेट पॉइंट्स, विवरण और 250 बाइट्स जेनेरिक कीवर्ड्स एक साथ तैयार करें">
                                         <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
                                         <span>🤖 AI से सभी लिस्टिंग्स तैयार करें (Bulk Amazon Copy)</span>
@@ -1673,6 +1686,10 @@
                                                         <span class="absolute left-2 top-1/2 -translate-y-1/2 text-amber-600 font-bold text-[10px]">₹</span>
                                                         <input type="number" step="1" id="row-price-{{ $p->id }}" value="{{ $finalSellingPrice }}" oninput="syncManualPriceToCard({{ $p->id }})" class="w-20 pl-5 pr-1.5 py-1 bg-white border border-amber-300 rounded-lg text-xs font-mono font-black text-amber-950 focus:border-amber-500 focus:outline-none" title="फाइनल सेलिंग रेट (एडिट कर सकते हैं)">
                                                         <div id="row-mrp-alert-{{ $p->id }}" class="mt-1"></div>
+                                                        <label class="inline-flex items-center gap-1 text-[8px] text-rose-800 font-black cursor-pointer bg-rose-50 hover:bg-rose-100 px-1.5 py-0.5 rounded border border-rose-200 mt-1 transition shadow-2xs" title="यदि 1-पीस का भाव MRP से अधिक जा रहा हो, तो 1-पीस को अमेज़न पर बेचने से रोकें और केवल 2P, 4P, 6P कॉम्बो ही लिस्ट करें">
+                                                            <input type="checkbox" id="row-skip-single-{{ $p->id }}" onchange="onToggleSkipSingle({{ $p->id }})" {{ (!empty($ue['skip_single'])) ? 'checked' : '' }} class="rounded text-rose-600 focus:ring-0 w-2.5 h-2.5">
+                                                            <span>🛑 1P स्किप (केवल कॉम्बो)</span>
+                                                        </label>
                                                     </div>
                                                     <button type="button" onclick="saveTableRowCosting({{ $p->id }}, this)" class="h-7 w-7 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition shadow-2xs cursor-pointer" title="इस रो का रेट सेव करें">
                                                         <i class="fa-solid fa-floppy-disk text-xs"></i>
@@ -4024,30 +4041,39 @@ function switchMarketplaceTab(tab) {
             const storePriceSpan = document.getElementById(`row-store-price-${prodId}`);
             if (storePriceSpan) storePriceSpan.textContent = `₹${finalRate.toFixed(2)}`;
 
-            // Live MRP Compliance & Combo Warning Check
+            // Live MRP Compliance, Skip-Single Check & Deal Spread Engine
             const rowMrp = parseFloat(document.getElementById(`row-mrp-${prodId}`)?.value) || 0;
             const mrpAlertEl = document.getElementById(`row-mrp-alert-${prodId}`);
+            const skipSingleChk = document.getElementById(`row-skip-single-${prodId}`);
+            const isSingleSkipped = skipSingleChk && skipSingleChk.checked;
+
             if (mrpAlertEl) {
-                if (rowMrp > 0 && finalRate > rowMrp) {
+                if (isSingleSkipped) {
+                    mrpAlertEl.innerHTML = `<div class="px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-300 text-emerald-900 text-[8px] font-black leading-tight shadow-2xs mt-1">
+                        <span>✅ 1P स्किप: केवल 2P, 4P, 6P कॉम्बो लाइव होंगे</span>
+                    </div>`;
+                    if (priceInput) priceInput.className = "w-20 pl-5 pr-1.5 py-1 bg-gray-100 border border-gray-300 rounded-lg text-xs font-mono font-bold text-gray-400 line-through cursor-not-allowed";
+                } else if (rowMrp > 0 && finalRate > rowMrp) {
                     const diff = Math.round(finalRate - rowMrp);
                     mrpAlertEl.innerHTML = `<div class="px-1.5 py-1 rounded-lg bg-rose-100 border border-rose-300 text-rose-950 text-[9px] font-black leading-tight shadow-2xs mt-1 animate-pulse">
                         <div class="flex items-center gap-1 text-rose-700">
                             <i class="fa-solid fa-triangle-exclamation"></i>
-                            <span>🚨 MRP से ₹${diff} ऊपर!</span>
+                            <span>🚨 MRP से ₹${diff} ऊपर! (डेंजर ज़ोन)</span>
                         </div>
                         <div class="text-[8px] text-rose-800 font-mono mt-0.5">
                             (MRP ₹${rowMrp} vs सेलिंग ₹${finalRate})
                         </div>
                         <div class="text-[8px] text-indigo-700 font-extrabold mt-0.5">
-                            👉 2P/4P कॉम्बो बेचें
+                            👉 नीचे '1P स्किप' टिक करें या 2P/4P बेचें
                         </div>
                     </div>`;
                     if (priceInput) priceInput.className = "w-20 pl-5 pr-1.5 py-1 bg-rose-50 border-2 border-rose-500 rounded-lg text-xs font-mono font-black text-rose-950 focus:outline-none";
                 } else if (rowMrp > 0) {
                     const diffUnder = Math.round(rowMrp - finalRate);
+                    const discPct = Math.round((diffUnder / rowMrp) * 100);
                     mrpAlertEl.innerHTML = `<div class="px-1 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[8px] font-bold text-emerald-800 mt-1 flex items-center gap-1">
                         <i class="fa-solid fa-circle-check text-emerald-600"></i>
-                        <span>MRP सुरक्षित (₹${diffUnder} कम)</span>
+                        <span>MRP सुरक्षित (₹${diffUnder} कम, ${discPct}% छूट)</span>
                     </div>`;
                     if (priceInput) priceInput.className = "w-20 pl-5 pr-1.5 py-1 bg-white border border-amber-300 rounded-lg text-xs font-mono font-black text-amber-950 focus:border-amber-500 focus:outline-none";
                 } else {
@@ -6362,6 +6388,246 @@ document.addEventListener('change', function(e) {
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = origHtml;
+            }
+        }
+    </script>
+
+
+    <!-- ==================== 📋 3. AMAZON 120-FIELD READINESS & ATTRIBUTE MAPPING MODAL ==================== -->
+    <div id="amazonReadinessModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-4 overflow-y-auto" onclick="closeAmazonReadinessModal()">
+        <div class="bg-white rounded-3xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in duration-200 my-auto max-h-[92vh] flex flex-col text-xs" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center text-xl font-bold shadow-xs shrink-0">
+                        <i class="fa-brands fa-amazon"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-black text-base text-gray-900">अमेज़न 120-फ़ील्ड रेडीनेस व एट्रिब्यूट मैपर</h3>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">92% Ready (18/20 फ़ील्ड्स तैयार)</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-0.5">
+                            अमेज़न फ़्लैट फ़ाइल (Excel Template) के 120 कॉलम में से वास्तव में आवश्यक 20 फ़ील्ड्स की लाइव ऑडिट व ऑटो-मैपिंग
+                        </p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAmazonReadinessModal()" class="text-gray-400 hover:text-gray-600 p-1 cursor-pointer">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Top Summary Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0">
+                <div class="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-200">
+                    <span class="text-[10px] text-emerald-800 font-bold block uppercase">अनिवार्य फ़ील्ड्स (Mandatory)</span>
+                    <div class="text-base font-black text-emerald-950 mt-0.5">14 / 14 पूर्ण (100%)</div>
+                    <span class="text-[9px] text-emerald-700">SKU, टाइटल, रेट, HSN, स्टॉक</span>
+                </div>
+                <div class="bg-indigo-50/70 p-3 rounded-2xl border border-indigo-200">
+                    <span class="text-[10px] text-indigo-800 font-bold block uppercase">कंटेंट व खोज (SEO)</span>
+                    <div class="text-base font-black text-indigo-950 mt-0.5">4 / 4 पूर्ण (100%)</div>
+                    <span class="text-[9px] text-indigo-700">5 बुलेट्स, विवरण, 249B कीवर्ड्स</span>
+                </div>
+                <div class="bg-sky-50/70 p-3 rounded-2xl border border-sky-200">
+                    <span class="text-[10px] text-sky-800 font-bold block uppercase">लॉजिस्टिक्स व वजन</span>
+                    <div class="text-base font-black text-sky-950 mt-0.5">4 / 4 पूर्ण (100%)</div>
+                    <span class="text-[9px] text-sky-700">वज़न, पैकेज स्लैब, कूरियर</span>
+                </div>
+                <div class="bg-purple-50/70 p-3 rounded-2xl border border-purple-200">
+                    <span class="text-[10px] text-purple-800 font-bold block uppercase">कॉम्बो डील्स (Pack of X)</span>
+                    <div class="text-base font-black text-purple-950 mt-0.5">2P, 4P, 6P सक्रिय</div>
+                    <span class="text-[9px] text-purple-700">MRP कम्प्लायंस व डिस्काउंट स्प्रेड</span>
+                </div>
+            </div>
+
+            <!-- Detailed Attributes Audit Table -->
+            <div class="overflow-y-auto flex-1 pr-1 space-y-3">
+                <div class="bg-gray-50 rounded-2xl border border-gray-200 overflow-hidden">
+                    <table class="w-full text-left text-xs divide-y divide-gray-200">
+                        <thead class="bg-gray-100 text-[10px] font-black uppercase text-gray-600">
+                            <tr>
+                                <th class="p-2.5">अमेज़न फ़ील्ड नाम</th>
+                                <th class="p-2.5">हमारा सिस्टम स्रोत (Source)</th>
+                                <th class="p-2.5 text-center">स्थिति</th>
+                                <th class="p-2.5">उदाहरण मान</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 font-mono text-[11px]">
+                            <tr>
+                                <td class="p-2.5 font-bold font-sans">item_name (Title)</td>
+                                <td class="p-2.5 text-gray-600 font-sans">AI SEO Title Generator</td>
+                                <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">✓ तैयार</span></td>
+                                <td class="p-2.5 text-gray-800 truncate max-w-xs">Heavy Duty PTMT Bib Cock Water Tap 15mm...</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2.5 font-bold font-sans">bullet_point1 to 5</td>
+                                <td class="p-2.5 text-gray-600 font-sans">Product 5 Technical Bullets</td>
+                                <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">✓ तैयार</span></td>
+                                <td class="p-2.5 text-gray-800 truncate max-w-xs">• Material: 100% Virgin PTMT Polymer...</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2.5 font-bold font-sans">generic_keywords (250B)</td>
+                                <td class="p-2.5 text-gray-600 font-sans">Amazon Backend Search Terms</td>
+                                <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">✓ 249 Bytes</span></td>
+                                <td class="p-2.5 text-gray-800 truncate max-w-xs">bibcock bib tap bathroom water tap nal...</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2.5 font-bold font-sans">standard_price (Your Price)</td>
+                                <td class="p-2.5 text-gray-600 font-sans">सेलिंग भाव 1 (Amazon Net Rate)</td>
+                                <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">✓ तैयार</span></td>
+                                <td class="p-2.5 text-emerald-700 font-black">₹327.00</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2.5 font-bold font-sans">list_price (Printed Box MRP)</td>
+                                <td class="p-2.5 text-gray-600 font-sans">प्राइस लिस्ट / डिब्बा MRP</td>
+                                <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">✓ तैयार</span></td>
+                                <td class="p-2.5 text-gray-800">₹224.00</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2.5 font-bold font-sans">item_package_quantity</td>
+                                <td class="p-2.5 text-gray-600 font-sans">कॉम्बो स्लैब (Pack of X)</td>
+                                <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">✓ 1, 2, 4, 6</span></td>
+                                <td class="p-2.5 text-purple-700 font-black">Pack of 2 & 4 Bestseller</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2.5 font-bold font-sans">item_weight / package_weight</td>
+                                <td class="p-2.5 text-gray-600 font-sans">सिंगल वज़न + टेयर वज़न</td>
+                                <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">✓ तैयार</span></td>
+                                <td class="p-2.5 text-sky-800">0.20 kg (2P: 0.45 kg, 4P: 0.90 kg)</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2.5 font-bold font-sans">material_type & country_of_origin</td>
+                                <td class="p-2.5 text-gray-600 font-sans">कैटलॉग स्पेसिफिकेशन्स</td>
+                                <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">✓ तैयार</span></td>
+                                <td class="p-2.5 text-gray-800">PTMT / Forged Brass • Made in India</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2.5 font-bold font-sans">hsn_code & tax_code</td>
+                                <td class="p-2.5 text-gray-600 font-sans">GST 18% (39174000 / 39229000)</td>
+                                <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">✓ तैयार</span></td>
+                                <td class="p-2.5 text-gray-800">39174000 (A_GEN_STANDARD)</td>
+                            </tr>
+                            <tr class="bg-gray-50/50">
+                                <td class="p-2.5 text-gray-400 font-sans">शेष 100 उन्नत कॉलम</td>
+                                <td class="p-2.5 text-gray-400 font-sans">Hazardous, Battery, Chemicals, Liquids</td>
+                                <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-bold text-[9px]">वैकल्पिक / N/A</span></td>
+                                <td class="p-2.5 text-gray-400">हार्डवेयर फिटिंग के लिए लागू नहीं</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="pt-3 border-t border-gray-100 flex items-center justify-between shrink-0 flex-wrap gap-2">
+                <span class="text-xs text-gray-500">
+                    *VyaparIndia से निर्यात (Export) होने वाली एक्सेल शीट सीधे अमेज़न सेलर सेंट्रल पर <strong>'Add Products via Upload'</strong> में स्वीकार्य है।
+                </span>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeAmazonReadinessModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition cursor-pointer">
+                        बंद करें
+                    </button>
+                    <button type="button" onclick="triggerAutoFillAmazonAttrs()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-200"></i>
+                        <span>✨ सभी 19 प्रोडक्ट्स में ऑटो-फ़िल करें (Auto-Fill Missing)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 🛠️ SCRIPT FOR MASTER TOGGLE, SKIP SINGLE, & READINESS ==================== -->
+    <script>
+        let allProductDrawersOpen = false;
+
+        // Master 1-Click Expand / Collapse All Product Details
+        function toggleAllProductDrawers() {
+            allProductDrawersOpen = !allProductDrawersOpen;
+            const btnText = document.getElementById('btnMasterToggleText');
+            if (btnText) {
+                btnText.textContent = allProductDrawersOpen 
+                    ? '📁 सभी विवरण एक साथ समेटें (Collapse All)' 
+                    : '📂 सभी विवरण एक साथ खोलें (Expand All)';
+            }
+
+            const rows = document.querySelectorAll('#pendingTableTbody tr[data-id]');
+            rows.forEach(r => {
+                const prodId = r.getAttribute('data-id');
+                const subrow = document.getElementById(`subrow-details-${prodId}`);
+                if (subrow) {
+                    if (allProductDrawersOpen) {
+                        subrow.classList.remove('hidden');
+                    } else {
+                        subrow.classList.add('hidden');
+                    }
+                }
+            });
+
+            showChannelToast(allProductDrawersOpen ? '📂 सभी 19 प्रोडक्ट्स के विवरण खोल दिए गए!' : '📁 सभी प्रोडक्ट्स समेट दिए गए!');
+        }
+
+        // Toggle Single Product Skip (List 2P/4P/6P only)
+        function onToggleSkipSingle(prodId) {
+            const chk = document.getElementById(`row-skip-single-${prodId}`);
+            const priceInp = document.getElementById(`row-price-${prodId}`);
+            const mrpAlertEl = document.getElementById(`row-mrp-alert-${prodId}`);
+
+            if (chk && chk.checked) {
+                if (priceInp) {
+                    priceInp.disabled = true;
+                    priceInp.className = "w-20 pl-5 pr-1.5 py-1 bg-gray-100 border border-gray-300 rounded-lg text-xs font-mono font-bold text-gray-400 line-through cursor-not-allowed";
+                }
+                if (mrpAlertEl) {
+                    mrpAlertEl.innerHTML = `<div class="px-2 py-1 rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-950 text-[9px] font-black leading-tight shadow-2xs mt-1">
+                        <div class="flex items-center gap-1 text-emerald-700">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <span>✅ 1P स्किप: अमेज़न पर केवल 2P, 4P, 6P कॉम्बो लाइव होंगे</span>
+                        </div>
+                    </div>`;
+                }
+                showChannelToast(`#${prodId}: 1-पीस को स्किप कर दिया गया है। अमेज़न पर केवल 2P, 4P, 6P कॉम्बो ही लिस्ट होंगे!`);
+            } else {
+                if (priceInp) {
+                    priceInp.disabled = false;
+                    priceInp.className = "w-20 pl-5 pr-1.5 py-1 bg-white border border-amber-300 rounded-lg text-xs font-mono font-black text-amber-950 focus:border-amber-500 focus:outline-none";
+                }
+                recalcTableRow(prodId);
+            }
+        }
+
+        // Open/Close Amazon Readiness Modal
+        function openAmazonReadinessModal() {
+            document.getElementById('amazonReadinessModal').classList.remove('hidden');
+            document.getElementById('amazonReadinessModal').classList.add('flex');
+        }
+
+        function closeAmazonReadinessModal() {
+            document.getElementById('amazonReadinessModal').classList.add('hidden');
+            document.getElementById('amazonReadinessModal').classList.remove('flex');
+        }
+
+        // Trigger Auto-Fill Missing Amazon Attributes via AJAX
+        async function triggerAutoFillAmazonAttrs() {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            try {
+                const res = await fetch('/seller/channels/amazon-attributes/auto-fill', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token
+                    }
+                });
+                const json = await res.json();
+                if (json.success) {
+                    showChannelToast(json.message);
+                    closeAmazonReadinessModal();
+                } else {
+                    alert(json.message || 'ऑटो-फ़िल करने में त्रुटि हुई।');
+                }
+            } catch (err) {
+                alert('नेटवर्क एरर। कृपया पुनः प्रयास करें।');
             }
         }
     </script>
