@@ -145,6 +145,10 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/fee-service/bulk-sync-amazon-fees', [ChannelController::class, 'bulkSyncAmazonFees'])->name('bulk_sync_amazon_fees');
         Route::post('/fee-service/apply-amazon-price', [ChannelController::class, 'applyAmazonPrice'])->name('apply_amazon_price');
         Route::post('/fee-service/multichannel-compare', [ChannelController::class, 'multichannelCompare'])->name('multichannel_compare');
+        
+        // 🔍 Smart Keyword Harvester & Semantic Stemmer Engine
+        Route::post('/keywords/auto-harvest-single', [ChannelController::class, 'autoHarvestProductKeywords'])->name('auto_harvest_single_keywords');
+        Route::post('/keywords/auto-harvest-bulk', [ChannelController::class, 'bulkAutoHarvestKeywords'])->name('bulk_auto_harvest_keywords');
     });
 
     // 🚚 Smart Shipping & Anti-RTO Routes

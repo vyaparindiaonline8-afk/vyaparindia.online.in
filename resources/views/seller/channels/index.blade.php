@@ -1505,6 +1505,10 @@
                                     <i class="fa-solid fa-chart-pie text-amber-300"></i>
                                     <span>📊 5-मार्केटप्लेस तुलना</span>
                                 </button>
+                                <button type="button" onclick="bulkAutoHarvestKeywords()" id="btnBulkHarvestKeywords" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95 border border-emerald-400" title="क्लिक करें: सभी प्रोडक्ट्स के लिए खरीदारों के असली सर्च कीवर्ड्स (248 बाइट्स) खुद ढूंढकर ऑटो-अपडेट करें">
+                                    <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                                    <span id="btnBulkHarvestText">🤖 कीवर्ड्स ऑटो-हार्वेस्ट व अपडेट करें</span>
+                                </button>
                                 <button type="button" onclick="toggleCompactTableMode()" id="btnCompactTableMode" class="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95 border border-purple-400/40" title="क्लिक करें: सारे 8 खर्चे (कूरियर, RTO, पैकिंग, कमीशन, ऐड्स) एक ही बॉक्स में समेटें">
                                     <i class="fa-solid fa-compress" id="btnCompactIcon"></i>
                                     <span id="btnCompactText">📁 सारे खर्चे 1 बॉक्स में समेटें (Compact View)</span>
@@ -7743,5 +7747,56 @@ document.addEventListener('change', function(e) {
             };
 
             renderCompareCards(simulatedPlats, cost, desiredProfit);
+        }
+    
+        /**
+         * Bulk Auto-Harvest Buyer Search Keywords for All Multichannel Products
+         */
+        async function bulkAutoHarvestKeywords() {
+            const btn = document.getElementById('btnBulkHarvestKeywords');
+            const textSpan = document.getElementById('btnBulkHarvestText');
+            const origHtml = textSpan ? textSpan.textContent : '';
+            if (btn) btn.disabled = true;
+            if (textSpan) textSpan.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> सर्च कीवर्ड्स खुद ढूंढकर अपडेट हो रहे हैं...';
+
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            try {
+                const res = await fetch('/seller/channels/keywords/auto-harvest-bulk', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token
+                    }
+                });
+
+                const json = await res.json();
+                if (json.success) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '🎉 कीवर्ड्स ऑटो-हार्वेस्ट व अपडेट पूर्ण!',
+                            html: `<div class="text-left text-xs space-y-2">
+                                <p><strong>कुल प्रोडक्ट्स अपडेट:</strong> ${json.total_products}</p>
+                                <p><strong>कुल सर्च कीवर्ड्स हार्वेस्ट:</strong> ${json.total_words_harvested} शब्द</p>
+                                <p class="text-emerald-700 font-bold">✅ सभी प्रोडक्ट्स के बैकएंड सर्च टर्म्स में 248 बाइट्स के अंदर सबसे ज़्यादा सर्च होने वाले मुख्य शब्द (Stemmed & Deduplicated) बिना किसी टकराव के खुद भर दिए गए हैं!</p>
+                            </div>`,
+                            confirmButtonText: 'शानदार (Awesome)',
+                            confirmButtonColor: '#059669'
+                        });
+                    } else {
+                        showChannelToast(json.message);
+                    }
+                } else {
+                    showChannelToast('⚠️ कीवर्ड्स हार्वेस्ट में त्रुटि।');
+                }
+            } catch (err) {
+                console.error(err);
+                showChannelToast('❌ नेटवर्क एरर।');
+            } finally {
+                if (btn) btn.disabled = false;
+                if (textSpan) textSpan.textContent = origHtml;
+            }
         }
     </script>

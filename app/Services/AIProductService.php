@@ -413,18 +413,14 @@ class AIProductService
             }
         }
 
-        // Clean and enforce Amazon 250-bytes backend search terms rule
-        $keywordTokens = array_unique(array_filter(explode(' ', strtolower(preg_replace('/[^a-zA-Z0-9\/\-]/', ' ', $rawKeywords)))));
-        $finalKeywords = '';
-        foreach ($keywordTokens as $t) {
-            if (strlen($t) < 2) continue;
-            $candidate = empty($finalKeywords) ? $t : $finalKeywords . ' ' . $t;
-            if (strlen($candidate) <= 245) {
-                $finalKeywords = $candidate;
-            } else {
-                break;
-            }
-        }
+        // 🔍 Smart Keyword Harvester: Zero-Clash AI Merger, Morphological Stemming & 248-Byte Compliance
+        $harvester = app(\App\Services\KeywordHarvesterService::class);
+        $mockProduct = new \App\Models\Product([
+            'name' => $title,
+            'description' => $desc,
+        ]);
+        $harvestResult = $harvester->harvestAndOptimizeKeywords($mockProduct, $rawKeywords);
+        $finalKeywords = $harvestResult['keywords'];
 
         return [
             'title' => $title,

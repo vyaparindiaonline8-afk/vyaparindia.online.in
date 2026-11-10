@@ -2624,4 +2624,66 @@ class ChannelController extends Controller
             ]
         ]);
     }
+
+    /**
+     * AJAX: Auto-Harvest Buyer Search Keywords for Single Product & Save
+     */
+    public function autoHarvestProductKeywords(\Illuminate\Http\Request $request, \App\Services\KeywordHarvesterService $harvester)
+    {
+        $userId = \Illuminate\Support\Facades\Auth::id();
+        $productId = $request->input('product_id');
+        $product = \App\Models\Product::where('id', $productId)->where('user_id', $userId)->firstOrFail();
+
+        $aiKeywords = $request->input('ai_keywords');
+        $result = $harvester->harvestAndSaveProduct($product, $aiKeywords);
+
+        return response()->json([
+            'success' => true,
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'keywords' => $result['keywords'],
+            'byte_length' => $result['byte_length'],
+            'words_count' => $result['words_count'],
+            'message' => "✅ '{$product->name}' के लिए सर्च कीवर्ड्स ({$result['byte_length']} बाइट्स) खुद ढूंढकर सुरक्षित अपडेट कर दिए गए!",
+        ]);
+    }
+
+    /**
+     * AJAX: Bulk Auto-Harvest Buyer Search Keywords for All Multichannel Products & Save
+     */
+    public function bulkAutoHarvestKeywords(\Illuminate\Http\Request $request, \App\Services\KeywordHarvesterService $harvester)
+    {
+        $userId = \Illuminate\Support\Facades\Auth::id();
+
+        // Staged products
+        $channelSelectedProductIds = \App\Models\ChannelListing::whereHas('channel', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        })->pluck('product_id')->unique()->toArray();
+
+        $stagedAttrProductIds = \App\Models\Product::where('user_id', $userId)
+            ->whereJsonContains('attributes->channel_staged', true)
+            ->pluck('id')
+            ->toArray();
+
+        $allPendingIds = array_unique(array_merge($channelSelectedProductIds, $stagedAttrProductIds));
+
+        $products = \App\Models\Product::where('user_id', $userId)
+            ->whereIn('id', $allPendingIds)
+            ->with(['category'])
+            ->get();
+
+        if ($products->isEmpty()) {
+            $products = \App\Models\Product::where('user_id', $userId)->take(20)->get();
+        }
+
+        $bulkResult = $harvester->bulkHarvestAndSave($products);
+
+        return response()->json([
+            'success' => true,
+            'total_products' => $bulkResult['total_products'],
+            'total_words_harvested' => $bulkResult['total_words_harvested'],
+            'items' => $bulkResult['items'],
+            'message' => "🎉 शानदार! सभी {$bulkResult['total_products']} प्रोडक्ट्स के लिए खरीदारों के असली सर्च कीवर्ड्स खुद ढूंढकर डेटाबेस में ऑटो-अपडेट कर दिए गए!",
+        ]);
+    }
 }
