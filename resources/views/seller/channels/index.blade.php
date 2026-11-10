@@ -1497,6 +1497,14 @@
                         <div class="bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 text-white p-3 rounded-2xl shadow-md flex items-center justify-between flex-wrap gap-2.5 text-xs">
                             <!-- 📁 Master Box Collapser / Expander Button (User's Sametne Wala Button) -->
                             <div class="flex items-center gap-2">
+                                <button type="button" onclick="bulkSyncAmazonFees()" id="btnBulkSyncAmazonFees" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95 border border-amber-300" title="क्लिक करें: सभी 19 प्रोडक्ट्स के लिए Amazon SP-API / Category Matrix से असली फ़ीस फेच करें और सेलिंग रेट्स ऑटो-सॉल्व करें">
+                                    <i class="fa-solid fa-bolt text-slate-950"></i>
+                                    <span id="btnBulkSyncText">⚡ अमेज़न असली फ़ीस सिंक करें (SP-API)</span>
+                                </button>
+                                <button type="button" onclick="openMultiChannelCompareModal()" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95 border border-sky-400" title="क्लिक करें: Amazon, Meesho, Flipkart, Myntra व Blinkit के खर्च व मुनाफे की एक साथ तुलना">
+                                    <i class="fa-solid fa-chart-pie text-amber-300"></i>
+                                    <span>📊 5-मार्केटप्लेस तुलना</span>
+                                </button>
                                 <button type="button" onclick="toggleCompactTableMode()" id="btnCompactTableMode" class="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95 border border-purple-400/40" title="क्लिक करें: सारे 8 खर्चे (कूरियर, RTO, पैकिंग, कमीशन, ऐड्स) एक ही बॉक्स में समेटें">
                                     <i class="fa-solid fa-compress" id="btnCompactIcon"></i>
                                     <span id="btnCompactText">📁 सारे खर्चे 1 बॉक्स में समेटें (Compact View)</span>
@@ -1557,7 +1565,7 @@
                                     <th class="p-3 min-w-[95px] bg-rose-50 text-rose-950 font-black col-expense-detail" title="रिटर्न/RTO नुकसान से सुरक्षा (₹ या %)">🔄 रिटर्न बफ़र (₹/%)</th>
                                     <th class="p-3 min-w-[80px] col-expense-detail">पैकिंग (₹)</th>
                                     <th class="p-3 min-w-[110px] bg-sky-50 text-sky-950 font-black col-expense-detail" title="प्रोडक्ट का वजन (kg) व कूरियर दर">वजन & कूरियर (₹+GST)</th>
-                                    <th class="p-3 min-w-[100px] bg-purple-50 text-purple-950 font-black col-expense-detail">कमीशन फ़ी (%+GST)</th>
+                                    <th class="p-3 min-w-[115px] bg-purple-50 text-purple-950 font-black col-expense-detail" title="मार्केटप्लेस कमीशन फ़ी (%): Amazon SP-API असली फ़ीस या कैटेगरी स्लैब">कमीशन फ़ी (%+GST) <span class="block text-[8px] font-normal text-purple-700">SP-API असली / अनुमान</span></th>
                                     <th class="p-3 min-w-[80px] col-expense-detail">ऐड्स (₹)</th>
                                     <th class="p-3 min-w-[75px] bg-purple-50 text-purple-950 font-black col-expense-detail">HSN कोड</th>
                                     <th class="p-3 min-w-[75px] bg-purple-50 text-purple-950 font-black col-expense-detail">GST %</th>
@@ -1791,9 +1799,19 @@
                                                     <span>+GST</span>
                                                 </label>
                                             </div>
+                                            <!-- 🟢 SP-API Asli / Estimate Badge & 1-Click Sync Button -->
+                                            <div class="flex items-center gap-1 mt-0.5">
+                                                <span id="row-fee-badge-{{ $p->id }}" class="px-1 py-0.2 rounded text-[7.5px] font-black {{ (!empty($ue['fee_estimate']['is_actual'])) ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-900 border border-amber-300' }}" title="{{ (!empty($ue['fee_estimate']['is_actual'])) ? 'Amazon SP-API से वेरिफाइड असली फ़ीस' : 'Amazon 2026 Category Schedule पर आधारित अनुमानित फ़ीस' }}">
+                                                    {{ (!empty($ue['fee_estimate']['is_actual'])) ? '🟢 SP-API असली' : '🟡 अनुमानित' }}
+                                                </span>
+                                                <button type="button" onclick="syncSingleProductFee({{ $p->id }})" id="btn-sync-fee-{{ $p->id }}" class="px-1 py-0.2 rounded bg-purple-100 hover:bg-purple-200 text-purple-900 text-[8px] font-bold border border-purple-200 cursor-pointer transition shadow-2xs hover:scale-105 active:scale-95" title="इस प्रोडक्ट की Amazon SP-API से असली फ़ीस फेच करें व सटीक सेलिंग भाव सॉल्व करें">
+                                                    <i class="fa-solid fa-arrows-rotate text-[8px]"></i>
+                                                </button>
+                                            </div>
                                             <span id="row-fee-amt-{{ $p->id }}" class="text-[8px] text-purple-700 font-bold block font-mono mt-0.5 whitespace-nowrap">
                                                 कमीशन हिसाब...
                                             </span>
+                                            <span id="row-fee-breakdown-{{ $p->id }}" class="text-[7.5px] text-gray-500 block font-mono">Ref + Closing + Ship</span>
                                         </td>
 
                                         <!-- 5. Ads & Marketing (₹) -->
@@ -1839,12 +1857,18 @@
                                                         <i class="fa-solid fa-floppy-disk text-xs"></i>
                                                     </button>
                                                 </div>
+                                                <!-- Old vs New Solved Price Diff Badge -->
+                                                <div id="row-price-diff-badge-{{ $p->id }}" class="hidden text-[8px] font-black px-1.5 py-0.5 rounded shadow-2xs"></div>
                                                 <div class="flex items-center gap-1 text-[9px] font-mono">
                                                     <button type="button" onclick="applyChannelPriceToRow({{ $p->id }}, 'amazon', {{ $calcAmz }})" class="px-1.5 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 font-extrabold whitespace-nowrap cursor-pointer transition shadow-2xs hover:scale-105 active:scale-95" title="क्लिक करें: Final Selling Price में ₹{{ $calcAmz }} (Amazon 12% फ़ी सहित भाव) भरें">
                                                         🟠 Amz: ₹<span id="row-amz-price-{{ $p->id }}">{{ $calcAmz }}</span>
                                                     </button>
                                                     <button type="button" onclick="applyChannelPriceToRow({{ $p->id }}, 'meesho', {{ $calcMsh }})" class="px-1.5 py-0.5 rounded bg-pink-100 hover:bg-pink-200 text-pink-950 border border-pink-300 font-extrabold whitespace-nowrap cursor-pointer transition shadow-2xs hover:scale-105 active:scale-95" title="क्लिक करें: Final Selling Price में ₹{{ $calcMsh }} (Meesho 0% फ़ी, RTO सुरक्षित भाव) भरें">
                                                         🌸 Msh: ₹<span id="row-msh-price-{{ $p->id }}">{{ $calcMsh }}</span>
+                                                    </button>
+                                                    <!-- 🚀 Apply on Amazon SP-API Button -->
+                                                    <button type="button" onclick="applyPriceToAmazonSpApi({{ $p->id }})" id="btn-apply-amz-{{ $p->id }}" class="px-1.5 py-0.5 rounded bg-amber-500 hover:bg-amber-600 text-slate-950 border border-amber-400 font-black whitespace-nowrap cursor-pointer transition shadow-2xs hover:scale-105 active:scale-95" title="इस सॉल्व किए गए भाव को Amazon SP-API पर लाइव भेजें">
+                                                        <i class="fa-brands fa-amazon mr-0.5"></i>Apply
                                                     </button>
                                                 </div>
                                             </div>
@@ -5770,6 +5794,80 @@ function switchMarketplaceTab(tab) {
         </div>
     </div>
 
+    
+    <!-- 📊 Multi-Channel Profit & Rate Comparison Modal (Amazon vs Meesho vs Flipkart vs Myntra vs Blinkit) -->
+    <div id="multiChannelCompareModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-4 overflow-y-auto" onclick="closeMultiChannelCompareModal()">
+        <div class="bg-white rounded-3xl max-w-5xl w-full p-5 sm:p-6 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in duration-200 my-auto" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-r from-amber-500 via-pink-500 to-indigo-600 text-white flex items-center justify-center text-lg font-bold shadow-md">
+                        <i class="fa-solid fa-chart-column"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm sm:text-base text-gray-900 flex items-center gap-2">
+                            <span>5-मार्केटप्लेस यूनिट इकोनॉमिक्स व सेलिंग रेट्स तुलना</span>
+                            <span class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-md border border-indigo-200">Real-Time Comparison</span>
+                        </h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Amazon, Meesho, Flipkart, Myntra व Blinkit का पारदर्शी खर्च, कमीशन व फाइनल मुनाफा देखें</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeMultiChannelCompareModal()" class="text-gray-400 hover:text-gray-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Interactive Parameters Bar -->
+            <div class="bg-slate-50 p-3.5 rounded-2xl border border-gray-200 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 text-xs">
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500">खरीद लागत (₹)</label>
+                    <input type="number" id="cmpInputCost" value="201" oninput="recalcMultiChannelLiveFromModal()" class="w-full px-2 py-1 bg-white border border-gray-300 rounded font-mono font-bold text-gray-800">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500">MRP (₹)</label>
+                    <input type="number" id="cmpInputMrp" value="550" oninput="recalcMultiChannelLiveFromModal()" class="w-full px-2 py-1 bg-white border border-gray-300 rounded font-mono font-bold text-gray-800">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500">मुनाफा (%)</label>
+                    <input type="number" id="cmpInputMargin" value="25" oninput="recalcMultiChannelLiveFromModal()" class="w-full px-2 py-1 bg-white border border-gray-300 rounded font-mono font-bold text-gray-800">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500">कूरियर (₹)</label>
+                    <input type="number" id="cmpInputCourier" value="55" oninput="recalcMultiChannelLiveFromModal()" class="w-full px-2 py-1 bg-white border border-gray-300 rounded font-mono font-bold text-gray-800">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500">RTO बफ़र (₹)</label>
+                    <input type="number" id="cmpInputRto" value="20" oninput="recalcMultiChannelLiveFromModal()" class="w-full px-2 py-1 bg-white border border-gray-300 rounded font-mono font-bold text-gray-800">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500">पैकिंग (₹)</label>
+                    <input type="number" id="cmpInputPack" value="15" oninput="recalcMultiChannelLiveFromModal()" class="w-full px-2 py-1 bg-white border border-gray-300 rounded font-mono font-bold text-gray-800">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500">विज्ञापन (₹)</label>
+                    <input type="number" id="cmpInputAds" value="10" oninput="recalcMultiChannelLiveFromModal()" class="w-full px-2 py-1 bg-white border border-gray-300 rounded font-mono font-bold text-gray-800">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500">GST %</label>
+                    <input type="number" id="cmpInputGst" value="18" oninput="recalcMultiChannelLiveFromModal()" class="w-full px-2 py-1 bg-white border border-gray-300 rounded font-mono font-bold text-gray-800">
+                </div>
+            </div>
+
+            <!-- 5 Platform Comparison Cards Container -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3" id="cmpCardsContainer">
+                <!-- Dynamically populated by renderCompareCards -->
+            </div>
+
+            <!-- Footer -->
+            <div class="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                <span class="text-gray-500">💡 <strong>नियम:</strong> Meesho में 0% कमीशन पर सबसे कम भाव बनता है, अमेज़न व फ्लिपकार्ट पर कमीशन + फिक्स फ़ी जुड़ती है।</span>
+                <button type="button" onclick="closeMultiChannelCompareModal()" class="px-5 py-2 rounded-xl bg-gray-900 text-white font-bold cursor-pointer hover:bg-gray-800 transition">
+                    बंद करें (Done)
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 🛒 Add Products from Store Catalog to Marketplace Queue Modal -->
     <div id="stageProductsModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-4 overflow-y-auto" onclick="closeStageProductsModal()">
         <div class="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-gray-100 space-y-4 my-auto animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
@@ -7197,5 +7295,453 @@ document.addEventListener('change', function(e) {
             } catch (err) {
                 alert('नेटवर्क एरर। कृपया पुनः प्रयास करें।');
             }
+        }
+    
+        // =========================================================================
+        // 💰 DYNAMIC AMAZON SP-API & MULTI-CHANNEL FEE ENGINE JS
+        // =========================================================================
+
+        /**
+         * Fetch Live Fee & Solve Optimal Selling Price for Single Row
+         */
+        async function syncSingleProductFee(prodId) {
+            const btn = document.getElementById(`btn-sync-fee-${prodId}`);
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[8px]"></i>';
+
+            const cost = parseFloat(document.getElementById(`row-cost-${prodId}`)?.value) || 0;
+            const mrp = parseFloat(document.getElementById(`row-mrp-${prodId}`)?.value) || 0;
+            const margin = parseFloat(document.getElementById(`row-margin-${prodId}`)?.value) || 25;
+            const rto = parseFloat(document.getElementById(`row-rto-${prodId}`)?.value) || 20;
+            const pack = parseFloat(document.getElementById(`row-pack-${prodId}`)?.value) || 15;
+            const ship = parseFloat(document.getElementById(`row-ship-${prodId}`)?.value) || 55;
+            const ads = parseFloat(document.getElementById(`row-ads-${prodId}`)?.value) || 10;
+            const others = parseFloat(document.getElementById(`row-others-${prodId}`)?.value) || 0;
+            const gst = parseFloat(document.getElementById(`row-gst-${prodId}`)?.value) || 18;
+            const weight = parseFloat(document.getElementById(`row-weight-${prodId}`)?.value) || 0.5;
+
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            try {
+                const res = await fetch('/seller/channels/fee-service/solve-price', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token
+                    },
+                    body: JSON.stringify({
+                        product_id: prodId,
+                        cost: cost,
+                        mrp: mrp,
+                        margin_pct: margin,
+                        rto: rto,
+                        packaging: pack,
+                        courier: ship,
+                        ads: ads,
+                        others: others,
+                        gst_rate: gst,
+                        weight_kg: weight,
+                        marketplace: 'amazon'
+                    })
+                });
+
+                const json = await res.json();
+                if (json.success && json.data) {
+                    const d = json.data;
+                    // Update fee input
+                    const feeInp = document.getElementById(`row-fee-${prodId}`);
+                    if (feeInp) feeInp.value = d.effective_fee_pct;
+
+                    // Update badge
+                    const badge = document.getElementById(`row-fee-badge-${prodId}`);
+                    if (badge) {
+                        if (d.is_actual) {
+                            badge.className = "px-1 py-0.2 rounded text-[7.5px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300";
+                            badge.textContent = "🟢 SP-API असली";
+                            badge.title = "Amazon SP-API से वेरिफाइड असली फ़ीस";
+                        } else {
+                            badge.className = "px-1 py-0.2 rounded text-[7.5px] font-black bg-amber-100 text-amber-900 border border-amber-300";
+                            badge.textContent = "🟡 अनुमानित";
+                            badge.title = "Amazon 2026 Category Schedule पर आधारित सटीक अनुमान";
+                        }
+                    }
+
+                    // Update fee breakdown text
+                    const bk = document.getElementById(`row-fee-breakdown-${prodId}`);
+                    if (bk && d.fees_breakdown) {
+                        bk.textContent = `Ref ₹${d.fees_breakdown.referral_fee} + Clos ₹${d.fees_breakdown.closing_fee}`;
+                    }
+
+                    // Update price
+                    const priceInp = document.getElementById(`row-price-${prodId}`);
+                    if (priceInp) priceInp.value = d.solved_price;
+
+                    // Show Diff badge
+                    const diffBadge = document.getElementById(`row-price-diff-badge-${prodId}`);
+                    if (diffBadge) {
+                        diffBadge.classList.remove('hidden');
+                        if (d.price_diff < 0) {
+                            diffBadge.className = "text-[8px] font-black px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 mt-1 block";
+                            diffBadge.innerHTML = `<span>₹${d.p0_assumed} &rarr; <strong>₹${d.solved_price}</strong> (बचत ₹${Math.abs(d.price_diff)} 🎉)</span>`;
+                        } else if (d.price_diff > 0) {
+                            diffBadge.className = "text-[8px] font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 mt-1 block";
+                            diffBadge.innerHTML = `<span>₹${d.p0_assumed} &rarr; <strong>₹${d.solved_price}</strong> (+₹${d.price_diff} सुधार)</span>`;
+                        } else {
+                            diffBadge.className = "text-[8px] font-black px-1.5 py-0.5 rounded bg-blue-100 text-blue-900 border border-blue-300 mt-1 block";
+                            diffBadge.innerHTML = `<span>सटीक मैच: ₹${d.solved_price}</span>`;
+                        }
+                    }
+
+                    recalcTableRow(prodId);
+                    showChannelToast(`✅ #${prodId}: Amazon फ़ीस (${d.effective_fee_pct}%) व भाव ₹${d.solved_price} सफलतापूर्वक सॉल्व हो गया!`);
+                } else {
+                    showChannelToast('⚠️ फ़ीस सॉल्व करने में त्रुटि आई।');
+                }
+            } catch (err) {
+                console.error(err);
+                showChannelToast('❌ सर्वर नेटवर्क त्रुटि।');
+            } finally {
+                if (btn) btn.innerHTML = origHtml;
+            }
+        }
+
+        /**
+         * Bulk Sync Real Amazon SP-API / Schedule Fees for All 19 Products
+         */
+        async function bulkSyncAmazonFees() {
+            const btn = document.getElementById('btnBulkSyncAmazonFees');
+            const textSpan = document.getElementById('btnBulkSyncText');
+            const origHtml = textSpan ? textSpan.textContent : '';
+            if (btn) btn.disabled = true;
+            if (textSpan) textSpan.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Amazon फ़ीस सिंक हो रही है...';
+
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            try {
+                const res = await fetch('/seller/channels/fee-service/bulk-sync-amazon-fees', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token
+                    }
+                });
+
+                const json = await res.json();
+                if (json.success && json.products) {
+                    json.products.forEach(p => {
+                        const prodId = p.product_id;
+                        const feeInp = document.getElementById(`row-fee-${prodId}`);
+                        if (feeInp) feeInp.value = p.effective_fee_pct;
+
+                        const badge = document.getElementById(`row-fee-badge-${prodId}`);
+                        if (badge) {
+                            if (p.fee_status === 'asli_verified') {
+                                badge.className = "px-1 py-0.2 rounded text-[7.5px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300";
+                                badge.textContent = "🟢 SP-API असली";
+                            } else {
+                                badge.className = "px-1 py-0.2 rounded text-[7.5px] font-black bg-amber-100 text-amber-900 border border-amber-300";
+                                badge.textContent = "🟡 अनुमानित";
+                            }
+                        }
+
+                        const priceInp = document.getElementById(`row-price-${prodId}`);
+                        if (priceInp) priceInp.value = p.new_solved_price;
+
+                        const diffBadge = document.getElementById(`row-price-diff-badge-${prodId}`);
+                        if (diffBadge) {
+                            diffBadge.classList.remove('hidden');
+                            if (p.price_diff < 0) {
+                                diffBadge.className = "text-[8px] font-black px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 mt-1 block";
+                                diffBadge.innerHTML = `<span>₹${p.old_assumed_price} &rarr; <strong>₹${p.new_solved_price}</strong> (-₹${Math.abs(p.price_diff)} 🎉)</span>`;
+                            } else if (p.price_diff > 0) {
+                                diffBadge.className = "text-[8px] font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 mt-1 block";
+                                diffBadge.innerHTML = `<span>₹${p.old_assumed_price} &rarr; <strong>₹${p.new_solved_price}</strong> (+₹${p.price_diff})</span>`;
+                            }
+                        }
+
+                        recalcTableRow(prodId);
+                    });
+
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '🎉 अमेज़न फ़ीस व सेलिंग भाव सिंक पूर्ण!',
+                            text: `सभी ${json.total_synced} प्रोडक्ट्स के लिए Amazon SP-API / Category Schedule से असली फ़ीस सिंक हो गई और नए पारदर्शी रेट्स सेट कर दिए गए!`,
+                            confirmButtonText: 'बहुत बढ़िया (Awesome)',
+                            confirmButtonColor: '#059669'
+                        });
+                    } else {
+                        showChannelToast(json.message);
+                    }
+                } else {
+                    showChannelToast('⚠️ सिंक विफल रहा।');
+                }
+            } catch (err) {
+                console.error(err);
+                showChannelToast('❌ सिंक नेटवर्क एरर।');
+            } finally {
+                if (btn) btn.disabled = false;
+                if (textSpan) textSpan.textContent = origHtml;
+            }
+        }
+
+        /**
+         * Apply Verified Solved Price to Amazon SP-API & Store
+         */
+        async function applyPriceToAmazonSpApi(prodId) {
+            const priceVal = parseFloat(document.getElementById(`row-price-${prodId}`)?.value) || 0;
+            const feePctVal = parseFloat(document.getElementById(`row-fee-${prodId}`)?.value) || 12;
+
+            if (priceVal <= 0) {
+                showChannelToast('⚠️ अमान्य सेलिंग भाव।');
+                return;
+            }
+
+            const btn = document.getElementById(`btn-apply-amz-${prodId}`);
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[8px]"></i> Push';
+
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            try {
+                const res = await fetch('/seller/channels/fee-service/apply-amazon-price', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token
+                    },
+                    body: JSON.stringify({
+                        product_id: prodId,
+                        solved_price: priceVal,
+                        effective_fee_pct: feePctVal
+                    })
+                });
+
+                const json = await res.json();
+                if (json.success) {
+                    showChannelToast(`🚀 भाव ₹${priceVal} Amazon SP-API के लिए सुरक्षित रूप से सेट हो गया!`);
+                    if (btn) {
+                        btn.className = "px-1.5 py-0.5 rounded bg-emerald-600 text-white border border-emerald-400 font-black text-[9px]";
+                        btn.innerHTML = '<i class="fa-solid fa-check mr-0.5"></i>Applied';
+                    }
+                } else {
+                    showChannelToast(json.message || '⚠️ लागू करने में त्रुटि।');
+                }
+            } catch (err) {
+                console.error(err);
+                showChannelToast('❌ नेटवर्क एरर।');
+            } finally {
+                setTimeout(() => {
+                    if (btn && !btn.innerHTML.includes('Applied')) btn.innerHTML = origHtml;
+                }, 1500);
+            }
+        }
+
+        /**
+         * 5-Platform Compare Modal Logic
+         */
+        let activeCompareProdId = null;
+
+        function openMultiChannelCompareModal(prodId = null) {
+            const modal = document.getElementById('multiChannelCompareModal');
+            if (!modal) return;
+
+            if (!prodId) {
+                const firstRow = document.querySelector('[id^="row-cost-"]');
+                if (firstRow) {
+                    prodId = firstRow.id.replace('row-cost-', '');
+                }
+            }
+
+            activeCompareProdId = prodId;
+            loadCompareModalData(prodId);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeMultiChannelCompareModal() {
+            const modal = document.getElementById('multiChannelCompareModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        async function loadCompareModalData(prodId) {
+            if (!prodId) {
+                recalcMultiChannelLiveFromModal();
+                return;
+            }
+
+            const cost = parseFloat(document.getElementById(`row-cost-${prodId}`)?.value) || 201;
+            const mrp = parseFloat(document.getElementById(`row-mrp-${prodId}`)?.value) || 550;
+            const margin = parseFloat(document.getElementById(`row-margin-${prodId}`)?.value) || 25;
+            const rto = parseFloat(document.getElementById(`row-rto-${prodId}`)?.value) || 20;
+            const pack = parseFloat(document.getElementById(`row-pack-${prodId}`)?.value) || 15;
+            const ship = parseFloat(document.getElementById(`row-ship-${prodId}`)?.value) || 55;
+            const ads = parseFloat(document.getElementById(`row-ads-${prodId}`)?.value) || 10;
+            const gst = parseFloat(document.getElementById(`row-gst-${prodId}`)?.value) || 18;
+            const weight = parseFloat(document.getElementById(`row-weight-${prodId}`)?.value) || 0.5;
+
+            if (document.getElementById('cmpInputCost')) document.getElementById('cmpInputCost').value = cost;
+            if (document.getElementById('cmpInputMrp')) document.getElementById('cmpInputMrp').value = mrp;
+            if (document.getElementById('cmpInputMargin')) document.getElementById('cmpInputMargin').value = margin;
+            if (document.getElementById('cmpInputCourier')) document.getElementById('cmpInputCourier').value = ship;
+            if (document.getElementById('cmpInputRto')) document.getElementById('cmpInputRto').value = rto;
+            if (document.getElementById('cmpInputPack')) document.getElementById('cmpInputPack').value = pack;
+            if (document.getElementById('cmpInputAds')) document.getElementById('cmpInputAds').value = ads;
+            if (document.getElementById('cmpInputGst')) document.getElementById('cmpInputGst').value = gst;
+
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            try {
+                const res = await fetch('/seller/channels/fee-service/multichannel-compare', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token
+                    },
+                    body: JSON.stringify({
+                        product_id: prodId,
+                        cost: cost,
+                        mrp: mrp,
+                        margin_pct: margin,
+                        rto: rto,
+                        packaging: pack,
+                        courier: ship,
+                        ads: ads,
+                        gst_rate: gst,
+                        weight_kg: weight
+                    })
+                });
+
+                const json = await res.json();
+                if (json.success && json.platforms) {
+                    renderCompareCards(json.platforms, json.cost, json.profit);
+                } else {
+                    recalcMultiChannelLiveFromModal();
+                }
+            } catch (err) {
+                console.error(err);
+                recalcMultiChannelLiveFromModal();
+            }
+        }
+
+        function renderCompareCards(plats, cost, profit) {
+            const container = document.getElementById('cmpCardsContainer');
+            if (!container) return;
+
+            let html = '';
+            const platOrder = ['amazon', 'meesho', 'flipkart', 'myntra', 'blinkit'];
+
+            platOrder.forEach(key => {
+                const p = plats[key];
+                if (!p) return;
+
+                let badgeBg = 'bg-amber-50 text-amber-900 border-amber-200';
+                let barColor = 'bg-amber-500';
+                if (key === 'meesho') { badgeBg = 'bg-pink-50 text-pink-900 border-pink-200'; barColor = 'bg-pink-500'; }
+                if (key === 'flipkart') { badgeBg = 'bg-blue-50 text-blue-900 border-blue-200'; barColor = 'bg-blue-600'; }
+                if (key === 'myntra') { badgeBg = 'bg-rose-50 text-rose-900 border-rose-200'; barColor = 'bg-rose-600'; }
+                if (key === 'blinkit') { badgeBg = 'bg-yellow-50 text-yellow-900 border-yellow-200'; barColor = 'bg-yellow-500'; }
+
+                html += `
+                <div class="rounded-2xl border ${badgeBg} p-4 flex flex-col justify-between shadow-sm relative overflow-hidden">
+                    <div class="h-1.5 w-full ${barColor} absolute top-0 left-0"></div>
+                    <div>
+                        <div class="flex items-center justify-between pb-2 border-b border-gray-200/50">
+                            <span class="font-black text-xs flex items-center gap-1.5">
+                                <i class="${p.icon}"></i>
+                                <span>${p.name}</span>
+                            </span>
+                            <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-white/80 border border-gray-200">
+                                ${p.fee_pct > 0 ? p.fee_pct + '% फ़ी' : '0% फ़ी 🎉'}
+                            </span>
+                        </div>
+
+                        <div class="my-3 text-center">
+                            <span class="text-[10px] text-gray-500 block font-bold uppercase">सुझावित सेलिंग भाव</span>
+                            <span class="text-2xl font-black font-mono text-gray-900">₹${p.price}</span>
+                            ${p.mrp_violation ? '<span class="text-[8px] font-bold text-rose-600 block mt-0.5">🚨 MRP उल्लंघन!</span>' : '<span class="text-[8px] font-bold text-emerald-700 block mt-0.5">✅ MRP सुरक्षित</span>'}
+                        </div>
+
+                        <div class="space-y-1.5 text-[11px] pt-2 border-t border-gray-200/50 font-mono">
+                            <div class="flex justify-between text-gray-600">
+                                <span>खरीद लागत:</span>
+                                <strong class="text-gray-900">₹${cost}</strong>
+                            </div>
+                            <div class="flex justify-between text-indigo-700">
+                                <span>शुद्ध मुनाफा:</span>
+                                <strong class="text-indigo-900 font-bold">+₹${profit}</strong>
+                            </div>
+                            <div class="flex justify-between text-gray-600">
+                                <span>कमीशन / फ़ी:</span>
+                                <strong class="text-gray-900">${p.fee_pct > 0 ? (p.fee_pct + '%') : '₹0.00'}</strong>
+                            </div>
+                            ${p.courier ? `<div class="flex justify-between text-gray-600"><span>कूरियर (+GST):</span><strong class="text-gray-900">₹${p.courier}</strong></div>` : ''}
+                            ${p.rto_buffer ? `<div class="flex justify-between text-rose-700"><span>RTO बफ़र:</span><strong>₹${p.rto_buffer}</strong></div>` : ''}
+                            ${p.fixed_fee ? `<div class="flex justify-between text-gray-600"><span>फ़िक्स फ़ी:</span><strong>₹${p.fixed_fee}</strong></div>` : ''}
+                            ${p.handling ? `<div class="flex justify-between text-gray-600"><span>डार्क स्टोर हैंडलिंग:</span><strong>₹${p.handling}</strong></div>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="mt-3 pt-2 border-t border-gray-200/50 text-center">
+                        <span class="text-[8px] text-gray-500 font-bold">शुद्ध बैंक पेआउट: ₹${Math.round(cost + profit)}</span>
+                    </div>
+                </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function recalcMultiChannelLiveFromModal() {
+            const cost = parseFloat(document.getElementById('cmpInputCost')?.value) || 200;
+            const mrp = parseFloat(document.getElementById('cmpInputMrp')?.value) || 0;
+            const margin = parseFloat(document.getElementById('cmpInputMargin')?.value) || 25;
+            const courier = parseFloat(document.getElementById('cmpInputCourier')?.value) || 55;
+            const rto = parseFloat(document.getElementById('cmpInputRto')?.value) || 20;
+            const pack = parseFloat(document.getElementById('cmpInputPack')?.value) || 15;
+            const ads = parseFloat(document.getElementById('cmpInputAds')?.value) || 10;
+            const gst = parseFloat(document.getElementById('cmpInputGst')?.value) || 18;
+
+            const g = gst / 100;
+            const cTax = cost / (1 + g);
+            const desiredProfit = Math.round(cost * (margin / 100));
+            const courierWithGst = courier * 1.18;
+
+            // Amazon
+            const fixedAmz = rto + pack + courierWithGst + ads;
+            const pAmz = Math.ceil((cTax + fixedAmz + desiredProfit) / Math.max(0.05, (1 / (1 + g)) - 0.12));
+
+            // Meesho (0% commission)
+            const fixedMsh = rto + pack + courierWithGst;
+            const pMsh = Math.ceil((cTax + fixedMsh + desiredProfit) * (1 + g));
+
+            // Flipkart
+            const fixedFk = rto + pack + courierWithGst + ads;
+            const pFk = Math.ceil((cTax + fixedFk + desiredProfit + 15) / Math.max(0.05, (1 / (1 + g)) - 0.115));
+
+            // Myntra
+            const fixedMyn = rto + pack + (courier * 1.3) + ads;
+            const pMyn = Math.ceil((cTax + fixedMyn + desiredProfit) / Math.max(0.05, (1 / (1 + g)) - 0.20));
+
+            // Blinkit
+            const fixedBlk = pack + 12 + 5;
+            const pBlk = Math.ceil((cTax + fixedBlk + desiredProfit) / Math.max(0.05, (1 / (1 + g)) - 0.16));
+
+            const simulatedPlats = {
+                amazon: { name: 'Amazon India', icon: 'fa-brands fa-amazon', fee_pct: 12.0, price: pAmz, mrp_violation: mrp > 0 && pAmz > mrp, courier: courierWithGst.toFixed(1) },
+                meesho: { name: 'Meesho Supplier', icon: 'fa-solid fa-cart-shopping', fee_pct: 0.0, price: pMsh, mrp_violation: mrp > 0 && pMsh > mrp, courier: courierWithGst.toFixed(1), rto_buffer: rto },
+                flipkart: { name: 'Flipkart Marketplace', icon: 'fa-solid fa-bolt', fee_pct: 11.5, fixed_fee: 15, price: pFk, mrp_violation: mrp > 0 && pFk > mrp, courier: courierWithGst.toFixed(1) },
+                myntra: { name: 'Myntra Partner', icon: 'fa-solid fa-bag-shopping', fee_pct: 20.0, price: pMyn, mrp_violation: mrp > 0 && pMyn > mrp, courier: (courier * 1.3).toFixed(1) },
+                blinkit: { name: 'Blinkit Quick-Commerce', icon: 'fa-solid fa-bolt text-amber-500', fee_pct: 16.0, handling: 12, price: pBlk, mrp_violation: mrp > 0 && pBlk > mrp }
+            };
+
+            renderCompareCards(simulatedPlats, cost, desiredProfit);
         }
     </script>

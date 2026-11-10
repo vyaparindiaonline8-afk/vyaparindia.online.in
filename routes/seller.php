@@ -138,6 +138,13 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/listing-content/bulk-generate', [ChannelController::class, 'bulkAiGenerateListingContent'])->name('bulk_ai_generate_listing_content');
         Route::post('/listing-content/bulk-apply', [ChannelController::class, 'bulkApplyListingContent'])->name('bulk_apply_listing_content');
         Route::post('/amazon-attributes/auto-fill', [ChannelController::class, 'autoFillAmazonAttributes'])->name('auto_fill_amazon_attributes');
+
+        // 💰 Dynamic Fee Engine & Multi-Channel Price Solver (Amazon SP-API, Meesho, Flipkart, Myntra, Blinkit)
+        Route::post('/fee-service/fetch-estimate', [ChannelController::class, 'fetchFeeEstimate'])->name('fetch_fee_estimate');
+        Route::post('/fee-service/solve-price', [ChannelController::class, 'solvePrice'])->name('solve_price');
+        Route::post('/fee-service/bulk-sync-amazon-fees', [ChannelController::class, 'bulkSyncAmazonFees'])->name('bulk_sync_amazon_fees');
+        Route::post('/fee-service/apply-amazon-price', [ChannelController::class, 'applyAmazonPrice'])->name('apply_amazon_price');
+        Route::post('/fee-service/multichannel-compare', [ChannelController::class, 'multichannelCompare'])->name('multichannel_compare');
     });
 
     // 🚚 Smart Shipping & Anti-RTO Routes

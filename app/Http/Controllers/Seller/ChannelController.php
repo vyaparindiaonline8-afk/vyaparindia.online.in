@@ -9,6 +9,9 @@ use App\Models\ChannelListing;
 use App\Models\Product;
 use App\Models\Category;
 use App\Services\AIProductService;
+use App\Services\AmazonFeeService;
+use App\Services\AmazonSpApiService;
+use App\Models\AmazonFeeCache;
 use App\Services\CloudinaryService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -2298,5 +2301,327 @@ class ChannelController extends Controller
         $defaultDiscount = (float)$request->input('discount', 0);
 
         return view('seller.calculator.index', compact('products', 'defaultCost', 'defaultMrp', 'defaultDiscount'));
+    }
+
+    // =========================================================================
+    // 💰 DYNAMIC MARKETPLACE FEE ENGINE & PRICE SOLVER ACTIONS
+    // =========================================================================
+
+    /**
+     * AJAX: Fetch Live / Cached Fee Estimate for a Product
+     */
+    public function fetchFeeEstimate(\Illuminate\Http\Request $request, \App\Services\AmazonFeeService $feeService)
+    {
+        $userId = \Illuminate\Support\Facades\Auth::id();
+        $productId = $request->input('product_id');
+        $product = \App\Models\Product::where('id', $productId)->where('user_id', $userId)->with('category')->first();
+
+        $price = (float)$request->input('price', $product ? $product->price : 499);
+        $sku = $request->input('sku', $product ? ($product->sku ?: 'SKU-' . $product->id) : 'SKU-001');
+        $weightKg = (float)$request->input('weight_kg', 0.5);
+        $marketplace = $request->input('marketplace', 'amazon');
+
+        $channel = \App\Models\Channel::where('user_id', $userId)->where('channel_name', $marketplace)->first();
+
+        $estimate = $feeService->getFeesEstimate(
+            $channel,
+            $sku,
+            $price,
+            $weightKg,
+            $product && $product->category ? $product->category->name : null,
+            'SKU',
+            $product
+        );
+
+        return response()->json([
+            'success' => true,
+            'marketplace' => $marketplace,
+            'product_id' => $productId,
+            'estimate' => $estimate,
+        ]);
+    }
+
+    /**
+     * AJAX: Solve Optimal Selling Price with Iterative Fixed-Point Loop
+     */
+    public function solvePrice(\Illuminate\Http\Request $request, \App\Services\AmazonFeeService $feeService)
+    {
+        $userId = \Illuminate\Support\Facades\Auth::id();
+        $productId = $request->input('product_id');
+        $product = $productId ? \App\Models\Product::where('id', $productId)->where('user_id', $userId)->with('category')->first() : null;
+
+        $marketplace = $request->input('marketplace', 'amazon');
+        $channel = \App\Models\Channel::where('user_id', $userId)->where('channel_name', $marketplace)->first();
+
+        $params = [
+            'product_id' => $productId,
+            'sku' => $request->input('sku', $product ? ($product->sku ?: 'SKU-' . $product->id) : 'SKU-001'),
+            'cost' => (float)$request->input('cost', $product ? ($product->purchase_price ?: 200) : 200),
+            'mrp' => (float)$request->input('mrp', $product ? ($product->box_mrp ?: ($product->mrp ?: 0)) : 0),
+            'gst_rate' => (float)$request->input('gst_rate', $product ? ($product->gst_percent ?: 18) : 18),
+            'margin_pct' => (float)$request->input('margin_pct', 25),
+            'rto' => (float)$request->input('rto', 20),
+            'packaging' => (float)$request->input('packaging', 15),
+            'courier' => (float)$request->input('courier', 55),
+            'ads' => (float)$request->input('ads', 10),
+            'others' => (float)$request->input('others', 0),
+            'weight_kg' => (float)$request->input('weight_kg', 0.5),
+            'category' => $product && $product->category ? $product->category->name : null,
+            'channel' => $channel,
+        ];
+
+        if ($marketplace === 'meesho') {
+            $result = $feeService->solveMeeshoPrice($params);
+        } elseif ($marketplace === 'flipkart') {
+            $result = $feeService->solveFlipkartPrice($params);
+        } elseif ($marketplace === 'myntra') {
+            $result = $feeService->solveMyntraPrice($params);
+        } elseif ($marketplace === 'blinkit') {
+            $result = $feeService->solveBlinkitPrice($params);
+        } else {
+            $result = $feeService->solveOptimalSellingPrice($params);
+        }
+
+        return response()->json([
+            'success' => true,
+            'marketplace' => $marketplace,
+            'data' => $result,
+        ]);
+    }
+
+    /**
+     * AJAX: Sync & Solve Amazon Fees for All Staged Products
+     */
+    public function bulkSyncAmazonFees(\Illuminate\Http\Request $request, \App\Services\AmazonFeeService $feeService)
+    {
+        $userId = \Illuminate\Support\Facades\Auth::id();
+        $channel = \App\Models\Channel::where('user_id', $userId)->where('channel_name', 'amazon')->first();
+
+        // Get staged products
+        $channelSelectedProductIds = \App\Models\ChannelListing::whereHas('channel', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        })->pluck('product_id')->unique()->toArray();
+
+        $stagedAttrProductIds = \App\Models\Product::where('user_id', $userId)
+            ->whereJsonContains('attributes->channel_staged', true)
+            ->pluck('id')
+            ->toArray();
+
+        $allPendingIds = array_unique(array_merge($channelSelectedProductIds, $stagedAttrProductIds));
+
+        $products = \App\Models\Product::where('user_id', $userId)
+            ->whereIn('id', $allPendingIds)
+            ->with(['category'])
+            ->get();
+
+        $results = [];
+        $totalAdjusted = 0;
+
+        foreach ($products as $prod) {
+            $ue = $prod->attributes['unit_economics'] ?? [];
+            $cost = (float)($prod->purchase_price ?: ($ue['purchase_cost'] ?? 200));
+            $mrp = (float)($prod->box_mrp ?: ($prod->mrp ?: 0));
+            $marginPct = (float)($ue['margin_pct'] ?? 25);
+            $rto = (float)($ue['rto_buffer'] ?? 20);
+            $pack = (float)($ue['packaging'] ?? 15);
+            $ship = (float)($ue['shipping'] ?? 55);
+            $ads = (float)($ue['ads'] ?? 10);
+            $others = (float)($ue['others'] ?? 0);
+            $weightKg = (float)($ue['weight_kg'] ?? 0.5);
+
+            $params = [
+                'product_id' => $prod->id,
+                'sku' => $prod->sku ?: 'SKU-' . $prod->id,
+                'cost' => $cost,
+                'mrp' => $mrp,
+                'gst_rate' => (float)($prod->gst_percent ?: 18),
+                'margin_pct' => $marginPct,
+                'rto' => $rto,
+                'packaging' => $pack,
+                'courier' => $ship,
+                'ads' => $ads,
+                'others' => $others,
+                'weight_kg' => $weightKg,
+                'category' => $prod->category ? $prod->category->name : null,
+                'channel' => $channel,
+            ];
+
+            $solved = $feeService->solveOptimalSellingPrice($params);
+
+            // Persist solved fee & rate in product attributes
+            $attrs = $prod->attributes ?? [];
+            $ue['fee_estimate'] = $solved;
+            $ue['actual_fee_pct'] = $solved['effective_fee_pct'];
+            $ue['solved_amazon_price'] = $solved['solved_price'];
+            $attrs['unit_economics'] = $ue;
+            $prod->attributes = $attrs;
+            $prod->save();
+
+            $results[] = [
+                'product_id' => $prod->id,
+                'name' => $prod->name,
+                'sku' => $prod->sku ?: 'SKU-' . $prod->id,
+                'old_assumed_price' => $solved['p0_assumed'],
+                'new_solved_price' => $solved['solved_price'],
+                'price_diff' => $solved['price_diff'],
+                'effective_fee_pct' => $solved['effective_fee_pct'],
+                'fee_status' => $solved['fee_status'],
+                'mrp_violation' => $solved['mrp_violation'],
+            ];
+            $totalAdjusted++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'total_synced' => $totalAdjusted,
+            'products' => $results,
+            'message' => "सफलतापूर्वक {$totalAdjusted} प्रोडक्ट्स के लिए अमेज़न असली फ़ीस सिंक व सेलिंग रेट्स सॉल्व कर लिए गए!",
+        ]);
+    }
+
+    /**
+     * AJAX: Apply Solved Amazon Price to Store & Push to SP-API
+     */
+    public function applyAmazonPrice(\Illuminate\Http\Request $request, \App\Services\AmazonSpApiService $spApiService)
+    {
+        $userId = \Illuminate\Support\Facades\Auth::id();
+        $productId = $request->input('product_id');
+        $product = \App\Models\Product::where('id', $productId)->where('user_id', $userId)->firstOrFail();
+
+        $solvedPrice = (float)$request->input('solved_price');
+        if ($solvedPrice <= 0) {
+            return response()->json(['success' => false, 'message' => 'अमान्य सेलिंग प्राइस।'], 422);
+        }
+
+        $effectiveFeePct = (float)$request->input('effective_fee_pct', 12);
+
+        // Update product price & attributes
+        $product->price = $solvedPrice;
+        $attrs = $product->attributes ?? [];
+        $ue = $attrs['unit_economics'] ?? [];
+        $ue['marketplace_price'] = $solvedPrice;
+        $ue['platform_fee_pct'] = $effectiveFeePct;
+        $attrs['unit_economics'] = $ue;
+        $product->attributes = $attrs;
+        $product->save();
+
+        // Update channel listing
+        $channel = \App\Models\Channel::where('user_id', $userId)->where('channel_name', 'amazon')->first();
+        if ($channel) {
+            \App\Models\ChannelListing::updateOrCreate(
+                ['channel_id' => $channel->id, 'product_id' => $product->id],
+                [
+                    'channel_price' => $solvedPrice,
+                    'synced_stock' => $product->stock_quantity ?? 50,
+                    'last_synced_at' => now(),
+                ]
+            );
+
+            // Attempt SP-API publish if credentials are present
+            if (!empty($channel->api_key) && !empty($channel->access_token)) {
+                $publishRes = $spApiService->publishProduct($channel, $product);
+                return response()->json([
+                    'success' => true,
+                    'price' => $solvedPrice,
+                    'sp_api' => $publishRes,
+                    'message' => "✅ नया रेट ₹{$solvedPrice} लागू किया गया और Amazon SP-API पर अपडेट भेज दिया गया! (" . ($publishRes['message'] ?? 'स्वीकृत') . ")",
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'price' => $solvedPrice,
+            'message' => "✅ नया रेट ₹{$solvedPrice} पोर्टल में सफलतापूर्वक लागू हो गया! (Amazon SP-API पब्लिश के लिए तैयार)",
+        ]);
+    }
+
+    /**
+     * AJAX: Side-by-Side Comparison of Rates Across Amazon, Meesho, Flipkart, Myntra, Blinkit
+     */
+    public function multichannelCompare(\Illuminate\Http\Request $request, \App\Services\AmazonFeeService $feeService)
+    {
+        $userId = \Illuminate\Support\Facades\Auth::id();
+        $productId = $request->input('product_id');
+        $product = $productId ? \App\Models\Product::where('id', $productId)->where('user_id', $userId)->with('category')->first() : null;
+
+        $params = [
+            'product_id' => $productId,
+            'sku' => $request->input('sku', $product ? ($product->sku ?: 'SKU-' . $product->id) : 'SKU-001'),
+            'cost' => (float)$request->input('cost', $product ? ($product->purchase_price ?: 200) : 200),
+            'mrp' => (float)$request->input('mrp', $product ? ($product->box_mrp ?: ($product->mrp ?: 0)) : 0),
+            'gst_rate' => (float)$request->input('gst_rate', $product ? ($product->gst_percent ?: 18) : 18),
+            'margin_pct' => (float)$request->input('margin_pct', 25),
+            'rto' => (float)$request->input('rto', 20),
+            'packaging' => (float)$request->input('packaging', 15),
+            'courier' => (float)$request->input('courier', 55),
+            'ads' => (float)$request->input('ads', 10),
+            'others' => (float)$request->input('others', 0),
+            'weight_kg' => (float)$request->input('weight_kg', 0.5),
+            'category' => $product && $product->category ? $product->category->name : null,
+        ];
+
+        $amz = $feeService->solveOptimalSellingPrice($params);
+        $msh = $feeService->solveMeeshoPrice($params);
+        $fk = $feeService->solveFlipkartPrice($params);
+        $myn = $feeService->solveMyntraPrice($params);
+        $blk = $feeService->solveBlinkitPrice($params);
+
+        return response()->json([
+            'success' => true,
+            'product_name' => $product ? $product->name : 'कस्टम प्रोडक्ट',
+            'cost' => $params['cost'],
+            'profit' => round($params['cost'] * ($params['margin_pct'] / 100), 2),
+            'platforms' => [
+                'amazon' => [
+                    'name' => 'Amazon India',
+                    'icon' => 'fa-brands fa-amazon',
+                    'color' => 'amber',
+                    'price' => $amz['solved_price'],
+                    'fee_pct' => $amz['effective_fee_pct'],
+                    'fee_breakdown' => $amz['fees_breakdown'],
+                    'fee_status' => $amz['fee_status'],
+                    'mrp_violation' => $amz['mrp_violation'],
+                ],
+                'meesho' => [
+                    'name' => 'Meesho Supplier',
+                    'icon' => 'fa-solid fa-cart-shopping',
+                    'color' => 'pink',
+                    'price' => $msh['solved_price'],
+                    'fee_pct' => 0.0,
+                    'courier' => $msh['courier_with_gst'],
+                    'rto_buffer' => $msh['rto_buffer'],
+                    'mrp_violation' => $msh['mrp_violation'],
+                ],
+                'flipkart' => [
+                    'name' => 'Flipkart Marketplace',
+                    'icon' => 'fa-solid fa-bolt',
+                    'color' => 'blue',
+                    'price' => $fk['solved_price'],
+                    'fee_pct' => $fk['commission_pct'] + $fk['collection_fee_pct'],
+                    'fixed_fee' => $fk['fixed_fee'],
+                    'courier' => $fk['courier_with_gst'],
+                    'mrp_violation' => $fk['mrp_violation'],
+                ],
+                'myntra' => [
+                    'name' => 'Myntra Partner',
+                    'icon' => 'fa-solid fa-bag-shopping',
+                    'color' => 'rose',
+                    'price' => $myn['solved_price'],
+                    'fee_pct' => $myn['commission_pct'],
+                    'courier' => $myn['courier_with_gst'],
+                    'mrp_violation' => $myn['mrp_violation'],
+                ],
+                'blinkit' => [
+                    'name' => 'Blinkit Quick-Commerce',
+                    'icon' => 'fa-solid fa-bolt text-amber-500',
+                    'color' => 'yellow',
+                    'price' => $blk['solved_price'],
+                    'fee_pct' => $blk['margin_take_pct'],
+                    'handling' => $blk['dark_store_handling'],
+                    'mrp_violation' => $blk['mrp_violation'],
+                ],
+            ]
+        ]);
     }
 }
