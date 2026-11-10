@@ -320,6 +320,12 @@ class AIProductService
         $isUpvc = preg_match('/upvc/i', $pLower);
         $isPtmt = preg_match('/ptmt|polymer|plastic/i', $pLower) || (!$isBrass && !$isCpvc && !$isUpvc && ($isBibcock || $isSinkCock));
 
+        // 🏷️ Auto-Inject Missing Material into Title (e.g. "Bib Cock" -> "PTMT Bib Cock")
+        $matPrefix = $isBrass ? 'Brass' : ($isPtmt ? 'PTMT' : ($isCpvc ? 'CPVC' : ($isUpvc ? 'UPVC' : '')));
+        if (!empty($matPrefix) && stripos($uc, $matPrefix) === false) {
+            $uc = "{$matPrefix} {$uc}";
+        }
+
         if ($isBibcock) {
             $matLabel = $isBrass ? 'Heavy Forged Brass' : '100% Virgin Food-Grade PTMT Polymer';
             $title = "Heavy Duty {$uc} ({$sizeStr}) with Wall Flange - Unbreakable Leak-Proof Faucet for Bathroom, Kitchen & Garden";
