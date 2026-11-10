@@ -33,6 +33,62 @@
                 wrapper.scrollTo({ left: wrapper.scrollWidth || 3000, behavior: 'smooth' });
             }
         }
+
+        // --- 📁 MASTER EXPENSES COMPACT / COLLAPSE MODE (USER'S SAMETNE WALA ENGINE) ---
+        let isTableCompactMode = false;
+
+        function toggleCompactTableMode() {
+            isTableCompactMode = !isTableCompactMode;
+
+            const detailExpCols = document.querySelectorAll('.col-expense-detail');
+            const detailCostCols = document.querySelectorAll('.col-cost-detail');
+            const summaryExpCols = document.querySelectorAll('.col-expense-summary');
+            const btnText = document.getElementById('btnCompactText');
+            const btnIcon = document.getElementById('btnCompactIcon');
+            const btn = document.getElementById('btnCompactTableMode');
+
+            if (isTableCompactMode) {
+                // HIDE all 8 individual expense columns and cost extras
+                detailExpCols.forEach(el => el.classList.add('hidden'));
+                detailCostCols.forEach(el => el.classList.add('hidden'));
+                
+                // SHOW the 1 single combined summary expense column
+                summaryExpCols.forEach(el => el.classList.remove('hidden'));
+
+                if (btnText) btnText.textContent = '📂 सारे 8 खर्चे अलग-अलग खोलें (Expand View)';
+                if (btnIcon) {
+                    btnIcon.classList.remove('fa-compress');
+                    btnIcon.classList.add('fa-expand');
+                }
+                if (btn) {
+                    btn.classList.remove('from-purple-600', 'to-indigo-600');
+                    btn.classList.add('from-emerald-600', 'to-teal-600');
+                }
+
+                // Smoothly scroll table to start
+                scrollTableToStart();
+                showChannelToast('📁 सारे खर्चे 1 ही बॉक्स में समेट दिए गए! अब पूरी टेबल स्क्रीन पर साफ़ दिखेगी।');
+            } else {
+                // SHOW all 8 individual expense columns
+                detailExpCols.forEach(el => el.classList.remove('hidden'));
+                detailCostCols.forEach(el => el.classList.remove('hidden'));
+
+                // HIDE the summary expense column
+                summaryExpCols.forEach(el => el.classList.add('hidden'));
+
+                if (btnText) btnText.textContent = '📁 सारे खर्चे 1 बॉक्स में समेटें (Compact View)';
+                if (btnIcon) {
+                    btnIcon.classList.remove('fa-expand');
+                    btnIcon.classList.add('fa-compress');
+                }
+                if (btn) {
+                    btn.classList.remove('from-emerald-600', 'to-teal-600');
+                    btn.classList.add('from-purple-600', 'to-indigo-600');
+                }
+
+                showChannelToast('📂 सारे 8 खर्चे अलग-अलग बॉक्स में खुल गए!');
+            }
+        }
 </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -1439,6 +1495,13 @@
                     <div id="pendingTableContainer" class="mt-4 space-y-3">
                         <!-- ↔️ Table Screen Column Navigation Toolbar (Left & Right Screen Scroll) -->
                         <div class="bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 text-white p-3 rounded-2xl shadow-md flex items-center justify-between flex-wrap gap-2.5 text-xs">
+                            <!-- 📁 Master Box Collapser / Expander Button (User's Sametne Wala Button) -->
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="toggleCompactTableMode()" id="btnCompactTableMode" class="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95 border border-purple-400/40" title="क्लिक करें: सारे 8 खर्चे (कूरियर, RTO, पैकिंग, कमीशन, ऐड्स) एक ही बॉक्स में समेटें">
+                                    <i class="fa-solid fa-compress" id="btnCompactIcon"></i>
+                                    <span id="btnCompactText">📁 सारे खर्चे 1 बॉक्स में समेटें (Compact View)</span>
+                                </button>
+                            </div>
                             <div class="flex items-center gap-2">
                                 <button type="button" onclick="scrollTableHorizontally(-450)" class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/25 text-white font-black transition flex items-center gap-1.5 border border-white/20 active:scale-95 cursor-pointer shadow-2xs" title="स्क्रीन को बाएँ सरकाएं (Left Columns: फ़ोटो, नाम, स्टॉक, खरीद)">
                                     <i class="fa-solid fa-arrow-left text-amber-300"></i>
@@ -1482,18 +1545,22 @@
                                     <th class="p-3 min-w-[170px]">प्रोडक्ट का नाम & SKU</th>
                                     <th class="p-3 min-w-[70px] text-center font-mono text-gray-500">ID</th>
                                     <th class="p-3 min-w-[90px] bg-emerald-50 text-emerald-950 font-black text-center" title="उपलब्ध इन्वेंट्री / स्टॉक की संख्या">📦 स्टॉक (Qty)</th>
-                                    <th class="p-3 min-w-[110px] bg-amber-50 text-amber-950 font-black" title="कंपनी कैटलॉग की प्राइस लिस्ट (List Price)">प्राइस लिस्ट (Price List ₹)</th>
-                                    <th class="p-3 min-w-[75px] bg-amber-50 text-amber-950 font-black">Less %</th>
+                                    <th class="p-3 min-w-[110px] bg-amber-50 text-amber-950 font-black col-cost-detail" title="कंपनी कैटलॉग की प्राइस लिस्ट (List Price)">प्राइस लिस्ट (Price List ₹)</th>
+                                    <th class="p-3 min-w-[75px] bg-amber-50 text-amber-950 font-black col-cost-detail">Less %</th>
                                     <th class="p-3 min-w-[105px] bg-slate-50 text-slate-900 font-extrabold" title="आपकी खरीद लागत (GST सहित)">खरीद लागत (With GST ₹)</th>
-                                    <th class="p-3 min-w-[115px] bg-blue-50 text-blue-950 font-black" title="अमेज़न 1 पीस बिक्री दर (Selling Price 1)">सेलिंग भाव 1 (Amz सिंगल ₹)</th>
-                                    <th class="p-3 min-w-[90px] bg-indigo-50 text-indigo-950 font-black" title="मार्केटप्लेस के लिए आपका मनपसंद मुनाफा %">मार्जिन (%)</th>
-                                    <th class="p-3 min-w-[95px] bg-rose-50 text-rose-950 font-black" title="रिटर्न/RTO नुकसान से सुरक्षा (₹ या %)">🔄 रिटर्न बफ़र (₹/%)</th>
-                                    <th class="p-3 min-w-[80px]">पैकिंग (₹)</th>
-                                    <th class="p-3 min-w-[110px] bg-sky-50 text-sky-950 font-black" title="प्रोडक्ट का वजन (kg) व कूरियर दर">वजन & कूरियर (₹+GST)</th>
-                                    <th class="p-3 min-w-[100px] bg-purple-50 text-purple-950 font-black">कमीशन फ़ी (%+GST)</th>
-                                    <th class="p-3 min-w-[80px]">ऐड्स (₹)</th>
-                                    <th class="p-3 min-w-[75px] bg-purple-50 text-purple-950 font-black">HSN कोड</th>
-                                    <th class="p-3 min-w-[75px] bg-purple-50 text-purple-950 font-black">GST %</th>
+                                    <th class="p-3 min-w-[115px] bg-blue-50 text-blue-950 font-black col-cost-detail" title="अमेज़न 1 पीस बिक्री दर (Selling Price 1)">सेलिंग भाव 1 (Amz सिंगल ₹)</th>
+                                    <!-- 📁 SUMMARY EXPENSES COLUMN (Visible when Compact Mode is Active) -->
+                                    <th class="p-3 min-w-[140px] bg-gradient-to-r from-purple-100 to-indigo-100 text-indigo-950 font-black text-center col-expense-summary hidden" title="कूरियर + RTO + पैकिंग + कमीशन + ऐड्स सब 1 ही बॉक्स में समेटा हुआ">
+                                        📁 कुल खर्चे (1 बॉक्स ₹)
+                                    </th>
+                                    <th class="p-3 min-w-[90px] bg-indigo-50 text-indigo-950 font-black col-expense-detail" title="मार्केटप्लेस के लिए आपका मनपसंद मुनाफा %">मार्जिन (%)</th>
+                                    <th class="p-3 min-w-[95px] bg-rose-50 text-rose-950 font-black col-expense-detail" title="रिटर्न/RTO नुकसान से सुरक्षा (₹ या %)">🔄 रिटर्न बफ़र (₹/%)</th>
+                                    <th class="p-3 min-w-[80px] col-expense-detail">पैकिंग (₹)</th>
+                                    <th class="p-3 min-w-[110px] bg-sky-50 text-sky-950 font-black col-expense-detail" title="प्रोडक्ट का वजन (kg) व कूरियर दर">वजन & कूरियर (₹+GST)</th>
+                                    <th class="p-3 min-w-[100px] bg-purple-50 text-purple-950 font-black col-expense-detail">कमीशन फ़ी (%+GST)</th>
+                                    <th class="p-3 min-w-[80px] col-expense-detail">ऐड्स (₹)</th>
+                                    <th class="p-3 min-w-[75px] bg-purple-50 text-purple-950 font-black col-expense-detail">HSN कोड</th>
+                                    <th class="p-3 min-w-[75px] bg-purple-50 text-purple-950 font-black col-expense-detail">GST %</th>
                                     <th class="p-3 min-w-[120px] bg-amber-50 text-amber-950 font-black">फाइनल सेलिंग (₹)</th>
                                     <th class="p-3 min-w-[130px] text-center">2 / 4 / 6 पीस कॉम्बो</th>
                                     <th class="p-3 min-w-[110px]" title="कस्टम बारकोड, रैक नंबर या आंतरिक नोट">बारकोड / नोट</th>
@@ -1598,7 +1665,7 @@
                                         </td>
 
                                         <!-- MRP & Less % -->
-                                        <td class="p-2 bg-amber-50/40 text-center">
+                                        <td class="p-2 bg-amber-50/40 text-center col-cost-detail">
                                             <div class="inline-flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-amber-300 shadow-2xs">
                                                 <span class="text-[10px] text-amber-700 font-black">₹</span>
                                                 <input type="number" step="any" min="0" 
@@ -1611,7 +1678,7 @@
                                                     placeholder="MRP">
                                             </div>
                                         </td>
-                                        <td class="p-2 bg-amber-50/40 text-center">
+                                        <td class="p-2 bg-amber-50/40 text-center col-cost-detail">
                                             <div class="inline-flex items-center gap-0.5">
                                                 <input type="number" step="0.5" min="0" max="99" 
                                                     id="row-less-{{ $p->id }}" 
@@ -1633,14 +1700,26 @@
                                         </td>
 
                                         <!-- 1.2 Store / App Original Selling Price (Non-destructive Reference) -->
-                                        <td class="p-2 bg-blue-50/40 text-center">
+                                        <td class="p-2 bg-blue-50/40 text-center col-cost-detail">
                                             <span id="row-store-price-{{ $p->id }}" class="inline-block px-2.5 py-1 bg-white border border-blue-200 rounded-lg font-mono font-black text-xs text-blue-900 shadow-2xs" title="दुकान / ऑनलाइन बिक्री भाव">
                                                 ₹{{ number_format($p->price, 2) }}
                                             </span>
                                         </td>
 
+                                        <!-- 📁 COMBINED SUMMARY EXPENSES TD (Visible in Compact Mode - User's Sametne Wala Box) -->
+                                        <td class="p-2 text-center col-expense-summary hidden">
+                                            <div class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-2 border-indigo-300 p-2 rounded-2xl text-center cursor-pointer hover:bg-indigo-100 hover:scale-105 transition shadow-sm" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" title="क्लिक करें: सारे 8 खर्चे पॉपअप में खोलें व बदलें">
+                                                <div class="text-[9px] text-indigo-700 font-black uppercase tracking-tight flex items-center justify-center gap-1">
+                                                    <i class="fa-solid fa-receipt text-[8px]"></i>
+                                                    <span>कुल खर्चे (8 मदें)</span>
+                                                </div>
+                                                <div class="text-sm font-black text-indigo-950 font-mono mt-0.5" id="row-total-exp-{{ $p->id }}">₹0.00</div>
+                                                <div class="text-[8px] text-purple-700 font-bold truncate mt-0.5" id="row-exp-break-{{ $p->id }}">कूरियर+RTO+पैक+फ़ी</div>
+                                            </div>
+                                        </td>
+
                                         <!-- 1.5 Your Profit Margin (%) -->
-                                        <td class="p-2 bg-indigo-50/40">
+                                        <td class="p-2 bg-indigo-50/40 col-expense-detail">
                                             <div class="flex items-center gap-1">
                                                 <div class="relative">
                                                     <input type="number" id="row-margin-{{ $p->id }}" value="{{ (float)($ue['margin_pct'] ?? 25) }}" oninput="syncMarginToPreset({{ $p->id }})" class="w-16 pl-2 pr-4 py-1 bg-white border border-indigo-300 rounded-lg text-xs font-mono font-black text-indigo-800 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-300 focus:outline-none" title="मार्जिन % लिखें">
@@ -1656,7 +1735,7 @@
                                         </td>
 
                                         <!-- 1.8 Return / RTO Buffer (₹ or %) -->
-                                        <td class="p-2 bg-rose-50/40">
+                                        <td class="p-2 bg-rose-50/40 col-expense-detail">
                                             <div class="flex items-center gap-1">
                                                 <input type="number" id="row-rto-{{ $p->id }}" value="{{ (float)($ue['rto_buffer'] ?? 20) }}" oninput="recalcTableRow({{ $p->id }})" class="w-12 px-1 py-1 bg-white border border-rose-300 rounded-lg text-xs font-mono font-bold text-rose-700 text-center focus:border-rose-500 focus:outline-none" title="रिटर्न/RTO नुकसान बफ़र">
                                                 <select id="row-rto-mode-{{ $p->id }}" onchange="recalcTableRow({{ $p->id }})" class="text-[10px] font-black bg-white border border-rose-200 text-rose-800 rounded px-1 py-1 outline-none cursor-pointer" title="RTO फिक्स ₹ में या खरीद लागत के % में">
@@ -1670,7 +1749,7 @@
                                         </td>
 
                                         <!-- 2. Packaging (₹) -->
-                                        <td class="p-2">
+                                        <td class="p-2 col-expense-detail">
                                             <input type="number" id="row-pack-{{ $p->id }}" value="{{ $packCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 px-1.5 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono text-center text-gray-800 focus:border-indigo-500 focus:outline-none">
                                             <div class="flex items-center gap-0.5 mt-0.5 justify-center">
                                                 <button type="button" onclick="setRowPack({{ $p->id }}, 5)" class="px-1 py-0.2 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[8px] font-bold transition cursor-pointer" title="₹5 पैकिंग">₹5</button>
@@ -1680,7 +1759,7 @@
                                         </td>
 
                                         <!-- 3. Courier / Shipping (₹) + Weight (kg) -->
-                                        <td class="p-2 bg-sky-50/30">
+                                        <td class="p-2 bg-sky-50/30 col-expense-detail">
                                             <div class="flex items-center gap-1 mb-1 justify-center">
                                                 <span class="text-[9px] text-slate-500 font-bold" title="प्रोडक्ट का शुद्ध वजन (kg)">⚖️</span>
                                                 <input type="number" step="0.05" min="0.01" max="50" id="row-weight-{{ $p->id }}" value="{{ (float)($ue['weight_kg'] ?? 0.35) }}" oninput="onProductWeightChange({{ $p->id }})" class="w-14 px-1 py-0.5 bg-white border border-sky-300 rounded text-center text-[10px] font-mono font-black text-sky-950 focus:border-sky-500 focus:outline-none" title="वजन डालें (उदा. 0.35kg, 0.5kg, 1.2kg) - सभी प्लेटफ़ॉर्म्स के कूरियर रेट्स अपने-आप बदलेंगे">
@@ -1701,7 +1780,7 @@
                                         </td>
 
                                         <!-- 4. Marketplace Platform Fee (%) -->
-                                        <td class="p-2 bg-purple-50/20">
+                                        <td class="p-2 bg-purple-50/20 col-expense-detail">
                                             <div class="flex items-center gap-1">
                                                 <div class="relative">
                                                     <input type="number" id="row-fee-{{ $p->id }}" value="{{ $feePct }}" oninput="recalcTableRow({{ $p->id }})" class="w-14 pl-1.5 pr-3 py-1 bg-white border border-purple-200 rounded-lg text-xs font-mono font-bold text-purple-900 focus:border-purple-500 focus:outline-none">
@@ -1718,7 +1797,7 @@
                                         </td>
 
                                         <!-- 5. Ads & Marketing (₹) -->
-                                        <td class="p-2">
+                                        <td class="p-2 col-expense-detail">
                                             <input type="number" id="row-ads-{{ $p->id }}" value="{{ $adsCost }}" oninput="recalcTableRow({{ $p->id }})" class="w-16 px-1.5 py-1 bg-white border border-gray-200 rounded-lg text-xs font-mono text-center text-gray-800 focus:border-indigo-500 focus:outline-none">
                                             <div class="flex items-center gap-0.5 mt-0.5 justify-center">
                                                 <button type="button" onclick="setRowAds({{ $p->id }}, 0)" class="px-1 py-0.2 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[8px] font-bold transition cursor-pointer" title="₹0 ऐड्स">₹0</button>
@@ -1728,12 +1807,12 @@
                                         </td>
 
                                         <!-- HSN Code (Towards end before Selling Price) -->
-                                        <td class="p-2 bg-purple-50/30">
+                                        <td class="p-2 bg-purple-50/30 col-expense-detail">
                                             <input type="text" id="row-hsn-{{ $p->id }}" value="{{ $p->hsn_code ?: '6204' }}" class="w-16 px-1.5 py-1 bg-white border border-purple-200 rounded-lg text-xs font-mono font-bold text-gray-800 focus:border-purple-500 focus:outline-none" placeholder="HSN">
                                         </td>
 
                                         <!-- GST % (Towards end before Selling Price) -->
-                                        <td class="p-2 bg-purple-50/30">
+                                        <td class="p-2 bg-purple-50/30 col-expense-detail">
                                             <select id="row-gst-{{ $p->id }}" onchange="recalcTableRow({{ $p->id }})" class="w-16 px-1 py-1 bg-white border border-purple-200 rounded-lg text-xs font-mono font-bold text-gray-800 focus:border-purple-500 focus:outline-none">
                                                 <option value="18" {{ (!isset($p->gst_percent) || $p->gst_percent == 18) ? 'selected' : '' }}>18%</option>
                                                 <option value="12" {{ ($p->gst_percent == 12) ? 'selected' : '' }}>12%</option>
@@ -4461,6 +4540,13 @@ function switchMarketplaceTab(tab) {
                 if (rC6.tagName === 'INPUT') rC6.value = c6;
                 else rC6.textContent = `6P: ₹${c6}`;
             }
+
+            // Populate Combined Summary Expense Box for Compact Mode
+            const totalExpVal = Math.round(fixedExp + (finalRate * (feePct / 100) * 1.18));
+            const expTotalSpan = document.getElementById(`row-total-exp-${prodId}`);
+            if (expTotalSpan) expTotalSpan.textContent = `₹${totalExpVal}`;
+            const expBreakSpan = document.getElementById(`row-exp-break-${prodId}`);
+            if (expBreakSpan) expBreakSpan.textContent = `कूरियर ₹${Math.round(actualShipCost)} + RTO ₹${rto} + पैक ₹${pack}`;
 
             // 🔄 Platform-wise prices (Amazon 12% fee + GST vs Meesho 0% fee)
             const denomAmz = Math.max(0.05, (1 / (1 + g)) - 0.12);
