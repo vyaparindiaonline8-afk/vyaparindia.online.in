@@ -1056,14 +1056,14 @@
                                 if ($imgCount === 0 && !empty($p->image)) $imgCount = 1;
                                 $ue = $p->attributes['unit_economics'] ?? [];
                                 $pCost = (float)($ue['purchase_cost'] ?? $p->purchase_price ?? 0);
-                                $mrpVal = (float)($p->mrp ?: ($p->variants->where('mrp', '>', 0)->min('mrp') ?: $p->price));
+                                $mrpVal = (float)($p->mrp ?: ($p->variants->where('mrp', '>', 0)->min('mrp') ?: 0));
                                 $lessVal = ($p->trade_discount_percent !== null && (float)$p->trade_discount_percent > 0)
                                     ? (float)$p->trade_discount_percent
                                     : ($p->variants->where('trade_discount_percent', '>', 0)->max('trade_discount_percent') ?: ($ue['trade_discount_percent'] ?? ''));
                                 $marginPct = (float)($ue['margin_pct'] ?? 25);
                                 $rtoBuffer = (float)($ue['rto_buffer'] ?? 20);
                                 $packCost = (float)($ue['packaging'] ?? 15);
-                                $shipCost = (float)($ue['shipping'] ?? 45);
+                                $shipCost = (float)($ue['shipping'] ?? 55);
                                 $feePct = (float)($ue['platform_fee_pct'] ?? 12);
                                 $adsCost = (float)($ue['ads'] ?? 10);
                                 $otherCost = (float)($ue['others'] ?? 5);
@@ -1342,7 +1342,7 @@
                                 <div class="flex items-center justify-between text-[10px] text-gray-500 px-1">
                                     <div class="inline-flex items-center gap-1.5 bg-emerald-50 px-2 py-0.5 rounded-xl border border-emerald-200 shadow-2xs">
                                         <span class="text-[10px] text-emerald-950 font-bold">📦 स्टॉक:</span>
-                                        <input type="number" min="0" id="card-stock-inp-{{ $p->id }}" value="{{ $p->stock_quantity ?? 3 }}" oninput="syncCardStockToRow({{ $p->id }}, this.value)" class="w-12 px-1 py-0.5 bg-white border border-emerald-300 rounded-lg font-mono font-black text-emerald-900 text-center text-xs outline-none focus:ring-1 focus:ring-emerald-500" placeholder="Qty">
+                                        <input type="number" min="0" id="card-stock-inp-{{ $p->id }}" value="{{ $p->stock_quantity ?? 0 }}" oninput="syncCardStockToRow({{ $p->id }}, this.value)" class="w-12 px-1 py-0.5 bg-white border border-emerald-300 rounded-lg font-mono font-black text-emerald-900 text-center text-xs outline-none focus:ring-1 focus:ring-emerald-500" placeholder="Qty">
                                         <span class="text-emerald-700 font-bold text-[10px]">pcs</span>
                                     </div>
                                     <span>🏷️ HSN: <strong class="font-mono text-gray-700 font-bold">{{ $p->hsn_code ?: '39174000' }}</strong></span>
@@ -1442,14 +1442,14 @@
                                         if ($imgCount === 0 && !empty($p->image)) $imgCount = 1;
                                         $ue = $p->attributes['unit_economics'] ?? [];
                                         $pCost = (float)($ue['purchase_cost'] ?? $p->purchase_price ?? 0);
-                                        $mrpVal = (float)($p->mrp ?: ($p->variants->where('mrp', '>', 0)->min('mrp') ?: $p->price));
+                                        $mrpVal = (float)($p->mrp ?: ($p->variants->where('mrp', '>', 0)->min('mrp') ?: 0));
                                         $lessVal = ($p->trade_discount_percent !== null && (float)$p->trade_discount_percent > 0)
                                             ? (float)$p->trade_discount_percent
                                             : ($p->variants->where('trade_discount_percent', '>', 0)->max('trade_discount_percent') ?: ($ue['trade_discount_percent'] ?? ''));
                                         $marginPct = (float)($ue['margin_pct'] ?? 25);
                                         $rtoBuffer = (float)($ue['rto_buffer'] ?? 20);
                                         $packCost = (float)($ue['packaging'] ?? 15);
-                                        $shipCost = (float)($ue['shipping'] ?? 45);
+                                        $shipCost = (float)($ue['shipping'] ?? 55);
                                         $feePct = (float)($ue['platform_fee_pct'] ?? 12);
                                         $adsCost = (float)($ue['ads'] ?? 10);
                                         $otherCost = (float)($ue['others'] ?? 5);
@@ -1744,14 +1744,50 @@
                                         <!-- 9. Quick Actions -->
                                         <td class="p-3 text-right">
                                             <div class="flex items-center justify-end gap-1">
+                                                <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition cursor-pointer" title="1P लागत, खर्चे, कूरियर व मुनाफा विवरण (पॉपअप)">
+                                                    <i class="fa-solid fa-calculator text-xs"></i>
+                                                </button>
                                                 <button type="button" onclick="openComboCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="p-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 transition cursor-pointer" title="2P, 4P, 6P कॉम्बो खर्च व सेलिंग विवरण (पॉपअप)">
                                                     <i class="fa-solid fa-layer-group text-xs"></i>
                                                 </button>
-                                                <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition" title="डिटेल कैलकुलेटर खोलें">
-                                                    <i class="fa-solid fa-calculator text-xs"></i>
-                                                </button>
                                                 <button type="button" onclick="unstageProductItem({{ $p->id }}, '{{ addslashes($p->name) }}')" class="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition cursor-pointer" title="मार्केटप्लेस बास्केट से हटाएं (दुकान में सुरक्षित रहेगा)">
                                                     <i class="fa-solid fa-trash-can text-xs"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <!-- ↕️ Navigation & Quick Actions Sub-Bar Under Every Product -->
+                                    <tr class="bg-indigo-50/25 border-b-2 border-indigo-100/70 text-[10px]" id="table-subnav-{{ $p->id }}">
+                                        <td colspan="15" class="py-1 px-3">
+                                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                                <button type="button" onclick="scrollToPrevProductRow({{ $p->id }})" class="px-2.5 py-1 rounded-lg bg-white hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-black transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95" title="पिछला प्रोडक्ट देखें">
+                                                    <i class="fa-solid fa-arrow-left text-[9px] text-indigo-600"></i>
+                                                    <span>◀ पिछला आइटम</span>
+                                                </button>
+                                                <div class="flex items-center gap-2 flex-wrap">
+                                                    <span class="font-extrabold text-slate-800 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                                                        <span class="text-indigo-600 font-mono">#{{ $p->id }}</span> • {{ $p->name }}
+                                                    </span>
+                                                    <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="px-2 py-0.5 rounded-md bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-black cursor-pointer transition flex items-center gap-1">
+                                                        <i class="fa-solid fa-calculator text-[9px]"></i>
+                                                        <span>1P पूरा खर्च विवरण (₹ का हिसाब)</span>
+                                                    </button>
+                                                    <button type="button" onclick="openComboCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="px-2 py-0.5 rounded-md bg-purple-100 hover:bg-purple-200 text-purple-900 font-black cursor-pointer transition flex items-center gap-1">
+                                                        <i class="fa-solid fa-layer-group text-[9px]"></i>
+                                                        <span>2P/4P/6P कॉम्बो</span>
+                                                    </button>
+                                                    <button type="button" onclick="openListingContentModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="px-2 py-0.5 rounded-md bg-amber-100 hover:bg-amber-200 text-amber-900 font-black cursor-pointer transition flex items-center gap-1">
+                                                        <i class="fa-solid fa-wand-magic-sparkles text-[9px]"></i>
+                                                        <span>AI लिस्टिंग</span>
+                                                    </button>
+                                                    <button type="button" onclick="saveTableRowCosting({{ $p->id }}, this)" class="px-2.5 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-black cursor-pointer transition shadow-2xs active:scale-95 flex items-center gap-1">
+                                                        <i class="fa-solid fa-floppy-disk text-[9px]"></i>
+                                                        <span>सेव</span>
+                                                    </button>
+                                                </div>
+                                                <button type="button" onclick="scrollToNextProductRow({{ $p->id }})" class="px-2.5 py-1 rounded-lg bg-white hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-black transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95" title="अगला प्रोडक्ट देखें">
+                                                    <span>अगला आइटम ▶</span>
+                                                    <i class="fa-solid fa-arrow-right text-[9px] text-indigo-600"></i>
                                                 </button>
                                             </div>
                                         </td>
@@ -2905,102 +2941,305 @@ function switchMarketplaceTab(tab) {
                 btn.innerHTML = origHtml;
             });
         }
-            // Costing & Profit Live Calculator
+            // Costing & Profit Live Calculator Engine (100% Transparent Ledger)
         let activeCalcProductId = null;
-
-
 
         function closeCostCalculatorModal() {
             const modal = document.getElementById('costCalculatorModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
         }
 
-        // 1-Click Platform Presets for Pricing Calculator (Amazon vs Meesho)
-        function setCalcPlatformPreset(platform) {
-            const btnAmz = document.getElementById('calcPresetBtnAmz');
-            const btnMsh = document.getElementById('calcPresetBtnMsh');
+        function onModalPlatformSelect(platform) {
             if (platform === 'meesho') {
                 document.getElementById('calcPlatformFeePercent').value = 0;
                 document.getElementById('calcShippingCost').value = 38;
                 document.getElementById('calcPackingCost').value = 12;
-                if (btnMsh) {
-                    btnMsh.className = 'px-2 py-0.5 rounded-lg bg-pink-600 text-white font-black text-[10px] shadow-2xs transition cursor-pointer';
-                }
-                if (btnAmz) {
-                    btnAmz.className = 'px-2 py-0.5 rounded-lg bg-gray-100 hover:bg-amber-100 text-gray-700 font-bold text-[10px] border border-gray-300 transition cursor-pointer';
-                }
-            } else {
-                document.getElementById('calcPlatformFeePercent').value = 12;
-                document.getElementById('calcShippingCost').value = 45;
+            } else if (platform === 'flipkart') {
+                document.getElementById('calcPlatformFeePercent').value = 10;
+                document.getElementById('calcShippingCost').value = 48;
                 document.getElementById('calcPackingCost').value = 15;
-                if (btnAmz) {
-                    btnAmz.className = 'px-2 py-0.5 rounded-lg bg-amber-500 text-slate-950 font-black text-[10px] shadow-2xs transition cursor-pointer';
-                }
-                if (btnMsh) {
-                    btnMsh.className = 'px-2 py-0.5 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-900 font-black text-[10px] border border-pink-300 transition cursor-pointer';
-                }
+            } else if (platform === 'direct') {
+                document.getElementById('calcPlatformFeePercent').value = 0;
+                document.getElementById('calcShippingCost').value = 45;
+                document.getElementById('calcPackingCost').value = 10;
+            } else { // amazon
+                document.getElementById('calcPlatformFeePercent').value = 12;
+                document.getElementById('calcShippingCost').value = 55;
+                document.getElementById('calcPackingCost').value = 15;
             }
             calculateLiveSellingPrice();
         }
 
+        function setModalShipSlab(rate) {
+            document.getElementById('calcShippingCost').value = rate;
+            calculateLiveSellingPrice();
+        }
+
         function calculateLiveSellingPrice() {
-            const cost = parseFloat(document.getElementById('calcCostPrice').value) || 0;
-            const marginPct = parseFloat(document.getElementById('calcMarginPercent').value) || 0;
-            const packing = parseFloat(document.getElementById('calcPackingCost').value) || 0;
-            const shipping = parseFloat(document.getElementById('calcShippingCost').value) || 0;
-            const feePct = parseFloat(document.getElementById('calcPlatformFeePercent').value) || 0;
+            const cost = parseFloat(document.getElementById('calcCostPrice')?.value) || 0;
+            const marginPct = parseFloat(document.getElementById('calcMarginPercent')?.value) || 25;
+            const mrp = parseFloat(document.getElementById('calcModalMrp')?.value) || 0;
+            const packing = parseFloat(document.getElementById('calcPackingCost')?.value) || 15;
+            const ship = parseFloat(document.getElementById('calcShippingCost')?.value) || 55;
+            const rto = parseFloat(document.getElementById('calcModalRto')?.value) || 20;
+            const feePct = parseFloat(document.getElementById('calcPlatformFeePercent')?.value) || 12;
             const prodGstRate = parseFloat(document.getElementById('calcProductGst')?.value) || 18;
 
-            const desiredProfit = cost * (marginPct / 100);
+            const platform = document.getElementById('calcModalPlatformSelect')?.value || 'amazon';
+            const feeGstApplies = (platform === 'amazon' || platform === 'flipkart');
+            const feeEffectivePct = feeGstApplies ? (feePct * 1.18) : feePct;
+
+            // Courier 18% GST (SAC 9968 is 18% GST in India)
+            const shipWithGst = ship > 0 ? (ship * 1.18) : 0;
+            const shipGstBadge = document.getElementById('calcShipGstBadge');
+            if (shipGstBadge) shipGstBadge.textContent = `₹${ship} + 18% = ₹${shipWithGst.toFixed(1)}`;
+
+            const desiredProfit = Math.round(cost * (marginPct / 100));
+            const marginProfitSpan = document.getElementById('calcMarginProfitSpan');
+            if (marginProfitSpan) marginProfitSpan.textContent = `₹${desiredProfit} लाभ`;
+
             const g = prodGstRate / 100;
-            const f = feePct / 100;
+            const f = feeEffectivePct / 100;
             const cTax = g > 0 ? (cost / (1 + g)) : cost;
             const denom = Math.max(0.05, (1 / (1 + g)) - f);
-            const fixedCostSum = packing + shipping;
+
+            const adsCost = 10;
+            const otherCost = 5;
+            const fixedCostSum = packing + shipWithGst + rto + adsCost + otherCost;
             const finalRate = Math.ceil((cTax + fixedCostSum + desiredProfit) / denom);
 
-            document.getElementById('calcFinalSellingRate').textContent = '₹' + finalRate.toFixed(2);
-            document.getElementById('calcNetProfitInHand').textContent = '₹' + desiredProfit.toFixed(2);
+            // Update Selling Price & Per Pc Displays
+            const elFinalRate = document.getElementById('calcFinalSellingRate');
+            if (elFinalRate) elFinalRate.textContent = '₹' + finalRate.toFixed(2);
 
-            // 📊 Advance Multi-Slab GST & ITC Tax Engine Calculations
-            // 1. Output GST on Product: calculated by Product tax slab (e.g. 5%, 12%, 18%)
+            const elPerPc = document.getElementById('calcPerPcSellingRate');
+            if (elPerPc) elPerPc.textContent = `₹${finalRate}/pc`;
+
+            const elNetProfit = document.getElementById('calcNetProfitBadge');
+            if (elNetProfit) elNetProfit.textContent = `शुद्ध मुनाफा: ₹${desiredProfit} (${marginPct}%)`;
+
+            // Update MRP Gap Box
+            const mrpText = document.getElementById('calcModalMrpText');
+            const mrpDiffBadge = document.getElementById('calcModalMrpDiffBadge');
+            if (mrpText) mrpText.textContent = mrp > 0 ? `डिब्बा MRP: ₹${mrp.toFixed(2)}` : 'डिब्बा MRP: (तय नहीं)';
+
+            if (mrpDiffBadge) {
+                if (mrp > 0 && finalRate > mrp) {
+                    const diffOver = Math.round(finalRate - mrp);
+                    mrpDiffBadge.innerHTML = `<span class="px-2 py-0.5 rounded-lg bg-rose-500 text-white font-black text-[11px] animate-pulse">🚨 MRP से ₹${diffOver} ऊपर! (1P छोड़ें, कॉम्बो बेचें)</span>`;
+                } else if (mrp > 0) {
+                    const diffUnder = Math.round(mrp - finalRate);
+                    const discPct = Math.round((diffUnder / mrp) * 100);
+                    mrpDiffBadge.innerHTML = `<span class="px-2 py-0.5 rounded-lg bg-emerald-500 text-white font-black text-[11px]">🟢 MRP से ₹${diffUnder} सस्ता (${discPct}% छूट - तुरंत बिकेगा)</span>`;
+                } else {
+                    mrpDiffBadge.innerHTML = `<span class="text-slate-400 text-[11px] font-medium">ℹ️ MRP दर्ज नहीं किया गया</span>`;
+                }
+            }
+
+            // Ledger Accounting
+            const baseFeeVal = finalRate * (feePct / 100);
+            const feeGstVal = feeGstApplies ? (baseFeeVal * 0.18) : 0;
+            const totalFeeWithGst = baseFeeVal + feeGstVal;
+
             const outputGst = (finalRate * (prodGstRate / (100 + prodGstRate)));
-            // 2. Courier Services (SAC 9968) are FIXED at 18% GST in India
-            const courierGstItc = (shipping * 0.18);
-            // 3. Platform Commission (SAC 9983) is FIXED at 18% GST in India
-            const commGstItc = ((finalRate * f) * 0.18);
-            // 4. Purchase Cost ITC depends on Product tax slab
+            const courierGstItc = (ship * 0.18);
+            const commGstItc = (baseFeeVal * 0.18);
             const purchaseGstItc = (cost * (prodGstRate / (100 + prodGstRate)));
             const totalItc = courierGstItc + commGstItc + purchaseGstItc;
             const netCashGst = Math.max(0, outputGst - totalItc);
 
-            const elOutput = document.getElementById('calcGstOutput');
-            const elCourier = document.getElementById('calcGstCourierItc');
-            const elComm = document.getElementById('calcGstCommItc');
-            const elCash = document.getElementById('calcGstNetCash');
-            const elLabel = document.getElementById('calcGstPlatformLabel');
-            const elProdTag = document.getElementById('calcGstProdLabel');
+            if (document.getElementById('ledger_cost')) document.getElementById('ledger_cost').textContent = `₹${cost.toFixed(2)}`;
+            if (document.getElementById('ledger_profit')) document.getElementById('ledger_profit').textContent = `+₹${desiredProfit.toFixed(2)} (${marginPct}%)`;
+            if (document.getElementById('ledger_pack')) document.getElementById('ledger_pack').textContent = `+₹${packing.toFixed(2)}`;
+            if (document.getElementById('ledger_ship')) document.getElementById('ledger_ship').textContent = `+₹${shipWithGst.toFixed(2)} (मूल ₹${ship} + 18% GST)`;
+            if (document.getElementById('ledger_rto')) document.getElementById('ledger_rto').textContent = `+₹${rto.toFixed(2)}`;
+            if (document.getElementById('ledger_fee')) document.getElementById('ledger_fee').textContent = `+₹${totalFeeWithGst.toFixed(2)} (${feePct}% फ़ी + GST)`;
+            if (document.getElementById('ledger_gst')) document.getElementById('ledger_gst').textContent = `+₹${netCashGst.toFixed(2)} (शुद्ध नकद देय)`;
+            if (document.getElementById('ledger_total')) document.getElementById('ledger_total').textContent = `₹${finalRate.toFixed(2)}`;
 
-            if (elProdTag) elProdTag.textContent = `${prodGstRate}%`;
-            if (elOutput) elOutput.textContent = '₹' + outputGst.toFixed(2);
-            if (elCourier) elCourier.textContent = '-₹' + courierGstItc.toFixed(2);
-            if (elComm) elComm.textContent = (f > 0) ? ('-₹' + commGstItc.toFixed(2)) : '₹0.00 (Meesho 0% कमीशन)';
-            if (elCash) elCash.textContent = '₹' + netCashGst.toFixed(2);
-            if (elLabel) elLabel.textContent = (f > 0) ? 'Amazon (12% फ़ी बेस)' : 'Meesho (कूरियर बेस - 0% फ़ी)';
+            // Combo Previews
+            const c2 = Math.ceil(((cTax * 2) + (desiredProfit * 1.8) + (rto * 1.5) + (packing * 1.3) + shipWithGst + (adsCost * 1.2)) / denom);
+            const c4 = Math.ceil(((cTax * 4) + (desiredProfit * 3.5) + (rto * 2.0) + (packing * 1.6) + (shipWithGst * 1.3) + (adsCost * 1.5)) / denom);
+            const c6 = Math.ceil(((cTax * 6) + (desiredProfit * 5.0) + (rto * 2.5) + (packing * 2.0) + (shipWithGst * 1.6) + (adsCost * 1.8)) / denom);
 
-            // Combo calculations (GST-Gap protected + packaging & courier efficiency)
-            // 2 PC: Cost x2, Profit x1.8, 1x Packing x1.3, 1x Shipping
-            const c2 = Math.ceil(((cTax * 2) + (desiredProfit * 1.8) + (packing * 1.3) + shipping) / denom);
-            document.getElementById('calcCombo2Rate').textContent = '₹' + c2.toFixed(2);
+            if (document.getElementById('calcCombo2Rate')) document.getElementById('calcCombo2Rate').textContent = `₹${c2} (₹${Math.round(c2/2)}/pc)`;
+            if (document.getElementById('calcCombo4Rate')) document.getElementById('calcCombo4Rate').textContent = `₹${c4} (₹${Math.round(c4/4)}/pc)`;
+            if (document.getElementById('calcCombo6Rate')) document.getElementById('calcCombo6Rate').textContent = `₹${c6} (₹${Math.round(c6/6)}/pc)`;
+        }
 
-            // 4 PC
-            const c4 = Math.ceil(((cTax * 4) + (desiredProfit * 3.5) + (packing * 1.6) + (shipping * 1.2)) / denom);
-            document.getElementById('calcCombo4Rate').textContent = '₹' + c4.toFixed(2);
+        // Updated openCostCalculatorModal with full Product and Navigation support
+        function openCostCalculatorModal(prodId, prodName = null, basePrice = null, purchasePrice = null) {
+            activeCalcProductId = prodId;
 
-            // 6 PC
-            const c6 = Math.ceil(((cTax * 6) + (desiredProfit * 5.0) + (packing * 2.0) + (shipping * 1.4)) / denom);
-            document.getElementById('calcCombo6Rate').textContent = '₹' + c6.toFixed(2);
+            // Populate Product Information
+            const nameEl = document.querySelector(`#table-row-${prodId} td:nth-child(3) span`) || document.getElementById(`card-name-${prodId}`);
+            const finalName = prodName || (nameEl ? nameEl.textContent.trim() : `Product #${prodId}`);
+            const nameSpan = document.getElementById('calcModalProdName');
+            if (nameSpan) nameSpan.textContent = finalName;
+
+            const badgeSpan = document.getElementById('calcModalProdIdBadge');
+            if (badgeSpan) badgeSpan.textContent = `#${prodId}`;
+
+            const skuSpan = document.querySelector(`#table-row-${prodId} td:nth-child(3) div span`);
+            const modalSku = document.getElementById('calcModalProdSku');
+            if (modalSku) modalSku.textContent = skuSpan ? skuSpan.textContent.trim() : 'SKU: STD';
+
+            const rowImg = document.getElementById(`table-prod-img-${prodId}`) || document.getElementById(`prod_img_${prodId}`);
+            const modalImg = document.getElementById('calcModalProdImg');
+            const modalPh = document.getElementById('calcModalProdImgPh');
+            if (rowImg && rowImg.src && !rowImg.classList.contains('hidden')) {
+                if (modalImg) { modalImg.src = rowImg.src; modalImg.classList.remove('hidden'); }
+                if (modalPh) modalPh.classList.add('hidden');
+            } else {
+                if (modalImg) modalImg.classList.add('hidden');
+                if (modalPh) modalPh.classList.remove('hidden');
+            }
+
+            // Read current values directly from table row inputs
+            const rowCost = parseFloat(document.getElementById(`row-cost-${prodId}`)?.value);
+            const costVal = (!isNaN(rowCost) && rowCost > 0) ? rowCost : ((purchasePrice && purchasePrice > 0) ? purchasePrice : Math.max(10, Math.round((basePrice || 100) * 0.70)));
+            if (document.getElementById('calcCostPrice')) document.getElementById('calcCostPrice').value = costVal;
+
+            const rowMargin = parseFloat(document.getElementById(`row-margin-${prodId}`)?.value);
+            if (document.getElementById('calcMarginPercent')) document.getElementById('calcMarginPercent').value = (!isNaN(rowMargin) && rowMargin > 0) ? rowMargin : 25;
+
+            const rowMrp = parseFloat(document.getElementById(`row-mrp-${prodId}`)?.value || document.getElementById(`card-mrp-${prodId}`)?.value);
+            if (document.getElementById('calcModalMrp')) document.getElementById('calcModalMrp').value = (!isNaN(rowMrp) && rowMrp > 0) ? rowMrp : '';
+
+            const rowPack = parseFloat(document.getElementById(`row-pack-${prodId}`)?.value);
+            if (document.getElementById('calcPackingCost')) document.getElementById('calcPackingCost').value = (!isNaN(rowPack) && rowPack > 0) ? rowPack : 15;
+
+            const rowShip = parseFloat(document.getElementById(`row-ship-${prodId}`)?.value);
+            if (document.getElementById('calcShippingCost')) document.getElementById('calcShippingCost').value = (!isNaN(rowShip) && rowShip > 0) ? rowShip : 55;
+
+            const rowRto = parseFloat(document.getElementById(`row-rto-${prodId}`)?.value);
+            if (document.getElementById('calcModalRto')) document.getElementById('calcModalRto').value = (!isNaN(rowRto) && rowRto >= 0) ? rowRto : 20;
+
+            const rowFee = parseFloat(document.getElementById(`row-fee-${prodId}`)?.value);
+            if (document.getElementById('calcPlatformFeePercent')) document.getElementById('calcPlatformFeePercent').value = (!isNaN(rowFee) && rowFee >= 0) ? rowFee : 12;
+
+            const rowGst = document.getElementById(`row-gst-${prodId}`)?.value;
+            if (rowGst && document.getElementById('calcProductGst')) {
+                document.getElementById('calcProductGst').value = rowGst;
+            }
+
+            calculateLiveSellingPrice();
+
+            const modal = document.getElementById('costCalculatorModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        async function saveActiveModalCosting(btn) {
+            if (!activeCalcProductId) return;
+            const prodId = activeCalcProductId;
+
+            // Sync modal values back to table row
+            const costInp = document.getElementById(`row-cost-${prodId}`);
+            if (costInp) costInp.value = document.getElementById('calcCostPrice').value;
+
+            const marginInp = document.getElementById(`row-margin-${prodId}`);
+            if (marginInp) marginInp.value = document.getElementById('calcMarginPercent').value;
+
+            const mrpInp = document.getElementById(`row-mrp-${prodId}`);
+            if (mrpInp) mrpInp.value = document.getElementById('calcModalMrp').value;
+
+            const packInp = document.getElementById(`row-pack-${prodId}`);
+            if (packInp) packInp.value = document.getElementById('calcPackingCost').value;
+
+            const shipInp = document.getElementById(`row-ship-${prodId}`);
+            if (shipInp) shipInp.value = document.getElementById('calcShippingCost').value;
+
+            const rtoInp = document.getElementById(`row-rto-${prodId}`);
+            if (rtoInp) rtoInp.value = document.getElementById('calcModalRto').value;
+
+            const feeInp = document.getElementById(`row-fee-${prodId}`);
+            if (feeInp) feeInp.value = document.getElementById('calcPlatformFeePercent').value;
+
+            const gstInp = document.getElementById(`row-gst-${prodId}`);
+            if (gstInp) gstInp.value = document.getElementById('calcProductGst').value;
+
+            recalcTableRow(prodId);
+
+            const origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>सेव हो रहा है...</span>';
+
+            try {
+                const rowSaveBtn = document.querySelector(`#table-row-${prodId} button[onclick^="saveTableRowCosting"]`) || btn;
+                await saveTableRowCosting(prodId, rowSaveBtn);
+                btn.classList.remove('from-emerald-600', 'to-teal-600');
+                btn.classList.add('bg-blue-600');
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> <span>सुरक्षित सेव हो गया!</span>';
+                setTimeout(() => {
+                    btn.classList.remove('bg-blue-600');
+                    btn.classList.add('from-emerald-600', 'to-teal-600');
+                    btn.innerHTML = origHtml;
+                    btn.disabled = false;
+                }, 2000);
+            } catch(e) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+                alert('डेटा सेव करने में त्रुटि आई।');
+            }
+        }
+
+        function getPendingProductIds() {
+            const rows = document.querySelectorAll('#pendingTableTbody tr[data-id]');
+            return Array.from(rows).map(r => parseInt(r.getAttribute('data-id')));
+        }
+
+        function navCalcModalProduct(direction) {
+            const ids = getPendingProductIds();
+            if (!ids.length) return;
+            const idx = ids.indexOf(activeCalcProductId);
+            if (idx === -1) return;
+            const newIdx = idx + direction;
+            if (newIdx >= 0 && newIdx < ids.length) {
+                const newId = ids[newIdx];
+                const nameEl = document.querySelector(`#table-row-${newId} td:nth-child(3) span`) || document.getElementById(`card-name-${newId}`);
+                const name = nameEl ? nameEl.textContent.trim() : `Product #${newId}`;
+                openCostCalculatorModal(newId, name);
+            } else {
+                showChannelToast(direction < 0 ? 'यह कतार का पहला प्रोडक्ट है!' : 'यह कतार का अंतिम प्रोडक्ट है!');
+            }
+        }
+
+        function scrollToPrevProductRow(currentId) {
+            const ids = getPendingProductIds();
+            const idx = ids.indexOf(currentId);
+            if (idx > 0) {
+                const prevId = ids[idx - 1];
+                const prevRow = document.getElementById(`table-row-${prevId}`);
+                if (prevRow) {
+                    prevRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    prevRow.classList.add('bg-amber-100');
+                    setTimeout(() => prevRow.classList.remove('bg-amber-100'), 1500);
+                }
+            } else {
+                showChannelToast('यह कतार का पहला प्रोडक्ट है!');
+            }
+        }
+
+        function scrollToNextProductRow(currentId) {
+            const ids = getPendingProductIds();
+            const idx = ids.indexOf(currentId);
+            if (idx !== -1 && idx < ids.length - 1) {
+                const nextId = ids[idx + 1];
+                const nextRow = document.getElementById(`table-row-${nextId}`);
+                if (nextRow) {
+                    nextRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    nextRow.classList.add('bg-amber-100');
+                    setTimeout(() => nextRow.classList.remove('bg-amber-100'), 1500);
+                }
+            } else {
+                showChannelToast('यह कतार का अंतिम प्रोडक्ट है!');
+            }
         }
 
         // --- 📦 COMBO CALCULATOR MODAL LOGIC (2P, 4P, 6P) ---
@@ -4131,7 +4370,7 @@ function switchMarketplaceTab(tab) {
             const calcAmz = Math.ceil((cTax + fixedAmz + desiredProfit) / denomAmz);
 
             const denomMsh = Math.max(0.05, (1 / (1 + g)));
-            const fixedMsh = Math.max(35, rto) + pack + mshShipWithGst + others;
+            const fixedMsh = rto + pack + mshShipWithGst + others;
             const calcMsh = Math.ceil((cTax + fixedMsh + desiredProfit) / denomMsh);
 
             // Update Amazon & Meesho badges in row and card
@@ -4146,8 +4385,8 @@ function switchMarketplaceTab(tab) {
             if (cardMsh) cardMsh.textContent = `₹${calcMsh.toFixed(2)}`;
 
             // Meesho Combo calculations (0% fee, RTO 35, ship 38)
-            const mshC2 = Math.ceil(((cTax * 2) + (desiredProfit * 1.8) + (Math.max(35, rto) * 1.4) + (pack * 1.3) + Math.min(38, ship)) / denomMsh);
-            const mshC4 = Math.ceil(((cTax * 4) + (desiredProfit * 3.5) + (Math.max(35, rto) * 1.8) + (pack * 1.6) + (Math.min(38, ship) * 1.15)) / denomMsh);
+            const mshC2 = Math.ceil(((cTax * 2) + (desiredProfit * 1.8) + (rto * 1.4) + (pack * 1.3) + Math.min(38, ship)) / denomMsh);
+            const mshC4 = Math.ceil(((cTax * 4) + (desiredProfit * 3.5) + (rto * 1.8) + (pack * 1.6) + (Math.min(38, ship) * 1.15)) / denomMsh);
             const mshC6 = Math.ceil(((cTax * 6) + (desiredProfit * 5.0) + (Math.max(35, rto) * 2.2) + (pack * 2.0) + (Math.min(38, ship) * 1.3)) / denomMsh);
 
             // Update Amazon & Meesho Card Combo spans
@@ -4321,22 +4560,25 @@ function switchMarketplaceTab(tab) {
         function setBulkPlatformPreset(platform) {
             if (platform === 'meesho') {
                 if (document.getElementById('bulkPresetFee')) document.getElementById('bulkPresetFee').value = 0;
-                if (document.getElementById('bulkPresetRto')) document.getElementById('bulkPresetRto').value = 35; // higher RTO buffer for Meesho COD
-                if (document.getElementById('bulkPresetShip')) document.getElementById('bulkPresetShip').value = 38; // cheaper Meesho delivery
+                // Keep user's custom RTO buffer intact (e.g. 20) or default to 20
+                const curRto = document.getElementById('bulkPresetRto');
+                if (curRto && (!curRto.value || parseFloat(curRto.value) === 0)) curRto.value = 20;
+                if (document.getElementById('bulkPresetShip')) document.getElementById('bulkPresetShip').value = 38; // Meesho delivery base
                 if (document.getElementById('bulkPresetPack')) document.getElementById('bulkPresetPack').value = 15;
                 if (document.getElementById('bulkPresetMargin')) document.getElementById('bulkPresetMargin').value = 25;
                 
                 applyPresetToAllRows();
-                showChannelToast('🌸 Meesho मोड लागू! (0% कमीशन, ₹35 रिटर्न/RTO सुरक्षा बफ़र, ₹38 कूरियर) - सभी 19 प्रोडक्ट्स के Meesho रेट्स तैयार!');
+                showChannelToast('🌸 Meesho मोड लागू! (0% कमीशन, ₹' + (curRto?.value || 20) + ' रिटर्न बफ़र, ₹38 कूरियर, 25% मार्जिन)');
             } else if (platform === 'amazon') {
                 if (document.getElementById('bulkPresetFee')) document.getElementById('bulkPresetFee').value = 12;
-                if (document.getElementById('bulkPresetRto')) document.getElementById('bulkPresetRto').value = 20;
-                if (document.getElementById('bulkPresetShip')) document.getElementById('bulkPresetShip').value = 45;
+                const curRto = document.getElementById('bulkPresetRto');
+                if (curRto && (!curRto.value || parseFloat(curRto.value) === 0)) curRto.value = 20;
+                if (document.getElementById('bulkPresetShip')) document.getElementById('bulkPresetShip').value = 55; // Standard 0.5kg Easy Ship base slab is ₹55!
                 if (document.getElementById('bulkPresetPack')) document.getElementById('bulkPresetPack').value = 15;
                 if (document.getElementById('bulkPresetMargin')) document.getElementById('bulkPresetMargin').value = 25;
                 
                 applyPresetToAllRows();
-                showChannelToast('🟠 Amazon मोड लागू! (12% कमीशन, ₹20 रिटर्न बफ़र, ₹45 Easy Ship) - सभी 19 प्रोडक्ट्स के Amazon रेट्स तैयार!');
+                showChannelToast('🟠 Amazon मोड लागू! (12% कमीशन, ₹' + (curRto?.value || 20) + ' रिटर्न बफ़र, ₹55 Easy Ship, 25% मार्जिन)');
             }
         }
 
@@ -4714,24 +4956,6 @@ function switchMarketplaceTab(tab) {
             }
         }
 
-        // Updated openCostCalculatorModal with purchasePrice support
-        function openCostCalculatorModal(prodId, prodName, basePrice, purchasePrice = null) {
-            activeCalcProductId = prodId;
-            document.getElementById('calcModalProdName').textContent = prodName;
-            const costVal = (purchasePrice && purchasePrice > 0) ? purchasePrice : Math.max(10, Math.round(basePrice * 0.70));
-            document.getElementById('calcCostPrice').value = costVal;
-            const rowGst = document.getElementById(`row-gst-${prodId}`)?.value;
-            if (rowGst && document.getElementById('calcProductGst')) {
-                document.getElementById('calcProductGst').value = rowGst;
-            }
-            const slabLink = document.getElementById('calcSlabSetupDirectLink'); if (slabLink) slabLink.href = `/seller/products/${prodId}/pricing-tiers`;
-            calculateLiveSellingPrice();
-            const modal = document.getElementById('costCalculatorModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-
         // --- 🛒 MARKETPLACE BASKET STAGING & UNSTAGING JS ---
         function openStageProductsModal() {
             const m = document.getElementById('stageProductsModal');
@@ -4831,79 +5055,135 @@ function switchMarketplaceTab(tab) {
 
         <!-- 🧮 MARKETPLACE COSTING, EXPENSES & PROFIT CALCULATOR MODAL -->
     <div id="costCalculatorModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-4 overflow-y-auto" onclick="closeCostCalculatorModal()">
-        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in duration-200 my-auto" onclick="event.stopPropagation()">
-            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-                <div class="flex items-center gap-2">
-                    <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-sm font-bold shadow-md">
-                        <i class="fa-solid fa-calculator"></i>
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in duration-200 my-auto" onclick="event.stopPropagation()">
+            <!-- Modal Header with Left & Right Product Navigation Arrows -->
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100 gap-2">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <button type="button" onclick="navCalcModalProduct(-1)" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-indigo-100 text-indigo-900 flex items-center justify-center text-xs font-black transition shadow-2xs cursor-pointer active:scale-95 shrink-0" title="पिछला प्रोडक्ट (Previous Product)">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <div class="w-10 h-10 rounded-xl bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center shrink-0">
+                        <img src="" alt="" id="calcModalProdImg" class="h-full w-full object-contain hidden">
+                        <i class="fa-solid fa-calculator text-indigo-600 text-base" id="calcModalProdImgPh"></i>
                     </div>
-                    <div>
-                        <h3 class="font-black text-sm text-gray-900">लागत, खर्चे व मुनाफा कैलकुलेटर</h3>
-                        <p class="text-[11px] text-gray-500 truncate max-w-[280px]" id="calcModalProdName">Product</p>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="px-2 py-0.5 rounded-md bg-indigo-600 text-white font-mono font-black text-[10px]" id="calcModalProdIdBadge">#0</span>
+                            <span class="text-[10px] font-bold text-gray-400 font-mono" id="calcModalProdSku">SKU: STD</span>
+                        </div>
+                        <h3 class="font-black text-xs sm:text-sm text-gray-900 truncate max-w-sm mt-0.5 leading-tight" id="calcModalProdName">Product Name</h3>
                     </div>
+                    <button type="button" onclick="navCalcModalProduct(1)" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-indigo-100 text-indigo-900 flex items-center justify-center text-xs font-black transition shadow-2xs cursor-pointer active:scale-95 shrink-0" title="अगला प्रोडक्ट (Next Product)">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
                 </div>
-                <button type="button" onclick="closeCostCalculatorModal()" class="text-gray-400 hover:text-gray-600 p-1">
+                <button type="button" onclick="closeCostCalculatorModal()" class="text-gray-400 hover:text-gray-600 p-1 shrink-0">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
 
-            <!-- Interactive Pricing Simulator -->
-            <div class="space-y-3.5 text-xs">
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-gray-50 p-3 rounded-2xl border border-gray-200">
-                        <label class="block font-bold text-gray-600 mb-1">आपकी खरीद लागत (Cost Price)</label>
+            <!-- Platform Selector Dropdown -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 p-3 rounded-2xl border border-indigo-200/80 text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs shadow-2xs">
+                        <i class="fa-solid fa-store"></i>
+                    </span>
+                    <div>
+                        <span class="font-black text-indigo-950 block">प्लेटफ़ॉर्म चुनें (Marketplace):</span>
+                        <span class="text-[10px] text-indigo-700">प्लेटफ़ॉर्म बदलते ही फ़ी, कूरियर व RTO दरें अपने-आप अपडेट होंगी</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <select id="calcModalPlatformSelect" onchange="onModalPlatformSelect(this.value)" class="bg-white border-2 border-indigo-300 font-black text-xs text-indigo-950 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-2xs">
+                        <option value="amazon">🟠 Amazon India (12% फ़ी + Easy Ship ₹55)</option>
+                        <option value="meesho">🌸 Meesho Supplier (0% फ़ी + कूरियर ₹38)</option>
+                        <option value="flipkart">⚡ Flipkart (10% फ़ी + Express ₹48)</option>
+                        <option value="direct">🛒 Direct Store (0% फ़ी + लोकल ₹45)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Interactive Inputs Grid -->
+            <div class="space-y-3 text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <!-- 1. Cost Price -->
+                    <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+                        <label class="block font-bold text-gray-700 text-[11px] mb-1">आपकी खरीद लागत (Cost Price)</label>
                         <div class="relative">
-                            <span class="absolute left-2.5 top-1/2 -translate-y-1/2 font-bold text-gray-400">₹</span>
-                            <input type="number" id="calcCostPrice" value="100" oninput="calculateLiveSellingPrice()" class="w-full pl-6 pr-2.5 py-1.5 rounded-xl border border-gray-300 bg-white font-mono font-bold text-gray-900">
+                            <span class="absolute left-2.5 top-1/2 -translate-y-1/2 font-bold text-gray-500 text-xs">₹</span>
+                            <input type="number" step="any" min="0" id="calcCostPrice" value="100" oninput="calculateLiveSellingPrice()" class="w-full pl-6 pr-2 py-1.5 rounded-xl border border-gray-300 bg-white font-mono font-bold text-gray-900 focus:border-indigo-500 focus:outline-none">
                         </div>
                     </div>
 
-                    <div class="bg-gray-50 p-3 rounded-2xl border border-gray-200">
-                        <label class="block font-bold text-gray-600 mb-1">आपका शुद्ध मुनाफा (Margin %)</label>
+                    <!-- 2. Margin % -->
+                    <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="font-bold text-gray-700 text-[11px]">शुद्ध मुनाफा (Margin %)</label>
+                            <span class="text-[10px] font-mono font-black text-emerald-700" id="calcMarginProfitSpan">₹25</span>
+                        </div>
                         <div class="relative">
-                            <input type="number" id="calcMarginPercent" value="25" oninput="calculateLiveSellingPrice()" class="w-full pr-6 pl-2.5 py-1.5 rounded-xl border border-gray-300 bg-white font-mono font-bold text-emerald-700">
+                            <input type="number" step="any" min="0" id="calcMarginPercent" value="25" oninput="calculateLiveSellingPrice()" class="w-full pr-6 pl-2.5 py-1.5 rounded-xl border border-gray-300 bg-white font-mono font-bold text-emerald-700 focus:border-emerald-500 focus:outline-none">
                             <span class="absolute right-2.5 top-1/2 -translate-y-1/2 font-bold text-gray-400">%</span>
+                        </div>
+                    </div>
+
+                    <!-- 3. Printed MRP -->
+                    <div class="bg-amber-50/60 p-2.5 rounded-2xl border border-amber-200">
+                        <label class="block font-bold text-amber-900 text-[11px] mb-1">डिब्बा MRP (प्रिंटेड भाव ₹)</label>
+                        <div class="relative">
+                            <span class="absolute left-2.5 top-1/2 -translate-y-1/2 font-bold text-amber-700 text-xs">₹</span>
+                            <input type="number" step="any" min="0" id="calcModalMrp" value="0" placeholder="MRP दर्ज करें" oninput="calculateLiveSellingPrice()" class="w-full pl-6 pr-2 py-1.5 rounded-xl border border-amber-300 bg-white font-mono font-bold text-amber-950 focus:border-amber-500 focus:outline-none">
                         </div>
                     </div>
                 </div>
 
-                <!-- Platform Expenses Breakdown -->
-                <div class="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-100 space-y-2.5">
-                    <div class="flex items-center justify-between flex-wrap gap-1.5">
-                        <span class="text-[10px] font-black uppercase text-indigo-900 tracking-wider flex items-center gap-1.5">
-                            <i class="fa-solid fa-receipt text-indigo-600"></i>
-                            <span>मार्केटप्लेस खर्चे (अनुमानित 1 पीस के लिए)</span>
-                        </span>
-                        <!-- 1-Click Platform Switcher -->
-                        <div class="flex items-center gap-1">
-                            <button type="button" onclick="setCalcPlatformPreset('amazon')" id="calcPresetBtnAmz" class="px-2 py-0.5 rounded-lg bg-amber-500 text-slate-950 font-black text-[10px] shadow-2xs hover:scale-102 active:scale-95 transition cursor-pointer">
-                                🟠 Amazon (12% फ़ी)
-                            </button>
-                            <button type="button" onclick="setCalcPlatformPreset('meesho')" id="calcPresetBtnMsh" class="px-2 py-0.5 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-900 font-black text-[10px] border border-pink-300 shadow-2xs hover:scale-102 active:scale-95 transition cursor-pointer">
-                                🌸 Meesho (0% फ़ी)
-                            </button>
-                        </div>
-                    </div>
+                <!-- Platform Expenses Row -->
+                <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2">
+                    <span class="text-[10px] font-black uppercase text-slate-700 tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-receipt text-indigo-600"></i>
+                        <span>मार्केटप्लेस खर्चे (अनुमानित 1 पीस के लिए)</span>
+                    </span>
 
-                    <div class="grid grid-cols-4 gap-2">
-                        <div>
-                            <label class="text-[10px] text-gray-600 block">पैकिंग खर्च</label>
-                            <input type="number" id="calcPackingCost" value="15" oninput="calculateLiveSellingPrice()" class="w-full px-2 py-1 bg-white border border-indigo-200 rounded-lg font-mono font-semibold text-gray-800">
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                        <!-- Courier / Shipping with 18% GST -->
+                        <div class="col-span-2 sm:col-span-1">
+                            <div class="flex items-center justify-between">
+                                <label class="text-[10px] font-bold text-gray-700">कूरियर डिलीवरी</label>
+                                <span class="text-[8px] font-bold text-sky-700" id="calcShipGstBadge">+18% GST</span>
+                            </div>
+                            <input type="number" step="any" id="calcShippingCost" value="55" oninput="calculateLiveSellingPrice()" class="w-full px-2 py-1 bg-white border border-gray-300 rounded-lg font-mono font-semibold text-gray-800 text-xs">
+                            <div class="flex items-center gap-0.5 mt-1">
+                                <button type="button" onclick="setModalShipSlab(55)" class="px-1 py-0.2 text-[8px] rounded bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold border border-sky-200 cursor-pointer">0.5k: ₹55</button>
+                                <button type="button" onclick="setModalShipSlab(75)" class="px-1 py-0.2 text-[8px] rounded bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold border border-sky-200 cursor-pointer">1k: ₹75</button>
+                                <button type="button" onclick="setModalShipSlab(112)" class="px-1 py-0.2 text-[8px] rounded bg-sky-100 hover:bg-sky-200 text-sky-900 rounded font-bold border border-sky-200 cursor-pointer">2k: ₹112</button>
+                            </div>
                         </div>
+
+                        <!-- Packing Cost -->
                         <div>
-                            <label class="text-[10px] text-gray-600 block" title="कूरियर बिल पर सरकार 18% GST लगाती है जिसका पूरा ITC मिलता है">शिपिंग (कूरियर)</label>
-                            <input type="number" id="calcShippingCost" value="45" oninput="calculateLiveSellingPrice()" class="w-full px-2 py-1 bg-white border border-indigo-200 rounded-lg font-mono font-semibold text-gray-800">
+                            <label class="text-[10px] font-bold text-gray-700 block">पैकिंग सामग्री</label>
+                            <input type="number" step="any" id="calcPackingCost" value="15" oninput="calculateLiveSellingPrice()" class="w-full px-2 py-1 bg-white border border-gray-300 rounded-lg font-mono font-semibold text-gray-800 text-xs">
                         </div>
+
+                        <!-- RTO Buffer -->
                         <div>
-                            <label class="text-[10px] text-gray-600 block" title="कमीशन पर 18% GST लगता है जिसका पूरा ITC मिलता है">प्लेटफ़ॉर्म फ़ी (%)</label>
-                            <input type="number" id="calcPlatformFeePercent" value="12" oninput="calculateLiveSellingPrice()" class="w-full px-2 py-1 bg-white border border-indigo-200 rounded-lg font-mono font-semibold text-gray-800">
+                            <label class="text-[10px] font-bold text-gray-700 block">RTO / रिटर्न बफ़र</label>
+                            <input type="number" step="any" id="calcModalRto" value="20" oninput="calculateLiveSellingPrice()" class="w-full px-2 py-1 bg-white border border-gray-300 rounded-lg font-mono font-semibold text-rose-700 text-xs">
                         </div>
+
+                        <!-- Platform Fee % -->
                         <div>
-                            <label class="text-[10px] text-gray-600 block font-bold text-indigo-900" title="प्रोडक्ट का खुद का टैक्स रेट (उदा. 5%, 12%, 18%)">प्रोडक्ट GST</label>
-                            <select id="calcProductGst" onchange="calculateLiveSellingPrice()" class="w-full px-1.5 py-1 bg-white border-2 border-indigo-300 rounded-lg font-mono font-bold text-indigo-900 text-xs">
-                                <option value="18" selected>18% (हार्डवेयर/प्लंबिंग)</option>
-                                <option value="5">5% (कपड़े/कम दर)</option>
+                            <label class="text-[10px] font-bold text-gray-700 block">कमीशन फ़ी (%)</label>
+                            <input type="number" step="any" id="calcPlatformFeePercent" value="12" oninput="calculateLiveSellingPrice()" class="w-full px-2 py-1 bg-white border border-gray-300 rounded-lg font-mono font-semibold text-purple-900 text-xs">
+                        </div>
+
+                        <!-- Product GST -->
+                        <div>
+                            <label class="text-[10px] font-bold text-indigo-900 block">माल GST दर</label>
+                            <select id="calcProductGst" onchange="calculateLiveSellingPrice()" class="w-full px-1.5 py-1 bg-white border border-indigo-300 rounded-lg font-mono font-bold text-indigo-900 text-xs">
+                                <option value="18" selected>18% (हार्डवेयर)</option>
                                 <option value="12">12%</option>
+                                <option value="5">5% (कपड़े)</option>
                                 <option value="0">0% (टैक्स फ्री)</option>
                                 <option value="28">28% (लक्ज़री)</option>
                             </select>
@@ -4911,88 +5191,106 @@ function switchMarketplaceTab(tab) {
                     </div>
                 </div>
 
-                <!-- Calculated Final Price Result Box -->
-                <div class="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white space-y-3 shadow-lg border border-indigo-500/30">
-                    <div class="flex items-center justify-between">
+                <!-- 🧾 100% TRANSPARENT RUPEE-BY-RUPEE BREAKDOWN LEDGER (₹201 से ₹500 का पूरा गणित) -->
+                <div class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-4 sm:p-5 shadow-xl border border-indigo-500/30 space-y-3">
+                    <div class="flex items-center justify-between border-b border-white/10 pb-2">
                         <div>
-                            <span class="text-[10px] uppercase font-bold text-indigo-300">सुझाया गया फाइनल सेलिंग रेट (Selling Price)</span>
-                            <div class="text-2xl font-black text-amber-300 font-mono mt-0.5" id="calcFinalSellingRate">₹199.00</div>
+                            <span class="text-[10px] uppercase font-bold text-indigo-300 flex items-center gap-1">
+                                <i class="fa-solid fa-calculator text-amber-300"></i>
+                                <span>फाइनल सेलिंग रेट (Selling Price)</span>
+                            </span>
+                            <div class="text-3xl font-black text-amber-300 font-mono mt-0.5 tracking-tight" id="calcFinalSellingRate">₹0.00</div>
                         </div>
                         <div class="text-right">
-                            <span class="text-[10px] uppercase font-bold text-emerald-400">शुद्ध जेब में बचत (Net Profit)</span>
-                            <div class="text-lg font-black text-emerald-400 font-mono" id="calcNetProfitInHand">₹25.00</div>
+                            <span class="text-[10px] uppercase font-bold text-emerald-300 block">प्रति पीस भाव (Per Pc)</span>
+                            <div class="text-xl font-black text-white font-mono" id="calcPerPcSellingRate">₹0.00/pc</div>
+                            <div class="text-[10px] font-bold text-emerald-400 mt-0.5" id="calcNetProfitBadge">मुनाफा: ₹0.00</div>
                         </div>
                     </div>
 
-                    <!-- 📊 Smart GST & ITC Breakdown Engine (Amazon Commission vs Meesho Courier Base) -->
-                    <div class="p-3 bg-slate-950/80 rounded-2xl border border-indigo-500/30 text-[11px] space-y-1.5 font-sans">
-                        <div class="flex items-center justify-between text-indigo-300 font-bold text-[10px] uppercase border-b border-white/10 pb-1">
-                            <span class="flex items-center gap-1">
-                                <i class="fa-solid fa-scale-balanced text-amber-300"></i>
-                                <span>स्मार्ट GST & ITC टैक्स इंजन (Real-Time)</span>
-                            </span>
-                            <span class="text-amber-300 font-mono font-bold" id="calcGstPlatformLabel">Meesho (0% फ़ी)</span>
+                    <!-- ⚖️ MRP vs Selling Price Gap / Deal Spread Badge -->
+                    <div class="p-2.5 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-between flex-wrap gap-2 text-xs" id="calcModalMrpGapBox">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-amber-400 text-slate-950 flex items-center justify-center text-xs font-black">MRP</span>
+                            <span class="text-slate-300" id="calcModalMrpText">डिब्बा MRP: ₹0.00</span>
                         </div>
-                        <div class="flex items-center justify-between text-slate-300 text-[10px] font-mono">
-                            <span>📦 माल पर आउटपुट GST (ग्राहक से मिला - <span id="calcGstProdLabel" class="text-amber-200 font-bold">18%</span>):</span>
-                            <span class="font-bold text-amber-300" id="calcGstOutput">₹28.83</span>
-                        </div>
-                        <div class="flex items-center justify-between text-slate-400 text-[10px] font-mono" title="कूरियर/लॉजिस्टिक्स सेवा (SAC 9968) पर भारत सरकार का 18% फिक्स GST लगता है, जो आपको ITC क्रेडिट के रूप में वापस मिल जाता है">
-                            <span>🚚 कूरियर ITC (फिक्स 18% GST वापसी):</span>
-                            <span class="text-emerald-400 font-bold" id="calcGstCourierItc">-₹6.84</span>
-                        </div>
-                        <div class="flex items-center justify-between text-slate-400 text-[10px] font-mono" title="मार्केटप्लेस सेवा (SAC 9983) पर 18% फिक्स GST लगता है, जो ITC में वापस मिलता है">
-                            <span>💼 कमीशन ITC (फिक्स 18% GST वापसी):</span>
-                            <span class="text-emerald-400 font-bold" id="calcGstCommItc">₹0.00 (Meesho 0%)</span>
-                        </div>
-                        <div class="flex items-center justify-between pt-1 border-t border-white/10 font-bold text-[11px]">
-                            <span class="text-white">🏛️ सरकार को शुद्ध नकद GST (देय):</span>
-                            <span class="text-rose-400 font-mono font-extrabold" id="calcGstNetCash">₹6.74</span>
+                        <div class="font-bold" id="calcModalMrpDiffBadge">
+                            <span class="text-slate-400">MRP दर्ज नहीं</span>
                         </div>
                     </div>
 
-                    <!-- 2 PC, 4 PC, 6 PC COMBO PREVIEWS -->
-                    <div class="pt-2 border-t border-white/10 space-y-1.5">
-                        <span class="text-[10px] font-bold text-amber-200 flex items-center gap-1">
-                            <i class="fa-solid fa-boxes-packing"></i>
-                            <span>कॉम्बो पैक में शिपिंग बचने पर रेट्स (3x ज़्यादा बिकते हैं):</span>
-                        </span>
-                        <div class="grid grid-cols-3 gap-2 text-center text-[11px]">
-                            <div class="bg-white/10 p-1.5 rounded-xl border border-white/10">
-                                <span class="text-[9px] text-slate-300 block">2 पीस पैक</span>
-                                <span class="font-black text-white font-mono" id="calcCombo2Rate">₹359.00</span>
-                                <span class="text-[8px] text-emerald-300 block">₹179/pc</span>
-                            </div>
-                            <div class="bg-white/10 p-1.5 rounded-xl border border-white/10">
-                                <span class="text-[9px] text-slate-300 block">4 पीस पैक</span>
-                                <span class="font-black text-white font-mono" id="calcCombo4Rate">₹679.00</span>
-                                <span class="text-[8px] text-emerald-300 block">₹169/pc</span>
-                            </div>
-                            <div class="bg-white/10 p-1.5 rounded-xl border border-white/10">
-                                <span class="text-[9px] text-slate-300 block">6 पीस पैक</span>
-                                <span class="font-black text-white font-mono" id="calcCombo6Rate">₹959.00</span>
-                                <span class="text-[8px] text-emerald-300 block">₹159/pc</span>
-                            </div>
+                    <!-- 🔍 Transparent Step-by-Step Itemized Ledger -->
+                    <div class="bg-black/40 rounded-2xl p-3 border border-white/10 space-y-1.5 font-mono text-[11px]">
+                        <div class="text-[10px] font-sans font-black text-amber-300 uppercase tracking-wider pb-1 border-b border-white/10 flex items-center justify-between">
+                            <span>रुपये-रुपये का स्पष्ट हिसाब (Price Breakdown):</span>
+                            <span class="text-slate-400 font-normal">कहाँ कितना खर्च जुड़ रहा है</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-300">
+                            <span>1. आपकी खरीद लागत (Purchase Cost):</span>
+                            <span class="font-bold text-white" id="ledger_cost">₹0.00</span>
+                        </div>
+                        <div class="flex items-center justify-between text-emerald-300">
+                            <span>2. आपका शुद्ध मुनाफा (Profit Margin):</span>
+                            <span class="font-bold" id="ledger_profit">+₹0.00</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-300">
+                            <span>3. डिब्बा व पैकिंग खर्च:</span>
+                            <span class="font-bold text-white" id="ledger_pack">+₹0.00</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sky-300">
+                            <span>4. कूरियर डिलीवरी (Easy Ship + 18% GST):</span>
+                            <span class="font-bold" id="ledger_ship">+₹0.00</span>
+                        </div>
+                        <div class="flex items-center justify-between text-rose-300">
+                            <span>5. RTO / रिटर्न नुकसान सुरक्षा बफ़र:</span>
+                            <span class="font-bold" id="ledger_rto">+₹0.00</span>
+                        </div>
+                        <div class="flex items-center justify-between text-purple-300">
+                            <span>6. मार्केटप्लेस कमीशन फ़ी (12% + 18% GST):</span>
+                            <span class="font-bold" id="ledger_fee">+₹0.00</span>
+                        </div>
+                        <div class="flex items-center justify-between text-amber-300">
+                            <span>7. सरकारी आउटपुट GST (ITC कटौती बाद शुद्ध देय):</span>
+                            <span class="font-bold" id="ledger_gst">+₹0.00</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-300 pt-1 border-t border-white/20 font-sans font-bold text-xs text-white">
+                            <span>🎯 कुल फाइनल सेलिंग भाव (Gross Price):</span>
+                            <span class="font-mono text-amber-300 text-sm font-black" id="ledger_total">₹0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- 2P, 4P, 6P Combo Instant Rates -->
+                    <div class="pt-1 flex items-center justify-between text-[11px] gap-2">
+                        <span class="text-indigo-200 font-sans font-bold text-[10px]">📦 कॉम्बो भाव:</span>
+                        <div class="flex items-center gap-2">
+                            <span class="bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">2P: <strong class="text-amber-300 font-mono" id="calcCombo2Rate">₹0</strong></span>
+                            <span class="bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">4P: <strong class="text-amber-300 font-mono" id="calcCombo4Rate">₹0</strong></span>
+                            <span class="bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">6P: <strong class="text-amber-300 font-mono" id="calcCombo6Rate">₹0</strong></span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Action Button -->
-                <div class="pt-2 flex items-center justify-between gap-2 border-t border-gray-100">
-                    <button type="button" onclick="closeCostCalculatorModal(); openComboCalculatorModal(activeCalcProductId, document.getElementById('calcModalProdName').textContent)" class="px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold transition flex items-center gap-1.5 cursor-pointer">
+                <!-- Footer Action Buttons -->
+                <div class="pt-2 flex items-center justify-between gap-2 border-t border-gray-100 flex-wrap">
+                    <button type="button" onclick="closeCostCalculatorModal(); openComboCalculatorModal(activeCalcProductId, document.getElementById('calcModalProdName').textContent)" class="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold transition flex items-center gap-1.5 cursor-pointer text-xs">
                         <i class="fa-solid fa-layer-group text-indigo-600"></i>
                         <span>2/4/6 पीस स्लैब विवरण &rarr;</span>
                     </button>
-                    <button type="button" onclick="closeCostCalculatorModal()" class="px-4 py-2 rounded-xl bg-gray-900 text-white font-bold transition">
-                        ठीक है (Close)
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="saveActiveModalCosting(this)" id="btnSaveFromModal" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>इस प्रोडक्ट का रेट सेव करें</span>
+                        </button>
+                        <button type="button" onclick="closeCostCalculatorModal()" class="px-4 py-2 rounded-xl bg-gray-900 text-white font-bold transition text-xs">
+                            बंद करें
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 📦 COMBO PACK DETAILS & INDIVIDUAL EXPENSES MODAL (2P / 4P / 6P) -->
-    <div id="comboCalculatorModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-4 overflow-y-auto" onclick="closeComboCalculatorModal()">
+<div id="comboCalculatorModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-4 overflow-y-auto" onclick="closeComboCalculatorModal()">
         <div class="bg-white rounded-3xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl border border-gray-100 space-y-4 animate-in fade-in zoom-in duration-200 my-auto" onclick="event.stopPropagation()">
             <!-- Modal Header -->
             <div class="flex items-center justify-between pb-3 border-b border-gray-100">
