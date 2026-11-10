@@ -318,17 +318,22 @@ class AIProductService
         $isBrass = preg_match('/brass|metal/i', $pLower);
         $isCpvc = preg_match('/cpvc/i', $pLower);
         $isUpvc = preg_match('/upvc/i', $pLower);
-        $isPtmt = preg_match('/ptmt|polymer|plastic/i', $pLower) || (!$isBrass && !$isCpvc && !$isUpvc && ($isBibcock || $isSinkCock));
+        $isPvc = preg_match('/\bpvc\b|black/i', $pLower); // Distinct PVC detection for Black/PVC products
+        $isPtmt = !$isPvc && (preg_match('/ptmt|polymer|plastic/i', $pLower) || (!$isBrass && !$isCpvc && !$isUpvc && ($isBibcock || $isSinkCock)));
 
-        // 🏷️ Auto-Inject Missing Material into Title (e.g. "Bib Cock" -> "PTMT Bib Cock")
-        $matPrefix = $isBrass ? 'Brass' : ($isPtmt ? 'PTMT' : ($isCpvc ? 'CPVC' : ($isUpvc ? 'UPVC' : '')));
+        // 🏷️ Auto-Inject Missing Material into Title (e.g. "Bib Cock" -> "PTMT Bib Cock", or "Black Bib Cock" -> "PVC Bib Cock")
+        $matPrefix = $isBrass ? 'Brass' : ($isPvc ? 'PVC' : ($isPtmt ? 'PTMT' : ($isCpvc ? 'CPVC' : ($isUpvc ? 'UPVC' : ''))));
         if (!empty($matPrefix) && stripos($uc, $matPrefix) === false) {
             $uc = "{$matPrefix} {$uc}";
         }
 
+        // 📏 Avoid Duplicate Size Mentions (e.g. "15 mm (15 mm)")
+        $alreadyHasSize = preg_match('/(?:15|20|25|32|40|50)\s*mm|1\/2|3\/4|1\s*inch/i', $uc);
+        $sizePart = $alreadyHasSize ? '' : " ({$sizeStr})";
+
         if ($isBibcock) {
-            $matLabel = $isBrass ? 'Heavy Forged Brass' : '100% Virgin Food-Grade PTMT Polymer';
-            $title = "Heavy Duty {$uc} ({$sizeStr}) with Wall Flange - Unbreakable Leak-Proof Faucet for Bathroom, Kitchen & Garden";
+            $matLabel = $isBrass ? 'Heavy Forged Brass' : ($isPvc ? 'Heavy Duty PVC Polymer' : '100% Virgin Food-Grade PTMT Polymer');
+            $title = "Heavy Duty {$uc}{$sizePart} with Wall Flange - Unbreakable Leak-Proof Faucet for Bathroom, Kitchen & Garden";
             $bullets = [
                 "Material & Durability: Crafted from premium {$matLabel}, 100% rust-proof, salt-water resistant, and unbreakable under normal household use.",
                 "Leak-Proof Ceramic Spindle: Engineered with high-precision quarter-turn ceramic disc cartridge tested for 5,00,000+ smooth on/off drip-free cycles.",
@@ -340,7 +345,7 @@ class AIProductService
             $rawKeywords = "bibcock bib tap bathroom water tap nal sink cock ptmt tap plastic faucet 15mm half inch angle cock wall flange plumbing hardware wash basin bath fittings home garden";
         } elseif ($isSinkCock) {
             $matLabel = $isBrass ? 'Premium Solid Brass with Chrome Finish' : 'Virgin PTMT Engineering Polymer';
-            $title = "Premium {$uc} ({$sizeStr}) with 360-Degree Swivel Spout - High Arch Kitchen Sink & Wash Basin Faucet";
+            $title = "Premium {$uc}{$sizePart} with 360-Degree Swivel Spout - High Arch Kitchen Sink & Wash Basin Faucet";
             $bullets = [
                 "360-Degree Swivel Movement: Flexible high-arch swivel spout provides complete sink coverage for easy utensil cleaning and dishwashing.",
                 "Durable & Food-Safe Build: Made of certified {$matLabel}, non-toxic, lead-free, and resistant to scaling in hard water.",
@@ -351,7 +356,7 @@ class AIProductService
             $desc = "Bring ultimate convenience to your kitchen and dining sink with the {$uc}. Featuring a full 360-degree rotational neck, it effortlessly reaches every corner of double or single sinks. Built to withstand daily tough kitchen use, it resists grease, stains, and scale buildup for years of shining performance.";
             $rawKeywords = "sink cock kitchen sink tap swan neck faucet pillar cock wash basin tap swivel spout tap bathroom kitchen sink fitting 15mm 1/2 inch mixer tap";
         } elseif ($isConcealed) {
-            $title = "Commercial Grade Heavy Duty {$uc} ({$sizeStr}) - In-Wall Internal Stop Valve for Bathroom & Flush Control";
+            $title = "Commercial Grade Heavy Duty {$uc}{$sizePart} - In-Wall Internal Stop Valve for Bathroom & Flush Control";
             $bullets = [
                 "Heavy Forged Brass Construction: High-tensile forged brass body built to withstand internal wall pipe expansion and high water pressures up to 16 Bar.",
                 "In-Wall Concealed Installation: Compact ergonomic profile designed for standard brick and tile wall cavities without damaging structural integrity.",
@@ -363,7 +368,7 @@ class AIProductService
             $rawKeywords = "concealed stop cock concealed valve concealed cock bathroom valve internal pipe valve diverter flush valve concealed brass heavy plumber fitting 15mm 20mm";
         } elseif ($isValve) {
             $matLabel = $isCpvc ? 'Heavy Class CPVC SDR 11' : ($isUpvc ? 'High Impact UPVC Schedule 80' : 'Heavy Duty Industrial Polymer');
-            $title = "Heavy Duty {$uc} ({$sizeStr}) - Leak-Proof Quarter Turn Water Tank & Plumbing Pipeline Valve";
+            $title = "Heavy Duty {$uc}{$sizePart} - Leak-Proof Quarter Turn Water Tank & Plumbing Pipeline Valve";
             $bullets = [
                 "Industrial Pressure Rated: Tested up to 25 Bar working pressure, suitable for main water tanks, pump lines, and high-rise pipeline distribution.",
                 "Virgin Raw Material: Manufactured from 100% lead-free {$matLabel}, UV stabilized for direct outdoor terrace exposure without cracking.",
@@ -375,7 +380,7 @@ class AIProductService
             $rawKeywords = "cpvc ball valve upvc ball valve water tank valve pipe joint valve plumbing gate valve quarter turn handle valve 20mm 25mm 32mm 1 inch 3/4 inch";
         } elseif ($isFitting) {
             $matLabel = $isCpvc ? 'CPVC SDR 11' : ($isUpvc ? 'UPVC Schedule 40/80' : ($isBrass ? 'Heavy Brass Threaded' : 'Engineering Polymer'));
-            $title = "Premium Quality {$uc} ({$sizeStr}) - Heavy Duty Plumbing Fitting (ASTM Standard)";
+            $title = "Premium Quality {$uc}{$sizePart} - Heavy Duty Plumbing Fitting (ASTM Standard)";
             $bullets = [
                 "ASTM & IS Certified Standard: Manufactured strictly adhering to ASTM D2846 & IS standards for residential and commercial plumbing networks.",
                 "High Hydraulic Flow: Mirror-smooth inner bore reduces friction, prevents mineral scaling, and guarantees 100% optimal water pressure.",
@@ -386,7 +391,7 @@ class AIProductService
             $desc = "Ensure leak-free, lifetime durable piping installations with the high-strength {$uc}. Ideal for concealed bathroom pipelines, kitchen drainage, water supply risers, and rooftop tank connections.";
             $rawKeywords = "cpvc fitting upvc fitting elbow tee coupler union reducer brass mta fta tank connector end cap long bend plumbing joints solvent cement";
         } elseif ($isPipe) {
-            $title = "High Pressure Braided {$uc} ({$sizeStr}) - All-Weather Flexible Water Hose for Garden & Home Cleaning";
+            $title = "High Pressure Braided {$uc}{$sizePart} - All-Weather Flexible Water Hose for Garden & Home Cleaning";
             $bullets = [
                 "3-Layer Reinforced Mesh: High-density braided polyester yarn core prevents kinks, twists, and bursts under high tap pressure.",
                 "All-Weather UV Resistant: Retains flexibility in extreme heat and cold without hardening, cracking, or turning brittle.",
@@ -397,7 +402,7 @@ class AIProductService
             $desc = "Water your garden and wash vehicles effortlessly with the flexible, tangle-free {$uc}. Designed with heavy-duty 3-layer construction, it withstands high water pressures and rough outdoor dragging without tearing.";
             $rawKeywords = "garden pipe water pipe flexible hose pipe 1/2 inch 3/4 inch car washing pipe gardening water tubing braided heavy duty outdoor hose";
         } else {
-            $title = "Premium Commercial Grade {$uc} ({$sizeStr}) - Heavy Duty Hardware & Home Improvement";
+            $title = "Premium Commercial Grade {$uc}{$sizePart} - Heavy Duty Hardware & Home Improvement";
             $bullets = [
                 "Heavy Duty Commercial Construction: Engineered from certified high-grade materials for maximum durability and everyday reliability.",
                 "Precision Engineering: Strict quality control guarantees tight tolerances, smooth operation, and long service life.",

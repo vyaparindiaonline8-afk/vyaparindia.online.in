@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multi-Marketplace Channel Hub (Amazon, Meesho, Blinkit, Flipkart) - VyaparIndia</title>
-    <script src="https://cdn.tailwindcss.com">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
         // --- ↔️ HORIZONTAL TABLE SCREEN COLUMN SCROLLING FUNCTIONS ---
         function scrollTableHorizontally(distance) {
             const wrapper = document.getElementById('pendingTableScrollWrapper');
@@ -1561,7 +1562,7 @@
                                 <tr>
                                     <th class="p-3 w-8 text-center">✓</th>
                                     <th class="p-3">फ़ोटो</th>
-                                    <th class="p-3 min-w-[170px]">प्रोडक्ट का नाम & SKU</th>
+                                    <th class="p-3 min-w-[240px]" title="प्रोडक्ट का पूरा टाइटल (लंबी लाइन नीचे अपने आप रैप होगी)">प्रोडक्ट का नाम & SKU</th>
                                     <th class="p-3 min-w-[70px] text-center font-mono text-gray-500">ID</th>
                                     <th class="p-3 min-w-[90px] bg-emerald-50 text-emerald-950 font-black text-center" title="उपलब्ध इन्वेंट्री / स्टॉक की संख्या">📦 स्टॉक (Qty)</th>
                                     <th class="p-3 min-w-[110px] bg-amber-50 text-amber-950 font-black col-cost-detail" title="कंपनी कैटलॉग की प्राइस लिस्ट (List Price)">प्राइस लिस्ट (Price List ₹)</th>
@@ -1649,7 +1650,7 @@
                                             </div>
                                         </td>
                                         <td class="p-3">
-                                            <span class="font-extrabold text-gray-900 block truncate max-w-[170px]" title="{{ $p->name }}">{{ $p->name }}</span>
+                                            <span class="font-extrabold text-gray-900 block text-xs leading-snug break-words whitespace-normal max-w-[260px]" title="{{ $p->name }}">{{ $p->name }}</span>
                                             <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                                 <span class="text-[9px] text-gray-400 font-mono">SKU: {{ $p->sku ?: 'STD' }}</span>
                                                 @foreach($p->available_sizes ?? [] as $sz)
@@ -1941,7 +1942,7 @@
                                     <!-- ↔️ Screen Column Shift Arrows (Left & Right Screen Scroll) Under Every Product -->
                                     <tr class="bg-gradient-to-r from-indigo-50/40 via-purple-50/20 to-amber-50/40 border-b-2 border-indigo-200/80 text-[11px]" id="table-subnav-{{ $p->id }}">
                                         <td colspan="21" class="py-1.5 px-3">
-                                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                            <div class="sticky left-2 max-w-[96vw] sm:max-w-4xl flex items-center justify-between gap-2 p-1.5 bg-white/95 backdrop-blur-sm rounded-2xl border border-indigo-200 shadow-sm">
                                                 <!-- ◀ LEFT ARROW: Shifts Screen Horizontally to Left Columns -->
                                                 <div class="flex items-center gap-1 shrink-0">
                                                     <button type="button" onclick="scrollTableToStart()" class="px-2.5 py-1.5 rounded-xl bg-white hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-bold transition flex items-center gap-1 shadow-2xs active:scale-95 cursor-pointer" title="स्क्रीन को बिल्कुल बाएँ सरकाएं (फ़ोटो, नाम, स्टॉक, खरीद)">
