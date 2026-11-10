@@ -251,13 +251,32 @@ class KeywordHarvesterService
 
     /**
      * Bulk Harvest & Auto-Update all given Products in 1 fast batch
+     * @param iterable $products
+     * @param bool $onlyPending If true, skip products that already have generic keywords
      */
-    public function bulkHarvestAndSave($products): array
+    public function bulkHarvestAndSave($products, bool $onlyPending = true): array
     {
         $updated = [];
         $totalWords = 0;
+        $skipped = 0;
 
         foreach ($products as $p) {
+            $hasKeywords = !empty(trim($p->generic_keywords ?? ''));
+            if ($onlyPending && $hasKeywords) {
+                $skipped++;
+                $words = count(array_filter(explode(' ', trim($p->generic_keywords))));
+                $updated[] = [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'sku' => $p->sku ?: 'SKU-' . $p->id,
+                    'keywords' => $p->generic_keywords,
+                    'byte_length' => strlen($p->generic_keywords),
+                    'words_count' => $words,
+                    'skipped' => true,
+                ];
+                continue;
+            }
+
             $res = $this->harvestAndSaveProduct($p);
             $updated[] = [
                 'id' => $p->id,
@@ -265,13 +284,16 @@ class KeywordHarvesterService
                 'sku' => $p->sku ?: 'SKU-' . $p->id,
                 'keywords' => $res['keywords'],
                 'byte_length' => $res['byte_length'],
-                'words_count' => $res['words_count']
+                'words_count' => $res['words_count'],
+                'skipped' => false,
             ];
             $totalWords += $res['words_count'];
         }
 
         return [
             'total_products' => count($updated),
+            'generated_count' => count($updated) - $skipped,
+            'skipped_count' => $skipped,
             'total_words_harvested' => $totalWords,
             'items' => $updated
         ];

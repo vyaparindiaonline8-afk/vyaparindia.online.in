@@ -1228,11 +1228,12 @@ class ChannelController extends Controller
         ]);
     }
 
-    // 🤖 Bulk AI Generate Listing Content for All Staged Products
+    // 🤖 Bulk AI Generate Listing Content for All Staged Products (with Smart Protection)
     public function bulkAiGenerateListingContent(Request $request, AIProductService $aiService)
     {
         $userId = Auth::id();
         $feedback = $request->input('user_feedback', null);
+        $onlyPending = $request->boolean('only_pending', true);
 
         $channelSelectedProductIds = ChannelListing::whereHas('channel', fn($q) => $q->where('user_id', $userId))->pluck('product_id')->toArray();
         $stagedAttrProductIds = Product::where('user_id', $userId)->whereJsonContains('attributes->channel_staged', true)->pluck('id')->toArray();
@@ -1249,28 +1250,61 @@ class ChannelController extends Controller
         }
 
         $items = [];
+        $skippedCount = 0;
+        $generatedCount = 0;
+
         foreach ($products as $p) {
-            $content = $aiService->generateAmazonListingContent($p, $feedback);
-            $items[] = [
-                'id' => $p->id,
-                'original_name' => $p->name,
-                'title' => $content['title'],
-                'bullet_points' => $content['bullet_points'],
-                'description' => $content['description'],
-                'generic_keywords' => $content['generic_keywords'],
-                'byte_length' => $content['byte_length'],
-                'material' => $content['material'],
-                'size' => $content['size'],
-                'image' => $p->image ? asset($p->image) : null,
-                'hsn' => $p->hsn_code ?: '39174000',
-            ];
+            // 🛡️ Smart Protection: Check if product already has bullets & keywords prepared
+            $hasExistingContent = !empty($p->bullet_points) && !empty($p->generic_keywords);
+
+            if ($onlyPending && $hasExistingContent) {
+                // Keep existing user/AI work intact - DO NOT OVERRIDE!
+                $items[] = [
+                    'id' => $p->id,
+                    'original_name' => $p->name,
+                    'title' => $p->name,
+                    'bullet_points' => $p->bullet_points,
+                    'description' => $p->description ?? '',
+                    'generic_keywords' => $p->generic_keywords,
+                    'byte_length' => strlen($p->generic_keywords),
+                    'material' => $p->material ?? 'Commercial Grade',
+                    'size' => !empty($p->available_sizes) ? implode(', ', $p->available_sizes) : '15mm (1/2")',
+                    'image' => $p->image ? asset($p->image) : null,
+                    'hsn' => $p->hsn_code ?: '39174000',
+                    'is_already_prepared' => true,
+                ];
+                $skippedCount++;
+            } else {
+                $content = $aiService->generateAmazonListingContent($p, $feedback);
+                $items[] = [
+                    'id' => $p->id,
+                    'original_name' => $p->name,
+                    'title' => $content['title'],
+                    'bullet_points' => $content['bullet_points'],
+                    'description' => $content['description'],
+                    'generic_keywords' => $content['generic_keywords'],
+                    'byte_length' => $content['byte_length'],
+                    'material' => $content['material'],
+                    'size' => $content['size'],
+                    'image' => $p->image ? asset($p->image) : null,
+                    'hsn' => $p->hsn_code ?: '39174000',
+                    'is_already_prepared' => false,
+                ];
+                $generatedCount++;
+            }
         }
+
+        $msg = $onlyPending && $skippedCount > 0
+            ? "दुकान के {$generatedCount} नए प्रोडक्ट्स का AI कंटेंट तैयार हुआ, और {$skippedCount} पहले से तैयार प्रोडक्ट्स को सुरक्षित रखा गया!"
+            : "दुकान के " . count($items) . " प्रोडक्ट्स का अमेज़न लिस्टिंग कंटेंट AI द्वारा सफलतापूर्वक तैयार कर लिया गया है!";
 
         return response()->json([
             'success' => true,
             'count' => count($items),
+            'generated_count' => $generatedCount,
+            'skipped_count' => $skippedCount,
             'items' => $items,
-            'message' => "दुकान के " . count($items) . " प्रोडक्ट्स का अमेज़न लिस्टिंग कंटेंट AI द्वारा सफलतापूर्वक तैयार कर लिया गया है!"
+            'message' => $msg
         ]);
     }
 
@@ -2676,14 +2710,21 @@ class ChannelController extends Controller
             $products = \App\Models\Product::where('user_id', $userId)->take(20)->get();
         }
 
-        $bulkResult = $harvester->bulkHarvestAndSave($products);
+        $onlyPending = $request->boolean('only_pending', true);
+        $bulkResult = $harvester->bulkHarvestAndSave($products, $onlyPending);
+
+        $msg = ($onlyPending && ($bulkResult['skipped_count'] ?? 0) > 0)
+            ? "🎉 शानदार! {$bulkResult['generated_count']} नए प्रोडक्ट्स के असली सर्च कीवर्ड्स ऑटो-अपडेट हुए, और {$bulkResult['skipped_count']} पहले से तैयार प्रोडक्ट्स को सुरक्षित रखा गया!"
+            : "🎉 शानदार! सभी {$bulkResult['total_products']} प्रोडक्ट्स के लिए खरीदारों के असली सर्च कीवर्ड्स खुद ढूंढकर डेटाबेस में ऑटो-अपडेट कर दिए गए!";
 
         return response()->json([
             'success' => true,
             'total_products' => $bulkResult['total_products'],
+            'generated_count' => $bulkResult['generated_count'] ?? $bulkResult['total_products'],
+            'skipped_count' => $bulkResult['skipped_count'] ?? 0,
             'total_words_harvested' => $bulkResult['total_words_harvested'],
             'items' => $bulkResult['items'],
-            'message' => "🎉 शानदार! सभी {$bulkResult['total_products']} प्रोडक्ट्स के लिए खरीदारों के असली सर्च कीवर्ड्स खुद ढूंढकर डेटाबेस में ऑटो-अपडेट कर दिए गए!",
+            'message' => $msg,
         ]);
     }
 }

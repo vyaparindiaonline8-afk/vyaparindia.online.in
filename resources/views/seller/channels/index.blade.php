@@ -6724,6 +6724,15 @@ document.addEventListener('change', function(e) {
                         <span>⚡ AI जनरेट करें</span>
                     </button>
                 </div>
+                <div class="flex items-center justify-between pt-1 border-t border-purple-200/60 text-xs flex-wrap gap-1">
+                    <label class="flex items-center gap-2 cursor-pointer font-bold text-purple-950 hover:text-purple-700">
+                        <input type="checkbox" id="bulkListingOnlyNewPending" checked class="w-4 h-4 text-purple-600 rounded accent-purple-600 cursor-pointer">
+                        <span>🛡️ केवल नए / अधूरे प्रोडक्ट्स लिखें (जिनमें पहले से लिखा है, वे 100% सुरक्षित रहेंगे)</span>
+                    </label>
+                    <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        <i class="fa-solid fa-shield-halved"></i> सेफ मोड सक्रिय
+                    </span>
+                </div>
             </div>
 
             <!-- Loading Spinner State -->
@@ -6951,6 +6960,7 @@ document.addEventListener('change', function(e) {
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> तैयार हो रहा है...`;
 
             const feedback = document.getElementById('bulkListingUserPrompt')?.value || '';
+            const onlyPending = document.getElementById('bulkListingOnlyNewPending')?.checked ?? true;
             const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
             try {
@@ -6961,7 +6971,7 @@ document.addEventListener('change', function(e) {
                         'Accept': 'application/json',
                         'X-CSRF-TOKEN': token
                     },
-                    body: JSON.stringify({ user_feedback: feedback })
+                    body: JSON.stringify({ user_feedback: feedback, only_pending: onlyPending })
                 });
                 const json = await res.json();
                 if (json.success && Array.isArray(json.items)) {
@@ -7007,7 +7017,10 @@ document.addEventListener('change', function(e) {
                                 <h4 class="font-black text-xs text-gray-900 leading-snug">${item.title}</h4>
                             </div>
                         </div>
-                        <div class="shrink-0 flex items-center gap-1.5">
+                        <div class="shrink-0 flex items-center gap-1.5 flex-wrap justify-end">
+                            ${item.is_already_prepared 
+                                ? `<span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-900 text-[10px] font-bold border border-emerald-300 flex items-center gap-1"><i class="fa-solid fa-shield-halved text-emerald-600"></i> पहले से सुरक्षित (Untouched)</span>` 
+                                : `<span class="px-2 py-0.5 rounded-lg bg-purple-100 text-purple-900 text-[10px] font-bold border border-purple-300 flex items-center gap-1"><i class="fa-solid fa-wand-magic-sparkles text-purple-600"></i> नया AI जनरेटेड</span>`}
                             <span class="px-2 py-0.5 rounded-lg bg-gray-100 text-gray-700 text-[10px] font-mono font-bold">HSN: ${item.hsn}</span>
                             <span class="px-2 py-0.5 rounded-lg bg-purple-50 text-purple-800 text-[10px] font-bold border border-purple-200">${item.material}</span>
                         </div>
@@ -7782,7 +7795,8 @@ document.addEventListener('change', function(e) {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
                         'X-CSRF-TOKEN': token
-                    }
+                    },
+                    body: JSON.stringify({ only_pending: true })
                 });
 
                 const json = await res.json();
@@ -7792,7 +7806,8 @@ document.addEventListener('change', function(e) {
                             icon: 'success',
                             title: '🎉 कीवर्ड्स ऑटो-हार्वेस्ट व अपडेट पूर्ण!',
                             html: `<div class="text-left text-xs space-y-2">
-                                <p><strong>कुल प्रोडक्ट्स अपडेट:</strong> ${json.total_products}</p>
+                                <p><strong>नये प्रोडक्ट्स अपडेट:</strong> ${json.generated_count || json.total_products}</p>
+                                ${json.skipped_count > 0 ? `<p class="text-amber-700 font-bold">🛡️ पहले से तैयार प्रोडक्ट्स (सुरक्षित रखे गए): ${json.skipped_count}</p>` : ''}
                                 <p><strong>कुल सर्च कीवर्ड्स हार्वेस्ट:</strong> ${json.total_words_harvested} शब्द</p>
                                 <p class="text-emerald-700 font-bold">✅ सभी प्रोडक्ट्स के बैकएंड सर्च टर्म्स में 248 बाइट्स के अंदर सबसे ज़्यादा सर्च होने वाले मुख्य शब्द (Stemmed & Deduplicated) बिना किसी टकराव के खुद भर दिए गए हैं!</p>
                             </div>`,
