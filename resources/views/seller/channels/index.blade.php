@@ -1435,7 +1435,10 @@
 
                                 <!-- Action Buttons with Prominent Remove from Multichannel Button -->
                                 <div class="pt-1 flex items-center justify-between gap-1.5 flex-wrap">
-                                    <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="flex-1 py-1.5 px-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-black transition flex items-center justify-center gap-1 shadow-2xs cursor-pointer" title="1 पीस खर्च व मुनाफा देखें">
+                                    <button type="button" onclick="openListingContentModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 transition cursor-pointer" title="🤖 AI असिस्टेंट: टाइटल, 5 बुलेट पॉइंट्स, विवरण व 248 बाइट्स कीवर्ड्स 1-क्लिक में खुद लिखवाएं">
+                                                    <i class="fa-solid fa-wand-magic-sparkles text-xs text-amber-600"></i>
+                                                </button>
+                                                <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="flex-1 py-1.5 px-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-black transition flex items-center justify-center gap-1 shadow-2xs cursor-pointer" title="1 पीस खर्च व मुनाफा देखें">
                                         <i class="fa-solid fa-calculator"></i>
                                         <span>1P खर्च</span>
                                     </button>
@@ -1508,6 +1511,10 @@
                                 <button type="button" onclick="bulkAutoHarvestKeywords()" id="btnBulkHarvestKeywords" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95 border border-emerald-400" title="क्लिक करें: सभी प्रोडक्ट्स के लिए खरीदारों के असली सर्च कीवर्ड्स (248 बाइट्स) खुद ढूंढकर ऑटो-अपडेट करें">
                                     <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
                                     <span id="btnBulkHarvestText">🤖 कीवर्ड्स ऑटो-हार्वेस्ट व अपडेट करें</span>
+                                </button>
+                                <button type="button" onclick="openBulkListingAiModal()" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-700 hover:to-purple-800 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95 border border-purple-400" title="क्लिक करें: AI असिस्टेंट से सभी 19 प्रोडक्ट्स के टाइटल, 5 बुलेट पॉइंट्स, विवरण और कीवर्ड्स 1-क्लिक में खुद लिखवाएं">
+                                    <i class="fa-solid fa-robot text-amber-300"></i>
+                                    <span>🪄 AI असिस्टेंट (पूरी लिस्टिंग लिखें)</span>
                                 </button>
                                 <button type="button" onclick="toggleCompactTableMode()" id="btnCompactTableMode" class="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95 border border-purple-400/40" title="क्लिक करें: सारे 8 खर्चे (कूरियर, RTO, पैकिंग, कमीशन, ऐड्स) एक ही बॉक्स में समेटें">
                                     <i class="fa-solid fa-compress" id="btnCompactIcon"></i>
@@ -1916,6 +1923,9 @@
                                         <!-- 9. Quick Actions -->
                                         <td class="p-3 text-right">
                                             <div class="flex items-center justify-end gap-1">
+                                                <button type="button" onclick="openListingContentModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 transition cursor-pointer" title="🤖 AI असिस्टेंट: टाइटल, 5 बुलेट पॉइंट्स, विवरण व 248 बाइट्स कीवर्ड्स 1-क्लिक में खुद लिखवाएं">
+                                                    <i class="fa-solid fa-wand-magic-sparkles text-xs text-amber-600"></i>
+                                                </button>
                                                 <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition cursor-pointer" title="1P लागत, खर्चे, कूरियर व मुनाफा विवरण (पॉपअप)">
                                                     <i class="fa-solid fa-calculator text-xs"></i>
                                                 </button>
@@ -1949,7 +1959,10 @@
                                                     <span class="font-extrabold text-slate-800 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-2xs">
                                                         <span class="text-indigo-600 font-mono">#{{ $p->id }}</span> • <span class="max-w-[140px] truncate inline-block align-bottom">{{ $p->name }}</span>
                                                     </span>
-                                                    <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="px-2.5 py-1 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-black cursor-pointer transition shadow-2xs flex items-center gap-1">
+                                                    <button type="button" onclick="openListingContentModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 transition cursor-pointer" title="🤖 AI असिस्टेंट: टाइटल, 5 बुलेट पॉइंट्स, विवरण व 248 बाइट्स कीवर्ड्स 1-क्लिक में खुद लिखवाएं">
+                                                    <i class="fa-solid fa-wand-magic-sparkles text-xs text-amber-600"></i>
+                                                </button>
+                                                <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="px-2.5 py-1 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-black cursor-pointer transition shadow-2xs flex items-center gap-1">
                                                         <i class="fa-solid fa-calculator text-indigo-600"></i>
                                                         <span>1P पूरा खर्च विवरण</span>
                                                     </button>
