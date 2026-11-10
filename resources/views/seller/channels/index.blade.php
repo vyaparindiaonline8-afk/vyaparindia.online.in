@@ -4454,6 +4454,45 @@ function switchMarketplaceTab(tab) {
                 return;
             }
 
+            // 🚨 STRICT MRP COMPLIANCE AUDIT BEFORE SAVING
+            const offendingItems = [];
+            rows.forEach(row => {
+                const id = row.getAttribute('data-id');
+                const cost = parseFloat(document.getElementById(`row-cost-${id}`)?.value) || 0;
+                const price = parseFloat(document.getElementById(`row-price-${id}`)?.value) || 0;
+                const mrp = parseFloat(document.getElementById(`row-mrp-${id}`)?.value || document.getElementById(`card-mrp-${id}`)?.value) || 0;
+                const skipSingle = document.getElementById(`row-skip-single-${id}`)?.checked;
+                const nameEl = document.querySelector(`#table-row-${id} td:nth-child(3) span`) || document.getElementById(`card-name-${id}`);
+                const name = nameEl ? nameEl.textContent.trim() : `Product #${id}`;
+
+                if (mrp > 0 && price > mrp && !skipSingle) {
+                    offendingItems.push({ id, name, mrp, price, diff: Math.round(price - mrp) });
+                    row.classList.add('bg-rose-100', 'ring-2', 'ring-rose-400');
+                } else {
+                    row.classList.remove('bg-rose-100', 'ring-2', 'ring-rose-400');
+                }
+            });
+
+            if (offendingItems.length > 0) {
+                let msg = `🚨 कानूनी उल्लंघन अलर्ट (MRP Compliance Violation)!\n\nकुल ${offendingItems.length} प्रोडक्ट्स में सेलिंग भाव डिब्बे पर छपे MRP से अधिक है:\n\n`;
+                offendingItems.forEach((it, idx) => {
+                    msg += `${idx + 1}. ${it.name}\n   👉 MRP: ₹${it.mrp} vs सेलिंग भाव: ₹${it.price} (₹${it.diff} अधिक!)\n`;
+                });
+                msg += `\nअमेज़न पर MRP से अधिक भाव रखने पर लिस्टिंग ब्लॉक हो जाएगी!\n\nक्या आप इन सभी ${offendingItems.length} प्रोडक्ट्स में '1P स्किप (केवल 2P/4P/6P कॉम्बो)' ऑटोमैटिक लागू करके सुरक्षित सेव करना चाहते हैं?\n\n[OK] = 1P स्किप लागू करें और सुरक्षित सेव करें\n[Cancel] = खुद हाथ से ठीक करें`;
+
+                if (confirm(msg)) {
+                    offendingItems.forEach(it => {
+                        const chk = document.getElementById(`row-skip-single-${it.id}`);
+                        if (chk) chk.checked = true;
+                        onToggleSkipSingle(it.id);
+                    });
+                    showChannelToast('✓ सभी उल्लंघन वाले प्रोडक्ट्स में 1P स्किप लागू कर दिया गया। अब सुरक्षित सेव हो रहा है...');
+                } else {
+                    alert('कृपया हाइलाइट किए गए लाल प्रोडक्ट्स में MRP बढ़ाएं या भाव घटाएं।');
+                    return;
+                }
+            }
+
             const items = [];
             rows.forEach(row => {
                 const id = row.getAttribute('data-id');
@@ -4594,6 +4633,17 @@ function switchMarketplaceTab(tab) {
 
             if (price <= 0) {
                 alert('कृपया वैध फाइनल सेलिंग रेट डालें!');
+                return;
+            }
+
+            const mrpCheck = parseFloat(document.getElementById(`row-mrp-${prodId}`)?.value || document.getElementById(`card-mrp-${prodId}`)?.value) || 0;
+            const isSingleSkipped = document.getElementById(`row-skip-single-${prodId}`)?.checked;
+            if (mrpCheck > 0 && price > mrpCheck && !isSingleSkipped) {
+                const diff = Math.round(price - mrpCheck);
+                alert(`🚨 कानूनी उल्लंघन अलर्ट (MRP Compliance Block)!\n\nइस प्रोडक्ट का फाइनल सेलिंग भाव (₹${price}) इसके डिब्बे पर छपे MRP (₹${mrpCheck}) से ₹${diff} अधिक है!\n\nअमेज़न व सरकारी विधिक माप विज्ञान (Legal Metrology) के नियमानुसार MRP से अधिक पर बेचना गैर-कानूनी है और अकाउंट सस्पेंड हो सकता है।\n\nसमाधान:\n1. या तो नीचे '🛑 1P स्किप (केवल कॉम्बो)' चेकबॉक्स पर टिक करें,\n2. या नया डिब्बा MRP बढ़ाएं,\n3. या सेलिंग भाव को ₹${mrpCheck} या उससे कम करें।`);
+                // Highlight row in pulsing red
+                const rowEl = document.getElementById(`table-row-${prodId}`);
+                if (rowEl) rowEl.classList.add('bg-rose-100', 'ring-2', 'ring-rose-500');
                 return;
             }
 
