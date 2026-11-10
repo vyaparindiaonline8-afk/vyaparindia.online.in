@@ -4,7 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multi-Marketplace Channel Hub (Amazon, Meesho, Blinkit, Flipkart) - VyaparIndia</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com">
+        // --- ↔️ HORIZONTAL TABLE SCREEN COLUMN SCROLLING FUNCTIONS ---
+        function scrollTableHorizontally(distance) {
+            const wrapper = document.getElementById('pendingTableScrollWrapper');
+            if (wrapper) {
+                wrapper.scrollBy({ left: distance, behavior: 'smooth' });
+            }
+        }
+
+        function scrollTableToStart() {
+            const wrapper = document.getElementById('pendingTableScrollWrapper');
+            if (wrapper) {
+                wrapper.scrollTo({ left: 0, behavior: 'smooth' });
+            }
+        }
+
+        function scrollTableToMid() {
+            const wrapper = document.getElementById('pendingTableScrollWrapper');
+            if (wrapper) {
+                wrapper.scrollTo({ left: 800, behavior: 'smooth' });
+            }
+        }
+
+        function scrollTableToEnd() {
+            const wrapper = document.getElementById('pendingTableScrollWrapper');
+            if (wrapper) {
+                wrapper.scrollTo({ left: wrapper.scrollWidth || 3000, behavior: 'smooth' });
+            }
+        }
+</script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- SweetAlert2 Modal Popup Notification -->
@@ -1408,7 +1437,43 @@
 
                     <!-- Pending Products List: 2. SPREADSHEET TABLE GRID VIEW (Unicommerce / EasyEcom Style) -->
                     <div id="pendingTableContainer" class="mt-4 space-y-3">
-                        <div class="overflow-x-auto bg-white rounded-3xl border border-gray-200 shadow-sm">
+                        <!-- ↔️ Table Screen Column Navigation Toolbar (Left & Right Screen Scroll) -->
+                        <div class="bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 text-white p-3 rounded-2xl shadow-md flex items-center justify-between flex-wrap gap-2.5 text-xs">
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="scrollTableHorizontally(-450)" class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/25 text-white font-black transition flex items-center gap-1.5 border border-white/20 active:scale-95 cursor-pointer shadow-2xs" title="स्क्रीन को बाएँ सरकाएं (Left Columns: फ़ोटो, नाम, स्टॉक, खरीद)">
+                                    <i class="fa-solid fa-arrow-left text-amber-300"></i>
+                                    <span>◀ स्क्रीन बाएँ सरकाएं (नाम, स्टॉक, खरीद)</span>
+                                </button>
+                                <button type="button" onclick="scrollTableToStart()" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/25 text-slate-300 hover:text-white font-bold text-[11px] border border-white/10 active:scale-95 cursor-pointer" title="बिल्कुल शुरू में जाएँ">
+                                    <i class="fa-solid fa-angles-left"></i>
+                                </button>
+                            </div>
+
+                            <!-- Fast Column Jump Pills -->
+                            <div class="flex items-center gap-1 text-[11px] font-bold">
+                                <span class="text-indigo-300 font-sans hidden sm:inline text-[10px] uppercase font-black mr-1">कॉलम देखें:</span>
+                                <button type="button" onclick="scrollTableToStart()" class="px-2.5 py-1 rounded-lg bg-indigo-800/80 hover:bg-indigo-700 text-white cursor-pointer transition shadow-2xs">
+                                    1. फ़ोटो, नाम & स्टॉक
+                                </button>
+                                <button type="button" onclick="scrollTableToMid()" class="px-2.5 py-1 rounded-lg bg-indigo-800/80 hover:bg-indigo-700 text-white cursor-pointer transition shadow-2xs">
+                                    2. कूरियर, RTO & फ़ी
+                                </button>
+                                <button type="button" onclick="scrollTableToEnd()" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-black cursor-pointer transition shadow-2xs">
+                                    3. फाइनल सेलिंग & कॉम्बो 2/4/6P 🎯
+                                </button>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="scrollTableToEnd()" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/25 text-slate-300 hover:text-white font-bold text-[11px] border border-white/10 active:scale-95 cursor-pointer" title="बिल्कुल अंत में जाएँ">
+                                    <i class="fa-solid fa-angles-right"></i>
+                                </button>
+                                <button type="button" onclick="scrollTableHorizontally(450)" class="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black transition flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer" title="स्क्रीन को दाएँ सरकाएं (Right Columns: कूरियर, फ़ी, फाइनल सेलिंग भाव, कॉम्बो)">
+                                    <span>स्क्रीन दाएँ सरकाएं (सेलिंग भाव, कॉम्बो) ▶</span>
+                                    <i class="fa-solid fa-arrow-right text-slate-950"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto bg-white rounded-3xl border border-gray-200 shadow-sm relative scroll-smooth" id="pendingTableScrollWrapper">
                             <table class="w-full text-left text-xs divide-y divide-gray-200">
                             <thead class="bg-gray-100 text-[10px] font-black uppercase text-gray-600 tracking-wider">
                                 <tr>
@@ -1756,39 +1821,52 @@
                                             </div>
                                         </td>
                                     </tr>
-                                    <!-- ↕️ Navigation & Quick Actions Sub-Bar Under Every Product -->
-                                    <tr class="bg-indigo-50/25 border-b-2 border-indigo-100/70 text-[10px]" id="table-subnav-{{ $p->id }}">
-                                        <td colspan="15" class="py-1 px-3">
+                                    <!-- ↔️ Screen Column Shift Arrows (Left & Right Screen Scroll) Under Every Product -->
+                                    <tr class="bg-gradient-to-r from-indigo-50/40 via-purple-50/20 to-amber-50/40 border-b-2 border-indigo-200/80 text-[11px]" id="table-subnav-{{ $p->id }}">
+                                        <td colspan="21" class="py-1.5 px-3">
                                             <div class="flex items-center justify-between gap-2 flex-wrap">
-                                                <button type="button" onclick="scrollToPrevProductRow({{ $p->id }})" class="px-2.5 py-1 rounded-lg bg-white hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-black transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95" title="पिछला प्रोडक्ट देखें">
-                                                    <i class="fa-solid fa-arrow-left text-[9px] text-indigo-600"></i>
-                                                    <span>◀ पिछला आइटम</span>
-                                                </button>
-                                                <div class="flex items-center gap-2 flex-wrap">
-                                                    <span class="font-extrabold text-slate-800 bg-white px-2 py-0.5 rounded-md border border-slate-200">
-                                                        <span class="text-indigo-600 font-mono">#{{ $p->id }}</span> • {{ $p->name }}
-                                                    </span>
-                                                    <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="px-2 py-0.5 rounded-md bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-black cursor-pointer transition flex items-center gap-1">
-                                                        <i class="fa-solid fa-calculator text-[9px]"></i>
-                                                        <span>1P पूरा खर्च विवरण (₹ का हिसाब)</span>
+                                                <!-- ◀ LEFT ARROW: Shifts Screen Horizontally to Left Columns -->
+                                                <div class="flex items-center gap-1 shrink-0">
+                                                    <button type="button" onclick="scrollTableToStart()" class="px-2.5 py-1.5 rounded-xl bg-white hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-bold transition flex items-center gap-1 shadow-2xs active:scale-95 cursor-pointer" title="स्क्रीन को बिल्कुल बाएँ सरकाएं (फ़ोटो, नाम, स्टॉक, खरीद)">
+                                                        <i class="fa-solid fa-angles-left text-indigo-600 text-[10px]"></i>
+                                                        <span class="text-[10px]">शुरू</span>
                                                     </button>
-                                                    <button type="button" onclick="openComboCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="px-2 py-0.5 rounded-md bg-purple-100 hover:bg-purple-200 text-purple-900 font-black cursor-pointer transition flex items-center gap-1">
-                                                        <i class="fa-solid fa-layer-group text-[9px]"></i>
+                                                    <button type="button" onclick="scrollTableHorizontally(-450)" class="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer" title="स्क्रीन को बाएँ सरकाएं (फ़ोटो, नाम, SKU, स्टॉक, खरीद लागत)">
+                                                        <i class="fa-solid fa-arrow-left text-amber-300"></i>
+                                                        <span>◀ बाएँ सरकाएं (नाम, स्टॉक, खरीद)</span>
+                                                    </button>
+                                                </div>
+
+                                                <!-- Middle Product Badge & Quick Actions -->
+                                                <div class="flex items-center gap-1.5 flex-wrap justify-center">
+                                                    <span class="font-extrabold text-slate-800 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-2xs">
+                                                        <span class="text-indigo-600 font-mono">#{{ $p->id }}</span> • <span class="max-w-[140px] truncate inline-block align-bottom">{{ $p->name }}</span>
+                                                    </span>
+                                                    <button type="button" onclick="openCostCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->price }}, {{ $pCost }})" class="px-2.5 py-1 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-black cursor-pointer transition shadow-2xs flex items-center gap-1">
+                                                        <i class="fa-solid fa-calculator text-indigo-600"></i>
+                                                        <span>1P पूरा खर्च विवरण</span>
+                                                    </button>
+                                                    <button type="button" onclick="openComboCalculatorModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="px-2.5 py-1 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-900 font-black cursor-pointer transition shadow-2xs flex items-center gap-1">
+                                                        <i class="fa-solid fa-layer-group text-purple-600"></i>
                                                         <span>2P/4P/6P कॉम्बो</span>
                                                     </button>
-                                                    <button type="button" onclick="openListingContentModal({{ $p->id }}, '{{ addslashes($p->name) }}')" class="px-2 py-0.5 rounded-md bg-amber-100 hover:bg-amber-200 text-amber-900 font-black cursor-pointer transition flex items-center gap-1">
-                                                        <i class="fa-solid fa-wand-magic-sparkles text-[9px]"></i>
-                                                        <span>AI लिस्टिंग</span>
-                                                    </button>
-                                                    <button type="button" onclick="saveTableRowCosting({{ $p->id }}, this)" class="px-2.5 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-black cursor-pointer transition shadow-2xs active:scale-95 flex items-center gap-1">
-                                                        <i class="fa-solid fa-floppy-disk text-[9px]"></i>
+                                                    <button type="button" onclick="saveTableRowCosting({{ $p->id }}, this)" class="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black cursor-pointer transition shadow-2xs active:scale-95 flex items-center gap-1">
+                                                        <i class="fa-solid fa-floppy-disk"></i>
                                                         <span>सेव</span>
                                                     </button>
                                                 </div>
-                                                <button type="button" onclick="scrollToNextProductRow({{ $p->id }})" class="px-2.5 py-1 rounded-lg bg-white hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-black transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95" title="अगला प्रोडक्ट देखें">
-                                                    <span>अगला आइटम ▶</span>
-                                                    <i class="fa-solid fa-arrow-right text-[9px] text-indigo-600"></i>
-                                                </button>
+
+                                                <!-- ▶ RIGHT ARROW: Shifts Screen Horizontally to Right Columns -->
+                                                <div class="flex items-center gap-1 shrink-0">
+                                                    <button type="button" onclick="scrollTableHorizontally(450)" class="px-4 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer" title="स्क्रीन को दाएँ सरकाएं (कूरियर, कमीशन, फाइनल सेलिंग रेट, 2P/4P/6P कॉम्बो)">
+                                                        <span>दाएँ सरकाएं (सेलिंग रेट, कॉम्बो) ▶</span>
+                                                        <i class="fa-solid fa-arrow-right text-slate-950"></i>
+                                                    </button>
+                                                    <button type="button" onclick="scrollTableToEnd()" class="px-2.5 py-1.5 rounded-xl bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 font-bold transition flex items-center gap-1 shadow-2xs active:scale-95 cursor-pointer" title="स्क्रीन को बिल्कुल दाएँ अंत तक सरकाएं (कॉम्बो व एक्शन)">
+                                                        <span class="text-[10px]">अंत</span>
+                                                        <i class="fa-solid fa-angles-right text-amber-700 text-[10px]"></i>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>
