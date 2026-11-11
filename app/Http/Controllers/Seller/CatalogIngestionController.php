@@ -3034,16 +3034,20 @@ Before answering, count the products on the page and make sure \"total_products_
         $pageText = substr($request->input('page_text') ?? '', 0, 20000);
         $pageImage = $request->input('page_image');
 
-        $prompt = "You are an autonomous e-commerce cataloging engine. Look at this catalog page image and its extracted text.
-Extract EVERY product on this page with its text details AND its visual photo bounding box.
+        $prompt = "You are an autonomous e-commerce cataloging engine specialized in sanitaryware, plumbing, faucets, tiles, and hardware catalogs.
+Look at this catalog page image and its extracted text.
+In many sanitaryware/hardware catalogs, text is NOT selectable because the entire page is an image/poster, and Model Names (e.g. 'Flora', 'Opal', 'Fusion', 'Matrix', 'Royal'), Cat Codes (e.g. 'Cat No: 4022', 'SKU-101'), and Prices (e.g. 'MRP ₹450', '380/-') are printed DIRECTLY ON THE IMAGE OR GRAPHIC BOX.
 
-For each product:
-1. Identify its product_name, model_no, item_code/SKU, size, color, mrp, price, and category.
-2. IMPORTANT - IMAGE BOX: Visually locate the product's main photograph or graphic illustration on the page.
-   Return 'image_box_percent': [ymin, xmin, ymax, xmax] as numbers from 0 to 100 representing percentage coordinates from the top-left of the page.
-   Example: [15.2, 5.0, 38.5, 42.0] means photo spans from 15.2% to 38.5% vertically, and 5.0% to 42.0% horizontally.
-   If a product does not have a distinct photo on the page, set image_box_percent to null.
-3. If multiple sizes/variants share the same photo, assign the same image_box_percent to each variant.
+Extract EVERY product on this page:
+1. VISUAL OCR & TEXT EXTRACTION:
+   - Carefully read all text printed on or next to each product graphic (model names, series names, item codes, dimensions like 15mm / 1/2\", and prices like 450/-).
+   - If MRP or price is stamped inside the image graphic (e.g. in a circle, badge, or under the tap), read it accurately as a clean numeric value (e.g. 450).
+   - Clean product name: Include series/model name and product type (e.g. 'Flora PTMT Bib Cock', 'Fusion Swan Neck Basin Tap').
+2. IMAGE BOUNDING BOX:
+   - Visually locate each product's physical photograph/faucet graphic on the page.
+   - Return 'image_box_percent': [ymin, xmin, ymax, xmax] as numbers from 0 to 100 representing percentage coordinates from the top-left of the page canvas.
+   - Frame the bounding box tightly around the product itself so the resulting crop is a clean product image.
+   - If multiple sizes/variants share the same photo, assign the same image_box_percent to each variant.
 
 Return ONLY valid JSON in this exact shape:
 {
