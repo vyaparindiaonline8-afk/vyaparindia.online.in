@@ -22,6 +22,8 @@ class SellerProfile extends Model
         'state',
         'country',
         'gst_number',
+        'tax_scheme',
+        'gst_enrolment_id',
         'google_map_url',
         'latitude',
         'longitude',

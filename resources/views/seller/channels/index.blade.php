@@ -1509,6 +1509,10 @@
                                     <i class="fa-solid fa-chart-pie text-amber-300"></i>
                                     <span>📊 5-मार्केटप्लेस तुलना</span>
                                 </button>
+                                <a href="{{ route('seller.tax_compliance.index') }}" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-700 to-indigo-800 hover:from-purple-800 hover:to-indigo-900 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95 border border-purple-400" title="क्लिक करें: सेल्स GSTR-1, प्लेटफॉर्म फ़ीस ITC व सीए को भेजने हेतु 3-टैब एक्सेल पैकेज">
+                                    <i class="fa-solid fa-file-invoice-dollar text-amber-300"></i>
+                                    <span>📊 Tax & CA Reports</span>
+                                </a>
                                 <button type="button" onclick="bulkAutoHarvestKeywords()" id="btnBulkHarvestKeywords" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95 border border-emerald-400" title="क्लिक करें: सभी प्रोडक्ट्स के लिए खरीदारों के असली सर्च कीवर्ड्स (248 बाइट्स) खुद ढूंढकर ऑटो-अपडेट करें">
                                     <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
                                     <span id="btnBulkHarvestText">🤖 कीवर्ड्स ऑटो-हार्वेस्ट व अपडेट करें</span>

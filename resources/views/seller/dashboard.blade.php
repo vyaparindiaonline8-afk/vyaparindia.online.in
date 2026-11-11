@@ -307,6 +307,20 @@
                         <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
                     </a>
 
+                    <a href="{{ route('seller.tax_compliance.index') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 border border-purple-200 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-file-invoice-dollar text-purple-700 text-lg"></i>
+                            <div>
+                                <div class="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                                    <span>Tax & CA Compliance Center</span>
+                                    <span class="px-1.5 py-0.2 bg-emerald-100 text-emerald-800 text-[9px] font-black rounded">GSTR-1</span>
+                                </div>
+                                <div class="text-[11px] text-gray-500">GSTR-1 Sales, Amazon/Meesho ITC & 1-Click CA Excel</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+                    </a>
+
                     <a href="{{ route('seller.channels.publisher') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors">
                         <div class="flex items-center gap-3">
                             <i class="fa-solid fa-wand-magic-sparkles text-indigo-600 text-lg"></i>

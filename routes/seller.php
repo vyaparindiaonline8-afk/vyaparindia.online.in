@@ -23,6 +23,8 @@ use App\Http\Controllers\Seller\AnalyticsController;
 use App\Http\Controllers\Seller\BrandMasterController;
 use App\Http\Controllers\Seller\ProductSpreadsheetController;
 use App\Http\Controllers\Seller\CatalogAuditController;
+use App\Http\Controllers\Seller\TaxComplianceController;
+
 
 Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
