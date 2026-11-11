@@ -32,7 +32,7 @@
 
                 <!-- Date Filter & Quick Action Buttons -->
                 <div class="flex items-center gap-2 flex-wrap">
-                    <!-- Period Filter Form -->
+                    <!-- Period & Distribution Filter Form -->
                     <form method="GET" action="{{ route('seller.channels.pnl_budget') }}" class="flex items-center gap-1.5 bg-gray-50 p-1 rounded-2xl border border-gray-200">
                         <select name="month" onchange="this.form.submit()" class="px-2.5 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-800 shadow-2xs outline-none cursor-pointer">
                             @for($m = 1; $m <= 12; $m++)
@@ -45,6 +45,11 @@
                             @for($y = now()->year; $y >= now()->year - 2; $y--)
                                 <option value="{{ $y }}" {{ $selectedYear == $y ? 'selected' : '' }}>{{ $y }}</option>
                             @endfor
+                        </select>
+                        <div class="h-4 w-px bg-gray-300 mx-0.5"></div>
+                        <select name="distribution" onchange="this.form.submit()" class="px-2.5 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-xl text-xs font-bold shadow-2xs outline-none cursor-pointer" title="दुकान, स्टाफ, भाड़ा आदि ओवरहेड्स खर्चों का बंटवारा तरीका">
+                            <option value="sales_ratio" {{ ($distributionMethod ?? 'sales_ratio') === 'sales_ratio' ? 'selected' : '' }}>📊 ओवरहेड्स: बिक्री के अनुपात में</option>
+                            <option value="equal" {{ ($distributionMethod ?? '') === 'equal' ? 'selected' : '' }}>⚖️ ओवरहेड्स: सबमें बराबर-बराबर</option>
                         </select>
                     </form>
 
@@ -168,8 +173,9 @@
                             <th class="py-3 px-3 text-right" title="जावक कूरियर डिलीवरी भाड़ा">कूरियर बिल</th>
                             <th class="py-3 px-3 text-right">ऐड्स खर्च</th>
                             <th class="py-3 px-3 text-right">पैकिंग खर्च</th>
-                            <th class="py-3 px-3 text-right" title="रिटर्न/RTO पर लगने वाला रिवर्स व डैमेज नुकसान">RTO नुकसान</th>
-                            <th class="py-3 px-3 text-right" title="दुकान किराया, स्टाफ वेतन, CA व सामान्य ओवरहेड्स का हिस्सा">ओवरहेड्स हिस्सा</th>
+                            <th class="py-3 px-3 text-right" title="रिटर्न/RTO पर लगने वाला रिवर्स व कूरियर नुकसान">RTO नुकसान</th>
+                            <th class="py-3 px-3 text-right" title="ट्रांसपोर्ट व रिटर्न में फूटा/टूटा-फूटा माल नुकसान">डैमेज नुकसान</th>
+                            <th class="py-3 px-3 text-right" title="दुकान किराया, स्टाफ वेतन, CA व सामान्य ओवरहेड्स ({{ ($distributionMethod ?? 'sales_ratio') === 'equal' ? 'बराबर-बराबर' : 'बिक्री अनुसार' }})">ओवरहेड्स हिस्सा</th>
                             <th class="py-3 px-4 text-right bg-indigo-50/80 font-black text-indigo-950">शुद्ध जेब मुनाफा (Net Profit)</th>
                         </tr>
                     </thead>
@@ -221,8 +227,13 @@
                                     -₹{{ number_format($pRow['rto_loss'], 2) }}
                                     <span class="text-[9px] text-gray-400 block font-sans font-normal">{{ $pRow['rto_count'] }} RTO ({{ $pRow['rto_pct'] }}%)</span>
                                 </td>
+                                <td class="py-3.5 px-3 text-right text-rose-700 font-bold">
+                                    -₹{{ number_format($pRow['damage_loss'], 2) }}
+                                    <span class="text-[9px] text-gray-400 block font-sans font-normal">टूट-फूट हानि</span>
+                                </td>
                                 <td class="py-3.5 px-3 text-right text-purple-700 font-bold">
                                     -₹{{ number_format($pRow['overhead_share'], 2) }}
+                                    <span class="text-[9px] text-gray-400 block font-sans font-normal">{{ ($distributionMethod ?? 'sales_ratio') === 'equal' ? 'बराबर बंटवारा' : 'बिक्री अनुपात' }}</span>
                                 </td>
                                 <td class="py-3.5 px-4 text-right bg-indigo-50/80">
                                     <div class="font-black text-sm {{ $pRow['net_profit'] >= 0 ? 'text-emerald-700' : 'text-rose-700' }}">
@@ -245,6 +256,7 @@
                             <td class="py-3 px-3 text-right text-rose-700">-₹{{ number_format($grandAds, 2) }}</td>
                             <td class="py-3 px-3 text-right text-rose-700">-₹{{ number_format($grandPack, 2) }}</td>
                             <td class="py-3 px-3 text-right text-rose-700">-₹{{ number_format($grandRtoLoss, 2) }}</td>
+                            <td class="py-3 px-3 text-right text-rose-700">-₹{{ number_format($grandDamageLoss, 2) }}</td>
                             <td class="py-3 px-3 text-right text-purple-700">-₹{{ number_format($grandOverheads, 2) }}</td>
                             <td class="py-3 px-4 text-right bg-indigo-100/80 text-emerald-800 text-sm">
                                 ₹{{ number_format($grandNetInHandProfit, 2) }}
@@ -361,6 +373,15 @@
                         <span class="font-mono font-black text-gray-900">₹{{ number_format($expenseByCategory['software'], 2) }}</span>
                     </div>
 
+                    <!-- Damage Loss -->
+                    <div class="flex items-center justify-between p-2.5 rounded-2xl bg-rose-50/70 border border-rose-200/60">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-burst text-rose-600"></i>
+                            <span class="font-bold text-gray-800">डैमेज / टूट-फूट नुकसान:</span>
+                        </div>
+                        <span class="font-mono font-black text-rose-700">₹{{ number_format($expenseByCategory['damage'] ?? 0, 2) }}</span>
+                    </div>
+
                     <!-- Misc -->
                     <div class="flex items-center justify-between p-2.5 rounded-2xl bg-gray-50 border border-gray-200/80">
                         <div class="flex items-center gap-2">
@@ -454,6 +475,7 @@
                                                 @elseif($exp->category == 'ca_audit') 📑 CA फीस
                                                 @elseif($exp->category == 'packing') 📦 पैकिंग
                                                 @elseif($exp->category == 'ads') 📢 विज्ञापन
+                                                @elseif($exp->category == 'damage') 🔨 डैमेज
                                                 @elseif($exp->category == 'electricity') ⚡ बिजली
                                                 @elseif($exp->category == 'software') 💻 सॉफ्टवेयर
                                                 @else 💰 विविध @endif
@@ -890,6 +912,7 @@
                             <option value="ca_audit">📑 CA फीस / ऑडिट / GST (CA Fees)</option>
                             <option value="packing">📦 पैकिंग मटेरियल (Packing Material)</option>
                             <option value="ads">📢 डिजिटल ऐड्स खर्च (Ads PPC)</option>
+                            <option value="damage">🔨 डैमेज / टूटा सामान नुकसान (Breakage & Damage)</option>
                             <option value="electricity">⚡ बिजली / पानी / वाई-फाई (Utilities)</option>
                             <option value="software">💻 सॉफ्टवेयर व टूल्स (Software)</option>
                             <option value="misc">💰 विविध / अन्य फुटकर खर्च (Misc)</option>

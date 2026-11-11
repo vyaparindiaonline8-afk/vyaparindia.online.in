@@ -954,6 +954,7 @@ class ChannelController extends Controller
 
         $selectedMonth = (int)$request->input('month', now()->month);
         $selectedYear = (int)$request->input('year', now()->year);
+        $distributionMethod = $request->input('distribution', 'sales_ratio'); // 'sales_ratio' (बिक्री अनुसार) or 'equal' (बराबर-बराबर)
         $fromDate = $request->input('from_date');
         $toDate = $request->input('to_date');
 
@@ -1039,7 +1040,7 @@ class ChannelController extends Controller
         $totalOtherIncomesLogged = (float)$allOtherIncomes->sum('amount');
 
         // Aggregate expenses by category
-        $expenseCategoriesList = ['rent', 'salary', 'cartage', 'electricity', 'ca_audit', 'packing', 'ads', 'software', 'misc'];
+        $expenseCategoriesList = ['rent', 'salary', 'cartage', 'electricity', 'ca_audit', 'packing', 'ads', 'software', 'damage', 'misc'];
         $expenseByCategory = [];
         foreach ($expenseCategoriesList as $cat) {
             $expenseByCategory[$cat] = (float)$allExpenses->where('category', $cat)->sum('amount');
@@ -1181,7 +1182,8 @@ class ChannelController extends Controller
             // Platform specific logged expenses
             $pLoggedAds = (float)$allExpenses->where('platform', $pKey)->where('category', 'ads')->sum('amount');
             $pLoggedPack = (float)$allExpenses->where('platform', $pKey)->where('category', 'packing')->sum('amount');
-            $pLoggedOther = (float)$allExpenses->where('platform', $pKey)->whereNotIn('category', ['ads', 'packing'])->sum('amount');
+            $pLoggedDamage = (float)$allExpenses->where('platform', $pKey)->where('category', 'damage')->sum('amount');
+            $pLoggedOther = (float)$allExpenses->where('platform', $pKey)->whereNotIn('category', ['ads', 'packing', 'damage'])->sum('amount');
 
             $platformData[$pKey] = [
                 'info' => $pInfo,
@@ -1194,6 +1196,7 @@ class ChannelController extends Controller
                 'cogs' => $pCogs,
                 'logged_ads' => $pLoggedAds,
                 'logged_pack' => $pLoggedPack,
+                'logged_damage' => $pLoggedDamage,
                 'logged_other' => $pLoggedOther,
             ];
         }
@@ -1201,11 +1204,11 @@ class ChannelController extends Controller
         // Benchmark Demo projection if store has no platform orders yet
         if (!$hasAnyRealPlatformOrders) {
             $demoPlatformBenchmarks = [
-                'amazon' => ['orders' => 65, 'delivered' => 58, 'rto' => 4, 'pcs' => 65, 'sales' => 34500, 'cogs' => 15500, 'ads' => 2400, 'pack' => 845, 'rto_loss' => 580],
-                'meesho' => ['orders' => 80, 'delivered' => 66, 'rto' => 12, 'pcs' => 80, 'sales' => 28200, 'cogs' => 14100, 'ads' => 1100, 'pack' => 960, 'rto_loss' => 1740],
-                'flipkart' => ['orders' => 35, 'delivered' => 30, 'rto' => 4, 'pcs' => 35, 'sales' => 19800, 'cogs' => 9900, 'ads' => 1500, 'pack' => 420, 'rto_loss' => 580],
-                'vyaparindia' => ['orders' => 30, 'delivered' => 28, 'rto' => 2, 'pcs' => 30, 'sales' => 16500, 'cogs' => 7425, 'ads' => 600, 'pack' => 390, 'rto_loss' => 290],
-                'dropship' => ['orders' => 20, 'delivered' => 19, 'rto' => 1, 'pcs' => 20, 'sales' => 12000, 'cogs' => 8400, 'ads' => 800, 'pack' => 0, 'rto_loss' => 0],
+                'amazon' => ['orders' => 65, 'delivered' => 58, 'rto' => 4, 'pcs' => 65, 'sales' => 34500, 'cogs' => 15500, 'ads' => 2400, 'pack' => 845, 'rto_loss' => 580, 'damage_loss' => 450],
+                'meesho' => ['orders' => 80, 'delivered' => 66, 'rto' => 12, 'pcs' => 80, 'sales' => 28200, 'cogs' => 14100, 'ads' => 1100, 'pack' => 960, 'rto_loss' => 1740, 'damage_loss' => 850],
+                'flipkart' => ['orders' => 35, 'delivered' => 30, 'rto' => 4, 'pcs' => 35, 'sales' => 19800, 'cogs' => 9900, 'ads' => 1500, 'pack' => 420, 'rto_loss' => 580, 'damage_loss' => 380],
+                'vyaparindia' => ['orders' => 30, 'delivered' => 28, 'rto' => 2, 'pcs' => 30, 'sales' => 16500, 'cogs' => 7425, 'ads' => 600, 'pack' => 390, 'rto_loss' => 290, 'damage_loss' => 120],
+                'dropship' => ['orders' => 20, 'delivered' => 19, 'rto' => 1, 'pcs' => 20, 'sales' => 12000, 'cogs' => 8400, 'ads' => 800, 'pack' => 0, 'rto_loss' => 0, 'damage_loss' => 0],
             ];
             foreach ($demoPlatformBenchmarks as $k => $d) {
                 $platformData[$k]['orders_count'] = $d['orders'];
@@ -1218,6 +1221,7 @@ class ChannelController extends Controller
                 $platformData[$k]['demo_ads'] = $d['ads'];
                 $platformData[$k]['demo_pack'] = $d['pack'];
                 $platformData[$k]['demo_rto_loss'] = $d['rto_loss'];
+                $platformData[$k]['demo_damage_loss'] = $d['damage_loss'];
             }
         }
 
@@ -1261,14 +1265,28 @@ class ChannelController extends Controller
                 $pd['rto_loss'] = round($pd['rto_count'] * $drainPerRto, 2);
             }
 
-            // Direct Profit before shared overheads
-            $pd['direct_profit'] = round($sales - $pd['cogs'] - $pd['fees'] - $pd['shipping'] - $pd['ads'] - $pd['pack'] - $pd['rto_loss'], 2);
-
-            // Shared overhead allocation
-            if ($totalAllPlatformSales > 0) {
-                $pd['overhead_share'] = round(($sales / $totalAllPlatformSales) * $effectiveGeneralOverheads, 2);
+            // Damage / Breakage Loss
+            if ($pd['logged_damage'] > 0) {
+                $pd['damage_loss'] = $pd['logged_damage'];
+            } elseif (isset($pd['demo_damage_loss'])) {
+                $pd['damage_loss'] = $pd['demo_damage_loss'];
             } else {
-                $pd['overhead_share'] = round($effectiveGeneralOverheads / 5, 2);
+                $pd['damage_loss'] = 0;
+            }
+
+            // Direct Profit before shared overheads
+            $pd['direct_profit'] = round($sales - $pd['cogs'] - $pd['fees'] - $pd['shipping'] - $pd['ads'] - $pd['pack'] - $pd['rto_loss'] - $pd['damage_loss'], 2);
+
+            // Shared overhead allocation (Equal vs Proportional to Sales)
+            if ($distributionMethod === 'equal') {
+                $pd['overhead_share'] = round($effectiveGeneralOverheads / count($platformData), 2);
+            } else {
+                // Default: sales_ratio (बिक्री के अनुपात में)
+                if ($totalAllPlatformSales > 0) {
+                    $pd['overhead_share'] = round(($sales / $totalAllPlatformSales) * $effectiveGeneralOverheads, 2);
+                } else {
+                    $pd['overhead_share'] = round($effectiveGeneralOverheads / count($platformData), 2);
+                }
             }
 
             // Net In-Hand Profit
@@ -1290,6 +1308,7 @@ class ChannelController extends Controller
         $grandAds = array_sum(array_column($platformData, 'ads'));
         $grandPack = array_sum(array_column($platformData, 'pack'));
         $grandRtoLoss = array_sum(array_column($platformData, 'rto_loss'));
+        $grandDamageLoss = array_sum(array_column($platformData, 'damage_loss'));
         $grandDirectProfit = array_sum(array_column($platformData, 'direct_profit'));
         $grandOverheads = $effectiveGeneralOverheads;
         $grandOtherIncome = $totalOtherIncomesLogged;
@@ -1323,7 +1342,8 @@ class ChannelController extends Controller
             'allExpenses', 'allOtherIncomes', 'totalExpensesLogged', 'totalOtherIncomesLogged',
             'expenseByCategory', 'totalGeneralOverheads',
             'grandSales', 'grandCogs', 'grandFees', 'grandShipping', 'grandAds', 'grandPack',
-            'grandRtoLoss', 'grandDirectProfit', 'grandOverheads', 'grandOtherIncome', 'grandNetInHandProfit', 'grandMarginPct'
+            'grandRtoLoss', 'grandDamageLoss', 'grandDirectProfit', 'grandOverheads', 'grandOtherIncome', 'grandNetInHandProfit', 'grandMarginPct',
+            'distributionMethod'
         ));
     }
 
@@ -1361,7 +1381,7 @@ class ChannelController extends Controller
     {
         $validated = $request->validate([
             'expense_date' => 'required|date',
-            'category' => 'required|string|in:rent,salary,cartage,electricity,ca_audit,packing,ads,software,misc',
+            'category' => 'required|string|in:rent,salary,cartage,electricity,ca_audit,packing,ads,software,damage,misc',
             'amount' => 'required|numeric|min:0.01',
             'platform' => 'nullable|string|in:general,amazon,meesho,flipkart,vyaparindia,dropship',
             'payment_mode' => 'nullable|string|in:cash,upi,bank_transfer,cheque,card',
