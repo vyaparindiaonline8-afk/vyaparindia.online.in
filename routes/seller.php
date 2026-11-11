@@ -134,6 +134,10 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/shipping-rates/save', [ChannelController::class, 'saveShippingRates'])->name('saveShippingRates');
         Route::get('/pnl-budget', [ChannelController::class, 'pnlBudgetReport'])->name('pnl_budget');
         Route::post('/pnl-budget/save-settings', [ChannelController::class, 'savePnlBudgetSettings'])->name('save_pnl_budget_settings');
+        Route::post('/pnl-budget/expenses', [ChannelController::class, 'storeExpense'])->name('pnl_budget.expense.store');
+        Route::delete('/pnl-budget/expenses/{id}', [ChannelController::class, 'deleteExpense'])->name('pnl_budget.expense.delete');
+        Route::post('/pnl-budget/incomes', [ChannelController::class, 'storeOtherIncome'])->name('pnl_budget.income.store');
+        Route::delete('/pnl-budget/incomes/{id}', [ChannelController::class, 'deleteOtherIncome'])->name('pnl_budget.income.delete');
         Route::get('/listing-content/{productId}', [ChannelController::class, 'getListingContent'])->name('get_listing_content');
         Route::post('/listing-content/{productId}/save', [ChannelController::class, 'saveListingContent'])->name('save_listing_content');
         Route::post('/listing-content/{productId}/ai-generate', [ChannelController::class, 'aiGenerateListingContent'])->name('ai_generate_listing_content');

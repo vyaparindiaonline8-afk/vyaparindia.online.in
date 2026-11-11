@@ -13,6 +13,9 @@ use App\Services\AmazonFeeService;
 use App\Services\AmazonSpApiService;
 use App\Models\AmazonFeeCache;
 use App\Services\CloudinaryService;
+use App\Models\SellerExpense;
+use App\Models\SellerOtherIncome;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -951,6 +954,18 @@ class ChannelController extends Controller
 
         $selectedMonth = (int)$request->input('month', now()->month);
         $selectedYear = (int)$request->input('year', now()->year);
+        $fromDate = $request->input('from_date');
+        $toDate = $request->input('to_date');
+
+        if ($fromDate && $toDate) {
+            $startDate = Carbon::parse($fromDate)->startOfDay();
+            $endDate = Carbon::parse($toDate)->endOfDay();
+        } else {
+            $startDate = Carbon::createFromDate($selectedYear, $selectedMonth, 1)->startOfMonth()->startOfDay();
+            $endDate = Carbon::createFromDate($selectedYear, $selectedMonth, 1)->endOfMonth()->endOfDay();
+            $fromDate = $startDate->format('Y-m-d');
+            $toDate = $endDate->format('Y-m-d');
+        }
 
         // Retrieve saved user budget targets or defaults
         $savedSettings = $sellerPage->business_settings['channel_budget'] ?? [];
@@ -964,15 +979,14 @@ class ChannelController extends Controller
             'actual_pack_override' => null,
         ], $savedSettings);
 
-        // Orders for the selected month/year
+        // Orders for the selected period
         $ordersQuery = \App\Models\Order::where(function ($q) use ($userId) {
             $q->where('seller_id', $userId)
               ->orWhereHas('products', function ($pq) use ($userId) {
                   $pq->where('user_id', $userId);
               });
         })
-        ->whereYear('created_at', $selectedYear)
-        ->whereMonth('created_at', $selectedMonth);
+        ->whereBetween('created_at', [$startDate, $endDate]);
 
         $allMonthOrders = (clone $ordersQuery)->with('products')->get();
         $totalDispatchedCount = $allMonthOrders->count();
@@ -1010,6 +1024,32 @@ class ChannelController extends Controller
         $effectiveOrdersCount = max($totalDispatchedCount, ($totalDispatchedCount == 0 ? 30 : $totalDispatchedCount));
         $isDemoPreview = ($totalDispatchedCount == 0);
 
+        // Fetch user's recorded expenses & other incomes for the period
+        $allExpenses = SellerExpense::where('user_id', $userId)
+            ->whereBetween('expense_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->orderBy('expense_date', 'desc')
+            ->get();
+
+        $allOtherIncomes = SellerOtherIncome::where('user_id', $userId)
+            ->whereBetween('income_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->orderBy('income_date', 'desc')
+            ->get();
+
+        $totalExpensesLogged = (float)$allExpenses->sum('amount');
+        $totalOtherIncomesLogged = (float)$allOtherIncomes->sum('amount');
+
+        // Aggregate expenses by category
+        $expenseCategoriesList = ['rent', 'salary', 'cartage', 'electricity', 'ca_audit', 'packing', 'ads', 'software', 'misc'];
+        $expenseByCategory = [];
+        foreach ($expenseCategoriesList as $cat) {
+            $expenseByCategory[$cat] = (float)$allExpenses->where('category', $cat)->sum('amount');
+        }
+
+        // Total general business overheads (shop rent, staff salary, cartage, CA fees, electricity, software, misc)
+        $totalGeneralOverheads = $expenseByCategory['rent'] + $expenseByCategory['salary'] + $expenseByCategory['cartage'] + 
+                                 $expenseByCategory['electricity'] + $expenseByCategory['ca_audit'] + 
+                                 $expenseByCategory['software'] + $expenseByCategory['misc'];
+
         $adsBudgetPerPc = (float)($budgetSettings['ads_budget_per_pc'] ?? 10);
         $packBudgetPerPc = (float)($budgetSettings['pack_budget_per_pc'] ?? 15);
         $rtoBudgetPerPc = (float)($budgetSettings['rto_buffer_per_pc'] ?? 20);
@@ -1021,38 +1061,255 @@ class ChannelController extends Controller
         $totalRtoBudget = $effectiveOrdersCount * $rtoBudgetPerPc;
         $totalTargetProfit = $effectiveOrdersCount * $targetProfitPerPc;
 
-        // Actual Expenses for Month
-        $actualAdsSpend = isset($budgetSettings['actual_ads_override']) && $budgetSettings['actual_ads_override'] !== null
-            ? (float)$budgetSettings['actual_ads_override']
-            : ($isDemoPreview ? 450 : round($effectiveOrdersCount * 15, 2));
+        // Actual Expenses for Month (prefer logged expenses if any)
+        if ($expenseByCategory['ads'] > 0) {
+            $actualAdsSpend = $expenseByCategory['ads'];
+        } elseif (isset($budgetSettings['actual_ads_override']) && $budgetSettings['actual_ads_override'] !== null) {
+            $actualAdsSpend = (float)$budgetSettings['actual_ads_override'];
+        } else {
+            $actualAdsSpend = ($isDemoPreview ? 450 : round($effectiveOrdersCount * 15, 2));
+        }
 
-        $actualPackSpend = isset($budgetSettings['actual_pack_override']) && $budgetSettings['actual_pack_override'] !== null
-            ? (float)$budgetSettings['actual_pack_override']
-            : round($effectiveOrdersCount * 13, 2);
+        if ($expenseByCategory['packing'] > 0) {
+            $actualPackSpend = $expenseByCategory['packing'];
+        } elseif (isset($budgetSettings['actual_pack_override']) && $budgetSettings['actual_pack_override'] !== null) {
+            $actualPackSpend = (float)$budgetSettings['actual_pack_override'];
+        } else {
+            $actualPackSpend = round($effectiveOrdersCount * 13, 2);
+        }
 
         $effectiveRtoCount = $isDemoPreview ? 3 : $rtoOrdersCount;
         $drainPerRto = 145.00;
         $actualRtoLoss = $effectiveRtoCount * $drainPerRto;
 
         // Variances
-        $adsVariance = $totalAdsBudget - $actualAdsSpend; // positive = bachat, negative = over-run
+        $adsVariance = $totalAdsBudget - $actualAdsSpend;
         $packVariance = $totalPackBudget - $actualPackSpend;
         $rtoVariance = $totalRtoBudget - $actualRtoLoss;
 
-        // Full P&L Statement
-        $actualGross = $isDemoPreview ? 8880 : ($grossRevenue > 0 ? $grossRevenue : 8880);
-        $actualCogs = $isDemoPreview ? 3000 : ($totalCogs > 0 ? $totalCogs : round($actualGross * 0.55, 2));
-        $marketplaceFees = round($actualGross * 0.12 * 1.18, 2);
-        $courierBill = round($effectiveOrdersCount * 64.90, 2);
-        $netProfitInHand = $actualGross - $actualCogs - $marketplaceFees - $courierBill - $actualRtoLoss - $actualPackSpend - $actualAdsSpend;
-        $netProfitMarginPct = $actualGross > 0 ? round(($netProfitInHand / $actualGross) * 100, 1) : 0;
+        // 🌟 Platform-Wise P&L Breakdown Engine (Amazon, Meesho, Flipkart, VyaparIndia Direct, Dropship)
+        $platformMeta = [
+            'amazon' => [
+                'name' => 'Amazon India',
+                'badge' => 'FBA / Easy Ship',
+                'icon' => 'fa-brands fa-amazon',
+                'color' => 'amber',
+                'bg' => 'bg-amber-500',
+                'fee_rate' => 0.14,
+                'fee_name' => '14% Referral + Closing Fee',
+                'ship_rate' => 68.0,
+            ],
+            'meesho' => [
+                'name' => 'Meesho',
+                'badge' => '0% Commission',
+                'icon' => 'fa-solid fa-bag-shopping',
+                'color' => 'pink',
+                'bg' => 'bg-pink-500',
+                'fee_rate' => 0.02,
+                'fee_name' => '0% Commission (Nominal Gateway/Fulfillment)',
+                'ship_rate' => 60.0,
+            ],
+            'flipkart' => [
+                'name' => 'Flipkart',
+                'badge' => 'Flipkart Assured',
+                'icon' => 'fa-solid fa-bolt',
+                'color' => 'blue',
+                'bg' => 'bg-blue-500',
+                'fee_rate' => 0.13,
+                'fee_name' => '13% Commission + Fixed Fee',
+                'ship_rate' => 65.0,
+            ],
+            'vyaparindia' => [
+                'name' => 'VyaparIndia Direct',
+                'badge' => 'Minisite / Store (0% Platform Fee)',
+                'icon' => 'fa-solid fa-store',
+                'color' => 'indigo',
+                'bg' => 'bg-indigo-600',
+                'fee_rate' => 0.02,
+                'fee_name' => '0% Marketplace Fee (2% Gateway Only)',
+                'ship_rate' => 60.0,
+            ],
+            'dropship' => [
+                'name' => 'Dropshipping',
+                'badge' => 'Direct Supplier Dispatch',
+                'icon' => 'fa-solid fa-boxes-packing',
+                'color' => 'emerald',
+                'bg' => 'bg-emerald-600',
+                'fee_rate' => 0.03,
+                'fee_name' => 'Handling / Sourcing Margin (3%)',
+                'ship_rate' => 0.0,
+            ],
+        ];
+
+        $platformData = [];
+        $hasAnyRealPlatformOrders = false;
+
+        foreach ($platformMeta as $pKey => $pInfo) {
+            $pOrders = $allMonthOrders->filter(function($ord) use ($pKey) {
+                $src = strtolower($ord->order_source ?? '');
+                if ($pKey === 'amazon') return strpos($src, 'amazon') !== false;
+                if ($pKey === 'meesho') return strpos($src, 'meesho') !== false;
+                if ($pKey === 'flipkart') return strpos($src, 'flipkart') !== false;
+                if ($pKey === 'dropship') return strpos($src, 'dropship') !== false;
+                if ($pKey === 'vyaparindia') return in_array($src, ['minisite', 'vyaparindia', 'store', 'direct', '']) || ($src == null);
+                return false;
+            });
+
+            $pDispatched = $pOrders->count();
+            if ($pDispatched > 0) $hasAnyRealPlatformOrders = true;
+
+            $pRto = $pOrders->filter(function($o) {
+                return in_array(strtolower($o->status ?? ''), ['rto', 'returned']);
+            })->count();
+
+            $pDelivered = $pOrders->filter(function($o) {
+                return !in_array(strtolower($o->status ?? ''), ['cancelled', 'rto', 'returned']);
+            });
+
+            $pSales = (float)$pDelivered->sum('total_price');
+            $pCogs = 0;
+            $pPcs = 0;
+            foreach ($pDelivered as $ord) {
+                foreach ($ord->products as $prod) {
+                    $q = $prod->pivot->quantity ?? 1;
+                    $pPcs += $q;
+                    $uCost = ($prod->purchase_price > 0) ? (float)$prod->purchase_price : ((float)$prod->price * 0.60);
+                    $pCogs += ($uCost * $q);
+                }
+            }
+
+            // Platform specific logged expenses
+            $pLoggedAds = (float)$allExpenses->where('platform', $pKey)->where('category', 'ads')->sum('amount');
+            $pLoggedPack = (float)$allExpenses->where('platform', $pKey)->where('category', 'packing')->sum('amount');
+            $pLoggedOther = (float)$allExpenses->where('platform', $pKey)->whereNotIn('category', ['ads', 'packing'])->sum('amount');
+
+            $platformData[$pKey] = [
+                'info' => $pInfo,
+                'orders_count' => $pDispatched,
+                'delivered_count' => $pDelivered->count(),
+                'rto_count' => $pRto,
+                'rto_pct' => $pDispatched > 0 ? round(($pRto / $pDispatched) * 100, 1) : 0,
+                'pieces_sold' => $pPcs,
+                'sales' => $pSales,
+                'cogs' => $pCogs,
+                'logged_ads' => $pLoggedAds,
+                'logged_pack' => $pLoggedPack,
+                'logged_other' => $pLoggedOther,
+            ];
+        }
+
+        // Benchmark Demo projection if store has no platform orders yet
+        if (!$hasAnyRealPlatformOrders) {
+            $demoPlatformBenchmarks = [
+                'amazon' => ['orders' => 65, 'delivered' => 58, 'rto' => 4, 'pcs' => 65, 'sales' => 34500, 'cogs' => 15500, 'ads' => 2400, 'pack' => 845, 'rto_loss' => 580],
+                'meesho' => ['orders' => 80, 'delivered' => 66, 'rto' => 12, 'pcs' => 80, 'sales' => 28200, 'cogs' => 14100, 'ads' => 1100, 'pack' => 960, 'rto_loss' => 1740],
+                'flipkart' => ['orders' => 35, 'delivered' => 30, 'rto' => 4, 'pcs' => 35, 'sales' => 19800, 'cogs' => 9900, 'ads' => 1500, 'pack' => 420, 'rto_loss' => 580],
+                'vyaparindia' => ['orders' => 30, 'delivered' => 28, 'rto' => 2, 'pcs' => 30, 'sales' => 16500, 'cogs' => 7425, 'ads' => 600, 'pack' => 390, 'rto_loss' => 290],
+                'dropship' => ['orders' => 20, 'delivered' => 19, 'rto' => 1, 'pcs' => 20, 'sales' => 12000, 'cogs' => 8400, 'ads' => 800, 'pack' => 0, 'rto_loss' => 0],
+            ];
+            foreach ($demoPlatformBenchmarks as $k => $d) {
+                $platformData[$k]['orders_count'] = $d['orders'];
+                $platformData[$k]['delivered_count'] = $d['delivered'];
+                $platformData[$k]['rto_count'] = $d['rto'];
+                $platformData[$k]['rto_pct'] = round(($d['rto'] / $d['orders']) * 100, 1);
+                $platformData[$k]['pieces_sold'] = $d['pcs'];
+                $platformData[$k]['sales'] = $d['sales'];
+                $platformData[$k]['cogs'] = $d['cogs'];
+                $platformData[$k]['demo_ads'] = $d['ads'];
+                $platformData[$k]['demo_pack'] = $d['pack'];
+                $platformData[$k]['demo_rto_loss'] = $d['rto_loss'];
+            }
+        }
+
+        $totalAllPlatformSales = array_sum(array_column($platformData, 'sales'));
+        $effectiveGeneralOverheads = max($totalGeneralOverheads, ($isDemoPreview && $totalGeneralOverheads == 0 ? 8000 : $totalGeneralOverheads));
+        $bestPlatformKey = null;
+        $highestNetProfit = -999999;
+
+        foreach ($platformData as $pKey => &$pd) {
+            $sales = $pd['sales'];
+
+            // Fees
+            $feeRate = $pd['info']['fee_rate'];
+            $pd['fees'] = round($sales * $feeRate * 1.18, 2);
+
+            // Shipping
+            $pd['shipping'] = round($pd['delivered_count'] * $pd['info']['ship_rate'], 2);
+
+            // Ads
+            if ($pd['logged_ads'] > 0) {
+                $pd['ads'] = $pd['logged_ads'];
+            } elseif (isset($pd['demo_ads'])) {
+                $pd['ads'] = $pd['demo_ads'];
+            } else {
+                $pd['ads'] = $totalAllPlatformSales > 0 ? round(($sales / $totalAllPlatformSales) * $actualAdsSpend, 2) : round($actualAdsSpend / 5, 2);
+            }
+
+            // Packaging
+            if ($pd['logged_pack'] > 0) {
+                $pd['pack'] = $pd['logged_pack'];
+            } elseif (isset($pd['demo_pack'])) {
+                $pd['pack'] = $pd['demo_pack'];
+            } else {
+                $pd['pack'] = $pKey === 'dropship' ? 0 : round($pd['orders_count'] * $packBudgetPerPc, 2);
+            }
+
+            // RTO Loss
+            if (isset($pd['demo_rto_loss'])) {
+                $pd['rto_loss'] = $pd['demo_rto_loss'];
+            } else {
+                $pd['rto_loss'] = round($pd['rto_count'] * $drainPerRto, 2);
+            }
+
+            // Direct Profit before shared overheads
+            $pd['direct_profit'] = round($sales - $pd['cogs'] - $pd['fees'] - $pd['shipping'] - $pd['ads'] - $pd['pack'] - $pd['rto_loss'], 2);
+
+            // Shared overhead allocation
+            if ($totalAllPlatformSales > 0) {
+                $pd['overhead_share'] = round(($sales / $totalAllPlatformSales) * $effectiveGeneralOverheads, 2);
+            } else {
+                $pd['overhead_share'] = round($effectiveGeneralOverheads / 5, 2);
+            }
+
+            // Net In-Hand Profit
+            $pd['net_profit'] = round($pd['direct_profit'] - $pd['overhead_share'], 2);
+            $pd['net_margin_pct'] = $sales > 0 ? round(($pd['net_profit'] / $sales) * 100, 1) : 0;
+
+            if ($pd['net_profit'] > $highestNetProfit) {
+                $highestNetProfit = $pd['net_profit'];
+                $bestPlatformKey = $pKey;
+            }
+        }
+        unset($pd);
+
+        // Grand Aggregate Financials
+        $grandSales = array_sum(array_column($platformData, 'sales'));
+        $grandCogs = array_sum(array_column($platformData, 'cogs'));
+        $grandFees = array_sum(array_column($platformData, 'fees'));
+        $grandShipping = array_sum(array_column($platformData, 'shipping'));
+        $grandAds = array_sum(array_column($platformData, 'ads'));
+        $grandPack = array_sum(array_column($platformData, 'pack'));
+        $grandRtoLoss = array_sum(array_column($platformData, 'rto_loss'));
+        $grandDirectProfit = array_sum(array_column($platformData, 'direct_profit'));
+        $grandOverheads = $effectiveGeneralOverheads;
+        $grandOtherIncome = $totalOtherIncomesLogged;
+        $grandNetInHandProfit = round($grandDirectProfit - $grandOverheads + $grandOtherIncome, 2);
+        $grandMarginPct = $grandSales > 0 ? round(($grandNetInHandProfit / $grandSales) * 100, 1) : 0;
+
+        // Legacy compatibility variables for existing widgets
+        $actualGross = $grandSales;
+        $actualCogs = $grandCogs;
+        $marketplaceFees = $grandFees;
+        $courierBill = $grandShipping;
+        $netProfitInHand = $grandNetInHandProfit;
+        $netProfitMarginPct = $grandMarginPct;
 
         // Next Month Recommended Targets
         $recommendedAdsPerPc = $effectiveOrdersCount > 0 ? ceil($actualAdsSpend / $effectiveOrdersCount) : 15;
         $recommendedRtoPerPc = $effectiveOrdersCount > 0 ? ceil(max($rtoBudgetPerPc, ($actualRtoLoss / $effectiveOrdersCount) + 5)) : 25;
 
         return view('seller.channels.pnl_budget', compact(
-            'selectedMonth', 'selectedYear', 'budgetSettings', 'allMonthOrders',
+            'selectedMonth', 'selectedYear', 'fromDate', 'toDate', 'budgetSettings', 'allMonthOrders',
             'totalDispatchedCount', 'rtoOrdersCount', 'rtoPct', 'deliveredOrdersCount',
             'effectiveOrdersCount', 'isDemoPreview',
             'adsBudgetPerPc', 'packBudgetPerPc', 'rtoBudgetPerPc', 'targetProfitPerPc',
@@ -1061,7 +1318,12 @@ class ChannelController extends Controller
             'adsVariance', 'packVariance', 'rtoVariance',
             'actualGross', 'actualCogs', 'marketplaceFees', 'courierBill',
             'netProfitInHand', 'netProfitMarginPct',
-            'recommendedAdsPerPc', 'recommendedRtoPerPc'
+            'recommendedAdsPerPc', 'recommendedRtoPerPc',
+            'platformData', 'bestPlatformKey', 'highestNetProfit',
+            'allExpenses', 'allOtherIncomes', 'totalExpensesLogged', 'totalOtherIncomesLogged',
+            'expenseByCategory', 'totalGeneralOverheads',
+            'grandSales', 'grandCogs', 'grandFees', 'grandShipping', 'grandAds', 'grandPack',
+            'grandRtoLoss', 'grandDirectProfit', 'grandOverheads', 'grandOtherIncome', 'grandNetInHandProfit', 'grandMarginPct'
         ));
     }
 
@@ -1092,6 +1354,114 @@ class ChannelController extends Controller
             'success' => true,
             'message' => 'अगले महीने का बजट व खर्च सेटिंग्स सुरक्षित सेव हो गईं!'
         ]);
+    }
+
+    // ➕ Store Seller Business Expense (Staff, Rent, Cartage, CA, etc.)
+    public function storeExpense(Request $request)
+    {
+        $validated = $request->validate([
+            'expense_date' => 'required|date',
+            'category' => 'required|string|in:rent,salary,cartage,electricity,ca_audit,packing,ads,software,misc',
+            'amount' => 'required|numeric|min:0.01',
+            'platform' => 'nullable|string|in:general,amazon,meesho,flipkart,vyaparindia,dropship',
+            'payment_mode' => 'nullable|string|in:cash,upi,bank_transfer,cheque,card',
+            'paid_to' => 'nullable|string|max:255',
+            'invoice_receipt_no' => 'nullable|string|max:100',
+            'notes' => 'nullable|string|max:500',
+            'is_recurring' => 'nullable',
+        ]);
+
+        $category = $validated['category'];
+        $expenseType = in_array($category, ['rent', 'salary', 'electricity', 'ca_audit', 'software']) ? 'overhead' : 'operating';
+
+        $expense = SellerExpense::create([
+            'user_id' => Auth::id(),
+            'expense_type' => $expenseType,
+            'category' => $category,
+            'amount' => $validated['amount'],
+            'expense_date' => $validated['expense_date'],
+            'platform' => $validated['platform'] ?? 'general',
+            'payment_mode' => $validated['payment_mode'] ?? 'cash',
+            'paid_to' => $validated['paid_to'] ?? null,
+            'invoice_receipt_no' => $validated['invoice_receipt_no'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+            'is_recurring' => $request->has('is_recurring') ? 1 : 0,
+        ]);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'नया खर्च (₹' . number_format($expense->amount, 2) . ') बहीखाते में सफलतापूर्वक दर्ज हो गया!',
+                'expense' => $expense
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'नया खर्च बहीखाते में सफलतापूर्वक दर्ज हो गया!');
+    }
+
+    // 🗑️ Delete Seller Business Expense
+    public function deleteExpense($id)
+    {
+        $expense = SellerExpense::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
+        $expense->delete();
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'खर्च एंट्री सफलतापूर्वक हटा दी गई!'
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'खर्च एंट्री सफलतापूर्वक हटा दी गई!');
+    }
+
+    // ➕ Store Seller Other Income (Scrap, Courier Refund, Cashback, etc.)
+    public function storeOtherIncome(Request $request)
+    {
+        $validated = $request->validate([
+            'income_date' => 'required|date',
+            'income_type' => 'required|string|max:100',
+            'amount' => 'required|numeric|min:0.01',
+            'platform' => 'nullable|string|in:general,amazon,meesho,flipkart,vyaparindia,dropship',
+            'received_from' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $income = SellerOtherIncome::create([
+            'user_id' => Auth::id(),
+            'income_type' => $validated['income_type'],
+            'amount' => $validated['amount'],
+            'income_date' => $validated['income_date'],
+            'platform' => $validated['platform'] ?? 'general',
+            'received_from' => $validated['received_from'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'अन्य आमदनी (₹' . number_format($income->amount, 2) . ') सफलतापूर्वक जोड़ दी गई!',
+                'income' => $income
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'अन्य आमदनी सफलतापूर्वक जोड़ दी गई!');
+    }
+
+    // 🗑️ Delete Seller Other Income
+    public function deleteOtherIncome($id)
+    {
+        $income = SellerOtherIncome::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
+        $income->delete();
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'आमदनी एंट्री सफलतापूर्वक हटा दी गई!'
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'आमदनी एंट्री सफलतापूर्वक हटा दी गई!');
     }
 
     // ✨ Auto-fill Missing Amazon 120-Field Attributes across Catalog
