@@ -204,6 +204,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/ai-copilot', [CatalogIngestionController::class, 'aiCopilotChat'])->name('ai_copilot');
         Route::post('/ai-parse-raw-text', [CatalogIngestionController::class, 'aiParseRawPriceText'])->name('ai_parse_raw_text');
         Route::post('/pdf-studio/ai-extract-table', [CatalogIngestionController::class, 'aiExtractTableFromPage'])->name('pdf_studio.ai_extract_table');
+        Route::post('/pdf-studio/ai-extract-page-products', [CatalogIngestionController::class, 'aiExtractPageProductsWithImages'])->name('pdf_studio.ai_extract_page_products');
         Route::post('/pdf-studio/save-staged-draft', [CatalogIngestionController::class, 'saveStagedSheetDraft'])->name('pdf_studio.save_staged_draft');
         Route::get('/pdf-studio/get-staged-draft', [CatalogIngestionController::class, 'getStagedSheetDraft'])->name('pdf_studio.get_staged_draft');
 

@@ -205,6 +205,13 @@
                             <span class="px-1.5 py-0.5 rounded-md text-[9px] bg-white/20 text-white font-mono font-bold">0 Tokens / AI</span>
                         </button>
 
+                        <!-- ⚡ NEW: 1-Click Autonomous Page Ingestion (Photos + Specs Auto-Crop & Extract) -->
+                        <button type="button" onclick="openAiAutonomousPageModal()" id="btnHeaderAutonomousExtract" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-xs font-black transition flex items-center gap-1.5 shadow-md shadow-purple-600/30 active:scale-95 border border-purple-300/40 cursor-pointer" title="AI is page ki sabhi photos khud kaatega, naam/model/rate link karega aur examination grid dikhayega">
+                            <i class="fa-solid fa-bolt text-amber-300 animate-pulse"></i>
+                            <span>⚡ 1-Click AI Page Extract</span>
+                            <span class="px-1.5 py-0.5 rounded-md text-[9px] bg-amber-400 text-slate-950 font-black">Photos + Text</span>
+                        </button>
+
                         <!-- 📥 Accumulated Staged Excel Sheet Badge & Trigger -->
                         <button type="button" onclick="openStagedExcelModal()" id="btnStagedExcelBadge" class="hidden px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 animate-pulse" title="View & Download Accumulated Staged Excel Sheet">
                             <i class="fa-solid fa-list-check"></i>
@@ -717,7 +724,107 @@
         </div>
     </div>
 
+        <!-- ======================================================= -->
+    <!-- ⚡ AUTONOMOUS PAGE INGESTION EXAMINATION MODAL             -->
+    <!-- (Photos + Details Auto-Crop, Review & 1-Click List)       -->
     <!-- ======================================================= -->
+    <div id="aiAutonomousPageModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 overflow-y-auto" onclick="closeAiAutonomousPageModal()">
+        <div class="bg-white rounded-3xl max-w-5xl w-full shadow-2xl border border-purple-200 overflow-hidden flex flex-col my-auto max-h-[92vh] animate-in fade-in zoom-in duration-200" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="p-4 sm:p-5 bg-gradient-to-r from-slate-950 via-purple-950 to-indigo-950 text-white flex items-center justify-between shrink-0 border-b border-purple-500/30">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center text-xl font-black shadow-lg shadow-amber-500/30 shrink-0">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-base sm:text-lg font-black tracking-tight">⚡ AI 1-Click Page Auto-Extract & Ingestion</h3>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 font-mono" id="aiAutoPageBadge">Page 1</span>
+                        </div>
+                        <p class="text-xs text-purple-200 mt-0.5">
+                            AI is page ki sabhi <strong>Product Photos खुद Crop करके Vault में सेव करेगा</strong> और साथ ही <strong>Model, Name, Size व Rate</strong> को ऑटो-लिंक करके लिस्ट तैयार करेगा।
+                        </p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAiAutonomousPageModal()" class="h-9 w-9 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white flex items-center justify-center text-sm transition cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body: Loading State -->
+            <div id="aiAutoModalLoading" class="py-16 text-center space-y-4 px-6">
+                <div class="inline-block p-4 rounded-3xl bg-purple-50 text-purple-600 text-4xl shadow-inner animate-bounce">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div class="space-y-1">
+                    <h4 class="font-black text-sm text-gray-900" id="aiAutoLoadingTitle">AI Page Visuals & Text Inspect Kar Raha Hai...</h4>
+                    <p class="text-xs text-gray-500 max-w-md mx-auto">
+                        Computer Vision तकनीक से इस पेज पर मौजूद प्रोडक्ट्स की फोटो क्रॉप हो रही हैं और उनके मॉडल कोड्स व रेट्स एक साथ लिंक हो रहे हैं।
+                    </p>
+                </div>
+                <div class="w-48 h-1.5 bg-gray-100 rounded-full mx-auto overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-purple-600 to-indigo-600 animate-pulse"></div>
+                </div>
+            </div>
+
+            <!-- Modal Body: Examination Grid -->
+            <div id="aiAutoModalContent" class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 hidden text-xs">
+                <!-- Summary Bar -->
+                <div class="flex items-center justify-between bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 p-3 rounded-2xl border border-purple-200 flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 rounded-xl bg-purple-600 text-white font-black text-xs shadow-xs" id="aiAutoDetectedCount">0 Products Found</span>
+                        <span class="text-gray-600 text-xs">सभी प्रोडक्ट्स की फोटो और डिटेल्स नीचे तैयार हैं। आप सीधे यहीं एडिट भी कर सकते हैं:</span>
+                    </div>
+                    <span class="text-[11px] font-bold text-purple-800 bg-white px-3 py-1 rounded-xl border border-purple-200" id="aiAutoProviderBadge">AI Engine</span>
+                </div>
+
+                <!-- Products Editable Table / Cards -->
+                <div class="border border-gray-200 rounded-2xl overflow-hidden shadow-2xs bg-white">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="bg-gray-100/90 text-[11px] font-black text-gray-700 uppercase border-b border-gray-200 sticky top-0 backdrop-blur-xs">
+                            <tr>
+                                <th class="p-3 w-10 text-center">#</th>
+                                <th class="p-3 min-w-[80px]">फोटो (Auto-Crop)</th>
+                                <th class="p-3 min-w-[200px]">Product Name (टाइटल)</th>
+                                <th class="p-3 min-w-[100px]">Model No</th>
+                                <th class="p-3 min-w-[90px]">Item Code / SKU</th>
+                                <th class="p-3 min-w-[90px]">Size (आकार)</th>
+                                <th class="p-3 min-w-[90px]">MRP (₹)</th>
+                                <th class="p-3 min-w-[90px]">Selling Price (₹)</th>
+                                <th class="p-3 min-w-[120px]">Category</th>
+                                <th class="p-3 w-12 text-center">हटाएं</th>
+                            </tr>
+                        </thead>
+                        <tbody id="aiAutoProductsTableBody" class="divide-y divide-gray-100 text-xs">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Modal Footer Actions -->
+            <div id="aiAutoModalFooter" class="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between shrink-0 flex-wrap gap-2 hidden">
+                <div class="text-xs text-gray-500">
+                    <span class="font-black text-gray-900" id="aiAutoFooterCount">0</span> प्रोडक्ट्स Catalog & Inventory में सेव होने के लिए तैयार हैं।
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeAiAutonomousPageModal()" class="px-4 py-2 rounded-xl bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs border border-gray-300 transition cursor-pointer">
+                        रद्द करें (Cancel)
+                    </button>
+                    <button type="button" onclick="saveAutonomousProductsToCatalog(false)" id="btnAutoSaveDraft" class="px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-black text-xs border border-indigo-200 transition flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-table-cells text-indigo-600"></i>
+                        <span>Excel Mapper me Kholein</span>
+                    </button>
+                    <button type="button" onclick="saveAutonomousProductsToCatalog(true)" id="btnAutoPublishLive" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 transition flex items-center gap-2 active:scale-95 cursor-pointer">
+                        <i class="fa-solid fa-cloud-arrow-up text-amber-300"></i>
+                        <span>🚀 1-Click Confirm & List Products in Store</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- ======================================================= -->
     <!-- ✏️ EDIT CROP DETAILS MODAL (Product Name & Folder)      -->
     <!-- ======================================================= -->
     <div id="editCropModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4" onclick="closeEditCropModal()">
