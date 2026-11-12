@@ -18,13 +18,14 @@ class CommodityRateController extends Controller
     }
 
     /**
-     * Master Daily Base-Rate & AI Voice Updater Dashboard
+     * Master Daily Base-Rate, Multi-Brand Costing & AI Voice/Broker Message Updater Dashboard
      */
     public function index(Request $request)
     {
         $user = Auth::user();
         $state = $this->engine->getSellerState($user);
         $rates = $state['rates'];
+        $profiles = $state['profiles'];
         $definitions = $state['definitions'];
         $history = $state['history'];
 
@@ -45,44 +46,48 @@ class CommodityRateController extends Controller
 
             if ($variants && $variants->isNotEmpty()) {
                 foreach ($variants as $var) {
-                    $formula = $this->engine->detectFormula($prod, $var);
+                    $formula = $this->engine->detectFormula($prod, $var, $definitions);
                     if (!empty($formula['commodity_key'])) {
                         $hasAnyLink = true;
                         $k = $formula['commodity_key'];
                         $countsByKey[$k] = ($countsByKey[$k] ?? 0) + 1;
-                        $calc = $this->engine->calculatePrice($formula, $rates);
+                        $calc = $this->engine->calculatePrice($formula, $profiles);
                         $linkedItems[] = [
                             'product_id' => $prod->id,
                             'variant_id' => $var->id,
                             'name' => $prod->name . ' — ' . $var->variant_name,
+                            'brand' => $prod->brand ?: ($definitions[$k]['brand'] ?? ''),
                             'commodity_key' => $k,
                             'commodity_label' => $definitions[$k]['label'] ?? $k,
                             'group' => $definitions[$k]['group'] ?? 'anaj_mandi',
                             'formula' => $formula,
                             'current_price' => (float)$var->retail_price,
                             'calculated_price' => $calc['retail_price'] ?? (float)$var->retail_price,
+                            'landing_cost' => $calc['purchase_price'] ?? 0,
                             'explanation' => $calc['explanation'] ?? '',
                             'source' => $formula['source'] ?? 'auto_detected',
                         ];
                     }
                 }
             } else {
-                $formula = $this->engine->detectFormula($prod, null);
+                $formula = $this->engine->detectFormula($prod, null, $definitions);
                 if (!empty($formula['commodity_key'])) {
                     $hasAnyLink = true;
                     $k = $formula['commodity_key'];
                     $countsByKey[$k] = ($countsByKey[$k] ?? 0) + 1;
-                    $calc = $this->engine->calculatePrice($formula, $rates);
+                    $calc = $this->engine->calculatePrice($formula, $profiles);
                     $linkedItems[] = [
                         'product_id' => $prod->id,
                         'variant_id' => null,
                         'name' => $prod->name,
+                        'brand' => $prod->brand ?: ($definitions[$k]['brand'] ?? ''),
                         'commodity_key' => $k,
                         'commodity_label' => $definitions[$k]['label'] ?? $k,
                         'group' => $definitions[$k]['group'] ?? 'anaj_mandi',
                         'formula' => $formula,
                         'current_price' => (float)$prod->price,
                         'calculated_price' => $calc['retail_price'] ?? (float)$prod->price,
+                        'landing_cost' => $calc['purchase_price'] ?? 0,
                         'explanation' => $calc['explanation'] ?? '',
                         'source' => $formula['source'] ?? 'auto_detected',
                     ];
@@ -95,55 +100,84 @@ class CommodityRateController extends Controller
         }
 
         return view('seller.rates.index', compact(
-            'rates', 'definitions', 'history', 'activeTrade',
+            'rates', 'profiles', 'definitions', 'history', 'activeTrade',
             'linkedItems', 'unlinkedProducts', 'countsByKey', 'products'
         ));
     }
 
     /**
-     * ⚡ Apply Updated Base Rates across All Linked Products
+     * ⚡ Apply Updated Profiles (Rate, GST Mode/%, Die, Loading, Insurance, Plant-to-Godown Bhada, Profit)
      */
     public function applyRates(Request $request)
     {
-        $request->validate([
-            'rates' => 'required|array',
-            'source' => 'nullable|string|max:100',
-        ]);
+        $incomingProfiles = [];
 
-        $cleanRates = [];
-        foreach ($request->input('rates') as $k => $val) {
-            if (is_numeric($val) && floatval($val) > 0) {
-                $cleanRates[$k] = round(floatval($val), 2);
+        if ($request->has('profiles') && is_array($request->input('profiles'))) {
+            foreach ($request->input('profiles') as $k => $prof) {
+                if (!is_array($prof) || empty($prof['rate']) || floatval($prof['rate']) <= 0) continue;
+                $clean = [
+                    'rate' => round(floatval($prof['rate']), 2),
+                    'rate_unit' => $prof['rate_unit'] ?? 'per_unit',
+                    'gst_mode' => in_array($prof['gst_mode'] ?? 'extra', ['extra', 'included']) ? $prof['gst_mode'] : 'extra',
+                    'gst_pct' => floatval($prof['gst_pct'] ?? 0),
+                    'loading_charge' => floatval($prof['loading_charge'] ?? 0),
+                    'insurance_charge' => floatval($prof['insurance_charge'] ?? 0),
+                    'local_freight' => floatval($prof['local_freight'] ?? 0),
+                    'profit_type' => $prof['profit_type'] ?? 'percent',
+                    'profit_val' => floatval($prof['profit_val'] ?? 0),
+                ];
+                if (!empty($prof['plant_location'])) {
+                    $clean['plant_location'] = trim($prof['plant_location']);
+                }
+                if (!empty($prof['brand'])) {
+                    $clean['brand'] = trim($prof['brand']);
+                }
+                if (!empty($prof['die_rates']) && is_array($prof['die_rates'])) {
+                    $cleanDie = [];
+                    foreach ($prof['die_rates'] as $mm => $dv) {
+                        $cleanDie[$mm] = floatval($dv);
+                    }
+                    $clean['die_rates'] = $cleanDie;
+                }
+                $incomingProfiles[$k] = $clean;
+            }
+        } elseif ($request->has('rates') && is_array($request->input('rates'))) {
+            foreach ($request->input('rates') as $k => $val) {
+                if (is_array($val)) {
+                    $incomingProfiles[$k] = $val;
+                } elseif (is_numeric($val) && floatval($val) > 0) {
+                    $incomingProfiles[$k] = ['rate' => round(floatval($val), 2)];
+                }
             }
         }
 
-        if (empty($cleanRates)) {
+        if (empty($incomingProfiles)) {
             return response()->json([
                 'success' => false,
                 'message' => 'कृपया कम से कम एक मान्य मार्केट रेट दर्ज करें।'
             ], 422);
         }
 
-        $result = $this->engine->applyMasterRates(
+        $result = $this->engine->applyMasterProfiles(
             Auth::user(),
-            $cleanRates,
-            $request->input('source', 'Master Rate Dashboard')
+            $incomingProfiles,
+            $request->input('source', 'Master Rate & Costing Engine')
         );
 
         return response()->json([
             'success' => true,
-            'message' => "✅ {$result['updated_products']} मुख्य प्रोडक्ट्स और {$result['updated_variants']} वेरिएंट्स के रेट्स लाइव अपडेट हो गए!",
+            'message' => "✅ {$result['updated_products']} मुख्य प्रोडक्ट्स और {$result['updated_variants']} वेरिएंट्स (GST + Die + Loading + Insurance + भाड़ा + Profit सहित) लाइव अपडेट हो गए!",
             'result' => $result,
         ]);
     }
 
     /**
-     * 🎙️ AI Voice & Natural Hindi/Hinglish Rate Parser
+     * 🎙️ AI Voice & Broker WhatsApp Message Parser
      */
     public function parseVoice(Request $request)
     {
         $request->validate([
-            'transcript' => 'required|string|max:1000',
+            'transcript' => 'required|string|max:2000',
             'api_key' => 'nullable|string',
         ]);
 
@@ -167,10 +201,15 @@ class CommodityRateController extends Controller
             'commodity_key' => 'required|string|max:100',
             'trade_type' => 'required|string|in:jewellery,tmt_steel,cement,mandi_grain',
             'weight_val' => 'required|numeric|min:0.01',
+            'mm_size' => 'nullable|string|max:20',
+            'die_override_per_ton' => 'nullable|numeric|min:0',
             'making_type' => 'nullable|string|in:percent,per_gm,flat',
             'making_val' => 'nullable|numeric|min:0',
-            'extra_charge' => 'nullable|numeric|min:0',
-            'margin_pct' => 'nullable|numeric|min:0',
+            'loading_override' => 'nullable|numeric|min:0',
+            'insurance_override' => 'nullable|numeric|min:0',
+            'freight_override' => 'nullable|numeric|min:0',
+            'profit_type' => 'nullable|string|in:percent,flat,flat_kg,flat_ton',
+            'profit_val' => 'nullable|numeric|min:0',
             'gst_pct' => 'nullable|numeric|min:0',
             'gst_mode' => 'nullable|string|in:included,extra',
         ]);
@@ -184,29 +223,32 @@ class CommodityRateController extends Controller
             'source' => 'manual_linked',
         ];
 
+        if ($request->filled('gst_mode')) $formula['gst_mode'] = $validated['gst_mode'];
+        if ($request->filled('gst_pct')) $formula['gst_pct'] = (float)$validated['gst_pct'];
+        if ($request->filled('loading_override')) $formula['loading_override'] = (float)$validated['loading_override'];
+        if ($request->filled('insurance_override')) $formula['insurance_override'] = (float)$validated['insurance_override'];
+        if ($request->filled('freight_override')) $formula['freight_override'] = (float)$validated['freight_override'];
+        if ($request->filled('profit_type')) $formula['profit_type'] = $validated['profit_type'];
+        if ($request->filled('profit_val')) $formula['profit_val'] = (float)$validated['profit_val'];
+
         if ($validated['trade_type'] === 'jewellery') {
             $formula['weight_gm'] = (float)$validated['weight_val'];
             $formula['making_type'] = $validated['making_type'] ?? 'percent';
             $formula['making_val'] = (float)($validated['making_val'] ?? 12);
-            $formula['gst_pct'] = (float)($validated['gst_pct'] ?? 3);
         } elseif ($validated['trade_type'] === 'tmt_steel') {
             $formula['weight_kg'] = (float)$validated['weight_val'];
-            $formula['extra_per_kg'] = (float)($validated['extra_charge'] ?? 1.5);
-            $formula['margin_pct'] = (float)($validated['margin_pct'] ?? 4);
-            $formula['gst_pct'] = (float)($validated['gst_pct'] ?? 18);
-            $formula['gst_mode'] = $validated['gst_mode'] ?? 'extra';
+            $formula['mm_size'] = $validated['mm_size'] ?? '12mm';
+            if ($request->filled('die_override_per_ton')) {
+                $formula['die_override_per_ton'] = (float)$validated['die_override_per_ton'];
+            }
         } elseif ($validated['trade_type'] === 'cement') {
             $formula['bags_count'] = (float)$validated['weight_val'];
-            $formula['hamali_freight'] = (float)($validated['extra_charge'] ?? 10);
-            $formula['margin_pct'] = (float)($validated['margin_pct'] ?? 5);
         } else {
             $formula['weight_kg'] = (float)$validated['weight_val'];
-            $formula['hamali_bardana'] = (float)($validated['extra_charge'] ?? 20);
-            $formula['margin_pct'] = (float)($validated['margin_pct'] ?? 4);
         }
 
         $state = $this->engine->getSellerState($user);
-        $calc = $this->engine->calculatePrice($formula, $state['rates']);
+        $calc = $this->engine->calculatePrice($formula, $state['profiles']);
 
         if (!empty($validated['variant_id'])) {
             $variant = ProductVariant::where('id', $validated['variant_id'])->where('product_id', $product->id)->firstOrFail();
@@ -242,47 +284,80 @@ class CommodityRateController extends Controller
     }
 
     /**
-     * ➕ Add Custom Commodity Base Group (e.g. Makka, Jeera, Mustard Oil Tin)
+     * ➕ Add Brand & Plant-Location Specific Rate Group (e.g. "Tata Tiscon - Raipur", "Bangur Cement - Pali")
      */
     public function addCustomCommodity(Request $request)
     {
         $validated = $request->validate([
             'label' => 'required|string|max:120',
+            'brand' => 'nullable|string|max:80',
+            'plant_location' => 'nullable|string|max:100',
             'unit' => 'required|string|max:60',
+            'rate_unit' => 'nullable|string|in:per_ton,per_kg,per_bag,per_quintal,per_10gm,per_unit',
             'group' => 'required|string|in:anaj_mandi,iron_cement,jewellery',
             'default_rate' => 'required|numeric|min:1',
+            'gst_mode' => 'nullable|string|in:extra,included',
+            'gst_pct' => 'nullable|numeric|min:0|max:40',
+            'loading_charge' => 'nullable|numeric|min:0',
+            'insurance_charge' => 'nullable|numeric|min:0',
+            'local_freight' => 'nullable|numeric|min:0',
+            'profit_val' => 'nullable|numeric|min:0',
         ]);
 
         $user = Auth::user();
         $state = $this->engine->getSellerState($user);
-        $key = 'custom_' . Str::slug($validated['label'], '_');
+        $key = 'custom_' . Str::slug($validated['label'] . '_' . ($validated['plant_location'] ?? ''), '_');
 
         $customDefs = $state['custom_commodities'];
         $customDefs[$key] = [
             'key' => $key,
             'group' => $validated['group'],
             'label' => $validated['label'],
+            'brand' => $validated['brand'] ?: $validated['label'],
+            'plant_location' => $validated['plant_location'] ?: 'Regional Plant / Mandi',
             'unit' => $validated['unit'],
+            'rate_unit' => $validated['rate_unit'] ?? ($validated['group'] === 'iron_cement' ? 'per_ton' : 'per_unit'),
             'default_rate' => (float)$validated['default_rate'],
-            'icon' => $validated['group'] === 'jewellery' ? 'fa-gem' : ($validated['group'] === 'iron_cement' ? 'fa-trowel-bricks' : 'fa-wheat-awn'),
+            'gst_mode' => $validated['gst_mode'] ?? 'extra',
+            'gst_pct' => (float)($validated['gst_pct'] ?? ($validated['group'] === 'jewellery' ? 3 : 18)),
+            'loading_charge' => (float)($validated['loading_charge'] ?? 0),
+            'insurance_charge' => (float)($validated['insurance_charge'] ?? 0),
+            'local_freight' => (float)($validated['local_freight'] ?? 0),
+            'default_profit_type' => 'percent',
+            'default_profit_val' => (float)($validated['profit_val'] ?? 4),
+            'die_rates' => CommodityRateEngineService::DEFAULT_TMT_DIE_PER_TON,
+            'icon' => $validated['group'] === 'jewellery' ? 'fa-gem' : ($validated['group'] === 'iron_cement' ? 'fa-industry' : 'fa-wheat-awn'),
             'color' => 'indigo',
             'is_custom' => true,
         ];
 
-        $rates = $state['rates'];
-        $rates[$key] = (float)$validated['default_rate'];
+        $profiles = $state['profiles'];
+        $profiles[$key] = [
+            'rate' => (float)$validated['default_rate'],
+            'rate_unit' => $customDefs[$key]['rate_unit'],
+            'gst_mode' => $customDefs[$key]['gst_mode'],
+            'gst_pct' => $customDefs[$key]['gst_pct'],
+            'loading_charge' => $customDefs[$key]['loading_charge'],
+            'insurance_charge' => $customDefs[$key]['insurance_charge'],
+            'local_freight' => $customDefs[$key]['local_freight'],
+            'profit_type' => 'percent',
+            'profit_val' => $customDefs[$key]['default_profit_val'],
+            'brand' => $customDefs[$key]['brand'],
+            'plant_location' => $customDefs[$key]['plant_location'],
+            'die_rates' => CommodityRateEngineService::DEFAULT_TMT_DIE_PER_TON,
+        ];
 
-        $this->engine->saveSellerState($user, $rates, $state['history'], $customDefs);
+        $this->engine->saveSellerState($user, $profiles, $state['history'], $customDefs);
 
         return response()->json([
             'success' => true,
-            'message' => "नया कमोडिटी ग्रुप '{$validated['label']}' जोड़ दिया गया!",
+            'message' => "नया ब्रांड/प्लांट कमोडिटी ग्रुप '{$validated['label']}' जोड़ दिया गया!",
             'key' => $key,
         ]);
     }
 
     /**
-     * ⚡ Load Realistic Sample Products across Jewellery, Iron/TMT, Cement & Anaj Mandi for Testing
+     * ⚡ Load Realistic Multi-Brand Sample Products across Jewellery, Iron/TMT (Kamdhenu vs Jindal), Cement & Anaj Mandi
      */
     public function loadDemoSamples(Request $request)
     {
@@ -302,17 +377,8 @@ class CommodityRateController extends Controller
                 'group' => 'Jewellery Gold 22K',
                 'brand' => 'HUID 916',
                 'sku' => 'JWL-RNG-22K-5G',
-                'formula' => ['commodity_key' => 'gold_22k', 'trade_type' => 'jewellery', 'weight_gm' => 5.0, 'making_type' => 'percent', 'making_val' => 12, 'gst_pct' => 3],
+                'formula' => ['commodity_key' => 'gold_22k', 'trade_type' => 'jewellery', 'weight_gm' => 5.0, 'making_type' => 'percent', 'making_val' => 12],
                 'attrs' => ['metal_purity' => 'gold_22k', 'net_weight_gm' => 5.0, 'making_charge_type' => 'percent', 'making_charge_val' => 12, 'hallmark_huid' => 'BIS HUID 916 Verified'],
-            ];
-            $samples[] = [
-                'name' => '22K Traditional Gold Chain (15g)',
-                'cat' => $catJewel->id,
-                'group' => 'Jewellery Gold 22K',
-                'brand' => 'HUID 916',
-                'sku' => 'JWL-CHN-22K-15G',
-                'formula' => ['commodity_key' => 'gold_22k', 'trade_type' => 'jewellery', 'weight_gm' => 15.0, 'making_type' => 'percent', 'making_val' => 10, 'gst_pct' => 3],
-                'attrs' => ['metal_purity' => 'gold_22k', 'net_weight_gm' => 15.0, 'making_charge_type' => 'percent', 'making_charge_val' => 10, 'hallmark_huid' => 'BIS HUID 916 Verified'],
             ];
             $samples[] = [
                 'name' => '999 Pure Silver Bridal Payal Pair (60g)',
@@ -320,37 +386,46 @@ class CommodityRateController extends Controller
                 'group' => 'Jewellery Silver 999',
                 'brand' => '999 Pure Silver',
                 'sku' => 'SLV-PYL-60G',
-                'formula' => ['commodity_key' => 'silver_999', 'trade_type' => 'jewellery', 'weight_gm' => 60.0, 'making_type' => 'per_gm', 'making_val' => 15, 'gst_pct' => 3],
+                'formula' => ['commodity_key' => 'silver_999', 'trade_type' => 'jewellery', 'weight_gm' => 60.0, 'making_type' => 'per_gm', 'making_val' => 15],
                 'attrs' => ['metal_purity' => 'silver_999', 'net_weight_gm' => 60.0, 'making_charge_type' => 'per_gm', 'making_charge_val' => 15, 'hallmark_huid' => '999 Purity Stamped'],
             ];
         }
 
         if ($trade === 'all' || $trade === 'iron_cement') {
             $samples[] = [
-                'name' => 'Kamdhenu TMT Sariya 12mm Fe-550D (10.66 Kg Rod)',
+                'name' => 'Kamdhenu NXT TMT Sariya 8mm (4.74 Kg Rod)',
                 'cat' => $catIron->id,
-                'group' => 'TMT Steel Bars',
+                'group' => 'Kamdhenu TMT (Raipur)',
                 'brand' => 'Kamdhenu',
-                'sku' => 'TMT-12MM-550D',
-                'formula' => ['commodity_key' => 'tmt_base_kg', 'trade_type' => 'tmt_steel', 'weight_kg' => 10.66, 'extra_per_kg' => 1.5, 'margin_pct' => 4, 'gst_pct' => 18, 'gst_mode' => 'extra'],
-                'attrs' => ['material_type' => 'tmt_bar', 'rod_weight_kg' => 10.66, 'steel_cement_grade' => 'Fe-550D ISI'],
+                'sku' => 'KMD-8MM-550D',
+                'formula' => ['commodity_key' => 'tmt_kamdhenu', 'trade_type' => 'tmt_steel', 'mm_size' => '8mm', 'weight_kg' => 4.74],
+                'attrs' => ['material_type' => 'tmt_bar', 'rod_weight_kg' => 4.74, 'steel_cement_grade' => 'Fe-550D Raipur'],
             ];
             $samples[] = [
-                'name' => 'Kamdhenu TMT Sariya 16mm Fe-550D (18.96 Kg Rod)',
+                'name' => 'Kamdhenu NXT TMT Sariya 12mm (10.66 Kg Rod)',
                 'cat' => $catIron->id,
-                'group' => 'TMT Steel Bars',
+                'group' => 'Kamdhenu TMT (Raipur)',
                 'brand' => 'Kamdhenu',
-                'sku' => 'TMT-16MM-550D',
-                'formula' => ['commodity_key' => 'tmt_base_kg', 'trade_type' => 'tmt_steel', 'weight_kg' => 18.96, 'extra_per_kg' => 1.0, 'margin_pct' => 4, 'gst_pct' => 18, 'gst_mode' => 'extra'],
-                'attrs' => ['material_type' => 'tmt_bar', 'rod_weight_kg' => 18.96, 'steel_cement_grade' => 'Fe-550D ISI'],
+                'sku' => 'KMD-12MM-550D',
+                'formula' => ['commodity_key' => 'tmt_kamdhenu', 'trade_type' => 'tmt_steel', 'mm_size' => '12mm', 'weight_kg' => 10.66],
+                'attrs' => ['material_type' => 'tmt_bar', 'rod_weight_kg' => 10.66, 'steel_cement_grade' => 'Fe-550D Raipur'],
+            ];
+            $samples[] = [
+                'name' => 'Jindal Panther TMT Sariya 12mm (10.66 Kg Rod)',
+                'cat' => $catIron->id,
+                'group' => 'Jindal Panther TMT',
+                'brand' => 'Jindal',
+                'sku' => 'JND-12MM-550D',
+                'formula' => ['commodity_key' => 'tmt_jindal_tata', 'trade_type' => 'tmt_steel', 'mm_size' => '12mm', 'weight_kg' => 10.66],
+                'attrs' => ['material_type' => 'tmt_bar', 'rod_weight_kg' => 10.66, 'steel_cement_grade' => 'Fe-550D Patratu'],
             ];
             $samples[] = [
                 'name' => 'UltraTech Weather Plus Cement (50 Kg Bag)',
                 'cat' => $catIron->id,
-                'group' => 'Cement Bags',
+                'group' => 'UltraTech / ACC Cement',
                 'brand' => 'UltraTech',
                 'sku' => 'CMT-UT-50KG',
-                'formula' => ['commodity_key' => 'cement_bag_base', 'trade_type' => 'cement', 'bags_count' => 1.0, 'hamali_freight' => 10, 'margin_pct' => 5, 'wholesale_margin_pct' => 2.5],
+                'formula' => ['commodity_key' => 'cement_ultratech_acc', 'trade_type' => 'cement', 'bags_count' => 1.0],
                 'attrs' => ['material_type' => 'cement_bag', 'rod_weight_kg' => 50, 'steel_cement_grade' => 'PPC 50Kg Bag'],
             ];
         }
@@ -362,23 +437,14 @@ class CommodityRateController extends Controller
                 'group' => 'मंडी भाव (Commodity)',
                 'brand' => 'Sharbati A+',
                 'sku' => 'MND-GEHU-50KG',
-                'formula' => ['commodity_key' => 'anaj_gehu', 'trade_type' => 'mandi_grain', 'weight_kg' => 50.0, 'hamali_bardana' => 25, 'margin_pct' => 4, 'wholesale_margin_pct' => 2],
+                'formula' => ['commodity_key' => 'anaj_gehu', 'trade_type' => 'mandi_grain', 'weight_kg' => 50.0],
                 'attrs' => ['mandi_unit' => 'bori_50', 'moisture_percent' => '< 11% Clean Sortex'],
-            ];
-            $samples[] = [
-                'name' => 'Desi Chana Bold Sortex (100 Kg Quintal)',
-                'cat' => $catMandi->id,
-                'group' => 'मंडी भाव (Commodity)',
-                'brand' => 'Mandi Yard',
-                'sku' => 'MND-CHANA-100KG',
-                'formula' => ['commodity_key' => 'anaj_chana', 'trade_type' => 'mandi_grain', 'weight_kg' => 100.0, 'hamali_bardana' => 35, 'margin_pct' => 3.5, 'wholesale_margin_pct' => 1.5],
-                'attrs' => ['mandi_unit' => 'quintal', 'moisture_percent' => '< 10% Bold Grade'],
             ];
         }
 
         $state = $this->engine->getSellerState($user);
         foreach ($samples as $s) {
-            $calc = $this->engine->calculatePrice($s['formula'], $state['rates']);
+            $calc = $this->engine->calculatePrice($s['formula'], $state['profiles']);
             $attrs = array_merge($s['attrs'], ['rate_formula' => $s['formula']]);
 
             Product::updateOrCreate(
@@ -392,7 +458,7 @@ class CommodityRateController extends Controller
                     'purchase_price' => $calc['purchase_price'] ?? 0,
                     'wholesale_price' => $calc['wholesale_price'] ?? 0,
                     'price' => $calc['retail_price'] ?? 0,
-                    'gst_percent' => $s['formula']['gst_pct'] ?? 5,
+                    'gst_percent' => $state['profiles'][$s['formula']['commodity_key']]['gst_pct'] ?? 5,
                     'track_inventory' => false,
                     'attributes' => $attrs,
                     'price_effective_date' => now()->toDateString(),
@@ -403,7 +469,7 @@ class CommodityRateController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "{$created} सैंपल कमोडिटी प्रोडक्ट्स लाइव रेट इंजन से जुड़ गए!",
+            'message' => "{$created} मल्टी-ब्रांड कमोडिटी प्रोडक्ट्स लाइव रेट इंजन से जुड़ गए!",
         ]);
     }
 }

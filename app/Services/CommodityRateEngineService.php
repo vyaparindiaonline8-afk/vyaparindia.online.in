@@ -27,7 +27,21 @@ class CommodityRateEngineService
     ];
 
     /**
-     * Master Commodity Catalog Definitions
+     * Default TMT Die Charges (₹ per Ton extra over 12mm Base)
+     */
+    public const DEFAULT_TMT_DIE_PER_TON = [
+        '6mm' => 2500,
+        '8mm' => 1500,
+        '10mm' => 500,
+        '12mm' => 0,
+        '16mm' => 0,
+        '20mm' => 500,
+        '25mm' => 1000,
+        '32mm' => 1500,
+    ];
+
+    /**
+     * Master Commodity Catalog Definitions (with GST, Brand, Plant, Loading, Insurance, Freight & Die defaults)
      */
     public static function getCommodityDefinitions(): array
     {
@@ -37,8 +51,18 @@ class CommodityRateEngineService
                 'key' => 'gold_24k',
                 'group' => 'jewellery',
                 'label' => '24K शुद्ध सोना (999 Gold)',
+                'brand' => 'Bullion 999',
+                'plant_location' => 'Local Sarafa Bazar',
                 'unit' => 'प्रति 10 ग्राम',
+                'rate_unit' => 'per_10gm',
                 'default_rate' => 78500.00,
+                'gst_mode' => 'extra',
+                'gst_pct' => 3.0,
+                'loading_charge' => 0,
+                'insurance_charge' => 50.0, // HUID + Hallmarking / Insurance per pc
+                'local_freight' => 0,
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 0, // Making charge covers profit, optional extra profit
                 'icon' => 'fa-gem',
                 'color' => 'amber',
             ],
@@ -46,8 +70,18 @@ class CommodityRateEngineService
                 'key' => 'gold_22k',
                 'group' => 'jewellery',
                 'label' => '22K हॉलमार्क सोना (916)',
+                'brand' => 'BIS HUID 916',
+                'plant_location' => 'Local Sarafa Bazar',
                 'unit' => 'प्रति 10 ग्राम',
+                'rate_unit' => 'per_10gm',
                 'default_rate' => 72000.00,
+                'gst_mode' => 'extra',
+                'gst_pct' => 3.0,
+                'loading_charge' => 0,
+                'insurance_charge' => 45.0,
+                'local_freight' => 0,
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 0,
                 'icon' => 'fa-ring',
                 'color' => 'yellow',
             ],
@@ -55,8 +89,18 @@ class CommodityRateEngineService
                 'key' => 'gold_18k',
                 'group' => 'jewellery',
                 'label' => '18K सोना (750 Gold)',
+                'brand' => 'BIS HUID 750',
+                'plant_location' => 'Local Sarafa Bazar',
                 'unit' => 'प्रति 10 ग्राम',
+                'rate_unit' => 'per_10gm',
                 'default_rate' => 58900.00,
+                'gst_mode' => 'extra',
+                'gst_pct' => 3.0,
+                'loading_charge' => 0,
+                'insurance_charge' => 45.0,
+                'local_freight' => 0,
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 0,
                 'icon' => 'fa-crown',
                 'color' => 'orange',
             ],
@@ -64,30 +108,120 @@ class CommodityRateEngineService
                 'key' => 'silver_999',
                 'group' => 'jewellery',
                 'label' => 'शुद्ध चांदी (999 Silver)',
+                'brand' => 'Pure 999 Silver',
+                'plant_location' => 'Local Sarafa Bazar',
                 'unit' => 'प्रति 1 Kg (1000g)',
+                'rate_unit' => 'per_kg',
                 'default_rate' => 92000.00,
+                'gst_mode' => 'extra',
+                'gst_pct' => 3.0,
+                'loading_charge' => 0,
+                'insurance_charge' => 25.0,
+                'local_freight' => 0,
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 0,
                 'icon' => 'fa-coins',
                 'color' => 'slate',
             ],
 
-            // 🏗️ Iron, Steel & Cement
+            // 🏗️ Iron, Steel & Cement (Multi-Brand & Plant Location Aware)
             'tmt_base_kg' => [
                 'key' => 'tmt_base_kg',
                 'group' => 'iron_cement',
-                'label' => 'लोहा / सरिया बेसिक (TMT Steel)',
-                'unit' => 'प्रति Kg (1000 Kg = 1 Ton)',
-                'default_rate' => 60.00,
+                'label' => 'सामान्य सरिया (TMT Base)',
+                'brand' => 'Local / Standard Mill',
+                'plant_location' => 'Raipur / Regional Mill',
+                'unit' => 'प्रति टन (MT)',
+                'rate_unit' => 'per_ton', // Supports per_ton or per_kg
+                'default_rate' => 54500.00,
+                'gst_mode' => 'extra',
+                'gst_pct' => 18.0,
+                'loading_charge' => 250.0, // ₹/Ton
+                'insurance_charge' => 100.0, // ₹/Ton
+                'local_freight' => 1200.0, // Plant to Godown Bhada ₹/Ton
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 4.0,
+                'die_rates' => self::DEFAULT_TMT_DIE_PER_TON,
                 'icon' => 'fa-bars-staggered',
                 'color' => 'slate',
+            ],
+            'tmt_kamdhenu' => [
+                'key' => 'tmt_kamdhenu',
+                'group' => 'iron_cement',
+                'label' => 'Kamdhenu TMT (कामधेनु सरिया)',
+                'brand' => 'Kamdhenu',
+                'plant_location' => 'Raipur / Bhiwadi Plant',
+                'unit' => 'प्रति टन (MT)',
+                'rate_unit' => 'per_ton',
+                'default_rate' => 56500.00,
+                'gst_mode' => 'extra',
+                'gst_pct' => 18.0,
+                'loading_charge' => 250.0,
+                'insurance_charge' => 100.0,
+                'local_freight' => 1300.0,
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 4.0,
+                'die_rates' => self::DEFAULT_TMT_DIE_PER_TON,
+                'icon' => 'fa-industry',
+                'color' => 'orange',
+            ],
+            'tmt_jindal_tata' => [
+                'key' => 'tmt_jindal_tata',
+                'group' => 'iron_cement',
+                'label' => 'Jindal Panther / Tata Tiscon',
+                'brand' => 'Jindal / Tata',
+                'plant_location' => 'Patratu / Jamshedpur Plant',
+                'unit' => 'प्रति टन (MT)',
+                'rate_unit' => 'per_ton',
+                'default_rate' => 62000.00,
+                'gst_mode' => 'extra',
+                'gst_pct' => 18.0,
+                'loading_charge' => 300.0,
+                'insurance_charge' => 150.0,
+                'local_freight' => 1500.0,
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 3.5,
+                'die_rates' => self::DEFAULT_TMT_DIE_PER_TON,
+                'icon' => 'fa-shield-halved',
+                'color' => 'blue',
             ],
             'cement_bag_base' => [
                 'key' => 'cement_bag_base',
                 'group' => 'iron_cement',
-                'label' => 'सीमेंट बेसिक (50 Kg बोरी)',
+                'label' => 'सामान्य / लोकल सीमेंट (50 Kg)',
+                'brand' => 'Standard PPC/OPC',
+                'plant_location' => 'Local Rake / Godown',
                 'unit' => 'प्रति 50 Kg बैग',
-                'default_rate' => 355.00,
+                'rate_unit' => 'per_bag',
+                'default_rate' => 280.00,
+                'gst_mode' => 'extra',
+                'gst_pct' => 28.0,
+                'loading_charge' => 5.0, // Hamali per bag
+                'insurance_charge' => 0,
+                'local_freight' => 12.0, // Plant/Rake to Godown bhada per bag
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 5.0,
                 'icon' => 'fa-cubes',
                 'color' => 'orange',
+            ],
+            'cement_ultratech_acc' => [
+                'key' => 'cement_ultratech_acc',
+                'group' => 'iron_cement',
+                'label' => 'UltraTech / ACC / Ambuja (50 Kg)',
+                'brand' => 'UltraTech / ACC / Ambuja',
+                'plant_location' => 'Direct Plant / Depot',
+                'unit' => 'प्रति 50 Kg बैग',
+                'rate_unit' => 'per_bag',
+                'default_rate' => 385.00,
+                'gst_mode' => 'included',
+                'gst_pct' => 28.0,
+                'loading_charge' => 5.0,
+                'insurance_charge' => 0,
+                'local_freight' => 10.0,
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 4.5,
+                'icon' => 'fa-cubes-stacked',
+                'color' => 'amber',
             ],
 
             // 🌾 Anaj Mandi
@@ -95,8 +229,18 @@ class CommodityRateEngineService
                 'key' => 'anaj_gehu',
                 'group' => 'anaj_mandi',
                 'label' => 'गेहूं (Wheat / Sharbati)',
+                'brand' => 'Mandi Loose / Packed',
+                'plant_location' => 'Krishi Upaj Mandi',
                 'unit' => 'प्रति क्विंटल (100 Kg)',
+                'rate_unit' => 'per_quintal',
                 'default_rate' => 2650.00,
+                'gst_mode' => 'included',
+                'gst_pct' => 0.0,
+                'loading_charge' => 25.0, // Hamali + Tulai per quintal
+                'insurance_charge' => 0,
+                'local_freight' => 40.0, // Mandi to Godown bhada per quintal
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 4.0,
                 'icon' => 'fa-wheat-awn',
                 'color' => 'emerald',
             ],
@@ -104,8 +248,18 @@ class CommodityRateEngineService
                 'key' => 'anaj_chana',
                 'group' => 'anaj_mandi',
                 'label' => 'चना (Desi / Kabuli Chana)',
+                'brand' => 'Mandi Sortex',
+                'plant_location' => 'Krishi Upaj Mandi',
                 'unit' => 'प्रति क्विंटल (100 Kg)',
+                'rate_unit' => 'per_quintal',
                 'default_rate' => 6200.00,
+                'gst_mode' => 'included',
+                'gst_pct' => 0.0,
+                'loading_charge' => 25.0,
+                'insurance_charge' => 0,
+                'local_freight' => 40.0,
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 4.0,
                 'icon' => 'fa-seedling',
                 'color' => 'lime',
             ],
@@ -113,8 +267,18 @@ class CommodityRateEngineService
                 'key' => 'anaj_soyabean',
                 'group' => 'anaj_mandi',
                 'label' => 'सोयाबीन (Soyabean)',
+                'brand' => 'Mandi Bold',
+                'plant_location' => 'Indore / Ujjain Mandi',
                 'unit' => 'प्रति क्विंटल (100 Kg)',
+                'rate_unit' => 'per_quintal',
                 'default_rate' => 4650.00,
+                'gst_mode' => 'included',
+                'gst_pct' => 0.0,
+                'loading_charge' => 25.0,
+                'insurance_charge' => 0,
+                'local_freight' => 40.0,
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 4.0,
                 'icon' => 'fa-leaf',
                 'color' => 'green',
             ],
@@ -122,8 +286,18 @@ class CommodityRateEngineService
                 'key' => 'anaj_sarson',
                 'group' => 'anaj_mandi',
                 'label' => 'सरसों / राई (Mustard)',
+                'brand' => '42% Oil Condition',
+                'plant_location' => 'Alwar / Kota Mandi',
                 'unit' => 'प्रति क्विंटल (100 Kg)',
+                'rate_unit' => 'per_quintal',
                 'default_rate' => 5800.00,
+                'gst_mode' => 'included',
+                'gst_pct' => 0.0,
+                'loading_charge' => 25.0,
+                'insurance_charge' => 0,
+                'local_freight' => 40.0,
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 4.0,
                 'icon' => 'fa-sun',
                 'color' => 'yellow',
             ],
@@ -131,8 +305,18 @@ class CommodityRateEngineService
                 'key' => 'anaj_rice',
                 'group' => 'anaj_mandi',
                 'label' => 'चावल / बासमती धान',
+                'brand' => 'Packaged / Loose',
+                'plant_location' => 'Rice Mill Dispatch',
                 'unit' => 'प्रति क्विंटल (100 Kg)',
+                'rate_unit' => 'per_quintal',
                 'default_rate' => 4200.00,
+                'gst_mode' => 'extra',
+                'gst_pct' => 5.0,
+                'loading_charge' => 20.0,
+                'insurance_charge' => 0,
+                'local_freight' => 50.0,
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 5.0,
                 'icon' => 'fa-bowl-rice',
                 'color' => 'teal',
             ],
@@ -140,8 +324,18 @@ class CommodityRateEngineService
                 'key' => 'anaj_dal',
                 'group' => 'anaj_mandi',
                 'label' => 'तुअर / मूंग / मसूर दाल',
+                'brand' => 'Sortex Mill',
+                'plant_location' => 'Dal Mill / Mandi',
                 'unit' => 'प्रति क्विंटल (100 Kg)',
+                'rate_unit' => 'per_quintal',
                 'default_rate' => 9600.00,
+                'gst_mode' => 'extra',
+                'gst_pct' => 5.0,
+                'loading_charge' => 25.0,
+                'insurance_charge' => 0,
+                'local_freight' => 50.0,
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 5.0,
                 'icon' => 'fa-jar',
                 'color' => 'amber',
             ],
@@ -149,53 +343,89 @@ class CommodityRateEngineService
     }
 
     /**
-     * Load Seller's Saved Commodity Rates & History
+     * Load Seller's Saved Commodity Profiles (Rates + GST + Die + Loading + Insurance + Local Bhada + Profit)
      */
     public function getSellerState(User $user): array
     {
         $defs = self::getCommodityDefinitions();
-        $defaults = [];
-        foreach ($defs as $k => $d) {
-            $defaults[$k] = $d['default_rate'];
-        }
-
-        $saved = [];
+        $savedProfiles = [];
         $history = [];
         $customDefs = [];
 
         $sellerPage = $user->sellerPage;
         if ($sellerPage && is_array($sellerPage->business_settings)) {
-            $saved = $sellerPage->business_settings['commodity_rates'] ?? [];
+            $savedProfiles = $sellerPage->business_settings['commodity_profiles'] ?? [];
+            $legacyRates = $sellerPage->business_settings['commodity_rates'] ?? [];
             $history = $sellerPage->business_settings['commodity_rate_history'] ?? [];
             $customDefs = $sellerPage->business_settings['custom_commodities'] ?? [];
         } else {
             $jsonPath = storage_path("app/commodity_rates_user_{$user->id}.json");
             if (file_exists($jsonPath)) {
                 $decoded = json_decode(file_get_contents($jsonPath), true) ?: [];
-                $saved = $decoded['commodity_rates'] ?? [];
+                $savedProfiles = $decoded['commodity_profiles'] ?? [];
+                $legacyRates = $decoded['commodity_rates'] ?? [];
                 $history = $decoded['commodity_rate_history'] ?? [];
                 $customDefs = $decoded['custom_commodities'] ?? [];
+            } else {
+                $legacyRates = [];
             }
         }
 
+        $allDefs = array_merge($defs, $customDefs);
+        $profiles = [];
+        $rates = [];
+
+        foreach ($allDefs as $k => $def) {
+            $sp = $savedProfiles[$k] ?? [];
+            $baseRate = isset($sp['rate']) ? floatval($sp['rate']) : (isset($legacyRates[$k]) ? floatval($legacyRates[$k]) : floatval($def['default_rate']));
+
+            // Backwards compatibility: if old saved tmt rate was per kg (like 60) while new default is per_ton
+            if (in_array($k, ['tmt_base_kg', 'tmt_kamdhenu', 'tmt_jindal_tata']) && ($sp['rate_unit'] ?? $def['rate_unit']) === 'per_ton' && $baseRate > 0 && $baseRate < 500) {
+                $baseRate = $baseRate * 1000;
+            }
+
+            $profiles[$k] = [
+                'rate' => $baseRate,
+                'rate_unit' => $sp['rate_unit'] ?? ($def['rate_unit'] ?? 'per_unit'),
+                'gst_mode' => $sp['gst_mode'] ?? ($def['gst_mode'] ?? 'extra'),
+                'gst_pct' => isset($sp['gst_pct']) ? floatval($sp['gst_pct']) : floatval($def['gst_pct'] ?? 0),
+                'loading_charge' => isset($sp['loading_charge']) ? floatval($sp['loading_charge']) : floatval($def['loading_charge'] ?? 0),
+                'insurance_charge' => isset($sp['insurance_charge']) ? floatval($sp['insurance_charge']) : floatval($def['insurance_charge'] ?? 0),
+                'local_freight' => isset($sp['local_freight']) ? floatval($sp['local_freight']) : floatval($def['local_freight'] ?? 0),
+                'profit_type' => $sp['profit_type'] ?? ($def['default_profit_type'] ?? 'percent'),
+                'profit_val' => isset($sp['profit_val']) ? floatval($sp['profit_val']) : floatval($def['default_profit_val'] ?? 4.0),
+                'brand' => $sp['brand'] ?? ($def['brand'] ?? ''),
+                'plant_location' => $sp['plant_location'] ?? ($def['plant_location'] ?? ''),
+                'die_rates' => $sp['die_rates'] ?? ($def['die_rates'] ?? self::DEFAULT_TMT_DIE_PER_TON),
+            ];
+            $rates[$k] = $baseRate;
+        }
+
         return [
-            'rates' => array_merge($defaults, $saved),
+            'rates' => $rates,
+            'profiles' => $profiles,
             'history' => $history,
             'custom_commodities' => $customDefs,
-            'definitions' => array_merge($defs, $customDefs),
+            'definitions' => $allDefs,
         ];
     }
 
     /**
-     * Save Seller's Commodity State persistently
+     * Persist Seller's Full Commodity Profiles, History & Custom Brand/Plant Groups
      */
-    public function saveSellerState(User $user, array $rates, array $history, array $customDefs = []): void
+    public function saveSellerState(User $user, array $profiles, array $history, array $customDefs = []): void
     {
+        $ratesOnly = [];
+        foreach ($profiles as $k => $p) {
+            $ratesOnly[$k] = floatval($p['rate'] ?? 0);
+        }
+
         $sellerPage = $user->sellerPage;
         if ($sellerPage) {
             $settings = $sellerPage->business_settings ?? [];
-            $settings['commodity_rates'] = $rates;
-            $settings['commodity_rate_history'] = array_slice($history, 0, 25);
+            $settings['commodity_profiles'] = $profiles;
+            $settings['commodity_rates'] = $ratesOnly;
+            $settings['commodity_rate_history'] = array_slice($history, 0, 30);
             if (!empty($customDefs)) {
                 $settings['custom_commodities'] = $customDefs;
             }
@@ -204,22 +434,22 @@ class CommodityRateEngineService
         } else {
             $jsonPath = storage_path("app/commodity_rates_user_{$user->id}.json");
             file_put_contents($jsonPath, json_encode([
-                'commodity_rates' => $rates,
-                'commodity_rate_history' => array_slice($history, 0, 25),
+                'commodity_profiles' => $profiles,
+                'commodity_rates' => $ratesOnly,
+                'commodity_rate_history' => array_slice($history, 0, 30),
                 'custom_commodities' => $customDefs,
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         }
     }
 
     /**
-     * Auto-Detect or Read Formula Configuration for a Product (or Variant)
+     * Auto-Detect or Read Formula Configuration for a Product / Variant (including Brand/Plant & mm Die)
      */
-    public function detectFormula(Product $product, ?ProductVariant $variant = null): array
+    public function detectFormula(Product $product, ?ProductVariant $variant = null, array $allDefinitions = []): array
     {
         $pAttrs = is_array($product->attributes) ? $product->attributes : (json_decode($product->attributes ?? '[]', true) ?: []);
         $vAttrs = $variant ? (is_array($variant->attributes) ? $variant->attributes : (json_decode($variant->attributes ?? '[]', true) ?: [])) : [];
 
-        // Explicit saved formula takes priority
         if (!empty($vAttrs['rate_formula']['commodity_key'])) {
             return array_merge(['source' => 'saved_variant'], $vAttrs['rate_formula']);
         }
@@ -227,14 +457,26 @@ class CommodityRateEngineService
             return array_merge(['source' => 'saved_product'], $pAttrs['rate_formula']);
         }
 
-        // If parent has saved commodity_key, inherit defaults and extract variant-specific weight/size
         $savedParent = $pAttrs['rate_formula'] ?? [];
-        $haystack = strtolower($product->name . ' ' . ($variant ? $variant->variant_name : '') . ' ' . ($product->category->name ?? '') . ' ' . ($product->group_name ?? ''));
+        $haystack = strtolower($product->name . ' ' . ($product->brand ?? '') . ' ' . ($variant ? $variant->variant_name : '') . ' ' . ($product->category->name ?? '') . ' ' . ($product->group_name ?? ''));
 
         $commodityKey = $savedParent['commodity_key'] ?? null;
 
         if (!$commodityKey) {
-            // 1. Detect Jewellery
+            // Check custom brand/plant commodities first by matching brand or label keywords
+            foreach ($allDefinitions as $defKey => $def) {
+                if (!empty($def['is_custom'])) {
+                    $bWord = strtolower(trim($def['brand'] ?? $def['label'] ?? ''));
+                    if ($bWord && str_contains($haystack, $bWord)) {
+                        $commodityKey = $defKey;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!$commodityKey) {
+            // 1. Jewellery
             if (preg_match('/(gold|sona|24k|22k|18k|916|ring|chain|bangle|haar|necklace|jhumka|mangalsutra|silver|chandi|payal|bichiya|coin)/i', $haystack)) {
                 if (preg_match('/(silver|chandi|payal|bichiya|999 silver)/i', $haystack)) {
                     $commodityKey = 'silver_999';
@@ -246,15 +488,25 @@ class CommodityRateEngineService
                     $commodityKey = 'gold_22k';
                 }
             }
-            // 2. Detect TMT / Iron / Steel
-            elseif (preg_match('/(sariya|saria|tmt|rebar|loha|iron|steel rod|angle|channel|fe500|fe550|kamdhenu|jindal|tata tiscon)/i', $haystack)) {
-                $commodityKey = 'tmt_base_kg';
+            // 2. Iron & TMT Steel (Brand-Aware!)
+            elseif (preg_match('/(sariya|saria|tmt|rebar|loha|iron|steel rod|angle|channel|fe500|fe550|kamdhenu|jindal|tiscon|sail|prime gold)/i', $haystack)) {
+                if (str_contains($haystack, 'kamdhenu')) {
+                    $commodityKey = 'tmt_kamdhenu';
+                } elseif (str_contains($haystack, 'jindal') || str_contains($haystack, 'tata') || str_contains($haystack, 'tiscon')) {
+                    $commodityKey = 'tmt_jindal_tata';
+                } else {
+                    $commodityKey = 'tmt_base_kg';
+                }
             }
-            // 3. Detect Cement
+            // 3. Cement (Brand-Aware!)
             elseif (preg_match('/(cement|ultratech|ambuja|acc|bangur|birla|dalmia|shree|jk super|wonder|ppc|opc 43|opc 53)/i', $haystack)) {
-                $commodityKey = 'cement_bag_base';
+                if (preg_match('/(ultratech|acc|ambuja|birla)/i', $haystack)) {
+                    $commodityKey = 'cement_ultratech_acc';
+                } else {
+                    $commodityKey = 'cement_bag_base';
+                }
             }
-            // 4. Detect Anaj Mandi
+            // 4. Anaj Mandi
             elseif (preg_match('/(gehu|wheat|sharbati|lokwan)/i', $haystack)) {
                 $commodityKey = 'anaj_gehu';
             } elseif (preg_match('/(chana|gram|besan)/i', $haystack)) {
@@ -274,8 +526,8 @@ class CommodityRateEngineService
             return ['commodity_key' => null, 'source' => 'unlinked'];
         }
 
-        // Extract Trade-Specific Multipliers
-        if (in_array($commodityKey, ['gold_24k', 'gold_22k', 'gold_18k', 'silver_999'])) {
+        // Trade-Type Formula Assembly
+        if (in_array($commodityKey, ['gold_24k', 'gold_22k', 'gold_18k', 'silver_999']) || ($allDefinitions[$commodityKey]['group'] ?? '') === 'jewellery') {
             $weightGm = floatval($savedParent['weight_gm'] ?? ($pAttrs['net_weight_gm'] ?? 0));
             if ($weightGm <= 0 && preg_match('/(\d+(?:\.\d+)?)\s*(?:g|gm|gram|grams)\b/i', $haystack, $m)) {
                 $weightGm = floatval($m[1]);
@@ -289,16 +541,18 @@ class CommodityRateEngineService
                 'making_type' => $savedParent['making_type'] ?? ($pAttrs['making_charge_type'] ?? 'percent'),
                 'making_val' => floatval($savedParent['making_val'] ?? ($pAttrs['making_charge_val'] ?? 12.0)),
                 'wastage_pct' => floatval($savedParent['wastage_pct'] ?? 0),
-                'gst_pct' => floatval($savedParent['gst_pct'] ?? 3.0),
                 'source' => !empty($savedParent['commodity_key']) ? 'saved_product' : 'auto_detected',
             ];
         }
 
-        if ($commodityKey === 'tmt_base_kg') {
+        if (str_starts_with($commodityKey, 'tmt_') || (($allDefinitions[$commodityKey]['group'] ?? '') === 'iron_cement' && !str_contains($commodityKey, 'cement') && !preg_match('/cement/i', $haystack))) {
+            $mmKey = $savedParent['mm_size'] ?? null;
             $weightKg = floatval($savedParent['weight_kg'] ?? ($pAttrs['rod_weight_kg'] ?? 0));
             if (preg_match('/\b(6|8|10|12|16|20|25|32)\s*mm\b/i', $haystack, $mmMatch)) {
                 $mmKey = strtolower($mmMatch[1]) . 'mm';
-                $weightKg = self::TMT_ROD_WEIGHTS_KG[$mmKey] ?? $weightKg;
+                if ($weightKg <= 0) {
+                    $weightKg = self::TMT_ROD_WEIGHTS_KG[$mmKey] ?? 10.66;
+                }
             }
             if (preg_match('/quintal|100\s*kg/i', $haystack)) {
                 $weightKg = 100.0;
@@ -307,34 +561,29 @@ class CommodityRateEngineService
             } elseif ($weightKg <= 0 && preg_match('/(\d+(?:\.\d+)?)\s*kg/i', $haystack, $kgm)) {
                 $weightKg = floatval($kgm[1]);
             }
-            if ($weightKg <= 0) $weightKg = 10.66; // default 12mm rod
+            if ($weightKg <= 0) $weightKg = 10.66;
 
             return [
-                'commodity_key' => 'tmt_base_kg',
+                'commodity_key' => $commodityKey,
                 'trade_type' => 'tmt_steel',
+                'mm_size' => $mmKey ?: '12mm',
                 'weight_kg' => $weightKg,
-                'extra_per_kg' => floatval($savedParent['extra_per_kg'] ?? 1.50), // size diff / loading per kg
-                'margin_pct' => floatval($savedParent['margin_pct'] ?? 4.0),
-                'gst_pct' => floatval($savedParent['gst_pct'] ?? 18.0),
-                'gst_mode' => $savedParent['gst_mode'] ?? 'extra', // 'included' or 'extra'
+                'die_override_per_ton' => isset($savedParent['die_override_per_ton']) ? floatval($savedParent['die_override_per_ton']) : null,
                 'source' => !empty($savedParent['commodity_key']) ? 'saved_product' : 'auto_detected',
             ];
         }
 
-        if ($commodityKey === 'cement_bag_base') {
+        if (str_contains($commodityKey, 'cement') || preg_match('/cement/i', $haystack)) {
             $bagsCount = floatval($savedParent['bags_count'] ?? 1.0);
             return [
-                'commodity_key' => 'cement_bag_base',
+                'commodity_key' => $commodityKey,
                 'trade_type' => 'cement',
                 'bags_count' => $bagsCount,
-                'hamali_freight' => floatval($savedParent['hamali_freight'] ?? ($pAttrs['loading_hamali'] ?? 10.0)), // ₹10 loading/unloading
-                'margin_pct' => floatval($savedParent['margin_pct'] ?? 5.0),
-                'wholesale_margin_pct' => floatval($savedParent['wholesale_margin_pct'] ?? 2.5),
                 'source' => !empty($savedParent['commodity_key']) ? 'saved_product' : 'auto_detected',
             ];
         }
 
-        // Grain / Mandi or custom commodity
+        // Grain / Mandi
         $unitKg = floatval($savedParent['weight_kg'] ?? 0);
         if ($unitKg <= 0) {
             if (preg_match('/quintal|100\s*kg/i', $haystack)) $unitKg = 100.0;
@@ -342,35 +591,42 @@ class CommodityRateEngineService
             elseif (preg_match('/katta|30\s*kg/i', $haystack)) $unitKg = 30.0;
             elseif (preg_match('/25\s*kg/i', $haystack)) $unitKg = 25.0;
             elseif (preg_match('/10\s*kg/i', $haystack)) $unitKg = 10.0;
-            elseif (preg_match('/5\s*kg/i', $haystack)) $unitKg = 5.0;
             elseif (preg_match('/(\d+(?:\.\d+)?)\s*kg/i', $haystack, $m)) $unitKg = floatval($m[1]);
-            else $unitKg = 100.0; // Default 1 Quintal
+            else $unitKg = 100.0;
         }
 
         return [
             'commodity_key' => $commodityKey,
             'trade_type' => 'mandi_grain',
             'weight_kg' => $unitKg,
-            'hamali_bardana' => floatval($savedParent['hamali_bardana'] ?? ($unitKg >= 50 ? 25.0 : 5.0)),
-            'margin_pct' => floatval($savedParent['margin_pct'] ?? 4.0),
-            'wholesale_margin_pct' => floatval($savedParent['wholesale_margin_pct'] ?? 2.0),
             'source' => !empty($savedParent['commodity_key']) ? 'saved_product' : 'auto_detected',
         ];
     }
 
     /**
-     * Calculate Live Retail, Wholesale & Purchase Price using Master Rates
+     * 🧮 Full Costing Pipeline Calculator (Base + Die + Loading + Insurance + GST Mode + Local Plant-to-Godown Bhada + Profit)
      */
-    public function calculatePrice(array $formula, array $masterRates): array
+    public function calculatePrice(array $formula, array $profiles): array
     {
         $key = $formula['commodity_key'] ?? null;
-        if (!$key || !isset($masterRates[$key])) {
+        if (!$key || !isset($profiles[$key])) {
             return ['valid' => false];
         }
 
-        $baseRate = floatval($masterRates[$key]);
+        $prof = $profiles[$key];
+        $baseRate = floatval($prof['rate'] ?? 0);
+        $rateUnit = $prof['rate_unit'] ?? 'per_unit';
+        $gstMode = $formula['gst_mode'] ?? ($prof['gst_mode'] ?? 'extra'); // 'extra' or 'included'
+        $gstPct = isset($formula['gst_pct']) ? floatval($formula['gst_pct']) : floatval($prof['gst_pct'] ?? 0);
+        $loading = floatval($formula['loading_override'] ?? ($prof['loading_charge'] ?? 0));
+        $insurance = floatval($formula['insurance_override'] ?? ($prof['insurance_charge'] ?? 0));
+        $localBhada = floatval($formula['freight_override'] ?? ($prof['local_freight'] ?? 0));
+        $profitType = $formula['profit_type'] ?? ($prof['profit_type'] ?? 'percent');
+        $profitVal = isset($formula['profit_val']) ? floatval($formula['profit_val']) : floatval($prof['profit_val'] ?? 4.0);
+
         $type = $formula['trade_type'] ?? 'mandi_grain';
 
+        // 1. 💎 JEWELLERY ENGINE
         if ($type === 'jewellery') {
             $perGramBase = str_contains($key, 'silver') ? ($baseRate / 1000.0) : ($baseRate / 10.0);
             $weightGm = floatval($formula['weight_gm'] ?? 10.0);
@@ -378,109 +634,154 @@ class CommodityRateEngineService
 
             $makingType = $formula['making_type'] ?? 'percent';
             $makingVal = floatval($formula['making_val'] ?? 12.0);
-            $makingFee = 0;
-            if ($makingType === 'percent') {
-                $makingFee = $metalValue * ($makingVal / 100.0);
-            } elseif ($makingType === 'per_gm') {
-                $makingFee = $weightGm * $makingVal;
-            } else {
-                $makingFee = $makingVal;
-            }
+            $makingFee = ($makingType === 'percent')
+                ? ($metalValue * ($makingVal / 100.0))
+                : (($makingType === 'per_gm') ? ($weightGm * $makingVal) : $makingVal);
 
             $wastagePct = floatval($formula['wastage_pct'] ?? 0);
             $wastageFee = $metalValue * ($wastagePct / 100.0);
 
-            $subtotal = $metalValue + $makingFee + $wastageFee;
-            $gstPct = floatval($formula['gst_pct'] ?? 3.0);
-            $gstAmt = $subtotal * ($gstPct / 100.0);
-            $retail = round($subtotal + $gstAmt);
-            $wholesale = round($metalValue + ($makingFee * 0.65) + $gstAmt);
+            // Subtotal + Hallmark/Insurance + Local Bhada
+            $taxableSub = $metalValue + $makingFee + $wastageFee + $insurance + $loading;
+            $gstMult = ($gstMode === 'extra' && $gstPct > 0) ? (1 + $gstPct / 100.0) : 1.0;
+            $afterGst = $taxableSub * $gstMult;
+
+            // Optional Extra Profit + Local Bhada
+            $afterBhada = $afterGst + $localBhada;
+            $profitAmt = ($profitType === 'flat') ? $profitVal : ($afterBhada * ($profitVal / 100.0));
+            $retail = round($afterBhada + $profitAmt);
+            $wholesale = round($afterBhada + ($profitAmt * 0.5));
+
+            $gstText = ($gstMode === 'extra' && $gstPct > 0) ? "+{$gstPct}% GST" : "GST Included";
+            $extraTxt = ($insurance > 0) ? " + ₹{$insurance} Ins/HUID" : "";
 
             return [
                 'valid' => true,
-                'purchase_price' => round($metalValue, 2),
+                'purchase_price' => round($afterBhada, 2),
                 'wholesale_price' => $wholesale,
                 'retail_price' => $retail,
-                'explanation' => "{$weightGm}g × ₹" . number_format($perGramBase, 1) . "/g + मेकिंग ₹" . round($makingFee) . " + {$gstPct}% GST",
+                'explanation' => "{$weightGm}g × ₹" . number_format($perGramBase, 1) . "/g + मेकिंग ₹" . round($makingFee) . "{$extraTxt} ({$gstText})",
             ];
         }
 
+        // 2. 🏗️ IRON / TMT STEEL ENGINE (Basic + Die + Loading + Insurance -> GST -> Local Plant-to-Godown Bhada -> Profit)
         if ($type === 'tmt_steel') {
             $weightKg = floatval($formula['weight_kg'] ?? 10.66);
-            $extraPerKg = floatval($formula['extra_per_kg'] ?? 1.5);
-            $effPerKg = $baseRate + $extraPerKg;
-            $rawRodCost = $weightKg * $effPerKg;
-            $gstPct = floatval($formula['gst_pct'] ?? 18.0);
-            $gstMult = ($formula['gst_mode'] ?? 'extra') === 'extra' ? (1 + $gstPct / 100.0) : 1.0;
+            $mmSize = $formula['mm_size'] ?? '12mm';
 
-            $landing = $rawRodCost * $gstMult;
-            $marginPct = floatval($formula['margin_pct'] ?? 4.0);
-            $retail = round($landing * (1 + $marginPct / 100.0));
-            $wholesale = round($landing * (1 + max(1.0, $marginPct / 2.0) / 100.0));
+            // Normalize basic rate to per Ton
+            $basicPerTon = ($rateUnit === 'per_kg') ? ($baseRate * 1000.0) : $baseRate;
+
+            // Die rate per Ton
+            $dieTable = $prof['die_rates'] ?? self::DEFAULT_TMT_DIE_PER_TON;
+            $diePerTon = isset($formula['die_override_per_ton']) && $formula['die_override_per_ton'] !== null
+                ? floatval($formula['die_override_per_ton'])
+                : floatval($dieTable[$mmSize] ?? 0);
+
+            // Ex-Mill Taxable per Ton
+            $millPerTon = $basicPerTon + $diePerTon + $loading + $insurance;
+
+            // Apply GST if Basic is Without GST ('extra')
+            $gstMult = ($gstMode === 'extra' && $gstPct > 0) ? (1 + $gstPct / 100.0) : 1.0;
+            $millWithGstPerTon = $millPerTon * $gstMult;
+
+            // Add Local Plant-to-Godown Bhada (₹/Ton) -> True Godown Landing Cost!
+            $godownLandingPerTon = $millWithGstPerTon + $localBhada;
+            $godownLandingPerKg = $godownLandingPerTon / 1000.0;
+            $rodLandingCost = $godownLandingPerKg * $weightKg;
+
+            // Add Profit
+            $profitPerKg = ($profitType === 'flat_kg') ? $profitVal : (($profitType === 'flat_ton') ? ($profitVal / 1000.0) : ($godownLandingPerKg * ($profitVal / 100.0)));
+            $finalPerKg = $godownLandingPerKg + $profitPerKg;
+            $retail = round($finalPerKg * $weightKg);
+            $wholesale = round(($godownLandingPerKg + ($profitPerKg * 0.5)) * $weightKg);
+
+            $gstLabel = ($gstMode === 'extra' && $gstPct > 0) ? "+{$gstPct}% GST" : "GST सहित";
+            $profLabel = ($profitType === 'flat_kg') ? "+₹{$profitVal}/Kg" : (($profitType === 'flat_ton') ? "+₹{$profitVal}/T" : "+{$profitVal}%");
 
             return [
                 'valid' => true,
-                'purchase_price' => round($landing, 2),
+                'purchase_price' => round($rodLandingCost, 2),
                 'wholesale_price' => $wholesale,
                 'retail_price' => $retail,
-                'explanation' => "{$weightKg}Kg × ₹" . number_format($effPerKg, 2) . "/Kg" . ($gstMult > 1 ? " + {$gstPct}% GST" : "") . " + {$marginPct}% मुनाफा",
+                'explanation' => "{$mmSize} ({$weightKg}Kg): Mill ₹" . number_format($basicPerTon) . " + Die ₹{$diePerTon} + Load/Ins ₹" . ($loading + $insurance) . " ({$gstLabel}) + भाड़ा ₹{$localBhada}/T = पड़तल ₹" . number_format($godownLandingPerKg, 2) . "/Kg {$profLabel}",
             ];
         }
 
+        // 3. 🧱 CEMENT ENGINE (Company Base -> GST -> Loading/Hamali + Plant-to-Godown Bhada -> Profit)
         if ($type === 'cement') {
             $bags = floatval($formula['bags_count'] ?? 1.0);
-            $hamali = floatval($formula['hamali_freight'] ?? 10.0);
-            $landing = ($baseRate + $hamali) * $bags;
-            $marginPct = floatval($formula['margin_pct'] ?? 5.0);
-            $wsPct = floatval($formula['wholesale_margin_pct'] ?? 2.5);
+            $gstMult = ($gstMode === 'extra' && $gstPct > 0) ? (1 + $gstPct / 100.0) : 1.0;
+            $exPlantWithGst = $baseRate * $gstMult;
+            $landingPerBag = $exPlantWithGst + $loading + $insurance + $localBhada;
 
-            $retail = round($landing * (1 + $marginPct / 100.0));
-            $wholesale = round($landing * (1 + $wsPct / 100.0));
+            $profitPerBag = ($profitType === 'flat') ? $profitVal : ($landingPerBag * ($profitVal / 100.0));
+            $retail = round(($landingPerBag + $profitPerBag) * $bags);
+            $wholesale = round(($landingPerBag + ($profitPerBag * 0.5)) * $bags);
+
+            $gstLabel = ($gstMode === 'extra' && $gstPct > 0) ? "+{$gstPct}% GST" : "GST सहित";
 
             return [
                 'valid' => true,
-                'purchase_price' => round($landing, 2),
+                'purchase_price' => round($landingPerBag * $bags, 2),
                 'wholesale_price' => $wholesale,
                 'retail_price' => $retail,
-                'explanation' => "{$bags} बैग × ₹{$baseRate} + ₹{$hamali} हमाली + {$marginPct}% मार्जिन",
+                'explanation' => "{$bags} बैग × Base ₹{$baseRate} ({$gstLabel}) + हमाली ₹{$loading} + भाड़ा ₹{$localBhada} = पड़तल ₹" . round($landingPerBag) . "/बैग + {$profitVal}% लाभ",
             ];
         }
 
-        // Grain / Mandi (Base Rate is per 100 Kg Quintal)
+        // 4. 🌾 ANAJ MANDI ENGINE (Mandi Quintal -> Hamali/Tulai + GST -> Mandi-to-Godown Bhada -> Profit)
         $unitKg = floatval($formula['weight_kg'] ?? 100.0);
-        $ratePerKg = $baseRate / 100.0;
-        $hamaliBardana = floatval($formula['hamali_bardana'] ?? 25.0);
-        $landing = ($ratePerKg * $unitKg) + $hamaliBardana;
-        $marginPct = floatval($formula['margin_pct'] ?? 4.0);
-        $wsPct = floatval($formula['wholesale_margin_pct'] ?? 2.0);
+        $scale = $unitKg / 100.0; // relative to 1 Quintal (100 Kg)
+        $gstMult = ($gstMode === 'extra' && $gstPct > 0) ? (1 + $gstPct / 100.0) : 1.0;
+        $quintalWithGst = ($baseRate + $loading + $insurance) * $gstMult + $localBhada;
+        $packLanding = $quintalWithGst * $scale;
 
-        $retail = round($landing * (1 + $marginPct / 100.0));
-        $wholesale = round($landing * (1 + $wsPct / 100.0));
+        $profitAmt = ($profitType === 'flat') ? $profitVal : ($packLanding * ($profitVal / 100.0));
+        $retail = round($packLanding + $profitAmt);
+        $wholesale = round($packLanding + ($profitAmt * 0.5));
+        $gstLabel = ($gstMode === 'extra' && $gstPct > 0) ? "+{$gstPct}% GST" : "Nil/Incl GST";
 
         return [
             'valid' => true,
-            'purchase_price' => round($landing, 2),
+            'purchase_price' => round($packLanding, 2),
             'wholesale_price' => $wholesale,
             'retail_price' => $retail,
-            'explanation' => "{$unitKg}Kg @ ₹" . number_format($ratePerKg, 2) . "/Kg + ₹{$hamaliBardana} बारदाना/हमाली + {$marginPct}% मार्जिन",
+            'explanation' => "{$unitKg}Kg @ ₹{$baseRate}/Q + हमाली ₹{$loading} + भाड़ा ₹{$localBhada} ({$gstLabel}) + {$profitVal}% लाभ",
         ];
     }
 
     /**
-     * Apply Master Base Rates to ALL Linked / Auto-Detected Seller Products & Variants
+     * ⚡ Apply Updated Commodity Profiles (Rates, GST Mode, Die, Loading, Insurance, Bhada, Profit) to All Linked Products
      */
-    public function applyMasterRates(User $user, array $updatedRates, string $source = 'Manual Update'): array
+    public function applyMasterProfiles(User $user, array $incomingProfiles, string $source = 'Master Rate Panel'): array
     {
         $state = $this->getSellerState($user);
-        $oldRates = $state['rates'];
-        $mergedRates = array_merge($oldRates, $updatedRates);
+        $oldProfiles = $state['profiles'];
+        $mergedProfiles = $oldProfiles;
         $defs = $state['definitions'];
+
+        foreach ($incomingProfiles as $k => $inProf) {
+            if (!isset($mergedProfiles[$k])) continue;
+            if (is_array($inProf)) {
+                $mergedProfiles[$k] = array_merge($mergedProfiles[$k], $inProf);
+                if (isset($inProf['rate'])) $mergedProfiles[$k]['rate'] = floatval($inProf['rate']);
+                if (isset($inProf['gst_pct'])) $mergedProfiles[$k]['gst_pct'] = floatval($inProf['gst_pct']);
+                if (isset($inProf['loading_charge'])) $mergedProfiles[$k]['loading_charge'] = floatval($inProf['loading_charge']);
+                if (isset($inProf['insurance_charge'])) $mergedProfiles[$k]['insurance_charge'] = floatval($inProf['insurance_charge']);
+                if (isset($inProf['local_freight'])) $mergedProfiles[$k]['local_freight'] = floatval($inProf['local_freight']);
+                if (isset($inProf['profit_val'])) $mergedProfiles[$k]['profit_val'] = floatval($inProf['profit_val']);
+            } elseif (is_numeric($inProf)) {
+                $mergedProfiles[$k]['rate'] = floatval($inProf);
+            }
+        }
 
         $updatedProductsCount = 0;
         $updatedVariantsCount = 0;
         $affectedDetails = [];
+        $updatedKeys = array_keys($incomingProfiles);
 
-        DB::transaction(function () use ($user, $mergedRates, &$updatedProductsCount, &$updatedVariantsCount, &$affectedDetails) {
+        DB::transaction(function () use ($user, $mergedProfiles, $defs, $updatedKeys, &$updatedProductsCount, &$updatedVariantsCount, &$affectedDetails) {
             $products = Product::where('user_id', $user->id)->with(['variants', 'category'])->get();
 
             foreach ($products as $prod) {
@@ -493,21 +794,21 @@ class CommodityRateEngineService
                     $lowestPurchase = null;
 
                     foreach ($variants as $var) {
-                        $formula = $this->detectFormula($prod, $var);
-                        if (empty($formula['commodity_key']) || !isset($updatedRates[$formula['commodity_key']])) {
+                        $formula = $this->detectFormula($prod, $var, $defs);
+                        if (empty($formula['commodity_key']) || !in_array($formula['commodity_key'], $updatedKeys)) {
                             continue;
                         }
 
-                        $calc = $this->calculatePrice($formula, $mergedRates);
+                        $calc = $this->calculatePrice($formula, $mergedProfiles);
                         if (!$calc['valid']) continue;
 
                         $oldPrice = (float)$var->retail_price;
                         $var->purchase_price = $calc['purchase_price'];
                         $var->wholesale_price = $calc['wholesale_price'];
                         $var->retail_price = $calc['retail_price'];
+                        $var->gst_percent = $mergedProfiles[$formula['commodity_key']]['gst_pct'] ?? $var->gst_percent;
                         $var->price_effective_date = now()->toDateString();
 
-                        // Persist detected/used formula on variant
                         $vAttrs = is_array($var->attributes) ? $var->attributes : (json_decode($var->attributes ?? '[]', true) ?: []);
                         $vAttrs['rate_formula'] = $formula;
                         $var->attributes = $vAttrs;
@@ -537,14 +838,15 @@ class CommodityRateEngineService
                         $updatedProductsCount++;
                     }
                 } else {
-                    $formula = $this->detectFormula($prod, null);
-                    if (!empty($formula['commodity_key']) && isset($updatedRates[$formula['commodity_key']])) {
-                        $calc = $this->calculatePrice($formula, $mergedRates);
+                    $formula = $this->detectFormula($prod, null, $defs);
+                    if (!empty($formula['commodity_key']) && in_array($formula['commodity_key'], $updatedKeys)) {
+                        $calc = $this->calculatePrice($formula, $mergedProfiles);
                         if ($calc['valid']) {
                             $oldPrice = (float)$prod->price;
                             $prod->purchase_price = $calc['purchase_price'];
                             $prod->wholesale_price = $calc['wholesale_price'];
                             $prod->price = $calc['retail_price'];
+                            $prod->gst_percent = $mergedProfiles[$formula['commodity_key']]['gst_pct'] ?? $prod->gst_percent;
                             $prod->price_effective_date = now()->toDateString();
 
                             $pAttrs = is_array($prod->attributes) ? $prod->attributes : (json_decode($prod->attributes ?? '[]', true) ?: []);
@@ -565,14 +867,17 @@ class CommodityRateEngineService
             }
         });
 
-        // Record in history
+        // Build History Log
         $history = $state['history'];
         $changesSummary = [];
-        foreach ($updatedRates as $k => $v) {
-            $old = $oldRates[$k] ?? 0;
-            if ((float)$old != (float)$v) {
-                $lbl = $defs[$k]['label'] ?? $k;
-                $changesSummary[] = "{$lbl}: ₹" . number_format((float)$old) . " → ₹" . number_format((float)$v);
+        foreach ($incomingProfiles as $k => $inProf) {
+            if (!isset($defs[$k])) continue;
+            $oldR = floatval($oldProfiles[$k]['rate'] ?? 0);
+            $newR = floatval($mergedProfiles[$k]['rate'] ?? 0);
+            $gstModeTxt = ($mergedProfiles[$k]['gst_mode'] ?? 'extra') === 'included' ? 'GST Incl' : ('+' . ($mergedProfiles[$k]['gst_pct'] ?? 0) . '% GST');
+            $lbl = $defs[$k]['label'] ?? $k;
+            if ($oldR != $newR || count($incomingProfiles) <= 3) {
+                $changesSummary[] = "{$lbl} ({$gstModeTxt}): ₹" . number_format($oldR) . " → ₹" . number_format($newR);
             }
         }
 
@@ -580,16 +885,16 @@ class CommodityRateEngineService
             array_unshift($history, [
                 'timestamp' => now()->format('d M Y, h:i A'),
                 'source' => $source,
-                'summary' => implode(' | ', $changesSummary) ?: 'Master Rate Sync',
+                'summary' => implode(' | ', $changesSummary) ?: 'Master Costing Update',
                 'products_updated' => $updatedProductsCount,
                 'variants_updated' => $updatedVariantsCount,
             ]);
         }
 
-        $this->saveSellerState($user, $mergedRates, $history, $state['custom_commodities']);
+        $this->saveSellerState($user, $mergedProfiles, $history, $state['custom_commodities']);
 
         return [
-            'rates' => $mergedRates,
+            'profiles' => $mergedProfiles,
             'updated_products' => $updatedProductsCount,
             'updated_variants' => $updatedVariantsCount,
             'affected_details' => $affectedDetails,
@@ -598,46 +903,66 @@ class CommodityRateEngineService
     }
 
     /**
-     * 🤖 AI Voice & Natural Hindi/Hinglish Rate Command Parser
+     * Backwards-compatible wrapper for applyMasterRates
+     */
+    public function applyMasterRates(User $user, array $updatedRates, string $source = 'Manual Update'): array
+    {
+        $profilesPatch = [];
+        foreach ($updatedRates as $k => $v) {
+            $profilesPatch[$k] = is_array($v) ? $v : ['rate' => floatval($v)];
+        }
+        return $this->applyMasterProfiles($user, $profilesPatch, $source);
+    }
+
+    /**
+     * 🤖 AI Voice & Messy Broker WhatsApp Rate Message Parser v2
+     * Understands Brand, Plant Location, GST Included/Extra, Die Rates, Loading, Insurance & Local Bhada!
      */
     public function parseVoiceCommand(string $transcript, User $user, ?string $apiKey = null): array
     {
         $state = $this->getSellerState($user);
-        $currentRates = $state['rates'];
+        $profiles = $state['profiles'];
         $defs = $state['definitions'];
 
         $transcriptClean = trim($transcript);
         $parsedUpdates = [];
-        $provider = 'Smart Hinglish Engine';
+        $provider = 'Smart Broker & Hinglish Engine';
 
-        // 1. Try LLM (OpenAI / Gemini) if available for ultra-natural spoken Hindi phrasing
         $openAiKey = ($apiKey && str_starts_with($apiKey, 'sk-')) ? $apiKey : (env('OPENAI_KEY') ?: env('OPENAI_API_KEY'));
         $geminiKey = ($apiKey && str_starts_with($apiKey, 'AIza')) ? $apiKey : (env('GEMINI_API_KEY') ?: env('GEMINI_KEY'));
 
         $keysDesc = [];
         foreach ($defs as $k => $d) {
-            $cur = $currentRates[$k] ?? $d['default_rate'];
-            $keysDesc[] = "- key: '{$k}' | name: '{$d['label']}' | unit: '{$d['unit']}' | current_rate: {$cur}";
+            $p = $profiles[$k];
+            $keysDesc[] = "- key: '{$k}' | name: '{$d['label']}' | brand: '{$p['brand']}' | plant: '{$p['plant_location']}' | unit: '{$d['unit']}' | current_rate: {$p['rate']} | gst_mode: {$p['gst_mode']} | gst_pct: {$p['gst_pct']}";
         }
         $keysBlock = implode("\n", $keysDesc);
 
-        $aiPrompt = "You are VyaparIndia's Indian Commodity Rate Voice Assistant.
-A merchant spoke/typed this Hindi/Hinglish command to update today's market rates:
-\"{$transcriptClean}\"
+        $aiPrompt = "You are an expert Indian Mandi, Steel/TMT Mill, Cement & Sarafa Bullion Broker AI Parser.
+A merchant pasted a WhatsApp broker message or spoke this Hindi/Hinglish rate update:
+\"\"\"
+{$transcriptClean}
+\"\"\"
 
-Available commodity base keys & current rates:
+Available Commodity/Brand Keys:
 {$keysBlock}
 
-Rules:
-- Match every commodity & rate change mentioned in the command (supports absolute rate like 'gehu 2750', 'sona 73500', OR relative increase/decrease like 'sariya 2 rupay badha do' -> current + 2, or 'cement 10 rupay ghata do' -> current - 10).
-- Understand Indian shorthand like '73.5k' = 73500, '72 hazar' = 72000, '360 rupay' = 360.
-- Also detect if the user specifies '24k' vs '22k' vs '18k' vs general 'gold/sona' (default to 'gold_22k' if unspecified or update 24k if 24k mentioned).
-- Return ONLY valid JSON:
-{\"updates\": [{\"key\": \"...\", \"new_rate\": 0, \"confidence\": \"high\", \"reason_hi\": \"...\"}]}";
+Extract EVERY commodity rate update mentioned, including:
+1. key: best matching commodity key (notice brand differences like Kamdhenu vs Jindal vs Tata vs UltraTech/ACC vs general!).
+2. new_rate: base rate number (for TMT if > 1000 treat as Per Ton; for Cement per Bag; for Gold per 10gm; for Silver per Kg; for Grains per Quintal).
+3. gst_mode: 'included' if message says 'gst paid / gst sahit / with gst / incl gst', OR 'extra' if '+ gst / plus gst / bina gst / without gst' (keep current if unspecified).
+4. gst_pct: numeric GST % if mentioned (e.g. 18, 28, 3, 5).
+5. loading_charge, insurance_charge, local_freight (bhada/transport): numeric if mentioned!
+6. plant_location: if a plant city like Raipur, Bhiwadi, Jalna, Patratu, Indore is mentioned.
+7. die_8mm, die_10mm: if die rates mentioned (e.g. '8mm 1500 die').
+8. reason_hi: short crisp Hindi explanation of what was parsed.
+
+Return ONLY valid JSON:
+{\"updates\": [{\"key\": \"...\", \"new_rate\": 0, \"gst_mode\": \"extra\", \"gst_pct\": null, \"loading_charge\": null, \"insurance_charge\": null, \"local_freight\": null, \"plant_location\": null, \"die_8mm\": null, \"die_10mm\": null, \"reason_hi\": \"...\"}]}";
 
         if ($openAiKey && (str_starts_with($openAiKey, 'sk-') || !$geminiKey)) {
             try {
-                $resp = Http::withToken($openAiKey)->timeout(15)->post('https://api.openai.com/v1/chat/completions', [
+                $resp = Http::withToken($openAiKey)->timeout(18)->post('https://api.openai.com/v1/chat/completions', [
                     'model' => 'gpt-4o-mini',
                     'messages' => [
                         ['role' => 'system', 'content' => 'Output strict JSON only.'],
@@ -646,44 +971,40 @@ Rules:
                     'temperature' => 0.0,
                 ]);
                 if ($resp->successful()) {
-                    $raw = $resp->json('choices.0.message.content');
-                    $decoded = $this->extractJson($raw);
+                    $decoded = $this->extractJson($resp->json('choices.0.message.content'));
                     if (!empty($decoded['updates'])) {
                         $parsedUpdates = $decoded['updates'];
-                        $provider = 'OpenAI Voice AI';
+                        $provider = 'OpenAI Broker AI';
                     }
                 }
             } catch (\Throwable $e) {
-                Log::warning('Voice Rate OpenAI error: ' . $e->getMessage());
+                Log::warning('Voice/Broker OpenAI error: ' . $e->getMessage());
             }
         }
 
         if (empty($parsedUpdates) && $geminiKey) {
             try {
                 $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={$geminiKey}";
-                $resp = Http::timeout(15)->post($url, [
+                $resp = Http::timeout(18)->post($url, [
                     'contents' => [['parts' => [['text' => $aiPrompt]]]],
                     'generationConfig' => ['temperature' => 0.0],
                 ]);
                 if ($resp->successful()) {
-                    $raw = $resp->json('candidates.0.content.parts.0.text');
-                    $decoded = $this->extractJson($raw);
+                    $decoded = $this->extractJson($resp->json('candidates.0.content.parts.0.text'));
                     if (!empty($decoded['updates'])) {
                         $parsedUpdates = $decoded['updates'];
-                        $provider = 'Gemini Voice AI';
+                        $provider = 'Gemini Broker AI';
                     }
                 }
             } catch (\Throwable $e) {
-                Log::warning('Voice Rate Gemini error: ' . $e->getMessage());
+                Log::warning('Voice/Broker Gemini error: ' . $e->getMessage());
             }
         }
 
-        // 2. Deterministic Hinglish/Hindi Smart Regex Parser Fallback (Instant, 0ms, works 100% offline too)
         if (empty($parsedUpdates)) {
-            $parsedUpdates = $this->fallbackHindiRegexParse($transcriptClean, $currentRates, $defs);
+            $parsedUpdates = $this->fallbackHindiBrokerParse($transcriptClean, $profiles, $defs);
         }
 
-        // Enrich parsed updates with labels, old rates, and count of products affected
         $products = Product::where('user_id', $user->id)->with(['variants', 'category'])->get();
         $enriched = [];
 
@@ -693,29 +1014,41 @@ Rules:
             $newVal = round(floatval($upd['new_rate'] ?? 0), 2);
             if ($newVal <= 0) continue;
 
-            // Count how many products/variants will recalculate
+            // Count affected items
             $matchCount = 0;
             foreach ($products as $p) {
                 if ($p->variants && $p->variants->isNotEmpty()) {
                     foreach ($p->variants as $v) {
-                        $f = $this->detectFormula($p, $v);
+                        $f = $this->detectFormula($p, $v, $defs);
                         if (($f['commodity_key'] ?? '') === $k) $matchCount++;
                     }
                 } else {
-                    $f = $this->detectFormula($p, null);
+                    $f = $this->detectFormula($p, null, $defs);
                     if (($f['commodity_key'] ?? '') === $k) $matchCount++;
                 }
             }
+
+            $oldProf = $profiles[$k];
+            $patch = ['rate' => $newVal];
+            if (!empty($upd['gst_mode'])) $patch['gst_mode'] = $upd['gst_mode'];
+            if (isset($upd['gst_pct']) && is_numeric($upd['gst_pct'])) $patch['gst_pct'] = floatval($upd['gst_pct']);
+            if (isset($upd['loading_charge']) && is_numeric($upd['loading_charge'])) $patch['loading_charge'] = floatval($upd['loading_charge']);
+            if (isset($upd['insurance_charge']) && is_numeric($upd['insurance_charge'])) $patch['insurance_charge'] = floatval($upd['insurance_charge']);
+            if (isset($upd['local_freight']) && is_numeric($upd['local_freight'])) $patch['local_freight'] = floatval($upd['local_freight']);
+            if (!empty($upd['plant_location'])) $patch['plant_location'] = $upd['plant_location'];
 
             $enriched[] = [
                 'key' => $k,
                 'label' => $defs[$k]['label'],
                 'unit' => $defs[$k]['unit'],
-                'old_rate' => floatval($currentRates[$k] ?? $defs[$k]['default_rate']),
+                'old_rate' => floatval($oldProf['rate']),
                 'new_rate' => $newVal,
-                'diff' => round($newVal - floatval($currentRates[$k] ?? $defs[$k]['default_rate']), 2),
+                'diff' => round($newVal - floatval($oldProf['rate']), 2),
+                'gst_mode' => $patch['gst_mode'] ?? $oldProf['gst_mode'],
+                'gst_pct' => $patch['gst_pct'] ?? $oldProf['gst_pct'],
+                'patch' => $patch,
                 'affected_items_count' => $matchCount,
-                'reason_hi' => $upd['reason_hi'] ?? "आवाज़ कमांड से ₹{$newVal} पर सेट",
+                'reason_hi' => $upd['reason_hi'] ?? "पार्स किया गया नया भाव ₹{$newVal}",
             ];
         }
 
@@ -738,22 +1071,20 @@ Rules:
     }
 
     /**
-     * Built-in Hindi / Hinglish Commodity & Number Regex Parser
+     * Built-in Broker WhatsApp + Hindi Speech Fallback Parser
      */
-    private function fallbackHindiRegexParse(string $text, array $currentRates, array $defs): array
+    private function fallbackHindiBrokerParse(string $text, array $profiles, array $defs): array
     {
         $normalized = mb_strtolower($text, 'UTF-8');
-        // Normalize commas inside numbers like 73,500 -> 73500
         $normalized = preg_replace('/(\d),(\d)/', '$1$2', $normalized);
-        // Handle "73.5k" -> "73500"
         $normalized = preg_replace_callback('/(\d+(?:\.\d+)?)\s*k\b/i', function ($m) {
+            if (in_array($m[1], ['24', '22', '18', '14', '9'])) {
+                return $m[0];
+            }
             return (string)(floatval($m[1]) * 1000);
         }, $normalized);
-        // Handle "73 hazar 500" or "72 hazar"
         $normalized = preg_replace_callback('/(\d+(?:\.\d+)?)\s*(?:hazar|hajar|हजार|हज़ार)\s*(\d+)?/iu', function ($m) {
-            $base = floatval($m[1]) * 1000;
-            $extra = isset($m[2]) ? floatval($m[2]) : 0;
-            return (string)($base + $extra);
+            return (string)(floatval($m[1]) * 1000 + (isset($m[2]) ? floatval($m[2]) : 0));
         }, $normalized);
 
         $synonymPatterns = [
@@ -761,9 +1092,12 @@ Rules:
             'gold_18k' => '/(?:18\s*k|18\s*carat|18\s*कैरेट)/iu',
             'gold_22k' => '/(?:22\s*k|22\s*carat|22\s*कैरेट|916|sona|सोना|gold|गोल्ड)/iu',
             'silver_999' => '/(?:chandi|चांदी|चाँदी|silver|सिल्वर)/iu',
+            'tmt_kamdhenu' => '/(?:kamdhenu|कामधेनु)/iu',
+            'tmt_jindal_tata' => '/(?:jindal|tata|tiscon|sail|जिंदल|टाटा)/iu',
             'tmt_base_kg' => '/(?:sariya|saria|सरिया|loha|लोहा|tmt|steel|स्टील)/iu',
-            'cement_bag_base' => '/(?:cement|सीमेंट|ultratech|ambuja|acc|bangur|बोरी सीमेंट)/iu',
-            'anaj_gehu' => '/(?:gehu|gehun|गेहूं|गेहूँ|wheat)/iu',
+            'cement_ultratech_acc' => '/(?:ultratech|acc|ambuja|अल्ट्राटेक|अंबुजा)/iu',
+            'cement_bag_base' => '/(?:cement|सीमेंट|bangur)/iu',
+            'anaj_gehu' => '/(?:gehu|gehun|गेहूं|गेहूँ|wheat|sharbati)/iu',
             'anaj_chana' => '/(?:chana|चना|kabuli)/iu',
             'anaj_soyabean' => '/(?:soyabean|soya|सोयाबीन|सोया)/iu',
             'anaj_sarson' => '/(?:sarson|सरसों|mustard|rai)/iu',
@@ -771,8 +1105,16 @@ Rules:
             'anaj_dal' => '/(?:dal|दाल|toor|तुअर|moong|मूंग|masoor|मसूर)/iu',
         ];
 
-        // Split transcript by conjunctions ("aur", "और", ",", "तथा", "&")
-        $clauses = preg_split('/(?:\s+aur\s+|\s+और\s+|,|&|\s+tatha\s+|\s+तथा\s+)/iu', $normalized);
+        // Also scan custom definitions
+        foreach ($defs as $dk => $dv) {
+            if (!empty($dv['is_custom'])) {
+                $bw = preg_quote(mb_strtolower($dv['brand'] ?: $dv['label'], 'UTF-8'), '/');
+                $synonymPatterns[$dk] = "/{$bw}/iu";
+            }
+        }
+
+        // Split by newline or conjunctions
+        $clauses = preg_split('/(?:\r\n|\r|\n|\s+aur\s+|\s+और\s+|&|\s+tatha\s+)/iu', $normalized);
         $results = [];
         $usedKeys = [];
 
@@ -780,9 +1122,34 @@ Rules:
             $clause = trim($clause);
             if (empty($clause)) continue;
 
-            // Find all numbers in this clause (ignore 24, 22, 18 when followed immediately by k/carat/कैरेट)
-            $clauseNoCarat = preg_replace('/\b(?:24|22|18)\s*(?:k|ct|carat|कैरेट)/iu', '', $clause);
-            if (!preg_match('/(\d+(?:\.\d+)?)/', $clauseNoCarat, $numMatch)) {
+            // Detect GST Mode in clause
+            $gstMode = null;
+            if (preg_match('/(?:gst\s*paid|gst\s*sahit|with\s*gst|incl(?:uding)?\s*gst|जीएसटी\s*सहित)/iu', $clause)) {
+                $gstMode = 'included';
+            } elseif (preg_match('/(?:\+\s*gst|plus\s*gst|without\s*gst|bina\s*gst|extra\s*gst|जीएसटी\s*अलग|बिन\s*जीएसटी)/iu', $clause)) {
+                $gstMode = 'extra';
+            }
+
+            // Detect Loading / Insurance / Bhada explicitly mentioned in clause
+            $loadingVal = null;
+            if (preg_match('/(?:loading|लोडिंग|hamali|हमाली)\s*[:₹]?\s*(\d+(?:\.\d+)?)/iu', $clause, $lm)) {
+                $loadingVal = floatval($lm[1]);
+            }
+            $insVal = null;
+            if (preg_match('/(?:insurance|ins|बीमा|इंश्योरेंस)\s*[:₹]?\s*(\d+(?:\.\d+)?)/iu', $clause, $im)) {
+                $insVal = floatval($im[1]);
+            }
+            $bhadaVal = null;
+            if (preg_match('/(?:bhada|भाड़ा|freight|transport|किराया)\s*[:₹]?\s*(\d+(?:\.\d+)?)/iu', $clause, $bm)) {
+                $bhadaVal = floatval($bm[1]);
+            }
+
+            // Strip recognized auxiliary fields & carat before grabbing main base price
+            $cleanForNum = preg_replace('/\b(?:24|22|18)\s*(?:k|ct|carat|कैरेट)/iu', '', $clause);
+            $cleanForNum = preg_replace('/(?:loading|लोडिंग|hamali|हमाली|insurance|ins|बीमा|bhada|भाड़ा|freight|transport)\s*[:₹]?\s*\d+(?:\.\d+)?/iu', '', $cleanForNum);
+            $cleanForNum = preg_replace('/\b(?:8|10|12|16|20|25|32)\s*mm\s*\+?\s*\d+/iu', '', $cleanForNum);
+
+            if (!preg_match('/(\d+(?:\.\d+)?)/', $cleanForNum, $numMatch)) {
                 continue;
             }
             $numVal = floatval($numMatch[1]);
@@ -790,7 +1157,6 @@ Rules:
             $matchedKey = null;
             foreach ($synonymPatterns as $key => $regex) {
                 if (preg_match($regex, $clause)) {
-                    // Prevent gold_22k stealing 24k/18k if already matched
                     if ($key === 'gold_22k' && (preg_match($synonymPatterns['gold_24k'], $clause) || preg_match($synonymPatterns['gold_18k'], $clause))) {
                         continue;
                     }
@@ -800,28 +1166,43 @@ Rules:
             }
 
             if ($matchedKey && !isset($usedKeys[$matchedKey])) {
-                $cur = floatval($currentRates[$matchedKey] ?? $defs[$matchedKey]['default_rate']);
-                // Check relative increase/decrease words
-                if (preg_match('/(badha|बढ़ा|bada|extra|ज्यादा|up|\+)/iu', $clause) && $numVal < ($cur * 0.4)) {
-                    $newRate = $cur + $numVal;
-                    $reason = "₹{$numVal} बढ़ाया गया ({$cur} + {$numVal})";
-                } elseif (preg_match('/(ghata|घटा|kam|कम|down|\-)/iu', $clause) && $numVal < ($cur * 0.4)) {
-                    $newRate = max(1, $cur - $numVal);
-                    $reason = "₹{$numVal} घटाया गया ({$cur} - {$numVal})";
+                $curProf = $profiles[$matchedKey];
+                $cur = floatval($curProf['rate']);
+
+                // Convert kg input like "sariya 62 rupay kilo" to per_ton if profile is per_ton
+                $isTmtTon = ($curProf['rate_unit'] ?? '') === 'per_ton';
+                $notes = [];
+
+                if (preg_match('/(badha|बढ़ा|extra|\+)/iu', $clause) && !preg_match('/\+\s*gst/iu', $clause) && $numVal < ($cur * 0.25)) {
+                    $delta = ($isTmtTon && $numVal < 100) ? ($numVal * 1000) : $numVal;
+                    $newRate = $cur + $delta;
+                    $notes[] = "₹{$delta} बढ़ाया";
+                } elseif (preg_match('/(ghata|घटा|kam|कम|\-)/iu', $clause) && $numVal < ($cur * 0.25)) {
+                    $delta = ($isTmtTon && $numVal < 100) ? ($numVal * 1000) : $numVal;
+                    $newRate = max(1, $cur - $delta);
+                    $notes[] = "₹{$delta} घटाया";
                 } else {
-                    // Special TMT ton vs kg check: if user says "sariya 60000" -> convert /1000 to per kg
-                    if ($matchedKey === 'tmt_base_kg' && $numVal > 1000) {
-                        $numVal = round($numVal / 1000, 2);
+                    if ($isTmtTon && $numVal < 500) {
+                        $numVal = $numVal * 1000;
+                        $notes[] = "प्रति Kg से ₹{$numVal}/Ton में बदला";
                     }
                     $newRate = $numVal;
-                    $reason = "बोलकर सीधा नया भाव ₹{$newRate} पकड़ा गया";
                 }
+
+                if ($gstMode) $notes[] = ($gstMode === 'included' ? 'GST सहित' : 'बिन GST (+Extra)');
+                if ($loadingVal !== null) $notes[] = "लोडिंग ₹{$loadingVal}";
+                if ($insVal !== null) $notes[] = "इंश्योरेंस ₹{$insVal}";
+                if ($bhadaVal !== null) $notes[] = "लोकल भाड़ा ₹{$bhadaVal}";
 
                 $usedKeys[$matchedKey] = true;
                 $results[] = [
                     'key' => $matchedKey,
                     'new_rate' => $newRate,
-                    'reason_hi' => $reason,
+                    'gst_mode' => $gstMode,
+                    'loading_charge' => $loadingVal,
+                    'insurance_charge' => $insVal,
+                    'local_freight' => $bhadaVal,
+                    'reason_hi' => !empty($notes) ? implode(' | ', $notes) : "नया भाव ₹{$newRate}",
                 ];
             }
         }
