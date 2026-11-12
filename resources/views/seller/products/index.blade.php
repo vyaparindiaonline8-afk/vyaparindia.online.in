@@ -703,8 +703,11 @@
                                         </button>
                                     </div>
                                     @php
-                                        $pCostVal = (float)$product->purchase_price;
-                                        $pSellVal = (float)$product->price;
+                                        $vCosts = $cleanVariants->map(function($v) {
+                                            return (float)($v->net_landing_cost ?: ($v->purchase_price ?: 0));
+                                        })->filter(function($c) { return $c > 0; });
+                                        $pCostVal = $vCosts->isNotEmpty() ? $vCosts->min() : (float)$product->purchase_price;
+                                        $pSellVal = ($vPrices->isNotEmpty() && $minPrice > 0) ? $minPrice : (float)$product->price;
                                         $pMarginRs = round($pSellVal - $pCostVal);
                                         $pMarginPct = $pCostVal > 0 ? round((($pSellVal - $pCostVal) / $pCostVal) * 100, 1) : 0;
                                     @endphp
@@ -935,8 +938,11 @@
                                         </button>
                                     </div>
                                     @php
-                                        $tCostVal = (float)$product->purchase_price;
-                                        $tSellVal = (float)$product->price;
+                                        $tCosts = $cleanVariants->map(function($v) {
+                                            return (float)($v->net_landing_cost ?: ($v->purchase_price ?: 0));
+                                        })->filter(function($c) { return $c > 0; });
+                                        $tCostVal = $tCosts->isNotEmpty() ? $tCosts->min() : (float)$product->purchase_price;
+                                        $tSellVal = ($vPrices->isNotEmpty() && $minPrice > 0) ? $minPrice : (float)$product->price;
                                         $tMarginRs = round($tSellVal - $tCostVal);
                                         $tMarginPct = $tCostVal > 0 ? round((($tSellVal - $tCostVal) / $tCostVal) * 100, 1) : 0;
                                     @endphp
