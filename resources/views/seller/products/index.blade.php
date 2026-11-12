@@ -235,6 +235,11 @@
                     </button>
                 @endif
 
+                <a href="{{ route('seller.pricing_calculator') }}" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-extrabold text-xs shadow-md shadow-indigo-500/20 transition flex items-center gap-2" title="अपनी वेबसाइट (Direct Store) व मार्केटप्लेस का लागत व मुनाफा कैलकुलेट करें">
+                    <i class="fa-solid fa-calculator text-amber-300"></i>
+                    <span>खुद की वेबसाइट व प्रॉफिट कैलकुलेटर</span>
+                </a>
+
                 <a href="{{ route('seller.daily_rates.index') }}" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 via-amber-600 to-orange-600 hover:from-rose-700 hover:to-orange-700 text-white font-extrabold text-xs shadow-md shadow-amber-500/20 transition flex items-center gap-2" title="सोना-चांदी, सरिया, सीमेंट और मंडी का भाव बोलकर या 1 क्लिक में बदलें">
                     <i class="fa-solid fa-microphone"></i>
                     <span>आज का भाव & AI आवाज़ अपडेट ⚡</span>
@@ -732,6 +737,8 @@
                                         @foreach($cleanVariants as $v)
                                             @php
                                                 $vRetail = (float)($v->retail_price ?: ($v->price ?: 0));
+                                                $vPurchase = (float)($v->net_landing_cost ?: ($v->purchase_price ?: $product->purchase_price));
+                                                $vDiff = $vRetail - $vPurchase;
                                             @endphp
                                             <div class="p-2.5 rounded-xl bg-white border border-gray-200 flex items-center justify-between text-xs hover:border-indigo-300 transition shadow-2xs">
                                                 <div class="space-y-0.5">
@@ -739,14 +746,21 @@
                                                         <span class="h-2 w-2 rounded-full {{ $vRetail > 0 ? 'bg-emerald-500' : 'bg-amber-500' }}"></span>
                                                         <span class="text-xs">{{ $v->variant_name }}</span>
                                                     </div>
-                                                    <div class="text-[10px] text-gray-400 font-mono">
-                                                        SKU: {{ $v->sku ?? 'STD' }} &bull; स्टॉक: <strong class="text-gray-700">{{ $v->stock_quantity ?? 0 }}</strong>
+                                                    <div class="text-[10px] text-gray-500 font-mono flex items-center gap-1.5 flex-wrap">
+                                                        <span class="px-1.5 py-0.2 rounded bg-amber-50 text-amber-900 border border-amber-200 font-bold" title="आपकी खरीद लागत / पड़तल">खरीद: ₹{{ number_format($vPurchase, 2) }}</span>
+                                                        <span>&bull; स्टॉक: <strong class="text-gray-700">{{ $v->stock_quantity ?? 0 }}</strong></span>
                                                     </div>
                                                 </div>
                                                 <div class="text-right">
                                                     @if($vRetail > 0)
                                                         <div class="font-black text-emerald-700 text-sm">₹{{ number_format($vRetail, 2) }}</div>
-                                                        <span class="text-[9px] text-gray-400 font-semibold">Price A</span>
+                                                        @if($vPurchase > 0)
+                                                            <span class="text-[9px] font-bold {{ $vDiff >= 0 ? 'text-indigo-700' : 'text-rose-600' }}">
+                                                                {{ $vDiff >= 0 ? '+' : '' }}₹{{ number_format($vDiff, 0) }} मुनाफ़ा
+                                                            </span>
+                                                        @else
+                                                            <span class="text-[9px] text-gray-400 font-semibold">Price A</span>
+                                                        @endif
                                                     @else
                                                         <div class="font-bold text-amber-600 text-xs">⚠️ भाव नहीं (₹0)</div>
                                                     @endif
@@ -765,6 +779,10 @@
                             </button>
 
                             <div class="flex items-center gap-1.5">
+                                <a href="{{ route('seller.pricing_calculator', ['cost' => (float)$product->purchase_price > 0 ? (float)$product->purchase_price : 250, 'mrp' => (float)($product->mrp ?: ($product->price ?: 340))]) }}" target="_blank" class="px-2 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-xs transition inline-flex items-center gap-1" title="इस प्रोडक्ट की लागत और वेबसाइट/चैनल मुनाफा कैलकुलेट करें">
+                                    <i class="fa-solid fa-calculator text-emerald-600 text-[10px]"></i>
+                                    <span>कैलकुलेट</span>
+                                </a>
                                 <button type="button" onclick="openQuickImageModal({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->image_url ?? '' }}')" class="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition inline-flex items-center gap-1 shadow-2xs" title="फोटो बदलें या गैलरी खोलें">
                                     <i class="fa-solid fa-camera text-indigo-600 text-[10px]"></i>
                                     <span>फोटो</span>
@@ -975,7 +993,9 @@
                                                         <tr class="text-[10px] font-black text-gray-500 uppercase tracking-wider border-b border-gray-100">
                                                             <th class="py-1.5 px-2">साइज़ (Variant)</th>
                                                             <th class="py-1.5 px-2">SKU</th>
+                                                            <th class="py-1.5 px-2 text-amber-800">खरीद भाव (Purchase)</th>
                                                             <th class="py-1.5 px-2">विक्रय भाव (Price A)</th>
+                                                            <th class="py-1.5 px-2">मुनाफा (Margin)</th>
                                                             <th class="py-1.5 px-2">स्टॉक स्थिति</th>
                                                         </tr>
                                                     </thead>
@@ -983,11 +1003,15 @@
                                                         @foreach($cleanVariants as $v)
                                                             @php
                                                                 $vRetail = (float)($v->retail_price ?: ($v->price ?: 0));
+                                                                $vPurchase = (float)($v->net_landing_cost ?: ($v->purchase_price ?: $product->purchase_price));
+                                                                $vDiff = $vRetail - $vPurchase;
                                                             @endphp
                                                             <tr class="hover:bg-blue-50/30">
                                                                 <td class="py-1.5 px-2 font-extrabold text-gray-900">{{ $v->variant_name }}</td>
                                                                 <td class="py-1.5 px-2 text-[10px] text-gray-400 font-mono">{{ $v->sku ?? '-' }}</td>
+                                                                <td class="py-1.5 px-2 font-mono font-bold text-amber-800">₹{{ number_format($vPurchase, 2) }}</td>
                                                                 <td class="py-1.5 px-2 font-black text-emerald-700">{{ $vRetail > 0 ? '₹'.number_format($vRetail, 2) : '₹0.00' }}</td>
+                                                                <td class="py-1.5 px-2 font-mono font-bold {{ $vDiff >= 0 ? 'text-indigo-700' : 'text-rose-600' }}">{{ $vPurchase > 0 ? (($vDiff >= 0 ? '+' : '').'₹'.number_format($vDiff, 2)) : '-' }}</td>
                                                                 <td class="py-1.5 px-2">
                                                                     <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">
                                                                         {{ $v->stock_quantity ?? 0 }} in stock
