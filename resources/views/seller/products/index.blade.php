@@ -707,13 +707,19 @@
                                             return (float)($v->net_landing_cost ?: ($v->purchase_price ?: 0));
                                         })->filter(function($c) { return $c > 0; });
                                         $pCostVal = $vCosts->isNotEmpty() ? $vCosts->min() : (float)$product->purchase_price;
+                                        $pCostMax = $vCosts->isNotEmpty() ? $vCosts->max() : (float)$product->purchase_price;
                                         $pSellVal = ($vPrices->isNotEmpty() && $minPrice > 0) ? $minPrice : (float)$product->price;
                                         $pMarginRs = round($pSellVal - $pCostVal);
                                         $pMarginPct = $pCostVal > 0 ? round((($pSellVal - $pCostVal) / $pCostVal) * 100, 1) : 0;
                                     @endphp
-                                    <span class="text-[10px] font-extrabold {{ $pMarginRs >= 0 ? 'text-emerald-700' : 'text-rose-600' }} font-mono" id="prod-card-margin-badge-{{ $product->id }}">
-                                        मुनाफ़ा: ₹{{ $pMarginRs }} ({{ $pMarginPct }}%)
-                                    </span>
+                                    <div class="text-right">
+                                        <span class="text-[10px] font-extrabold {{ $pMarginRs >= 0 ? 'text-emerald-700' : 'text-rose-600' }} font-mono block" id="prod-card-margin-badge-{{ $product->id }}">
+                                            मुनाफ़ा: ₹{{ $pMarginRs }} ({{ $pMarginPct }}%)
+                                        </span>
+                                        @if($varCount > 1 && $pCostMax > $pCostVal)
+                                            <span class="text-[9px] text-gray-500 font-mono block">लागत रेंज: ₹{{ number_format($pCostVal, 0) }}-₹{{ number_format($pCostMax, 0) }}</span>
+                                        @endif
+                                    </div>
                                 </div>
 
                                 </div>
@@ -764,13 +770,16 @@
                                                 <div class="text-right">
                                                     @if($vRetail > 0)
                                                         <div class="font-black text-emerald-700 text-sm">₹{{ number_format($vRetail, 2) }}</div>
-                                                        @if($vPurchase > 0)
-                                                            <span class="text-[9px] font-bold {{ $vDiff >= 0 ? 'text-indigo-700' : 'text-rose-600' }}">
-                                                                {{ $vDiff >= 0 ? '+' : '' }}₹{{ number_format($vDiff, 0) }} ({{ $vMarginPct }}%)
-                                                            </span>
-                                                        @else
-                                                            <span class="text-[9px] text-gray-400 font-semibold">Price A</span>
-                                                        @endif
+                                                        <div class="flex items-center justify-end gap-1.5 mt-0.5">
+                                                            @if($vPurchase > 0)
+                                                                <span class="text-[9.5px] font-bold text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200" title="इस साइज़ की खरीद लागत">लागत: ₹{{ number_format($vPurchase, 2) }}</span>
+                                                                <span class="text-[9.5px] font-bold {{ $vDiff >= 0 ? 'text-indigo-700 bg-indigo-50 border-indigo-200' : 'text-rose-600 bg-rose-50 border-rose-200' }} px-1.5 py-0.5 rounded border">
+                                                                    {{ $vDiff >= 0 ? '+' : '' }}₹{{ number_format($vDiff, 0) }} ({{ $vMarginPct }}%)
+                                                                </span>
+                                                            @else
+                                                                <span class="text-[9px] text-gray-400 font-semibold">Price A</span>
+                                                            @endif
+                                                        </div>
                                                     @else
                                                         <div class="font-bold text-amber-600 text-xs">⚠️ भाव नहीं (₹0)</div>
                                                     @endif
