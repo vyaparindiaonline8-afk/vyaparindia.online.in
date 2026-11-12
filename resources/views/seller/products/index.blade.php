@@ -702,8 +702,14 @@
                                             <i class="fa-solid fa-floppy-disk"></i>
                                         </button>
                                     </div>
-                                    <span class="text-[10px] font-extrabold text-emerald-700 font-mono" id="prod-card-margin-badge-{{ $product->id }}">
-                                        मुनाफ़ा: ₹{{ max(0, round((float)$product->price - (float)$product->purchase_price)) }}
+                                    @php
+                                        $pCostVal = (float)$product->purchase_price;
+                                        $pSellVal = (float)$product->price;
+                                        $pMarginRs = round($pSellVal - $pCostVal);
+                                        $pMarginPct = $pCostVal > 0 ? round((($pSellVal - $pCostVal) / $pCostVal) * 100, 1) : 0;
+                                    @endphp
+                                    <span class="text-[10px] font-extrabold {{ $pMarginRs >= 0 ? 'text-emerald-700' : 'text-rose-600' }} font-mono" id="prod-card-margin-badge-{{ $product->id }}">
+                                        मुनाफ़ा: ₹{{ $pMarginRs }} ({{ $pMarginPct }}%)
                                     </span>
                                 </div>
 
@@ -739,6 +745,7 @@
                                                 $vRetail = (float)($v->retail_price ?: ($v->price ?: 0));
                                                 $vPurchase = (float)($v->net_landing_cost ?: ($v->purchase_price ?: $product->purchase_price));
                                                 $vDiff = $vRetail - $vPurchase;
+                                                $vMarginPct = $vPurchase > 0 ? round(($vDiff / $vPurchase) * 100, 1) : 0;
                                             @endphp
                                             <div class="p-2.5 rounded-xl bg-white border border-gray-200 flex items-center justify-between text-xs hover:border-indigo-300 transition shadow-2xs">
                                                 <div class="space-y-0.5">
@@ -756,7 +763,7 @@
                                                         <div class="font-black text-emerald-700 text-sm">₹{{ number_format($vRetail, 2) }}</div>
                                                         @if($vPurchase > 0)
                                                             <span class="text-[9px] font-bold {{ $vDiff >= 0 ? 'text-indigo-700' : 'text-rose-600' }}">
-                                                                {{ $vDiff >= 0 ? '+' : '' }}₹{{ number_format($vDiff, 0) }} मुनाफ़ा
+                                                                {{ $vDiff >= 0 ? '+' : '' }}₹{{ number_format($vDiff, 0) }} ({{ $vMarginPct }}%)
                                                             </span>
                                                         @else
                                                             <span class="text-[9px] text-gray-400 font-semibold">Price A</span>
@@ -927,8 +934,14 @@
                                             <i class="fa-solid fa-floppy-disk"></i>
                                         </button>
                                     </div>
-                                    <span class="text-[9px] text-emerald-700 font-bold font-mono block mt-0.5" id="prod-tbl-margin-badge-{{ $product->id }}">
-                                        मार्जिन: ₹{{ max(0, round((float)$product->price - (float)$product->purchase_price)) }}
+                                    @php
+                                        $tCostVal = (float)$product->purchase_price;
+                                        $tSellVal = (float)$product->price;
+                                        $tMarginRs = round($tSellVal - $tCostVal);
+                                        $tMarginPct = $tCostVal > 0 ? round((($tSellVal - $tCostVal) / $tCostVal) * 100, 1) : 0;
+                                    @endphp
+                                    <span class="text-[9px] {{ $tMarginRs >= 0 ? 'text-emerald-700' : 'text-rose-600' }} font-bold font-mono block mt-0.5" id="prod-tbl-margin-badge-{{ $product->id }}">
+                                        मार्जिन: ₹{{ $tMarginRs }} ({{ $tMarginPct }}%)
                                     </span>
                                 </td>
                                 <td class="py-3 px-4 font-black text-gray-900">
@@ -1005,13 +1018,14 @@
                                                                 $vRetail = (float)($v->retail_price ?: ($v->price ?: 0));
                                                                 $vPurchase = (float)($v->net_landing_cost ?: ($v->purchase_price ?: $product->purchase_price));
                                                                 $vDiff = $vRetail - $vPurchase;
+                                                                $vMarginPct = $vPurchase > 0 ? round(($vDiff / $vPurchase) * 100, 1) : 0;
                                                             @endphp
                                                             <tr class="hover:bg-blue-50/30">
                                                                 <td class="py-1.5 px-2 font-extrabold text-gray-900">{{ $v->variant_name }}</td>
                                                                 <td class="py-1.5 px-2 text-[10px] text-gray-400 font-mono">{{ $v->sku ?? '-' }}</td>
                                                                 <td class="py-1.5 px-2 font-mono font-bold text-amber-800">₹{{ number_format($vPurchase, 2) }}</td>
                                                                 <td class="py-1.5 px-2 font-black text-emerald-700">{{ $vRetail > 0 ? '₹'.number_format($vRetail, 2) : '₹0.00' }}</td>
-                                                                <td class="py-1.5 px-2 font-mono font-bold {{ $vDiff >= 0 ? 'text-indigo-700' : 'text-rose-600' }}">{{ $vPurchase > 0 ? (($vDiff >= 0 ? '+' : '').'₹'.number_format($vDiff, 2)) : '-' }}</td>
+                                                                <td class="py-1.5 px-2 font-mono font-bold {{ $vDiff >= 0 ? 'text-indigo-700' : 'text-rose-600' }}">{{ $vPurchase > 0 ? (($vDiff >= 0 ? '+' : '').'₹'.number_format($vDiff, 2)." ({$vMarginPct}%)") : '-' }}</td>
                                                                 <td class="py-1.5 px-2">
                                                                     <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">
                                                                         {{ $v->stock_quantity ?? 0 }} in stock
