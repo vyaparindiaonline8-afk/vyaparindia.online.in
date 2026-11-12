@@ -199,9 +199,10 @@ class CommodityRateController extends Controller
             'product_id' => 'required|integer',
             'variant_id' => 'nullable|integer',
             'commodity_key' => 'required|string|max:100',
-            'trade_type' => 'required|string|in:jewellery,tmt_steel,cement,mandi_grain',
+            'trade_type' => 'required|string|in:jewellery,tmt_steel,cement,mandi_grain,fab_steel,fab_sheet',
             'weight_val' => 'required|numeric|min:0.01',
-            'mm_size' => 'nullable|string|max:20',
+            'mm_size' => 'nullable|string|max:30',
+            'section_size' => 'nullable|string|max:50',
             'die_override_per_ton' => 'nullable|numeric|min:0',
             'making_type' => 'nullable|string|in:percent,per_gm,flat',
             'making_val' => 'nullable|numeric|min:0',
@@ -241,6 +242,11 @@ class CommodityRateController extends Controller
             if ($request->filled('die_override_per_ton')) {
                 $formula['die_override_per_ton'] = (float)$validated['die_override_per_ton'];
             }
+        } elseif ($validated['trade_type'] === 'fab_sheet') {
+            $formula['length_ft'] = (float)$validated['weight_val'];
+        } elseif ($validated['trade_type'] === 'fab_steel') {
+            $formula['weight_kg'] = (float)$validated['weight_val'];
+            $formula['section_size'] = $validated['section_size'] ?? ($validated['mm_size'] ?? '20ft Piece');
         } elseif ($validated['trade_type'] === 'cement') {
             $formula['bags_count'] = (float)$validated['weight_val'];
         } else {
@@ -293,8 +299,8 @@ class CommodityRateController extends Controller
             'brand' => 'nullable|string|max:80',
             'plant_location' => 'nullable|string|max:100',
             'unit' => 'required|string|max:60',
-            'rate_unit' => 'nullable|string|in:per_ton,per_kg,per_bag,per_quintal,per_10gm,per_unit',
-            'group' => 'required|string|in:anaj_mandi,iron_cement,jewellery',
+            'rate_unit' => 'nullable|string|in:per_ton,per_kg,per_bag,per_quintal,per_10gm,per_ft,per_unit',
+            'group' => 'required|string|in:anaj_mandi,iron_cement,jewellery,fabrication_structure',
             'default_rate' => 'required|numeric|min:1',
             'gst_mode' => 'nullable|string|in:extra,included',
             'gst_pct' => 'nullable|numeric|min:0|max:40',
@@ -439,6 +445,46 @@ class CommodityRateController extends Controller
                 'sku' => 'MND-GEHU-50KG',
                 'formula' => ['commodity_key' => 'anaj_gehu', 'trade_type' => 'mandi_grain', 'weight_kg' => 50.0],
                 'attrs' => ['mandi_unit' => 'bori_50', 'moisture_percent' => '< 11% Clean Sortex'],
+            ];
+        }
+
+        if ($trade === 'all' || $trade === 'fabrication_structure') {
+            $catFab = Category::firstOrCreate(['slug' => 'fabrication-steel-sheets'], ['name' => 'Fabrication Angles, Pipes & Roofing Sheets']);
+            $samples[] = [
+                'name' => 'MS Angle 50x50x6mm Structural Bar (27 Kg / 6m)',
+                'cat' => $catFab->id,
+                'group' => 'Fabrication Angles & Channels',
+                'brand' => 'Structural MS',
+                'sku' => 'FAB-ANG-50X50X6',
+                'formula' => ['commodity_key' => 'fab_ms_angle_channel', 'trade_type' => 'fab_steel', 'section_size' => '50x50x6', 'weight_kg' => 27.0],
+                'attrs' => ['material_type' => 'angle_channel', 'rod_weight_kg' => 27.0, 'steel_cement_grade' => '6m / 20ft Length'],
+            ];
+            $samples[] = [
+                'name' => 'Apollo Square GP Pipe 2x2 Inch (18 Kg / 20ft)',
+                'cat' => $catFab->id,
+                'group' => 'MS & GP Pipes',
+                'brand' => 'APL Apollo',
+                'sku' => 'FAB-GP-2X2-18KG',
+                'formula' => ['commodity_key' => 'fab_ms_gp_pipe', 'trade_type' => 'fab_steel', 'section_size' => '2x2 Inch 16G', 'weight_kg' => 18.0],
+                'attrs' => ['material_type' => 'angle_channel', 'rod_weight_kg' => 18.0, 'steel_cement_grade' => 'GP 20ft Length'],
+            ];
+            $samples[] = [
+                'name' => 'JSW Colouron Profile Tin Sheet 0.45mm (12 Ft)',
+                'cat' => $catFab->id,
+                'group' => 'Roofing Tin & Cement Sheets',
+                'brand' => 'JSW Colouron',
+                'sku' => 'FAB-TIN-JSW-12FT',
+                'formula' => ['commodity_key' => 'fab_tin_sheet', 'trade_type' => 'fab_sheet', 'length_ft' => 12.0],
+                'attrs' => ['material_type' => 'tin_sheet', 'length_ft' => 12.0, 'steel_cement_grade' => '0.45mm Color Coated'],
+            ];
+            $samples[] = [
+                'name' => 'Everest AC Cement Roofing Sheet (10 Ft)',
+                'cat' => $catFab->id,
+                'group' => 'Roofing Tin & Cement Sheets',
+                'brand' => 'Everest',
+                'sku' => 'FAB-CMT-SH-10FT',
+                'formula' => ['commodity_key' => 'fab_cement_sheet', 'trade_type' => 'fab_sheet', 'length_ft' => 10.0],
+                'attrs' => ['material_type' => 'cement_sheet', 'length_ft' => 10.0, 'steel_cement_grade' => 'ISI Fibre Cement Sheet'],
             ];
         }
 

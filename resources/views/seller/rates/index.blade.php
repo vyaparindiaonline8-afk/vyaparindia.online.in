@@ -101,6 +101,9 @@
                 <button type="button" onclick="useVoiceExample('22K सोना 73500 + GST और चांदी 94000 कर दो')" class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-yellow-200 border border-white/10 font-bold transition cursor-pointer">
                     💎 22K सोना 73500 + GST और चांदी 94000
                 </button>
+                <button type="button" onclick="useVoiceExample('MS एंगल 56500, अपोलो पाइप 66 किलो और टिन चादर 110 फीट कर दो')" class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-cyan-200 border border-white/10 font-bold transition cursor-pointer">
+                    🛠️ एंगल 56500, पाइप 66 और टिन चादर 110 फीट
+                </button>
             </div>
 
             <!-- AI Parsed Preview Panel -->
@@ -137,6 +140,7 @@
                 <div class="flex items-center gap-1.5 flex-wrap" id="tradeFilterTabs">
                     <button type="button" onclick="filterTradeGroup('all', this)" class="trade-tab px-3 py-1.5 rounded-xl text-xs font-black bg-gray-900 text-white cursor-pointer">सभी (All)</button>
                     <button type="button" onclick="filterTradeGroup('iron_cement', this)" class="trade-tab px-3 py-1.5 rounded-xl text-xs font-bold bg-orange-50 text-orange-900 border border-orange-200 cursor-pointer">🏗️ लोहा/सरिया & सीमेंट</button>
+                    <button type="button" onclick="filterTradeGroup('fabrication_structure', this)" class="trade-tab px-3 py-1.5 rounded-xl text-xs font-bold bg-cyan-50 text-cyan-900 border border-cyan-200 cursor-pointer">🛠️ फैब्रिकेशन & शीट्स</button>
                     <button type="button" onclick="filterTradeGroup('jewellery', this)" class="trade-tab px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200 cursor-pointer">💎 ज्वेलरी (सोना-चांदी)</button>
                     <button type="button" onclick="filterTradeGroup('anaj_mandi', this)" class="trade-tab px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-900 border border-emerald-200 cursor-pointer">🌾 अनाज मंडी</button>
                 </div>
@@ -151,8 +155,9 @@
                             $linkedCnt = $countsByKey[$key] ?? 0;
                             $grp = $def['group'] ?? 'anaj_mandi';
                             $isTmt = str_starts_with($key, 'tmt_') || ($grp === 'iron_cement' && ($p['rate_unit'] ?? '') === 'per_ton');
-                            $borderClass = $grp === 'jewellery' ? 'border-amber-200 bg-amber-50/20' : ($grp === 'iron_cement' ? 'border-slate-300 bg-slate-50/40' : 'border-emerald-200 bg-emerald-50/20');
-                            $badgeClass = $grp === 'jewellery' ? 'bg-amber-100 text-amber-900' : ($grp === 'iron_cement' ? 'bg-orange-100 text-orange-900' : 'bg-emerald-100 text-emerald-900');
+                            $isFabTon = ($grp === 'fabrication_structure' && ($p['rate_unit'] ?? '') === 'per_ton');
+                            $borderClass = $grp === 'jewellery' ? 'border-amber-200 bg-amber-50/20' : ($grp === 'iron_cement' ? 'border-slate-300 bg-slate-50/40' : ($grp === 'fabrication_structure' ? 'border-cyan-200 bg-cyan-50/20' : 'border-emerald-200 bg-emerald-50/20'));
+                            $badgeClass = $grp === 'jewellery' ? 'bg-amber-100 text-amber-900' : ($grp === 'iron_cement' ? 'bg-orange-100 text-orange-900' : ($grp === 'fabrication_structure' ? 'bg-cyan-100 text-cyan-900' : 'bg-emerald-100 text-emerald-900'));
                         @endphp
                         <div class="commodity-rate-card p-4 rounded-2xl border {{ $borderClass }} space-y-3 transition hover:shadow-md flex flex-col justify-between" data-group="{{ $grp }}">
                             <div class="space-y-2.5">
@@ -192,9 +197,13 @@
                                     <div class="col-span-5">
                                         <label class="text-[10px] font-bold text-gray-500 block mb-0.5">रेट यूनिट:</label>
                                         <select name="profiles[{{ $key }}][rate_unit]" class="w-full px-2 py-1.5 bg-white border border-gray-300 rounded-xl text-[11px] font-bold text-gray-800">
-                                            @if($isTmt)
+                                            @if($isTmt || $isFabTon)
                                                 <option value="per_ton" {{ $p['rate_unit'] === 'per_ton' ? 'selected' : '' }}>प्रति टन (MT)</option>
                                                 <option value="per_kg" {{ $p['rate_unit'] === 'per_kg' ? 'selected' : '' }}>प्रति Kg</option>
+                                            @elseif($grp === 'fabrication_structure')
+                                                <option value="per_kg" {{ $p['rate_unit'] === 'per_kg' ? 'selected' : '' }}>प्रति Kg</option>
+                                                <option value="per_ft" {{ $p['rate_unit'] === 'per_ft' ? 'selected' : '' }}>प्रति फीट (Ft)</option>
+                                                <option value="per_ton" {{ $p['rate_unit'] === 'per_ton' ? 'selected' : '' }}>प्रति टन (MT)</option>
                                             @elseif($grp === 'jewellery')
                                                 <option value="per_10gm" {{ $p['rate_unit'] === 'per_10gm' ? 'selected' : '' }}>प्रति 10 ग्राम</option>
                                                 <option value="per_kg" {{ $p['rate_unit'] === 'per_kg' ? 'selected' : '' }}>प्रति Kg</option>
@@ -226,47 +235,67 @@
                                     </div>
                                 </div>
 
-                                <!-- Loading, Insurance, Local Plant-to-Godown Bhada & Profit -->
-                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px]">
-                                    <div>
-                                        <label class="font-bold text-gray-600 block mb-0.5 truncate" title="लोडिंग / हमाली चार्ज">लोडिंग (₹):</label>
-                                        <input type="number" step="0.5" name="profiles[{{ $key }}][loading_charge]" value="{{ $p['loading_charge'] }}" class="w-full px-2 py-1 bg-white border border-gray-300 rounded-lg font-mono font-bold text-xs">
+                                <!-- 🔒 Saved Fixed Costing Summary Strip (1 Baar Set Karein, Daily Nahi Badalna Padta) -->
+                                <div class="bg-slate-100/80 border border-slate-200 rounded-xl p-2 space-y-1.5">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="text-[10px] font-bold text-emerald-800 flex items-center gap-1" title="यह सभी चार्जेज़ सेव रहते हैं — रोज़ सिर्फ बेसिक रेट बदलें">
+                                            <i class="fa-solid fa-lock text-emerald-600 text-[9px]"></i>
+                                            <span>सेव्ड फिक्स कॉस्टिंग:</span>
+                                        </span>
+                                        <button type="button" onclick="document.getElementById('fixed_cost_panel_{{ $key }}').classList.toggle('hidden')" class="text-[10px] font-black text-indigo-700 hover:underline cursor-pointer">
+                                            ✏️ फिक्स चार्जेज़ बदलें
+                                        </button>
                                     </div>
-                                    <div>
-                                        <label class="font-bold text-gray-600 block mb-0.5 truncate" title="बीमा / HUID हॉलमार्किंग">इंश्योरेंस (₹):</label>
-                                        <input type="number" step="0.5" name="profiles[{{ $key }}][insurance_charge]" value="{{ $p['insurance_charge'] }}" class="w-full px-2 py-1 bg-white border border-gray-300 rounded-lg font-mono font-bold text-xs">
+                                    <div class="text-[10px] font-mono text-gray-700 leading-snug">
+                                        Load ₹{{ $p['loading_charge'] }} • Ins ₹{{ $p['insurance_charge'] }} • भाड़ा ₹{{ $p['local_freight'] }} • लाभ {{ $p['profit_val'] }}{{ $p['profit_type'] === 'percent' ? '%' : '₹' }}
                                     </div>
-                                    <div>
-                                        <label class="font-bold text-indigo-700 block mb-0.5 truncate" title="प्लांट से गोदाम तक का लोकल भाड़ा">लोकल भाड़ा (₹):</label>
-                                        <input type="number" step="1" name="profiles[{{ $key }}][local_freight]" value="{{ $p['local_freight'] }}" class="w-full px-2 py-1 bg-indigo-50/40 border border-indigo-200 rounded-lg font-mono font-bold text-xs text-indigo-900">
-                                    </div>
-                                    <div>
-                                        <label class="font-bold text-emerald-700 block mb-0.5 truncate" title="व्यापारी शुद्ध मुनाफा">मुनाफा:</label>
-                                        <div class="flex items-center gap-0.5">
-                                            <input type="number" step="0.5" name="profiles[{{ $key }}][profit_val]" value="{{ $p['profit_val'] }}" class="w-full px-1.5 py-1 bg-emerald-50/40 border border-emerald-200 rounded-lg font-mono font-bold text-xs text-emerald-900">
-                                            <select name="profiles[{{ $key }}][profit_type]" class="px-1 py-1 bg-white border border-gray-200 rounded-lg text-[9px] font-bold">
-                                                <option value="percent" {{ $p['profit_type'] === 'percent' ? 'selected' : '' }}>%</option>
-                                                @if($isTmt)
-                                                    <option value="flat_kg" {{ $p['profit_type'] === 'flat_kg' ? 'selected' : '' }}>₹/Kg</option>
-                                                    <option value="flat_ton" {{ $p['profit_type'] === 'flat_ton' ? 'selected' : '' }}>₹/T</option>
-                                                @else
-                                                    <option value="flat" {{ $p['profit_type'] === 'flat' ? 'selected' : '' }}>₹</option>
-                                                @endif
-                                            </select>
+
+                                    <!-- Flexible Collapsible Editor (Persisted in DB once saved) -->
+                                    <div id="fixed_cost_panel_{{ $key }}" class="hidden pt-2 border-t border-slate-200 space-y-2">
+                                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px]">
+                                            <div>
+                                                <label class="font-bold text-gray-600 block mb-0.5 truncate" title="लोडिंग / हमाली चार्ज">लोडिंग (₹):</label>
+                                                <input type="number" step="0.1" name="profiles[{{ $key }}][loading_charge]" value="{{ $p['loading_charge'] }}" class="w-full px-2 py-1 bg-white border border-gray-300 rounded-lg font-mono font-bold text-xs">
+                                            </div>
+                                            <div>
+                                                <label class="font-bold text-gray-600 block mb-0.5 truncate" title="बीमा / HUID / ब्रेकेज कवर">इंश्योरेंस (₹):</label>
+                                                <input type="number" step="0.1" name="profiles[{{ $key }}][insurance_charge]" value="{{ $p['insurance_charge'] }}" class="w-full px-2 py-1 bg-white border border-gray-300 rounded-lg font-mono font-bold text-xs">
+                                            </div>
+                                            <div>
+                                                <label class="font-bold text-indigo-700 block mb-0.5 truncate" title="प्लांट से गोदाम तक का लोकल भाड़ा">लोकल भाड़ा (₹):</label>
+                                                <input type="number" step="0.5" name="profiles[{{ $key }}][local_freight]" value="{{ $p['local_freight'] }}" class="w-full px-2 py-1 bg-indigo-50/40 border border-indigo-200 rounded-lg font-mono font-bold text-xs text-indigo-900">
+                                            </div>
+                                            <div>
+                                                <label class="font-bold text-emerald-700 block mb-0.5 truncate" title="व्यापारी शुद्ध मुनाफा">मुनाफा:</label>
+                                                <div class="flex items-center gap-0.5">
+                                                    <input type="number" step="0.5" name="profiles[{{ $key }}][profit_val]" value="{{ $p['profit_val'] }}" class="w-full px-1.5 py-1 bg-emerald-50/40 border border-emerald-200 rounded-lg font-mono font-bold text-xs text-emerald-900">
+                                                    <select name="profiles[{{ $key }}][profit_type]" class="px-1 py-1 bg-white border border-gray-200 rounded-lg text-[9px] font-bold">
+                                                        <option value="percent" {{ $p['profit_type'] === 'percent' ? 'selected' : '' }}>%</option>
+                                                        @if($isTmt || $isFabTon)
+                                                            <option value="flat_kg" {{ $p['profit_type'] === 'flat_kg' ? 'selected' : '' }}>₹/Kg</option>
+                                                            <option value="flat_ton" {{ $p['profit_type'] === 'flat_ton' ? 'selected' : '' }}>₹/T</option>
+                                                        @else
+                                                            <option value="flat" {{ $p['profit_type'] === 'flat' ? 'selected' : '' }}>₹</option>
+                                                        @endif
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="font-bold text-gray-600 block mb-0.5 text-[10px]">प्लांट / मंडी लोकेशन:</label>
+                                            <input type="text" name="profiles[{{ $key }}][plant_location]" value="{{ $p['plant_location'] }}" placeholder="प्लांट लोकेशन (उदा. रायपुर / इंदौर)" class="w-full text-[10px] px-2 py-1 border border-gray-300 rounded-lg bg-white font-bold text-gray-700">
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- TMT Specific: Plant Location Edit & Collapsible Die Rates (mm Extra) -->
+                                <!-- TMT Specific: Collapsible Die Rates (mm Extra) -->
                                 @if($isTmt)
-                                    <div class="pt-1">
-                                        <div class="flex items-center justify-between gap-2 mb-1">
-                                            <input type="text" name="profiles[{{ $key }}][plant_location]" value="{{ $p['plant_location'] }}" placeholder="प्लांट लोकेशन (उदा. रायपुर)" class="text-[10px] px-2 py-1 border border-gray-200 rounded-lg bg-white font-bold text-gray-700 w-1/2">
-                                            <button type="button" onclick="document.getElementById('die_panel_{{ $key }}').classList.toggle('hidden')" class="text-[10px] font-black text-orange-700 bg-orange-100/70 hover:bg-orange-200 px-2 py-1 rounded-lg border border-orange-200 cursor-pointer shrink-0">
-                                                ⚙️ डाई रेट (mm)
-                                            </button>
-                                        </div>
-                                        <div id="die_panel_{{ $key }}" class="hidden p-2.5 bg-orange-50/70 border border-orange-200 rounded-xl space-y-1.5 mt-1">
+                                    <div class="pt-0.5">
+                                        <button type="button" onclick="document.getElementById('die_panel_{{ $key }}').classList.toggle('hidden')" class="text-[10px] font-black text-orange-700 bg-orange-100/70 hover:bg-orange-200 px-2.5 py-1 rounded-lg border border-orange-200 cursor-pointer w-full flex items-center justify-between">
+                                            <span>⚙️ डाई अंतर रेट सेटिंग्स (6mm - 32mm Die)</span>
+                                            <i class="fa-solid fa-chevron-down text-[9px]"></i>
+                                        </button>
+                                        <div id="die_panel_{{ $key }}" class="hidden p-2.5 bg-orange-50/70 border border-orange-200 rounded-xl space-y-1.5 mt-1.5">
                                             <span class="text-[9px] font-black text-orange-950 uppercase block">प्रति टन डाई अंतर (₹/Ton Extra over 12mm):</span>
                                             <div class="grid grid-cols-4 gap-1.5 text-[10px]">
                                                 @foreach(['6mm', '8mm', '10mm', '12mm', '16mm', '20mm', '25mm', '32mm'] as $mm)
@@ -440,6 +469,8 @@
                         <label class="block font-bold text-gray-700 mb-1">व्यापार प्रकार:</label>
                         <select name="trade_type" id="link_trade_type" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl font-bold">
                             <option value="tmt_steel">🏗️ लोहा / सरिया (TMT Steel)</option>
+                            <option value="fab_steel">🛠️ एंगल / चैनल / MS-GP पाइप (Structural)</option>
+                            <option value="fab_sheet">🏠 टिन / सीमेंट रूफिंग चादर (Sheet)</option>
                             <option value="cement">🧱 सीमेंट (Cement Bag)</option>
                             <option value="jewellery">💎 ज्वेलरी (सोना-चांदी)</option>
                             <option value="mandi_grain">🌾 अनाज मंडी</option>
@@ -512,6 +543,7 @@
                         <label class="block font-bold text-gray-700 mb-1">व्यापार वर्ग</label>
                         <select name="group" class="w-full px-3 py-2 border border-gray-300 rounded-xl font-bold">
                             <option value="iron_cement">🏗️ लोहा / सरिया / सीमेंट</option>
+                            <option value="fabrication_structure">🛠️ फैब्रिकेशन (एंगल / पाइप / टिन-सीमेंट चादर)</option>
                             <option value="anaj_mandi">🌾 अनाज मंडी</option>
                             <option value="jewellery">💎 ज्वेलरी / बुलियन</option>
                         </select>

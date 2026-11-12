@@ -41,6 +41,23 @@ class CommodityRateEngineService
     ];
 
     /**
+     * Standard Structural Steel (Angle / Channel / Flat) 6-Meter (20ft) Weights (Kg per Length)
+     */
+    public const FABRICATION_SECTION_WEIGHTS_KG = [
+        '25x25x3' => 6.80,
+        '30x30x3' => 8.20,
+        '35x35x5' => 15.60,
+        '40x40x5' => 18.00,
+        '50x50x5' => 22.80,
+        '50x50x6' => 27.00,
+        '65x65x6' => 34.80,
+        '75x75x6' => 40.80,
+        '75x40' => 42.80,
+        '100x50' => 57.40,
+        '125x65' => 78.60,
+    ];
+
+    /**
      * Master Commodity Catalog Definitions (with GST, Brand, Plant, Loading, Insurance, Freight & Die defaults)
      */
     public static function getCommodityDefinitions(): array
@@ -222,6 +239,84 @@ class CommodityRateEngineService
                 'default_profit_val' => 4.5,
                 'icon' => 'fa-cubes-stacked',
                 'color' => 'amber',
+            ],
+
+            // 🛠️ Fabrication Structure, Pipes & Roofing Sheets
+            'fab_ms_angle_channel' => [
+                'key' => 'fab_ms_angle_channel',
+                'group' => 'fabrication_structure',
+                'label' => 'MS एंगल, चैनल, पट्टी & गार्डर',
+                'brand' => 'Structural Steel / Rolling Mill',
+                'plant_location' => 'Raipur / Gobindgarh Mill',
+                'unit' => 'प्रति टन (MT)',
+                'rate_unit' => 'per_ton',
+                'default_rate' => 55000.00,
+                'gst_mode' => 'extra',
+                'gst_pct' => 18.0,
+                'loading_charge' => 250.0,
+                'insurance_charge' => 100.0,
+                'local_freight' => 1200.0,
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 5.0,
+                'icon' => 'fa-shapes',
+                'color' => 'indigo',
+            ],
+            'fab_ms_gp_pipe' => [
+                'key' => 'fab_ms_gp_pipe',
+                'group' => 'fabrication_structure',
+                'label' => 'MS / GP चौकोर व गोल पाइप (20ft)',
+                'brand' => 'APL Apollo / Surya / Jindal',
+                'plant_location' => 'Tube Mill / Depot',
+                'unit' => 'प्रति Kg',
+                'rate_unit' => 'per_kg',
+                'default_rate' => 64.00,
+                'gst_mode' => 'extra',
+                'gst_pct' => 18.0,
+                'loading_charge' => 0.30,
+                'insurance_charge' => 0.10,
+                'local_freight' => 1.50,
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 6.0,
+                'icon' => 'fa-grip-lines',
+                'color' => 'blue',
+            ],
+            'fab_tin_sheet' => [
+                'key' => 'fab_tin_sheet',
+                'group' => 'fabrication_structure',
+                'label' => 'रंगीन प्रोफाइल / टिन चादर (JSW/GI)',
+                'brand' => 'JSW Colouron / Bhushan',
+                'plant_location' => 'Coating Coil Plant',
+                'unit' => 'प्रति फीट (Running Ft)',
+                'rate_unit' => 'per_ft',
+                'default_rate' => 105.00,
+                'gst_mode' => 'extra',
+                'gst_pct' => 18.0,
+                'loading_charge' => 2.0,
+                'insurance_charge' => 1.0,
+                'local_freight' => 5.0,
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 6.0,
+                'icon' => 'fa-layer-group',
+                'color' => 'cyan',
+            ],
+            'fab_cement_sheet' => [
+                'key' => 'fab_cement_sheet',
+                'group' => 'fabrication_structure',
+                'label' => 'सीमेंट रूफिंग चादर (Everest/AC)',
+                'brand' => 'Everest / Charminar',
+                'plant_location' => 'Plant / Regional Godown',
+                'unit' => 'प्रति फीट (Running Ft)',
+                'rate_unit' => 'per_ft',
+                'default_rate' => 56.00,
+                'gst_mode' => 'extra',
+                'gst_pct' => 18.0,
+                'loading_charge' => 8.0,
+                'insurance_charge' => 5.0, // Breakage insurance per sheet
+                'local_freight' => 15.0,
+                'default_profit_type' => 'percent',
+                'default_profit_val' => 6.0,
+                'icon' => 'fa-sheet-plastic',
+                'color' => 'slate',
             ],
 
             // 🌾 Anaj Mandi
@@ -488,8 +583,21 @@ class CommodityRateEngineService
                     $commodityKey = 'gold_22k';
                 }
             }
-            // 2. Iron & TMT Steel (Brand-Aware!)
-            elseif (preg_match('/(sariya|saria|tmt|rebar|loha|iron|steel rod|angle|channel|fe500|fe550|kamdhenu|jindal|tiscon|sail|prime gold)/i', $haystack)) {
+            // 2. Fabrication Roofing Sheets (Check Cement Sheet & Tin Sheet BEFORE generic Cement/Steel!)
+            elseif (preg_match('/(cement\s*sheet|asbestos|everest|charminar|ramco|ac\s*sheet|सीमेंट\s*चादर)/i', $haystack)) {
+                $commodityKey = 'fab_cement_sheet';
+            }
+            elseif (preg_match('/(profile\s*sheet|tin\s*sheet|colour\s*sheet|color\s*sheet|jsw\s*sheet|gi\s*sheet|roofing\s*sheet|chadar|टिन\s*चादर)/i', $haystack)) {
+                $commodityKey = 'fab_tin_sheet';
+            }
+            elseif (preg_match('/(ms\s*pipe|gp\s*pipe|square\s*pipe|apollo\s*pipe|hollow\s*section|round\s*pipe)/i', $haystack)) {
+                $commodityKey = 'fab_ms_gp_pipe';
+            }
+            elseif (preg_match('/(angle|channel|guarder|girder|i-beam|patti|flat\s*bar|एंगल|चैनल|पट्टी)/i', $haystack)) {
+                $commodityKey = 'fab_ms_angle_channel';
+            }
+            // 3. Iron & TMT Steel (Brand-Aware!)
+            elseif (preg_match('/(sariya|saria|tmt|rebar|loha|iron|steel rod|fe500|fe550|kamdhenu|jindal|tiscon|sail|prime gold)/i', $haystack)) {
                 if (str_contains($haystack, 'kamdhenu')) {
                     $commodityKey = 'tmt_kamdhenu';
                 } elseif (str_contains($haystack, 'jindal') || str_contains($haystack, 'tata') || str_contains($haystack, 'tiscon')) {
@@ -498,7 +606,7 @@ class CommodityRateEngineService
                     $commodityKey = 'tmt_base_kg';
                 }
             }
-            // 3. Cement (Brand-Aware!)
+            // 4. Cement Bags (Brand-Aware!)
             elseif (preg_match('/(cement|ultratech|ambuja|acc|bangur|birla|dalmia|shree|jk super|wonder|ppc|opc 43|opc 53)/i', $haystack)) {
                 if (preg_match('/(ultratech|acc|ambuja|birla)/i', $haystack)) {
                     $commodityKey = 'cement_ultratech_acc';
@@ -506,7 +614,7 @@ class CommodityRateEngineService
                     $commodityKey = 'cement_bag_base';
                 }
             }
-            // 4. Anaj Mandi
+            // 5. Anaj Mandi
             elseif (preg_match('/(gehu|wheat|sharbati|lokwan)/i', $haystack)) {
                 $commodityKey = 'anaj_gehu';
             } elseif (preg_match('/(chana|gram|besan)/i', $haystack)) {
@@ -541,6 +649,52 @@ class CommodityRateEngineService
                 'making_type' => $savedParent['making_type'] ?? ($pAttrs['making_charge_type'] ?? 'percent'),
                 'making_val' => floatval($savedParent['making_val'] ?? ($pAttrs['making_charge_val'] ?? 12.0)),
                 'wastage_pct' => floatval($savedParent['wastage_pct'] ?? 0),
+                'source' => !empty($savedParent['commodity_key']) ? 'saved_product' : 'auto_detected',
+            ];
+        }
+
+        if (in_array($commodityKey, ['fab_tin_sheet', 'fab_cement_sheet'])) {
+            $lengthFt = floatval($savedParent['length_ft'] ?? ($pAttrs['length_ft'] ?? 0));
+            if ($lengthFt <= 0) {
+                if (preg_match('/(\d+(?:\.\d+)?)\s*(?:ft|feet|फीट|फुट)/i', $haystack, $fm)) {
+                    $lengthFt = floatval($fm[1]);
+                } elseif (preg_match('/(\d+(?:\.\d+)?)\s*(?:m|mtr|meter|मीटर)\b/i', $haystack, $mm)) {
+                    $lengthFt = round(floatval($mm[1]) * 3.28084, 2); // convert meter to ft
+                } else {
+                    $lengthFt = 10.0; // standard 10 ft sheet
+                }
+            }
+
+            return [
+                'commodity_key' => $commodityKey,
+                'trade_type' => 'fab_sheet',
+                'length_ft' => $lengthFt,
+                'source' => !empty($savedParent['commodity_key']) ? 'saved_product' : 'auto_detected',
+            ];
+        }
+
+        if (in_array($commodityKey, ['fab_ms_angle_channel', 'fab_ms_gp_pipe']) || ($allDefinitions[$commodityKey]['group'] ?? '') === 'fabrication_structure') {
+            $weightKg = floatval($savedParent['weight_kg'] ?? ($pAttrs['rod_weight_kg'] ?? 0));
+            $sectionLabel = $savedParent['section_size'] ?? '';
+            if ($weightKg <= 0) {
+                foreach (self::FABRICATION_SECTION_WEIGHTS_KG as $secKey => $secW) {
+                    if (str_contains(str_replace(' ', '', $haystack), $secKey)) {
+                        $weightKg = $secW;
+                        $sectionLabel = $secKey;
+                        break;
+                    }
+                }
+            }
+            if ($weightKg <= 0 && preg_match('/(\d+(?:\.\d+)?)\s*kg/i', $haystack, $kgm)) {
+                $weightKg = floatval($kgm[1]);
+            }
+            if ($weightKg <= 0) $weightKg = 18.0; // default 20ft structural piece
+
+            return [
+                'commodity_key' => $commodityKey,
+                'trade_type' => 'fab_steel',
+                'section_size' => $sectionLabel ?: '6m/20ft Piece',
+                'weight_kg' => $weightKg,
                 'source' => !empty($savedParent['commodity_key']) ? 'saved_product' : 'auto_detected',
             ];
         }
@@ -705,6 +859,62 @@ class CommodityRateEngineService
                 'wholesale_price' => $wholesale,
                 'retail_price' => $retail,
                 'explanation' => "{$mmSize} ({$weightKg}Kg): Mill ₹" . number_format($basicPerTon) . " + Die ₹{$diePerTon} + Load/Ins ₹" . ($loading + $insurance) . " ({$gstLabel}) + भाड़ा ₹{$localBhada}/T = पड़तल ₹" . number_format($godownLandingPerKg, 2) . "/Kg {$profLabel}",
+            ];
+        }
+
+        // 2B. 🛠️ FABRICATION STRUCTURAL STEEL (MS Angle / Channel / Flat / MS-GP Pipe)
+        if ($type === 'fab_steel') {
+            $weightKg = floatval($formula['weight_kg'] ?? 18.0);
+            $sectionSize = $formula['section_size'] ?? '20ft Piece';
+
+            if ($rateUnit === 'per_ton') {
+                $basicPerTon = $baseRate;
+                $millPerTon = $basicPerTon + $loading + $insurance;
+                $gstMult = ($gstMode === 'extra' && $gstPct > 0) ? (1 + $gstPct / 100.0) : 1.0;
+                $godownPerTon = ($millPerTon * $gstMult) + $localBhada;
+                $godownPerKg = $godownPerTon / 1000.0;
+            } else {
+                // per_kg (like MS/GP Pipes ₹64/Kg)
+                $millPerKg = $baseRate + $loading + $insurance;
+                $gstMult = ($gstMode === 'extra' && $gstPct > 0) ? (1 + $gstPct / 100.0) : 1.0;
+                $godownPerKg = ($millPerKg * $gstMult) + $localBhada;
+            }
+
+            $pieceLanding = $godownPerKg * $weightKg;
+            $profitPerKg = ($profitType === 'flat_kg') ? $profitVal : (($profitType === 'flat_ton') ? ($profitVal / 1000.0) : ($godownPerKg * ($profitVal / 100.0)));
+            $finalPerKg = $godownPerKg + $profitPerKg;
+            $retail = round($finalPerKg * $weightKg);
+            $wholesale = round(($godownPerKg + ($profitPerKg * 0.5)) * $weightKg);
+            $gstLabel = ($gstMode === 'extra' && $gstPct > 0) ? "+{$gstPct}% GST" : "GST सहित";
+
+            return [
+                'valid' => true,
+                'purchase_price' => round($pieceLanding, 2),
+                'wholesale_price' => $wholesale,
+                'retail_price' => $retail,
+                'explanation' => "{$sectionSize} ({$weightKg}Kg): पड़तल ₹" . number_format($godownPerKg, 2) . "/Kg ({$gstLabel} + Load/Ins + भाड़ा) + {$profitVal}% लाभ",
+            ];
+        }
+
+        // 2C. 🏠 FABRICATION ROOFING SHEETS (Color Coated Tin Sheet / Cement Everest AC Sheet)
+        if ($type === 'fab_sheet') {
+            $lengthFt = floatval($formula['length_ft'] ?? 10.0);
+            $rawSheetCost = $baseRate * $lengthFt;
+            $gstMult = ($gstMode === 'extra' && $gstPct > 0) ? (1 + $gstPct / 100.0) : 1.0;
+            // Loading + Breakage Insurance + Local Bhada per sheet
+            $sheetLanding = ($rawSheetCost * $gstMult) + $loading + $insurance + $localBhada;
+
+            $profitAmt = ($profitType === 'flat') ? $profitVal : ($sheetLanding * ($profitVal / 100.0));
+            $retail = round($sheetLanding + $profitAmt);
+            $wholesale = round($sheetLanding + ($profitAmt * 0.5));
+            $gstLabel = ($gstMode === 'extra' && $gstPct > 0) ? "+{$gstPct}% GST" : "GST सहित";
+
+            return [
+                'valid' => true,
+                'purchase_price' => round($sheetLanding, 2),
+                'wholesale_price' => $wholesale,
+                'retail_price' => $retail,
+                'explanation' => "{$lengthFt} Ft शीट × ₹{$baseRate}/Ft ({$gstLabel}) + Load ₹{$loading} + Ins ₹{$insurance} + भाड़ा ₹{$localBhada} + {$profitVal}% लाभ",
             ];
         }
 
@@ -1092,6 +1302,10 @@ Return ONLY valid JSON:
             'gold_18k' => '/(?:18\s*k|18\s*carat|18\s*कैरेट)/iu',
             'gold_22k' => '/(?:22\s*k|22\s*carat|22\s*कैरेट|916|sona|सोना|gold|गोल्ड)/iu',
             'silver_999' => '/(?:chandi|चांदी|चाँदी|silver|सिल्वर)/iu',
+            'fab_cement_sheet' => '/(?:cement\s*sheet|asbestos|everest|charminar|ramco|सीमेंट\s*चादर|एवरेस्ट)/iu',
+            'fab_tin_sheet' => '/(?:tin\s*sheet|profile\s*sheet|jsw\s*sheet|colour\s*sheet|color\s*sheet|chadar|टिन\s*चादर|प्रोफाइल\s*शीट)/iu',
+            'fab_ms_gp_pipe' => '/(?:ms\s*pipe|gp\s*pipe|square\s*pipe|apollo\s*pipe|चौकोर\s*पाइप|गोल\s*पाइप)/iu',
+            'fab_ms_angle_channel' => '/(?:angle|channel|guarder|patti|एंगल|चैनल|पट्टी|गार्डर)/iu',
             'tmt_kamdhenu' => '/(?:kamdhenu|कामधेनु)/iu',
             'tmt_jindal_tata' => '/(?:jindal|tata|tiscon|sail|जिंदल|टाटा)/iu',
             'tmt_base_kg' => '/(?:sariya|saria|सरिया|loha|लोहा|tmt|steel|स्टील)/iu',
@@ -1113,8 +1327,8 @@ Return ONLY valid JSON:
             }
         }
 
-        // Split by newline or conjunctions
-        $clauses = preg_split('/(?:\r\n|\r|\n|\s+aur\s+|\s+और\s+|&|\s+tatha\s+)/iu', $normalized);
+        // Split by newline, comma+space (not inside 73,500), or conjunctions
+        $clauses = preg_split('/(?:\r\n|\r|\n|,\s+|\s+aur\s+|\s+और\s+|&|\s+tatha\s+)/iu', $normalized);
         $results = [];
         $usedKeys = [];
 
