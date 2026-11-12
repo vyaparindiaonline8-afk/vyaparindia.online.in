@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bulk Thermal Shipping Labels (4x6)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <style>
         @media print {
             .no-print { display: none !important; }
@@ -52,14 +53,12 @@
                 </div>
             </div>
 
-            <!-- Routing & Barcode Simulation -->
-            <div class="py-3 text-center border-b-2 border-black space-y-1">
-                <div class="font-mono text-2xl font-black tracking-widest leading-none">
-                    ||| | |||| || ||||| ||| |||| |
-                </div>
-                <div class="font-mono font-bold text-xs tracking-wider">
-                    AWB: {{ $ord->order_number }}
-                </div>
+            <!-- Real Code128 Scannable Barcode -->
+            @php
+                $awbCode = $ord->dispatch->tracking_number ?? ($ord->order_number ?: 'ORD-' . str_pad($ord->id, 6, '0', STR_PAD_LEFT));
+            @endphp
+            <div class="py-2 text-center border-b-2 border-black">
+                <svg class="thermal-barcode mx-auto max-w-full" data-code="{{ $awbCode }}"></svg>
             </div>
 
             <!-- Ship To Customer Address -->
@@ -95,5 +94,26 @@
         </div>
     @endforeach
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof JsBarcode !== 'undefined') {
+                document.querySelectorAll('.thermal-barcode').forEach(function(el) {
+                    const code = el.getAttribute('data-code');
+                    if (code) {
+                        JsBarcode(el, code, {
+                            format: "CODE128",
+                            lineColor: "#000000",
+                            width: 1.8,
+                            height: 38,
+                            displayValue: true,
+                            fontSize: 11,
+                            fontOptions: "bold",
+                            margin: 2
+                        });
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

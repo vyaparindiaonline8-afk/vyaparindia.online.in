@@ -59,14 +59,20 @@
             @endif
         </div>
 
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between flex-wrap gap-2">
             <span class="text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
                 Order Confirmed
             </span>
-            <button onclick="window.print()" class="no-print px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
-                <i class="fa-solid fa-print"></i>
-                <span>Download / Print Bill</span>
-            </button>
+            <div class="flex items-center gap-2 no-print">
+                <a href="{{ route('public.track_order', ['code' => $order->order_number ?: $order->id]) }}" target="_blank" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-barcode"></i>
+                    <span>Track Order Live</span>
+                </a>
+                <button onclick="window.print()" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Download / Print Bill</span>
+                </button>
+            </div>
         </div>
 
         <h1 class="text-3xl font-black text-gray-900 mt-3">Thank You for Your Order!</h1>

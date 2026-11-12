@@ -38,6 +38,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/wishlist/{product}', [\App\Http\Controllers\Buyer\WishlistController::class, 'destroy'])->name('wishlist.destroy');
 });
 
+// Public Order & Barcode Tracking Page (For Customers & Sellers)
+Route::get('/track/{code?}', [\App\Http\Controllers\OrderTrackingController::class, 'index'])->name('public.track_order');
+
 // Public WhatsApp Order Verification & Instant Prepaid Conversion Routes
 Route::prefix('order-verify')->name('verification.')->group(function () {
     Route::get('/{token}', [\App\Http\Controllers\OrderVerificationController::class, 'show'])->name('show');

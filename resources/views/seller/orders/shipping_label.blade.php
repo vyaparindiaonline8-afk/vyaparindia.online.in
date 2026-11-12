@@ -6,6 +6,7 @@
     <title>Shipping Label #{{ $order->order_number ?: $order->id }} - VyaparIndia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <style>
         @page {
             size: 100mm 150mm;
@@ -108,10 +109,9 @@
                 </div>
             </div>
 
-            <!-- Barcode Graphic Simulation -->
+            <!-- Real Scanner-Readable Code128 Barcode -->
             <div class="mt-2 text-center">
-                <div class="barcode-lines rounded-xs"></div>
-                <div class="text-[10px] font-mono font-bold tracking-widest mt-0.5">{{ $trackingNum }}</div>
+                <svg id="shippingBarcode" class="mx-auto max-w-full"></svg>
             </div>
         </div>
 
@@ -181,13 +181,13 @@
                 <div class="text-gray-700 mt-0.5">Phone: {{ $sellerPhone ?: 'N/A' }} | GSTIN: {{ $sellerGstin }}</div>
             </div>
 
-            <!-- Dynamic QR Code (Scannable for Delivery Agent) -->
+            <!-- Dynamic QR Code (Scannable for Live Order Tracking) -->
             <div class="shrink-0 text-center">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=64x64&data={{ urlencode(route('seller.orders.show', $order)) }}" 
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=64x64&data={{ urlencode(route('public.track_order', ['code' => $trackingNum])) }}" 
                      alt="Order QR" 
                      class="w-14 h-14 border border-black p-0.5 rounded"
                      onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'64\' height=\'64\' fill=\'none\' stroke=\'black\' stroke-width=\'2\'><rect x=\'2\' y=\'2\' width=\'60\' height=\'60\'/><text x=\'32\' y=\'36\' font-size=\'10\' text-anchor=\'middle\' fill=\'black\'>QR</text></svg>'">
-                <div class="text-[8px] font-mono mt-0.5">SCAN TO VERIFY</div>
+                <div class="text-[8px] font-mono mt-0.5">SCAN TO TRACK</div>
             </div>
         </div>
 
@@ -198,5 +198,21 @@
         <p><i class="fa-solid fa-lightbulb text-amber-500 mr-1"></i> <b>Thermal Printing Tip:</b> Set print scale to <b>100%</b> and paper size to <b>4" x 6" (100mm x 150mm)</b>.</p>
     </div>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof JsBarcode !== 'undefined') {
+                JsBarcode("#shippingBarcode", "{{ $trackingNum }}", {
+                    format: "CODE128",
+                    lineColor: "#000000",
+                    width: 2,
+                    height: 40,
+                    displayValue: true,
+                    fontSize: 12,
+                    fontOptions: "bold",
+                    margin: 2
+                });
+            }
+        });
+    </script>
 </body>
 </html>
