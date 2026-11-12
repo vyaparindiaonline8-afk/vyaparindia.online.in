@@ -173,6 +173,12 @@
                                 @elseif($id === 'grocery_fmcg')
                                     <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-teal-600 text-[10px]"></i> 100g, 250g, 500g, 1kg Pack Sizes</div>
                                     <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-teal-600 text-[10px]"></i> 1-Tap Quick Quantity Stepper (+/-)</div>
+                                @elseif($id === 'iron_cement')
+                                    <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-orange-600 text-[10px]"></i> TMT 8mm-25mm Rod Weight & Per-Kg Rate</div>
+                                    <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-orange-600 text-[10px]"></i> 50Kg Cement Bag & Contractor Bulk Quote</div>
+                                @elseif($id === 'jewellery_bullion')
+                                    <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-amber-600 text-[10px]"></i> 24K/22K/18K Gold & 999 Silver Live Engine</div>
+                                    <div class="flex items-center gap-1.5"><i class="fa-solid fa-check text-amber-600 text-[10px]"></i> Auto Weight + Making Charge + 3% GST</div>
                                 @endif
                             </div>
                         </label>

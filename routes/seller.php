@@ -24,6 +24,7 @@ use App\Http\Controllers\Seller\BrandMasterController;
 use App\Http\Controllers\Seller\ProductSpreadsheetController;
 use App\Http\Controllers\Seller\CatalogAuditController;
 use App\Http\Controllers\Seller\TaxComplianceController;
+use App\Http\Controllers\Seller\CommodityRateController;
 
 
 Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->group(function () {
@@ -251,5 +252,15 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
     Route::prefix('brand-master')->name('brand-master.')->group(function () {
         Route::get('/', [BrandMasterController::class, 'index'])->name('index');
         Route::post('/import', [BrandMasterController::class, 'import'])->name('import');
+    });
+
+    // ⚡ Master Daily Base-Rate Auto-Engine & AI Voice Rate Updater (Jewellery, TMT Iron, Cement, Anaj Mandi)
+    Route::prefix('daily-rates')->name('daily_rates.')->group(function () {
+        Route::get('/', [CommodityRateController::class, 'index'])->name('index');
+        Route::post('/apply', [CommodityRateController::class, 'applyRates'])->name('apply');
+        Route::post('/parse-voice', [CommodityRateController::class, 'parseVoice'])->name('parse_voice');
+        Route::post('/link-product', [CommodityRateController::class, 'linkProductFormula'])->name('link_product');
+        Route::post('/add-custom', [CommodityRateController::class, 'addCustomCommodity'])->name('add_custom');
+        Route::post('/load-demo', [CommodityRateController::class, 'loadDemoSamples'])->name('load_demo');
     });
 });

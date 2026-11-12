@@ -26,6 +26,8 @@ class BusinessModuleManager
             new FoodDiningModule(),
             new AnajMandiModule(),
             new GroceryFmcgModule(),
+            new IronSteelCementModule(),
+            new JewelleryBullionModule(),
         ];
 
         foreach ($registered as $module) {

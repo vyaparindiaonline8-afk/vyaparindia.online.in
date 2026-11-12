@@ -245,6 +245,20 @@
                         <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
                     </a>
 
+                    <a href="{{ route('seller.daily_rates.index') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-orange-500/15 hover:from-amber-500/25 hover:to-orange-500/25 border border-amber-400 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-microphone text-rose-600 text-lg"></i>
+                            <div>
+                                <div class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                                    <span>🎙️ आज का मास्टर भाव & AI आवाज़ इंजन</span>
+                                    <span class="text-[9px] font-bold bg-rose-600 text-white px-1.5 py-0.5 rounded-full">Voice AI</span>
+                                </div>
+                                <div class="text-[11px] text-gray-600">सोना-चांदी, सरिया, सीमेंट व मंडी का भाव बोलकर या 1 क्लिक में सभी प्रोडक्ट्स में बदलें</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+                    </a>
+
                     <a href="{{ route('seller.products.index') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 border border-emerald-300 transition-colors">
                         <div class="flex items-center gap-3">
                             <i class="fa-solid fa-file-excel text-emerald-600 text-lg"></i>

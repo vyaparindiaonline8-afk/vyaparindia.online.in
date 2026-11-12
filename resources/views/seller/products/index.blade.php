@@ -235,6 +235,11 @@
                     </button>
                 @endif
 
+                <a href="{{ route('seller.daily_rates.index') }}" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 via-amber-600 to-orange-600 hover:from-rose-700 hover:to-orange-700 text-white font-extrabold text-xs shadow-md shadow-amber-500/20 transition flex items-center gap-2" title="सोना-चांदी, सरिया, सीमेंट और मंडी का भाव बोलकर या 1 क्लिक में बदलें">
+                    <i class="fa-solid fa-microphone"></i>
+                    <span>आज का भाव & AI आवाज़ अपडेट ⚡</span>
+                </a>
+
                 <a href="{{ route('seller.brand-master.index') }}" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-xs shadow-md shadow-amber-500/20 transition flex items-center gap-2">
                     <i class="fa-solid fa-award"></i>
                     <span>ब्रांड मास्टर कैटलॉग (Plasto) ⚡</span>
