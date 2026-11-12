@@ -3034,13 +3034,14 @@ Before answering, count the products on the page and make sure \"total_products_
         $pageText = substr($request->input('page_text') ?? '', 0, 20000);
         $pageImage = $request->input('page_image');
 
-        $prompt = "You are an autonomous e-commerce cataloging engine specialized in sanitaryware, plumbing, faucets, tiles, and hardware catalogs.
+        $prompt = <<<'PROMPT'
+You are an autonomous e-commerce cataloging engine specialized in sanitaryware, plumbing, faucets, tiles, and hardware catalogs.
 Look at this catalog page image and its extracted text.
 In many sanitaryware/hardware catalogs, text is NOT selectable because the entire page is an image/poster, and Model Names (e.g. 'Flora', 'Opal', 'Fusion', 'Matrix', 'Royal'), Cat Codes (e.g. 'Cat No: 4022', 'SKU-101'), and Prices (e.g. 'MRP ₹450', '380/-') are printed DIRECTLY ON THE IMAGE OR GRAPHIC BOX.
 
 Extract EVERY product on this page:
 1. VISUAL OCR & TEXT EXTRACTION:
-   - Carefully read all text printed on or next to each product graphic (model names, series names, item codes, dimensions like 15mm / 1/2\", and prices like 450/-).
+   - Carefully read all text printed on or next to each product graphic (model names, series names, item codes, dimensions like 15mm / 1/2", and prices like 450/-).
    - If MRP or price is stamped inside the image graphic (e.g. in a circle, badge, or under the tap), read it accurately as a clean numeric value (e.g. 450).
    - Clean product name: Include series/model name and product type (e.g. 'Flora PTMT Bib Cock', 'Fusion Swan Neck Basin Tap').
 2. IMAGE BOUNDING BOX:
@@ -3070,7 +3071,8 @@ Return ONLY valid JSON in this exact shape:
       "image_box_percent": [ymin, xmin, ymax, xmax]
     }
   ]
-}";
+}
+PROMPT;
 
         $reply = null;
         $provider = null;
