@@ -33,6 +33,8 @@
         </div>
     </header>
 
+    @include('components.profile-completion-banner')
+
     <!-- Main Container -->
     <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
 

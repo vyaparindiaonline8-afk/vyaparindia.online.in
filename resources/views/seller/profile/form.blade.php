@@ -264,6 +264,97 @@
                 </div>
             </div>
 
+            <!-- 🛍️ Multi-Channel & Marketplace Store Accounts -->
+            <div class="bg-white rounded-2xl border border-gray-200 p-6 space-y-4 shadow-xs">
+                <div class="border-b border-gray-100 pb-3 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                            <i class="fa-solid fa-store text-purple-600"></i>
+                            <span>मार्केटप्लेस व मल्टी-चैनल स्टोर नाम (Multi-Channel Store Details)</span>
+                        </h2>
+                        <p class="text-[11px] text-gray-500 mt-0.5">Amazon, Flipkart, Meesho या अपनी वेबसाइट पर आपकी दुकान किस नाम से है, दर्ज करें।</p>
+                    </div>
+                    <a href="{{ route('seller.channels.index') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                        <span>चैनल हब खोलें</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    </a>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                    <!-- Amazon -->
+                    <div class="p-3.5 rounded-xl border border-amber-200 bg-amber-50/40 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center text-xs font-black">
+                                <i class="fa-brands fa-amazon"></i>
+                            </div>
+                            <span class="text-xs font-extrabold text-amber-950">Amazon Store</span>
+                        </div>
+                        <label class="block text-[11px] font-bold text-gray-600">दुकान का नाम (Merchant / Storefront Name)</label>
+                        <input type="text" name="channel_stores[amazon]" value="{{ old('channel_stores.amazon', isset($userChannels['amazon']) ? $userChannels['amazon']->store_name : '') }}" placeholder="उदा. Ganesh Traders Amazon" class="w-full px-3 py-2 rounded-xl border border-amber-300 bg-white text-xs font-bold focus:border-amber-500 focus:outline-hidden">
+                    </div>
+
+                    <!-- Flipkart -->
+                    <div class="p-3.5 rounded-xl border border-blue-200 bg-blue-50/40 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xs font-black">
+                                F
+                            </div>
+                            <span class="text-xs font-extrabold text-blue-950">Flipkart Store</span>
+                        </div>
+                        <label class="block text-[11px] font-bold text-gray-600">दुकान का नाम (Display / Seller Name)</label>
+                        <input type="text" name="channel_stores[flipkart]" value="{{ old('channel_stores.flipkart', isset($userChannels['flipkart']) ? $userChannels['flipkart']->store_name : '') }}" placeholder="उदा. Ganesh Traders Flipkart" class="w-full px-3 py-2 rounded-xl border border-blue-300 bg-white text-xs font-bold focus:border-blue-500 focus:outline-hidden">
+                    </div>
+
+                    <!-- Meesho -->
+                    <div class="p-3.5 rounded-xl border border-pink-200 bg-pink-50/40 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-lg bg-pink-600 text-white flex items-center justify-center text-xs font-black">
+                                M
+                            </div>
+                            <span class="text-xs font-extrabold text-pink-950">Meesho Supplier Store</span>
+                        </div>
+                        <label class="block text-[11px] font-bold text-gray-600">सप्लायर स्टोर नाम (Meesho Store Name)</label>
+                        <input type="text" name="channel_stores[meesho]" value="{{ old('channel_stores.meesho', isset($userChannels['meesho']) ? $userChannels['meesho']->store_name : '') }}" placeholder="उदा. GANESH TRADERSH (GTS)" class="w-full px-3 py-2 rounded-xl border border-pink-300 bg-white text-xs font-bold focus:border-pink-500 focus:outline-hidden">
+                    </div>
+
+                    <!-- Shopify / Website -->
+                    <div class="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/40 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-black">
+                                <i class="fa-brands fa-shopify"></i>
+                            </div>
+                            <span class="text-xs font-extrabold text-emerald-950">Shopify / Direct Website</span>
+                        </div>
+                        <label class="block text-[11px] font-bold text-gray-600">वेबसाइट / स्टोर नाम</label>
+                        <input type="text" name="channel_stores[shopify]" value="{{ old('channel_stores.shopify', isset($userChannels['shopify']) ? $userChannels['shopify']->store_name : '') }}" placeholder="उदा. MyBrand Official Store" class="w-full px-3 py-2 rounded-xl border border-emerald-300 bg-white text-xs font-bold focus:border-emerald-500 focus:outline-hidden">
+                    </div>
+
+                    <!-- WooCommerce -->
+                    <div class="p-3.5 rounded-xl border border-purple-200 bg-purple-50/40 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-lg bg-purple-600 text-white flex items-center justify-center text-xs font-black">
+                                <i class="fa-brands fa-wordpress"></i>
+                            </div>
+                            <span class="text-xs font-extrabold text-purple-950">WooCommerce Store</span>
+                        </div>
+                        <label class="block text-[11px] font-bold text-gray-600">दुकान का नाम</label>
+                        <input type="text" name="channel_stores[woocommerce]" value="{{ old('channel_stores.woocommerce', isset($userChannels['woocommerce']) ? $userChannels['woocommerce']->store_name : '') }}" placeholder="उदा. WooCommerce Store" class="w-full px-3 py-2 rounded-xl border border-purple-300 bg-white text-xs font-bold focus:border-purple-500 focus:outline-hidden">
+                    </div>
+
+                    <!-- Quick Commerce / Blinkit / Myntra -->
+                    <div class="p-3.5 rounded-xl border border-indigo-200 bg-indigo-50/40 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs font-black">
+                                <i class="fa-solid fa-bolt"></i>
+                            </div>
+                            <span class="text-xs font-extrabold text-indigo-950">Blinkit / Quick Commerce</span>
+                        </div>
+                        <label class="block text-[11px] font-bold text-gray-600">डार्क स्टोर / वेंडर नाम</label>
+                        <input type="text" name="channel_stores[blinkit]" value="{{ old('channel_stores.blinkit', isset($userChannels['blinkit']) ? $userChannels['blinkit']->store_name : '') }}" placeholder="उदा. Blinkit Vendor Partner" class="w-full px-3 py-2 rounded-xl border border-indigo-300 bg-white text-xs font-bold focus:border-indigo-500 focus:outline-hidden">
+                    </div>
+                </div>
+            </div>
+
             <!-- Submit -->
             <div class="flex items-center justify-end gap-3 pt-2">
                 <a href="{{ route('seller.dashboard') }}" class="px-5 py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-100 transition">

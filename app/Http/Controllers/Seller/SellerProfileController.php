@@ -80,7 +80,13 @@ class SellerProfileController extends Controller
         if (!$profile) {
             return redirect()->route('seller.profile.create');
         }
-        return view('seller.profile.form', compact('profile'));
+
+        // Fetch existing connected channels for Store Names
+        $userChannels = \App\Models\Channel::where('user_id', Auth::id())
+            ->get()
+            ->keyBy('channel_name');
+
+        return view('seller.profile.form', compact('profile', 'userChannels'));
     }
 
     public function update(Request $request)
@@ -122,6 +128,24 @@ class SellerProfileController extends Controller
         }
 
         $profile->update($validated);
+
+        // 🛍️ Sync / Save Multi-Channel Store Display Names
+        if ($request->has('channel_stores') && is_array($request->input('channel_stores'))) {
+            foreach ($request->input('channel_stores') as $chName => $storeName) {
+                if (!empty($storeName) && in_array($chName, ['amazon', 'flipkart', 'meesho', 'shopify', 'woocommerce', 'myntra', 'blinkit'])) {
+                    $channel = \App\Models\Channel::firstOrNew([
+                        'user_id' => Auth::id(),
+                        'channel_name' => $chName,
+                    ]);
+                    $channel->store_name = trim($storeName);
+                    $channel->is_active = true;
+                    if (!$channel->exists) {
+                        $channel->auto_sync_inventory = true;
+                    }
+                    $channel->save();
+                }
+            }
+        }
 
         // Sync with SellerPage if exists
         $sellerPage = Auth::user()->sellerPage;
