@@ -25,11 +25,17 @@ use App\Http\Controllers\Seller\ProductSpreadsheetController;
 use App\Http\Controllers\Seller\CatalogAuditController;
 use App\Http\Controllers\Seller\TaxComplianceController;
 use App\Http\Controllers\Seller\CommodityRateController;
+use App\Http\Controllers\Seller\WhatsappListingController;
 
 
 Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');
+
+    // 🟢 WhatsApp-Style 1-Click AI Product Listing (Multi-Photo + Voice + Instant Live)
+    Route::get('/whatsapp-listing', [WhatsappListingController::class, 'index'])->name('whatsapp_listing');
+    Route::post('/whatsapp-listing/chat', [WhatsappListingController::class, 'chat'])->name('whatsapp_listing.chat');
+    Route::post('/whatsapp-listing/publish', [WhatsappListingController::class, 'publish'])->name('whatsapp_listing.publish');
     
     // 📊 Excel / CSV Round-Trip Sync & Daily Rate Revision Sheet
     Route::get('products/export-sheet', [ProductSpreadsheetController::class, 'export'])->name('products.export_sheet');

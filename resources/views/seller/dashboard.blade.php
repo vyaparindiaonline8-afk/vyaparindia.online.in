@@ -6,6 +6,7 @@
     <title>Seller Dashboard - VyaparIndia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    @include('components.pwa-meta')
 </head>
 <body class="bg-gray-100 text-gray-800 antialiased min-h-screen">
 
@@ -219,6 +220,23 @@
                 </h3>
 
                 <div class="space-y-2">
+                    <!-- 🟢 WhatsApp AI Product Listing -->
+                    <a href="{{ route('seller.whatsapp_listing') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-green-500/15 hover:from-emerald-500/25 hover:to-green-500/25 border-2 border-emerald-400 transition-all shadow-xs group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-2xl bg-[#008069] group-hover:bg-[#00705b] text-white flex items-center justify-center text-xl shadow-sm shrink-0 transition">
+                                <i class="fa-brands fa-whatsapp"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                                    <span>🟢 WhatsApp AI Listing</span>
+                                    <span class="text-[9px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full shadow-2xs">🔥 सबसे आसान</span>
+                                </div>
+                                <div class="text-[11px] text-gray-600">WhatsApp की तरह 2-3 फोटो डालें और बोलें — AI 1-क्लिक में लाइव करेगा</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-emerald-600 group-hover:translate-x-0.5 transition"></i>
+                    </a>
+
                     <a href="{{ route('seller.analytics') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-purple-500/10 to-indigo-500/10 hover:from-purple-500/20 hover:to-indigo-500/20 border border-purple-300 transition-colors">
                         <div class="flex items-center gap-3">
                             <i class="fa-solid fa-chart-line text-purple-600 text-lg"></i>

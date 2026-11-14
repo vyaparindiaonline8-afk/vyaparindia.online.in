@@ -85,6 +85,9 @@
         <div id="ai-quick-pills" class="px-4 py-2 bg-white border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             @auth
                 @if(Auth::user()->is_seller())
+                    <a href="{{ route('seller.whatsapp_listing') }}" class="px-3 py-1 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-emerald-900 text-[10px] font-black rounded-full whitespace-nowrap transition border border-emerald-400 flex items-center gap-1">
+                        <i class="fa-brands fa-whatsapp text-emerald-600 text-xs"></i> 🟢 WhatsApp AI Listing
+                    </a>
                     <button onclick="aiSendQuick('Amazon me upload karo aur live status report do')" class="px-3 py-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-900 text-[10px] font-black rounded-full whitespace-nowrap transition border border-amber-300 flex items-center gap-1">
                         <i class="fa-brands fa-amazon text-amber-600"></i> 🚀 Amazon अपलोड व रिपोर्ट
                     </button>
