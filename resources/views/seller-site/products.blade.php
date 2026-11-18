@@ -3,6 +3,13 @@
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
 
+    <!-- 🌟 Luxury Brand Showcase Billboard (If Brand or Sanitaryware Selected) -->
+    @if(request('brand'))
+        @include('seller-site.components.brand-luxury-banner', ['brandName' => request('brand')])
+    @elseif(request('group') === 'Sanitaryware' || stripos(request('search', ''), 'cava') !== false)
+        @include('seller-site.components.brand-luxury-banner', ['brandName' => 'Cava'])
+    @endif
+
     <!-- 🏢 1. Authorized Brands & Dealerships Showcase (With Logos) -->
     @if(!empty($authorizedBrands) && count($authorizedBrands) > 0)
         <div class="mb-6 p-4 rounded-3xl bg-white border border-gray-200/80 shadow-xs">
@@ -347,6 +354,9 @@
         </div>
     @endif
 
+    <!-- 🌪️ Interspersed Luxury Feature Spotlight (Tornado 360° Flush) -->
+    @include('seller-site.components.interspersed-spotlight-banner', ['type' => 'tornado'])
+
     <!-- 📦 4. Product Grid -->
     <div>
         @if($products->isEmpty())
@@ -376,6 +386,9 @@
             </div>
         @endif
     </div>
+
+    <!-- 📦 Interspersed Builder / Project Package Wholesale Banner -->
+    @include('seller-site.components.interspersed-spotlight-banner', ['type' => 'project_package'])
 </div>
 
 <!-- 📸 Photo Swapper Modal for Store Owner -->
