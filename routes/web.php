@@ -25,7 +25,8 @@ Route::get('/search', [HomeController::class, 'search'])->name('search');
 Route::get('/search-sellers-by-city', [HomeController::class, 'searchSellersByCity'])->name('search_sellers_by_city');
 Route::view('/how-it-works/algorithm', 'public.algorithm')->name('marketplace.algorithm');
 
-// Static Information Pages
+// Static Information Pages & Android App Download
+Route::view('/download', 'public.download')->name('app.download');
 Route::view('/about', 'public.about')->name('about');
 Route::view('/help', 'public.help')->name('help');
 Route::view('/privacy-policy', 'public.privacy')->name('privacy');

@@ -30,6 +30,13 @@
                         </a>
                     @endif
 
+                    <!-- App Download Button -->
+                    <a href="{{ route('app.download') }}" class="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-extrabold text-xs transition flex items-center gap-1.5 shadow-xs border border-emerald-300" title="Android App डाउनलोड करें">
+                        <i class="fa-brands fa-android text-emerald-600 text-sm"></i>
+                        <span class="hidden sm:inline">📱 ऐप डाउनलोड</span>
+                        <span class="sm:hidden">App</span>
+                    </a>
+
                     <!-- Prominent Home Button -->
                     <a href="{{ route('home') }}" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-800 font-extrabold text-xs transition flex items-center gap-1.5 shadow-xs border border-slate-200 hover:border-blue-200" title="मार्केटप्लेस होम पेज पर जाएं">
                         <i class="fa-solid fa-house text-blue-600"></i>

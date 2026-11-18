@@ -27,7 +27,12 @@
                 </div>
 
                 <!-- Navigation Actions -->
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <a href="{{ route('app.download') }}" class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-black transition flex items-center gap-1.5 border border-emerald-300 shadow-2xs" title="Download Android App">
+                        <i class="fa-brands fa-android text-emerald-600 text-sm"></i>
+                        <span class="hidden sm:inline">ऐप डाउनलोड</span>
+                        <span class="sm:hidden">App</span>
+                    </a>
                     @guest
                         <a href="{{ route('login') }}" class="px-4 py-2 text-xs font-bold text-gray-700 hover:text-blue-600 transition">
                             Login
