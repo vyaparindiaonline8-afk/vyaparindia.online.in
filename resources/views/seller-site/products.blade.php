@@ -150,6 +150,45 @@
         </form>
     </div>
 
+    <!-- 🛁 Quick Sub-Category Sliders & Pills (कमोड, इंडियन सीट, बेसिन व पेडेस्टल) -->
+    @php
+        $sanitaryPills = [
+            ['name' => 'All Products (सभी)', 'keyword' => '', 'icon' => 'fa-layer-group'],
+            ['name' => '🚽 वन-पीस कमोड (One Piece)', 'keyword' => 'one piece', 'icon' => 'fa-toilet'],
+            ['name' => '🧱 वॉल-हंग कमोड (Wall Hung)', 'keyword' => 'wall hung', 'icon' => 'fa-border-all'],
+            ['name' => '🇮🇳 इंडियन सीट (Orissa Pan)', 'keyword' => 'pan', 'icon' => 'fa-square-caret-down'],
+            ['name' => '🚰 वॉश बेसिन व पेडेस्टल', 'keyword' => 'basin', 'icon' => 'fa-sink'],
+            ['name' => '💧 यूरिनल व सिस्टर्न', 'keyword' => 'cistern', 'icon' => 'fa-water'],
+            ['name' => '🚿 बाथ फिटिंग्स व नल', 'keyword' => 'cock', 'icon' => 'fa-faucet-drip'],
+        ];
+        $currentSearch = strtolower(request('search', ''));
+    @endphp
+
+    <div class="mb-6 p-3 rounded-2xl bg-white border border-gray-200/90 shadow-2xs">
+        <div class="flex items-center justify-between mb-2 px-1">
+            <span class="text-[11px] font-black text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                <i class="fa-solid fa-sliders text-indigo-600"></i>
+                <span>Quick Category Filter • श्रेणी अनुसार तुरंत खोजें</span>
+            </span>
+            <span class="text-[10px] text-gray-400 font-bold hidden sm:inline">1-Click to view specific models</span>
+        </div>
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+            @foreach($sanitaryPills as $pill)
+                @php
+                    $isPillActive = (!empty($pill['keyword']) && (str_contains($currentSearch, $pill['keyword']) || request('category') == $pill['keyword'])) || (empty($pill['keyword']) && empty($currentSearch));
+                    $pillUrl = empty($pill['keyword']) 
+                        ? route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('search', 'page')))
+                        : route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('page'), ['search' => $pill['keyword']]));
+                @endphp
+                <a href="{{ $pillUrl }}" 
+                   class="shrink-0 px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 {{ $isPillActive ? 'bg-indigo-600 text-white shadow-xs scale-102' : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200/60' }}">
+                    <i class="fa-solid {{ $pill['icon'] }} text-[11px] {{ $isPillActive ? 'text-amber-300' : 'text-gray-500' }}"></i>
+                    <span>{{ $pill['name'] }}</span>
+                </a>
+            @endforeach
+        </div>
+    </div>
+
     <!-- 📢 3. Active Hierarchy Filter & 1-Click WhatsApp Share Suite -->
     @php
         $activeBrand = request('brand');
@@ -240,6 +279,74 @@
         </div>
     @endif
 
+    <!-- 🏢 3.5 Brand-Wise Running Product Sliders (When browsing all brands) -->
+    @php
+        $brandsGroup = $products->groupBy('brand')->filter(fn($items, $k) => !empty($k));
+    @endphp
+
+    @if(!request('brand') && !request('search') && $brandsGroup->count() > 1)
+        <div class="mb-10 space-y-6">
+            <div class="flex items-center justify-between pb-2 border-b border-gray-200">
+                <div class="flex items-center gap-2">
+                    <span class="h-2.5 w-2.5 rounded-full bg-indigo-600"></span>
+                    <h2 class="text-xs sm:text-sm font-black text-gray-900 tracking-tight uppercase">
+                        Brand Showcases & Running Lines • ब्रांड अनुसार रनिंग मॉडल्स
+                    </h2>
+                </div>
+                <span class="text-[11px] text-gray-500 font-bold hidden sm:inline">Swipe horizontally &rarr;</span>
+            </div>
+
+            @foreach($brandsGroup as $bName => $bProducts)
+                <div class="bg-white rounded-3xl border border-gray-200/90 p-4 sm:p-5 shadow-xs space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center font-black text-xs">
+                                {{ substr($bName, 0, 2) }}
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-black text-gray-900">{{ $bName }}</h3>
+                                <span class="text-[10px] font-bold text-gray-400">
+                                    {{ $bProducts->count() }} Running Products
+                                </span>
+                            </div>
+                        </div>
+                        <a href="{{ route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('page'), ['brand' => $bName])) }}" 
+                           class="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 group">
+                            <span>View All {{ $bName }}</span>
+                            <i class="fa-solid fa-chevron-right text-[10px] group-hover:translate-x-0.5 transition"></i>
+                        </a>
+                    </div>
+
+                    <!-- Horizontal Running Slider -->
+                    <div class="flex items-stretch gap-3.5 overflow-x-auto pb-2 scrollbar-thin snap-x">
+                        @foreach($bProducts as $bp)
+                            <div class="shrink-0 w-48 sm:w-56 bg-gray-50/80 rounded-2xl border border-gray-200/80 p-3 flex flex-col justify-between hover:shadow-md transition snap-start group">
+                                <a href="{{ route('minisite.product.show', [$sellerPage->slug, $bp->slug]) }}" class="block">
+                                    <div class="aspect-square bg-white rounded-xl overflow-hidden mb-2 p-2 flex items-center justify-center border border-gray-100">
+                                        <img src="{{ $bp->image_url }}" alt="{{ $bp->name }}" class="max-w-full max-h-full object-contain crisp-img group-hover:scale-105 transition duration-300">
+                                    </div>
+                                    <div class="text-[10px] font-bold text-indigo-600 mb-0.5 truncate">{{ $bp->category->name ?? 'Sanitary' }}</div>
+                                    <h4 class="text-xs font-black text-gray-900 line-clamp-2 leading-snug group-hover:text-indigo-600 transition">{{ $bp->name }}</h4>
+                                </a>
+                                <div class="mt-2 pt-2 border-t border-gray-200/60 flex items-center justify-between">
+                                    <div>
+                                        <span class="text-xs font-black text-emerald-700">₹{{ number_format($bp->price, 2) }}</span>
+                                        @if($bp->mrp > $bp->price)
+                                            <span class="text-[10px] text-gray-400 line-through block">₹{{ number_format($bp->mrp, 2) }}</span>
+                                        @endif
+                                    </div>
+                                    <a href="{{ route('minisite.product.show', [$sellerPage->slug, $bp->slug]) }}" class="px-2.5 py-1 rounded-lg bg-gray-900 hover:bg-indigo-600 text-white font-black text-[10px] transition">
+                                        View
+                                    </a>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    @endif
+
     <!-- 📦 4. Product Grid -->
     <div>
         @if($products->isEmpty())
@@ -313,6 +420,45 @@
                 </button>
             </div>
         </form>
+    </div>
+
+    <!-- 🛁 Quick Sub-Category Sliders & Pills (कमोड, इंडियन सीट, बेसिन व पेडेस्टल) -->
+    @php
+        $sanitaryPills = [
+            ['name' => 'All Products (सभी)', 'keyword' => '', 'icon' => 'fa-layer-group'],
+            ['name' => '🚽 वन-पीस कमोड (One Piece)', 'keyword' => 'one piece', 'icon' => 'fa-toilet'],
+            ['name' => '🧱 वॉल-हंग कमोड (Wall Hung)', 'keyword' => 'wall hung', 'icon' => 'fa-border-all'],
+            ['name' => '🇮🇳 इंडियन सीट (Orissa Pan)', 'keyword' => 'pan', 'icon' => 'fa-square-caret-down'],
+            ['name' => '🚰 वॉश बेसिन व पेडेस्टल', 'keyword' => 'basin', 'icon' => 'fa-sink'],
+            ['name' => '💧 यूरिनल व सिस्टर्न', 'keyword' => 'cistern', 'icon' => 'fa-water'],
+            ['name' => '🚿 बाथ फिटिंग्स व नल', 'keyword' => 'cock', 'icon' => 'fa-faucet-drip'],
+        ];
+        $currentSearch = strtolower(request('search', ''));
+    @endphp
+
+    <div class="mb-6 p-3 rounded-2xl bg-white border border-gray-200/90 shadow-2xs">
+        <div class="flex items-center justify-between mb-2 px-1">
+            <span class="text-[11px] font-black text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                <i class="fa-solid fa-sliders text-indigo-600"></i>
+                <span>Quick Category Filter • श्रेणी अनुसार तुरंत खोजें</span>
+            </span>
+            <span class="text-[10px] text-gray-400 font-bold hidden sm:inline">1-Click to view specific models</span>
+        </div>
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+            @foreach($sanitaryPills as $pill)
+                @php
+                    $isPillActive = (!empty($pill['keyword']) && (str_contains($currentSearch, $pill['keyword']) || request('category') == $pill['keyword'])) || (empty($pill['keyword']) && empty($currentSearch));
+                    $pillUrl = empty($pill['keyword']) 
+                        ? route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('search', 'page')))
+                        : route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('page'), ['search' => $pill['keyword']]));
+                @endphp
+                <a href="{{ $pillUrl }}" 
+                   class="shrink-0 px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 {{ $isPillActive ? 'bg-indigo-600 text-white shadow-xs scale-102' : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200/60' }}">
+                    <i class="fa-solid {{ $pill['icon'] }} text-[11px] {{ $isPillActive ? 'text-amber-300' : 'text-gray-500' }}"></i>
+                    <span>{{ $pill['name'] }}</span>
+                </a>
+            @endforeach
+        </div>
     </div>
 </div>
 

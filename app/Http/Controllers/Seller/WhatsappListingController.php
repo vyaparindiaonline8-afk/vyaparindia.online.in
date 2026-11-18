@@ -131,6 +131,8 @@ class WhatsappListingController extends Controller
         $stockQuantity = intval($request->input('stock_quantity', 100));
         $variants = $request->input('variants', []);
 
+        $groupName = $this->detectGroupName($catName, $name, $brand);
+
         $product = Product::create([
             'user_id' => $user->id,
             'category_id' => $category->id,
@@ -138,6 +140,7 @@ class WhatsappListingController extends Controller
             'slug' => Str::slug($name) . '-' . Str::random(5),
             'sku' => 'WA-' . strtoupper(Str::random(7)),
             'brand' => $brand,
+            'group_name' => $groupName,
             'price' => $price,
             'mrp' => $mrp,
             'wholesale_price' => $price,
@@ -191,6 +194,29 @@ class WhatsappListingController extends Controller
                 'image' => $product->image,
             ]
         ]);
+    }
+
+    /**
+     * Determine Department / Group Name (Sanitaryware, Plumbing, Hardware, etc.)
+     */
+    protected function detectGroupName(string $category, string $name, string $brand): string
+    {
+        $text = strtolower("{$category} {$name} {$brand}");
+
+        if (preg_match('/commode|cistern|seat|basin|pedestal|pan|urinal|cava|sanitary|wash basin|ewc|toilet/i', $text)) {
+            return 'Sanitaryware';
+        }
+        if (preg_match('/pipe|fitting|elbow|tee|valve|socket|astral|plasto|supreme|ashirvad|finolex|pvc|cpvc|upvc|swr/i', $text)) {
+            return 'Plumbing & Pipes';
+        }
+        if (preg_match('/ply|plywood|flush door|blockboard|mdf|laminate|greenply|century/i', $text)) {
+            return 'Plywood & Boards';
+        }
+        if (preg_match('/paint|primer|distemper|emulsion|asian paints|berger/i', $text)) {
+            return 'Paints & Finishes';
+        }
+
+        return 'Hardware & Sanitary';
     }
 
     /**
