@@ -319,7 +319,7 @@
                     <div class="flex items-stretch gap-3.5 overflow-x-auto pb-2 scrollbar-thin snap-x">
                         @foreach($bProducts as $bp)
                             <div class="shrink-0 w-48 sm:w-56 bg-gray-50/80 rounded-2xl border border-gray-200/80 p-3 flex flex-col justify-between hover:shadow-md transition snap-start group">
-                                <a href="{{ route('minisite.product.show', [$sellerPage->slug, $bp->slug]) }}" class="block">
+                                <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $bp->slug]) }}" class="block">
                                     <div class="aspect-square bg-white rounded-xl overflow-hidden mb-2 p-2 flex items-center justify-center border border-gray-100">
                                         <img src="{{ $bp->image_url }}" alt="{{ $bp->name }}" class="max-w-full max-h-full object-contain crisp-img group-hover:scale-105 transition duration-300">
                                     </div>
@@ -333,7 +333,7 @@
                                             <span class="text-[10px] text-gray-400 line-through block">₹{{ number_format($bp->mrp, 2) }}</span>
                                         @endif
                                     </div>
-                                    <a href="{{ route('minisite.product.show', [$sellerPage->slug, $bp->slug]) }}" class="px-2.5 py-1 rounded-lg bg-gray-900 hover:bg-indigo-600 text-white font-black text-[10px] transition">
+                                    <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $bp->slug]) }}" class="px-2.5 py-1 rounded-lg bg-gray-900 hover:bg-indigo-600 text-white font-black text-[10px] transition">
                                         View
                                     </a>
                                 </div>
@@ -424,36 +424,6 @@
                 </button>
             </div>
         </form>
-    </div>
-
-    <!-- 🛁 Quick Department / Group Sliders & Pills (सैनिटरी, प्लाईवुड, पाइप्स आदि) -->
-    <div class="mb-6 p-3.5 rounded-2xl bg-white border border-gray-200/90 shadow-2xs">
-        <div class="flex items-center justify-between mb-2 px-1">
-            <span class="text-[11px] font-black text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                <i class="fa-solid fa-layer-group text-indigo-600"></i>
-                <span>Department / Group Navigator • विभाग अनुसार तुरंत खोजें</span>
-            </span>
-            <span class="text-[10px] text-gray-400 font-bold hidden sm:inline">1-Click to view items in group</span>
-        </div>
-        <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
-            <a href="{{ route('minisite.products', ['sellerPage' => $sellerPage->slug]) }}" 
-               class="shrink-0 px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 {{ (!request('group') && !request('search')) ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 hover:bg-gray-200 text-gray-700' }}">
-                <i class="fa-solid fa-boxes-stacked text-[11px]"></i>
-                <span>All Items (सभी)</span>
-            </a>
-            @if(isset($availableGroups))
-                @foreach($availableGroups as $grp)
-                    @php
-                        $isGrpActive = (request('group') === $grp);
-                        $grpUrl = route('minisite.products', array_merge(['sellerPage' => $sellerPage->slug], request()->except('page', 'group'), ['group' => $grp]));
-                    @endphp
-                    <a href="{{ $grpUrl }}" 
-                       class="shrink-0 px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 {{ $isGrpActive ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200/60' }}">
-                        <span>📂 {{ $grp }}</span>
-                    </a>
-                @endforeach
-            @endif
-        </div>
     </div>
 </div>
 
