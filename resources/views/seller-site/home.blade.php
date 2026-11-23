@@ -152,7 +152,7 @@
             @php
                 $cardComponent = isset($businessModule) ? $businessModule->getCardComponent() : 'seller-site.modules.card_hardware_pipes';
             @endphp
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6">
                 @foreach($products as $product)
                     @include($cardComponent, ['product' => $product, 'sellerPage' => $sellerPage])
                 @endforeach

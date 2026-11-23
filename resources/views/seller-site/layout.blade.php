@@ -76,6 +76,26 @@
 </head>
 <body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen antialiased">
 
+    @if(Auth::check() && Auth::id() === $sellerPage->user_id)
+        <!-- 👑 Store Owner Quick Control Bar -->
+        <div class="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-900 text-xs font-bold py-2 px-4 shadow-sm border-b border-amber-600 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="bg-slate-900 text-amber-300 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full tracking-wider shadow-2xs">👑 Store Owner</span>
+                <span class="text-xs">आप अपनी दुकान <strong>{{ $sellerPage->page_title }}</strong> देख रहे हैं।</span>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+                <a href="{{ route('seller.minisite.edit') }}" class="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3 py-1 rounded-lg text-xs font-bold transition shadow-xs">
+                    <i class="fa-solid fa-pen-to-square text-amber-400"></i>
+                    <span>दुकान का नाम, लोगो व प्रोफाइल बदलें</span>
+                </a>
+                <a href="{{ route('seller.products.index') }}" class="inline-flex items-center gap-1.5 bg-white hover:bg-gray-100 text-slate-900 px-3 py-1 rounded-lg text-xs font-bold transition shadow-xs border border-amber-600/30">
+                    <i class="fa-solid fa-boxes-stacked text-blue-600"></i>
+                    <span>Products Manage</span>
+                </a>
+            </div>
+        </div>
+    @endif
+
     <!-- Top Announcement Bar -->
     <div class="bg-slate-900 text-white text-xs py-1.5 px-4 text-center flex items-center justify-center gap-4">
         <span>✨ Welcome to {{ $sellerPage->page_title }}</span>
