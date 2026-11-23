@@ -152,4 +152,19 @@ class SellerPage extends Model
     {
         return $this->business_settings['dealership_text'] ?? '';
     }
+
+    public function getProjectPhotosAttribute()
+    {
+        return $this->business_settings['project_photos'] ?? [];
+    }
+
+    public function getServicedCitiesAttribute()
+    {
+        return $this->business_settings['serviced_cities'] ?? 'सारंगढ़, रायगढ़, बिलासपुर, बरमकेला, सरिया, चंद्रपुर, रायपुर';
+    }
+
+    public function getServicedPincodesAttribute()
+    {
+        return $this->business_settings['serviced_pincodes'] ?? '496445, 496001, 495001, 492001';
+    }
 }

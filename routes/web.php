@@ -42,6 +42,10 @@ Route::middleware('auth')->group(function () {
 // Public Order & Barcode Tracking Page (For Customers & Sellers)
 Route::get('/track/{code?}', [\App\Http\Controllers\OrderTrackingController::class, 'index'])->name('public.track_order');
 
+// 📒 Public Digital Khata & Customer Statement with GPS Lock
+Route::get('/khata/statement', [\App\Http\Controllers\Seller\MiniSiteController::class, 'khataStatement'])->name('khata.statement');
+Route::post('/khata/save-customer-gps', [\App\Http\Controllers\Seller\MiniSiteController::class, 'saveCustomerGps'])->name('khata.save_gps');
+
 // Public WhatsApp Order Verification & Instant Prepaid Conversion Routes
 Route::prefix('order-verify')->name('verification.')->group(function () {
     Route::get('/{token}', [\App\Http\Controllers\OrderVerificationController::class, 'show'])->name('show');

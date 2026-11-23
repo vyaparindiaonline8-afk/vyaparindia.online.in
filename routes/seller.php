@@ -69,6 +69,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
     Route::put('minisite', [MiniSiteController::class, 'update'])->name('minisite.update');
     Route::post('minisite/quick-banner-update', [MiniSiteController::class, 'quickBannerUpdate'])->name('minisite.quick_banner_update');
     Route::post('minisite/quick-shop-photo-upload', [MiniSiteController::class, 'quickShopPhotoUpload'])->name('minisite.quick_shop_photo_upload');
+    Route::post('minisite/quick-project-photo-upload', [MiniSiteController::class, 'quickProjectPhotoUpload'])->name('minisite.quick_project_photo_upload');
 
     // 🌐 Custom Domain Linking Routes
     Route::prefix('minisite/custom-domain')->name('minisite.custom_domain.')->group(function () {

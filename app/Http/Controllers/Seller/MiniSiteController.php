@@ -174,6 +174,12 @@ class MiniSiteController extends Controller
         if ($request->filled('dealership_text')) {
             $currentSettings['dealership_text'] = trim($request->input('dealership_text'));
         }
+        if ($request->filled('serviced_cities')) {
+            $currentSettings['serviced_cities'] = trim($request->input('serviced_cities'));
+        }
+        if ($request->filled('serviced_pincodes')) {
+            $currentSettings['serviced_pincodes'] = trim($request->input('serviced_pincodes'));
+        }
 
         // Also update seller profile dispatch radius if present
         if ($request->filled('dispatch_radius') && Auth::user()->sellerProfile) {
@@ -218,7 +224,7 @@ class MiniSiteController extends Controller
     }
 
     /**
-     * 1-Click Shop / Showroom Photos Uploader
+     * 1-Click Shop / Showroom Atmosphere Photos Uploader
      */
     public function quickShopPhotoUpload(Request $request)
     {
@@ -255,6 +261,44 @@ class MiniSiteController extends Controller
         ]);
     }
 
+    /**
+     * 1-Click Completed Projects & Product Application Photos Uploader
+     */
+    public function quickProjectPhotoUpload(Request $request)
+    {
+        $minisite = Auth::user()->sellerPage;
+        if (!$minisite) {
+            return response()->json(['success' => false, 'message' => 'Store not found.'], 404);
+        }
+
+        $url = null;
+        if ($request->hasFile('project_photo')) {
+            $url = CloudinaryService::upload($request->file('project_photo'), 'vyaparindia/minisite/project_photos');
+        } elseif ($request->filled('photo_url')) {
+            $url = trim($request->input('photo_url'));
+        }
+
+        if (!$url) {
+            return response()->json(['success' => false, 'message' => 'Please provide a valid project image.'], 422);
+        }
+
+        $settings = $minisite->business_settings ?? [];
+        $photos = $settings['project_photos'] ?? [];
+        if (!in_array($url, $photos)) {
+            $photos[] = $url;
+        }
+        $settings['project_photos'] = $photos;
+
+        $minisite->update(['business_settings' => $settings]);
+
+        return response()->json([
+            'success' => true,
+            'project_photos' => $photos,
+            'new_photo' => $url,
+            'message' => 'Project installation photo added successfully! 🛠️'
+        ]);
+    }
+
     // Public Storefront methods
     public function show(SellerPage $sellerPage)
     {
@@ -267,7 +311,84 @@ class MiniSiteController extends Controller
         $totalProducts = $sellerPage->user->products()->count();
         $authorizedBrands = $sellerPage->authorized_brands ?? [];
         $businessModule = BusinessModuleManager::forSellerPage($sellerPage);
-        return view('seller-site.home', compact('sellerPage', 'products', 'totalProducts', 'authorizedBrands', 'businessModule'));
+
+        // 📂 Real Catalog Groups with Products for Structured Showcase (Sanitary, Plywood, CPVC, etc.)
+        $catalogGroups = $sellerPage->user->products()
+            ->with(['variants', 'category', 'images'])
+            ->whereNotNull('group_name')
+            ->where('group_name', '!=', '')
+            ->get()
+            ->groupBy('group_name');
+
+        return view('seller-site.home', compact('sellerPage', 'products', 'totalProducts', 'authorizedBrands', 'businessModule', 'catalogGroups'));
+    }
+
+    /**
+     * 📒 Public Digital Khata & Customer Udhar Statement View
+     */
+    public function khataStatement(Request $request)
+    {
+        $sellerSlug = $request->input('seller', 'ganesh-tradersh');
+        $sellerPage = SellerPage::where('slug', $sellerSlug)->first() ?: SellerPage::first();
+
+        $customerName = $request->input('name', 'Shanti Prasad yadav');
+        $customerPhone = $request->input('phone', '');
+        $amountDue = floatval($request->input('amount', 6450));
+        $date = $request->input('date', date('d/m/Y'));
+        $balanceType = $request->input('type', 'Debit (लेने हैं)');
+        $ref = $request->input('ref', 'KHATA-' . date('Ymd'));
+
+        return view('public.khata_statement', compact(
+            'sellerPage',
+            'customerName',
+            'customerPhone',
+            'amountDue',
+            'date',
+            'balanceType',
+            'ref'
+        ));
+    }
+
+    /**
+     * 📍 Optional Customer Site/Shop GPS Location Lock & Linking
+     */
+    public function saveCustomerGps(Request $request)
+    {
+        $validated = $request->validate([
+            'seller_slug' => 'nullable|string',
+            'customer_name' => 'required|string|max:150',
+            'customer_phone' => 'nullable|string|max:20',
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+            'landmark' => 'nullable|string|max:255',
+        ]);
+
+        $sellerSlug = $validated['seller_slug'] ?? 'ganesh-tradersh';
+        $sellerPage = SellerPage::where('slug', $sellerSlug)->first();
+
+        if ($sellerPage) {
+            $settings = $sellerPage->business_settings ?? [];
+            $records = $settings['customer_gps_records'] ?? [];
+
+            $mapLink = "https://www.google.com/maps?q={$validated['latitude']},{$validated['longitude']}";
+            $records[] = [
+                'name' => $validated['customer_name'],
+                'phone' => $validated['customer_phone'] ?? '',
+                'latitude' => $validated['latitude'],
+                'longitude' => $validated['longitude'],
+                'map_link' => $mapLink,
+                'landmark' => $validated['landmark'] ?? '',
+                'saved_at' => now()->toDateTimeString(),
+            ];
+
+            $settings['customer_gps_records'] = array_slice($records, -50); // Keep last 50
+            $sellerPage->update(['business_settings' => $settings]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'GPS location locked & successfully linked to customer profile! 📍'
+        ]);
     }
 
     public function products(SellerPage $sellerPage, Request $request)

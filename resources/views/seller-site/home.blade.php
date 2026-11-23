@@ -210,11 +210,66 @@
     </div>
 </section>
 
+<!-- 📂 Structured Group-Wise Product Showcase with 2-Row Scroller -->
+@php
+    $cardComponent = isset($businessModule) ? $businessModule->getCardComponent() : 'seller-site.modules.card_hardware_pipes';
+@endphp
+
+@if(isset($catalogGroups) && $catalogGroups->isNotEmpty())
+    @foreach($catalogGroups as $groupName => $groupProducts)
+        @php
+            $groupBrands = $groupProducts->pluck('brand')->filter()->unique()->values();
+            $groupCount = $groupProducts->count();
+        @endphp
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+            <div class="bg-white rounded-3xl border border-gray-200/90 p-5 sm:p-7 shadow-2xs">
+                <!-- Group Header Row -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100 mb-4">
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] sm:text-[11px] font-black uppercase tracking-wider">
+                                📂 Department / Group
+                            </span>
+                            <h3 class="text-base sm:text-lg font-black text-gray-900">
+                                {{ $groupName }}
+                            </h3>
+                            <span class="text-xs font-bold text-gray-500">({{ $groupCount }} items)</span>
+                        </div>
+                        @if($groupBrands->isNotEmpty())
+                            <div class="flex items-center gap-1.5 mt-2 flex-wrap text-xs">
+                                <span class="text-[11px] font-bold text-gray-400">Brands:</span>
+                                @foreach($groupBrands as $gBrand)
+                                    <a href="{{ route('minisite.products', ['sellerPage' => $sellerPage->slug, 'group' => $groupName, 'brand' => $gBrand]) }}" class="px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold border border-blue-200 transition">
+                                        🏢 {{ $gBrand }}
+                                    </a>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+
+                    <a href="{{ route('minisite.products', ['sellerPage' => $sellerPage->slug, 'group' => $groupName]) }}" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs shadow-xs transition shrink-0">
+                        <span>View Full {{ $groupName }} Range ({{ $groupCount }}) &rarr;</span>
+                    </a>
+                </div>
+
+                <!-- 2-Row / 1-Row Compact Horizontal Product Scroller -->
+                <div class="grid grid-rows-1 sm:grid-rows-2 grid-flow-col auto-cols-[165px] sm:auto-cols-[220px] gap-2.5 sm:gap-3.5 overflow-x-auto pb-3 snap-x no-scrollbar">
+                    @foreach($groupProducts->take(16) as $product)
+                        <div class="snap-start h-full">
+                            @include($cardComponent, ['product' => $product, 'sellerPage' => $sellerPage])
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+    @endforeach
+@endif
+
 <!-- Products Showcase -->
-<section id="products-grid" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+<section id="products-grid" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="flex items-center justify-between mb-8">
         <div>
-            <h2 class="text-xl sm:text-2xl font-extrabold text-gray-900">Featured Products</h2>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-gray-900">All Featured Items</h2>
             <p class="text-xs sm:text-sm text-gray-500 mt-1">Showing trending verified items ready for immediate dispatch</p>
         </div>
         <a href="{{ route('minisite.products', $sellerPage->slug) }}" class="text-xs font-bold text-brand-custom hover:underline flex items-center gap-1">
@@ -232,9 +287,6 @@
             <p class="text-xs text-gray-500 max-w-sm mx-auto mt-1">This seller is currently setting up their catalog. Please check back soon!</p>
         </div>
     @else
-            @php
-                $cardComponent = isset($businessModule) ? $businessModule->getCardComponent() : 'seller-site.modules.card_hardware_pipes';
-            @endphp
             <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6">
                 @foreach($products as $product)
                     @include($cardComponent, ['product' => $product, 'sellerPage' => $sellerPage])
@@ -243,14 +295,14 @@
     @endif
 </section>
 
-<!-- 🏪 Showroom & Warehouse Photos Scroller -->
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<!-- 🏪 Gallery 1: Showroom & Warehouse Photos Scroller -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     <div class="bg-white rounded-3xl border border-gray-200/90 p-6 sm:p-8 shadow-2xs">
         <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
             <div>
                 <h3 class="text-base sm:text-lg font-black text-gray-900 flex items-center gap-2">
                     <i class="fa-solid fa-store text-indigo-600"></i>
-                    <span>Our Showroom & Warehouse (दुकान व गोदाम की झलक)</span>
+                    <span>1. Our Showroom & Warehouse (दुकान व शोरूम की झलक)</span>
                 </h3>
                 <p class="text-xs text-gray-500 mt-0.5">Physical store presence, counter displays, and ready dispatch warehouse inventory</p>
             </div>
@@ -265,7 +317,6 @@
         @php
             $shopPhotos = $sellerPage->shop_photos ?? [];
             if (empty($shopPhotos)) {
-                // Default high-grade showroom images
                 $shopPhotos = [
                     'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80',
                     'https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&w=800&q=80',
@@ -283,6 +334,53 @@
                         <span class="text-white text-xs font-bold flex items-center gap-1.5">
                             <i class="fa-solid fa-circle-check text-emerald-400 text-[10px]"></i>
                             <span>Verified Store Facility</span>
+                        </span>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+</section>
+
+<!-- 🛠️ Gallery 2: Completed Projects & Installed Work Scroller -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="bg-gradient-to-br from-white to-slate-50 rounded-3xl border border-gray-200/90 p-6 sm:p-8 shadow-2xs">
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+            <div>
+                <h3 class="text-base sm:text-lg font-black text-gray-900 flex items-center gap-2">
+                    <i class="fa-solid fa-screwdriver-wrench text-emerald-600"></i>
+                    <span>2. Completed Projects & Work Gallery (हमारे प्रोजेक्ट्स व काम का अनुभव)</span>
+                </h3>
+                <p class="text-xs text-gray-500 mt-0.5">Real installed bathrooms, plumbing pipeline sites, designer sanitary fittings & carpentry project work</p>
+            </div>
+            @if(Auth::check() && Auth::id() === $sellerPage->user_id)
+                <button type="button" onclick="openProjectPhotoModal()" class="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition">
+                    <i class="fa-solid fa-camera text-amber-300"></i>
+                    <span>+ Add Project Photo</span>
+                </button>
+            @endif
+        </div>
+
+        @php
+            $projectPhotos = $sellerPage->project_photos ?? [];
+            if (empty($projectPhotos)) {
+                $projectPhotos = [
+                    'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&w=800&q=80',
+                    'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80',
+                    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80',
+                    'https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&w=800&q=80',
+                ];
+            }
+        @endphp
+
+        <div class="flex items-center gap-4 overflow-x-auto pb-3 snap-x no-scrollbar" id="project-photos-scroller">
+            @foreach($projectPhotos as $pIdx => $pUrl)
+                <div class="snap-start shrink-0 w-64 sm:w-80 aspect-4/3 rounded-2xl overflow-hidden border border-gray-200 relative group shadow-2xs">
+                    <img src="{{ $pUrl }}" alt="Project Work {{ $pIdx + 1 }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                    <div class="absolute inset-0 bg-gradient-to-t from-gray-950/80 via-transparent to-transparent flex items-end p-3.5">
+                        <span class="text-white text-xs font-bold flex items-center gap-1.5">
+                            <i class="fa-solid fa-medal text-amber-400 text-xs"></i>
+                            <span>Installed Site Work / Project Completion</span>
                         </span>
                     </div>
                 </div>
@@ -459,7 +557,7 @@
             <div class="p-3.5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
                 <div class="flex items-center justify-between text-xs font-bold text-blue-900 mb-1">
                     <span>Store Dispatch Hub:</span>
-                    <span class="font-black">{{ $sellerPage->city ?: 'Our Central Warehouse' }}</span>
+                    <span class="font-black">{{ $sellerPage->city ?: 'सारंगढ़ (Sarangarh)' }}</span>
                 </div>
                 <div class="flex items-center justify-between text-xs font-bold text-blue-900">
                     <span>Guaranteed Direct Radius:</span>
@@ -467,17 +565,37 @@
                 </div>
             </div>
 
+            <!-- Serviced Cities & Pincodes list -->
+            <div class="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200 text-xs">
+                <div class="font-bold text-indigo-950 mb-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-city text-indigo-600"></i>
+                    <span>Direct Serviced Cities (सीधी वाहन डिलीवरी वाले शहर):</span>
+                </div>
+                <div class="text-[11px] text-indigo-900 font-semibold leading-relaxed" id="serviced_cities_text">
+                    {{ $sellerPage->serviced_cities ?: 'सारंगढ़, रायगढ़, बिलासपुर, बरमकेला, सरिया, चंद्रपुर, रायपुर' }}
+                </div>
+                @if($sellerPage->serviced_pincodes)
+                    <div class="font-bold text-indigo-950 mt-2 mb-1 flex items-center gap-1.5">
+                        <i class="fa-solid fa-map-pin text-rose-500"></i>
+                        <span>Serviced PIN Codes (पिनकोड):</span>
+                    </div>
+                    <div class="text-[11px] text-indigo-900 font-mono font-bold" id="serviced_pincodes_text">
+                        {{ $sellerPage->serviced_pincodes }}
+                    </div>
+                @endif
+            </div>
+
             <div>
                 <label class="block text-xs font-bold text-gray-700 mb-1">Check Distance from Your City / PIN Code:</label>
                 <div class="flex items-center gap-2">
-                    <input type="text" id="buyer_location_input" placeholder="Enter your City or Pincode" class="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 font-bold focus:border-indigo-500">
+                    <input type="text" id="buyer_location_input" placeholder="e.g. सारंगढ़ / रायगढ़ / 496445" class="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 font-bold focus:border-indigo-500">
                     <button type="button" onclick="checkBuyerCoverage()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shrink-0">
                         Check
                     </button>
                 </div>
             </div>
 
-            <div id="coverage_result_box" class="hidden p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+            <div id="coverage_result_box" class="hidden p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold">
                 <!-- Result dynamically rendered -->
             </div>
 
@@ -488,6 +606,38 @@
                 </a>
             @endif
         </div>
+    </div>
+</div>
+
+<!-- 🛠️ 1-Click Project Photo Modal -->
+<div id="project-photo-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-200">
+        <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+            <h3 class="text-sm font-black text-gray-900 flex items-center gap-2">
+                <i class="fa-solid fa-screwdriver-wrench text-emerald-600"></i>
+                <span>Add Completed Project Work Photo (काम की फोटो जोड़ें)</span>
+            </h3>
+            <button type="button" onclick="closeProjectPhotoModal()" class="text-gray-400 hover:text-gray-600 text-sm">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form id="project-photo-form" onsubmit="submitProjectPhoto(event)" class="mt-4 space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">Paste Image URL (Bathroom, Plumbing, Fittings):</label>
+                <input type="url" id="project_photo_url" placeholder="https://..." class="w-full px-3 py-2 text-xs rounded-xl border border-gray-300">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">Or Choose Photo File from Device:</label>
+                <input type="file" id="project_photo_file" accept="image/*" class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gray-100 file:text-gray-700">
+            </div>
+            <div class="pt-2 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeProjectPhotoModal()" class="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-bold text-xs">Cancel</button>
+                <button type="submit" id="btn_submit_project_photo" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs">
+                    Upload & Add Work Photo
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -599,8 +749,70 @@
             alert('Please enter your city or pincode.');
             return;
         }
+
+        const citiesText = (document.getElementById('serviced_cities_text')?.textContent || '').toLowerCase();
+        const pinText = (document.getElementById('serviced_pincodes_text')?.textContent || '').toLowerCase();
+        const query = inp.toLowerCase();
+
         resBox.classList.remove('hidden');
-        resBox.innerHTML = `✅ Direct Transport & Doorstep Delivery is Available for <strong>${inp}</strong> within our {{ $sellerPage->dispatch_radius ?: 500 }} KM delivery zone! Estimated delivery within 24-48 hours.`;
+        if (citiesText.includes(query) || pinText.includes(query)) {
+            resBox.className = "p-3.5 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-950 text-xs font-bold leading-relaxed";
+            resBox.innerHTML = `✅ <strong>हाँ!</strong> हमारे यहाँ से आपके क्षेत्र <strong>${inp}</strong> में सीधी वाहन व नियमित डिलीवरी सेवा उपलब्ध है! (सारंगढ़ डिपो से त्वरित प्रस्थान - 24 घंटे में डिलीवरी)`;
+        } else {
+            resBox.className = "p-3.5 rounded-xl bg-blue-50 border border-blue-300 text-blue-950 text-xs font-bold leading-relaxed";
+            resBox.innerHTML = `🚚 <strong>${inp}</strong> हमारे {{ $sellerPage->dispatch_radius ?: 500 }} KM डिलीवरी दायरे में आता है! प्रोजेक्ट व थोक ऑर्डर पर सीधा वाहन/ट्रांसपोर्ट उपलब्ध कराया जाएगा। कृपया पुष्टि हेतु WhatsApp पर संपर्क करें।`;
+        }
+    }
+
+    function openProjectPhotoModal() {
+        document.getElementById('project-photo-modal').classList.remove('hidden');
+    }
+    function closeProjectPhotoModal() {
+        document.getElementById('project-photo-modal').classList.add('hidden');
+    }
+    function submitProjectPhoto(e) {
+        e.preventDefault();
+        const urlInput = document.getElementById('project_photo_url');
+        const fileInput = document.getElementById('project_photo_file');
+        const submitBtn = document.getElementById('btn_submit_project_photo');
+
+        const formData = new FormData();
+        if (fileInput.files.length > 0) {
+            formData.append('project_photo', fileInput.files[0]);
+        } else if (urlInput.value.trim()) {
+            formData.append('photo_url', urlInput.value.trim());
+        } else {
+            alert('Please choose a photo file or enter image URL.');
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
+
+        fetch("{{ route('seller.minisite.quick_project_photo_upload') }}", {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Upload & Add Work Photo';
+            if (data.success) {
+                closeProjectPhotoModal();
+                alert(data.message || 'Project photo added!');
+                location.reload();
+            } else {
+                alert(data.message || 'Failed to upload photo.');
+            }
+        })
+        .catch(err => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Upload & Add Work Photo';
+            alert('Upload error: ' + err.message);
+        });
     }
 
     function openShopPhotoModal() {

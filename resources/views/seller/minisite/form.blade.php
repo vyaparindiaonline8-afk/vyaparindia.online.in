@@ -426,8 +426,8 @@
                     </div>
 
                     <!-- Delivery / Dispatch Radius -->
-                    <div class="sm:col-span-3 bg-indigo-50/50 border border-indigo-200 rounded-2xl p-4">
-                        <div class="flex items-center justify-between mb-1.5">
+                    <div class="sm:col-span-3 bg-indigo-50/50 border border-indigo-200 rounded-2xl p-4 space-y-3">
+                        <div class="flex items-center justify-between mb-1">
                             <label class="block text-xs font-black text-indigo-950">
                                 <i class="fa-solid fa-truck-fast text-indigo-600 mr-1"></i> Delivery & Dispatch Radius (डिलिवरी दायरा - कितने KM तक माल भेजते हैं?)
                             </label>
@@ -444,6 +444,35 @@
                                 <button type="button" onclick="setRadius(500)" class="px-2.5 py-1 rounded-lg bg-white border border-indigo-200 hover:bg-indigo-600 hover:text-white text-[11px] font-bold text-indigo-700 transition">500 KM (Statewide)</button>
                                 <button type="button" onclick="setRadius(2000)" class="px-2.5 py-1 rounded-lg bg-white border border-indigo-200 hover:bg-indigo-600 hover:text-white text-[11px] font-bold text-indigo-700 transition">All India (Transport)</button>
                             </div>
+                        </div>
+
+                        <!-- Serviced Cities / Towns -->
+                        <div class="pt-3 border-t border-indigo-200/80">
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-xs font-bold text-indigo-950">
+                                    <i class="fa-solid fa-city text-indigo-600 mr-1"></i> Direct Serviced Cities (सीधी वाहन/गाड़ी डिलीवरी वाले शहर)
+                                </label>
+                                <span class="text-[10px] text-indigo-600 font-semibold">Click chip to add city</span>
+                            </div>
+                            <input type="text" id="serviced_cities_input" name="serviced_cities" value="{{ old('serviced_cities', $minisite->serviced_cities ?? 'सारंगढ़, रायगढ़, बिलासपुर, बरमकेला, सरिया, चंद्रपुर, रायपुर') }}" placeholder="e.g. सारंगढ़, रायगढ़, बिलासपुर, रायपुर" class="w-full px-4 py-2 text-xs font-bold bg-white border border-indigo-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none mb-1.5">
+                            <div class="flex items-center gap-1 flex-wrap">
+                                <button type="button" onclick="appendServicedCity('सारंगढ़')" class="px-2 py-0.5 rounded bg-white border border-indigo-200 text-indigo-700 text-[10px] font-bold hover:bg-indigo-100 transition">+ सारंगढ़</button>
+                                <button type="button" onclick="appendServicedCity('रायगढ़')" class="px-2 py-0.5 rounded bg-white border border-indigo-200 text-indigo-700 text-[10px] font-bold hover:bg-indigo-100 transition">+ रायगढ़</button>
+                                <button type="button" onclick="appendServicedCity('बिलासपुर')" class="px-2 py-0.5 rounded bg-white border border-indigo-200 text-indigo-700 text-[10px] font-bold hover:bg-indigo-100 transition">+ बिलासपुर</button>
+                                <button type="button" onclick="appendServicedCity('बरमकेला')" class="px-2 py-0.5 rounded bg-white border border-indigo-200 text-indigo-700 text-[10px] font-bold hover:bg-indigo-100 transition">+ बरमकेला</button>
+                                <button type="button" onclick="appendServicedCity('सरिया')" class="px-2 py-0.5 rounded bg-white border border-indigo-200 text-indigo-700 text-[10px] font-bold hover:bg-indigo-100 transition">+ सरिया</button>
+                                <button type="button" onclick="appendServicedCity('चंद्रपुर')" class="px-2 py-0.5 rounded bg-white border border-indigo-200 text-indigo-700 text-[10px] font-bold hover:bg-indigo-100 transition">+ चंद्रपुर</button>
+                                <button type="button" onclick="appendServicedCity('सक्ती')" class="px-2 py-0.5 rounded bg-white border border-indigo-200 text-indigo-700 text-[10px] font-bold hover:bg-indigo-100 transition">+ सक्ती</button>
+                                <button type="button" onclick="appendServicedCity('रायपुर')" class="px-2 py-0.5 rounded bg-white border border-indigo-200 text-indigo-700 text-[10px] font-bold hover:bg-indigo-100 transition">+ रायपुर</button>
+                            </div>
+                        </div>
+
+                        <!-- Serviced PIN Codes -->
+                        <div class="pt-2">
+                            <label class="block text-xs font-bold text-indigo-950 mb-1">
+                                <i class="fa-solid fa-map-pin text-rose-500 mr-1"></i> Serviced PIN Codes (डिलीवरी पिनकोड सूची - अल्पविराम से अलग करें)
+                            </label>
+                            <input type="text" name="serviced_pincodes" value="{{ old('serviced_pincodes', $minisite->serviced_pincodes ?? '496445, 496001, 495001, 492001') }}" placeholder="e.g. 496445, 496001, 495001" class="w-full px-4 py-2 text-xs font-mono font-bold bg-white border border-indigo-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                         </div>
                     </div>
 
@@ -635,6 +664,17 @@
         function setRadius(km) {
             const input = document.getElementById('dispatch_radius_input');
             if (input) input.value = km;
+        }
+
+        function appendServicedCity(city) {
+            const input = document.getElementById('serviced_cities_input');
+            if (!input) return;
+            let current = input.value.trim();
+            if (!current) {
+                input.value = city;
+            } else if (!current.includes(city)) {
+                input.value = current + ', ' + city;
+            }
         }
 
         function detectGpsLocation() {
