@@ -218,7 +218,26 @@ class SellerPage extends Model
     public function getGoogleMapLinkAttribute($value)
     {
         if (!empty($value)) return $value;
-        return $this->business_settings['google_map_link'] ?? ($this->user?->sellerProfile?->google_map_url ?? '');
+        $link = $this->business_settings['google_map_link'] ?? ($this->user?->sellerProfile?->google_map_url ?? '');
+        if (!empty($link)) return $link;
+        return $this->universal_map_link;
+    }
+
+    public function getUniversalMapLinkAttribute()
+    {
+        $link = $this->attributes['google_map_link'] ?? ($this->business_settings['google_map_link'] ?? ($this->user?->sellerProfile?->google_map_url ?? ''));
+        if (!empty($link) && !str_contains($link, 'maps.app.goo.gl')) {
+            return $link;
+        }
+
+        $queryParts = array_filter([
+            $this->page_title ?: 'Ganesh Traders',
+            $this->address ?: 'Main Road, Near Bus Stand',
+            $this->city ?: 'Sarangarh',
+            $this->state ?: 'Chhattisgarh',
+            $this->pincode ?: '496445',
+        ]);
+        return 'https://www.google.com/maps/search/?api=1&query=' . urlencode(implode(', ', $queryParts));
     }
 
     public function getGoogleReviewLinkAttribute($value)

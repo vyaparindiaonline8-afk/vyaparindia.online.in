@@ -548,7 +548,7 @@
                         $fullAddr = $sellerPage->address ?: ($firmProfile ? ($firmProfile->address . ', ' . $firmProfile->city . ', ' . $firmProfile->state) : '');
                         $cityPin = ($sellerPage->city ? $sellerPage->city : '') . ($sellerPage->pincode ? ' - ' . $sellerPage->pincode : '');
                         $dispAddr = trim($fullAddr . ' ' . $cityPin);
-                        $mapLink = $sellerPage->google_map_link ?: ('https://www.google.com/maps/search/?api=1&query=' . urlencode($sellerPage->page_title . ' ' . $dispAddr));
+                        $mapLink = $sellerPage->universal_map_link ?: ('https://www.google.com/maps/search/?api=1&query=' . urlencode($sellerPage->page_title . ' ' . $dispAddr));
                     @endphp
                     @if($sellerPage->address || ($firmProfile && ($firmProfile->address || $firmProfile->city)) || $sellerPage->google_map_link)
                         @if(!empty($dispAddr))

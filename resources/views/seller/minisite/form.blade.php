@@ -532,18 +532,26 @@
 
                     <!-- Google Maps Link -->
                     <div class="sm:col-span-3">
-                        <label class="block text-xs font-bold text-gray-700 mb-1">
-                            <i class="fa-solid fa-map-location-dot text-rose-500"></i> Google Maps Pin / Location Link
-                        </label>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-bold text-gray-700">
+                                <i class="fa-solid fa-map-location-dot text-rose-500"></i> Google Maps Pin / Location Link (दुकान का मैप लिंक)
+                            </label>
+                            <button type="button" onclick="useUniversalMapLink()" class="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-0.5 rounded-lg transition shadow-2xs">
+                                ✨ 1-Click परमानेंट Google Maps लिंक बनाएं
+                            </button>
+                        </div>
                         <div class="flex items-center gap-2">
                             <input type="text" id="google_map_link_input" name="google_map_link" value="{{ old('google_map_link', $minisite->google_map_link ?? '') }}" placeholder="उदा. https://maps.app.goo.gl/... या Google Maps लिंक" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                            @if(isset($minisite) && $minisite->google_map_link)
-                                <a href="{{ $minisite->google_map_link }}" target="_blank" class="px-3 py-2.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 font-bold text-xs shrink-0 flex items-center gap-1 transition" title="Verify Google Maps Location">
+                            @if(isset($minisite) && $minisite->universal_map_link)
+                                <a href="{{ $minisite->universal_map_link }}" target="_blank" class="px-3 py-2.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 font-bold text-xs shrink-0 flex items-center gap-1 transition" title="Verify Google Maps Location">
                                     <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                     <span>Check Pin</span>
                                 </a>
                             @endif
                         </div>
+                        <p class="text-[11px] text-gray-500 mt-1">
+                            💡 <strong>नोट:</strong> अगर <code>maps.app.goo.gl</code> वाला छोटा लिंक आपके फ़ोन पर नहीं खुलता है, तो ऊपर <strong>"1-Click परमानेंट लिंक"</strong> बटन दबाएं। यह एक ऐसा पक्का लिंक बना देगा जो हर फ़ोन पर सीधे Google Maps ऐप में खुलेगा।
+                        </p>
                     </div>
 
                     <div>
@@ -905,6 +913,23 @@
                 input.value = city;
             } else if (!current.includes(city)) {
                 input.value = current + ', ' + city;
+            }
+        }
+
+        function useUniversalMapLink() {
+            const title = document.getElementById('store_title_input')?.value.trim() || 'Ganesh Traders';
+            const address = document.getElementById('store_address_input')?.value.trim() || 'Main Road, Near Bus Stand';
+            const city = document.getElementById('store_city_input')?.value.trim() || 'Sarangarh';
+            const state = document.getElementById('store_state_input')?.value.trim() || 'Chhattisgarh';
+            const pincode = document.getElementById('store_pincode_input')?.value.trim() || '496445';
+            
+            const query = [title, address, city, state, pincode].filter(Boolean).join(', ');
+            const universalUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query);
+            
+            const input = document.getElementById('google_map_link_input');
+            if (input) {
+                input.value = universalUrl;
+                alert('✅ 100% परमानेंट Google Maps लिंक तैयार हो गया है!\n\nअब नीचे "Save Changes" दबाएं। यह लिंक हर मोबाइल और कंप्यूटर पर हमेशा खुलेगा।');
             }
         }
 

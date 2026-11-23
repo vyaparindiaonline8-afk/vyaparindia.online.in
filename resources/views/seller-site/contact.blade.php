@@ -87,7 +87,7 @@
                             <div class="text-gray-500">{{ $sellerPage->city }}{{ $sellerPage->pincode ? ' - ' . $sellerPage->pincode : '' }}</div>
                             @if($sellerPage->google_map_link)
                                 <div class="mt-2">
-                                    <a href="{{ $sellerPage->google_map_link }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 transition">
+                                    <a href="{{ $sellerPage->universal_map_link }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 transition">
                                         <i class="fa-solid fa-map-location-dot text-blue-600"></i>
                                         <span>Google Maps GPS Location</span>
                                     </a>
