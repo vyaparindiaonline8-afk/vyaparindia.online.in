@@ -27,6 +27,16 @@
                 </div>
 
                 <div class="flex items-center gap-3">
+                    @php
+                        $userMinisite = Auth::user()->sellerPage;
+                    @endphp
+                    @if($userMinisite)
+                        <a href="{{ route('minisite.show', $userMinisite->slug) }}" target="_blank" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs transition flex items-center gap-1.5 shadow-sm" title="अपनी लाइव मिनी-वेबसाइट देखें">
+                            <i class="fa-solid fa-store text-emerald-100"></i>
+                            <span>मेरी वेबसाइट देखें</span>
+                        </a>
+                    @endif
+
                     @if(Auth::user()->isOwnerOrAdmin())
                         <a href="{{ route('admin.dashboard') }}" class="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-extrabold transition flex items-center gap-1.5 border border-purple-200" title="Super Admin Hub">
                             <span>👑 Admin Hub</span>

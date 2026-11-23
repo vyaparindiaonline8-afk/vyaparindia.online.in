@@ -321,7 +321,7 @@
                         @foreach($bProducts as $bp)
                             <div class="shrink-0 w-48 sm:w-56 bg-gray-50/80 rounded-2xl border border-gray-200/80 p-3 flex flex-col justify-between hover:shadow-md transition snap-start group">
                                 <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $bp->slug]) }}" class="block">
-                                    <div class="aspect-square bg-white rounded-xl overflow-hidden mb-2 p-2 flex items-center justify-center border border-gray-100">
+                                    <div class="aspect-square studio-card-box rounded-xl overflow-hidden mb-2 p-2 flex items-center justify-center">
                                         <img src="{{ $bp->image_url }}" alt="{{ $bp->name }}" class="max-w-full max-h-full object-contain crisp-img group-hover:scale-105 transition duration-300">
                                     </div>
                                     <div class="text-[10px] font-bold text-indigo-600 mb-0.5 truncate">{{ $bp->category->name ?? 'Sanitary' }}</div>
@@ -381,51 +381,6 @@
 
     <!-- 📦 Interspersed Builder / Project Package Wholesale Banner -->
     @include('seller-site.components.interspersed-spotlight-banner', ['type' => 'project_package'])
-</div>
-
-<!-- 📸 Photo Swapper Modal for Store Owner -->
-<div id="photo-swapper-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-200">
-        <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-            <h3 class="text-sm font-black text-gray-900 flex items-center gap-2">
-                <i class="fa-solid fa-camera text-indigo-600"></i>
-                <span>Change Product Photo</span>
-            </h3>
-            <button type="button" onclick="closePhotoSwapper()" class="text-gray-400 hover:text-gray-600 text-sm">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-        </div>
-
-        <form id="photo-swapper-form" onsubmit="submitPhotoSwap(event)" class="mt-4 space-y-4">
-            <input type="hidden" id="swap_product_id">
-            
-            <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1" id="swap_product_name_label">Product Name</label>
-                <div class="text-xs text-gray-500 mb-2">Paste a high-resolution image URL or upload a file:</div>
-                <input type="text" id="swap_image_url" placeholder="https://example.com/item.jpg" class="w-full text-xs font-mono border border-gray-300 rounded-xl px-3 py-2 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            </div>
-
-            <div class="relative flex py-1 items-center">
-                <div class="flex-grow border-t border-gray-200"></div>
-                <span class="flex-shrink mx-3 text-[11px] font-bold text-gray-400">OR Upload</span>
-                <div class="flex-grow border-t border-gray-200"></div>
-            </div>
-
-            <div>
-                <input type="file" id="swap_image_file" accept="image/*" class="w-full text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-            </div>
-
-            <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-                <button type="button" onclick="closePhotoSwapper()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition">
-                    Cancel
-                </button>
-                <button type="submit" id="btn-save-photo-swap" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/20 transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-check"></i>
-                    <span>Save Photo</span>
-                </button>
-            </div>
-        </form>
-    </div>
 </div>
 
 @push('scripts')
@@ -609,69 +564,6 @@
                     `🔗 *View Full Specifications & Order Online:*\n${prodUrl}`;
 
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
-    }
-
-    // 📷 Photo Swapper Functions
-    function openPhotoSwapper(prodId, prodName, currentImg) {
-        document.getElementById('swap_product_id').value = prodId;
-        document.getElementById('swap_product_name_label').innerText = prodName;
-        document.getElementById('swap_image_url').value = currentImg || '';
-        document.getElementById('photo-swapper-modal').classList.remove('hidden');
-    }
-
-    function closePhotoSwapper() {
-        document.getElementById('photo-swapper-modal').classList.add('hidden');
-        document.getElementById('photo-swapper-form').reset();
-    }
-
-    async function submitPhotoSwap(e) {
-        e.preventDefault();
-        const prodId = document.getElementById('swap_product_id').value;
-        const imgUrl = document.getElementById('swap_image_url').value;
-        const fileInput = document.getElementById('swap_image_file');
-        const saveBtn = document.getElementById('btn-save-photo-swap');
-
-        if (!imgUrl && (!fileInput.files || fileInput.files.length === 0)) {
-            alert('Please provide an image URL or choose a photo to upload.');
-            return;
-        }
-
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
-
-        const formData = new FormData();
-        if (imgUrl) formData.append('image_url', imgUrl);
-        if (fileInput.files && fileInput.files[0]) formData.append('image_file', fileInput.files[0]);
-
-        try {
-            const resp = await fetch(`/seller/products/${prodId}/quick-image-update`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: formData
-            });
-
-            const data = await resp.json();
-            if (data.success) {
-                // Update image on page directly
-                const imgEl = document.getElementById(`prod_img_${prodId}`);
-                if (imgEl && imgEl.tagName === 'IMG') {
-                    imgEl.src = data.image_url;
-                } else if (imgEl) {
-                    imgEl.outerHTML = `<img src="${data.image_url}" id="prod_img_${prodId}" class="w-full h-full object-contain crisp-img group-hover:scale-105 transition-transform duration-300">`;
-                }
-                closePhotoSwapper();
-            } else {
-                alert(data.message || 'Failed to update image.');
-            }
-        } catch (err) {
-            console.error(err);
-            alert('Error updating product photo.');
-        } finally {
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = `<i class="fa-solid fa-check"></i> <span>Save Photo</span>`;
-        }
     }
 </script>
 @endpush

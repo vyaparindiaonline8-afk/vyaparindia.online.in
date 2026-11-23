@@ -31,7 +31,7 @@
     
     <!-- Top Image & Quick Badges -->
     <div>
-        <div class="relative block aspect-square bg-slate-50 rounded-xl overflow-hidden border border-slate-100 mb-2 sm:mb-3 flex items-center justify-center p-1.5 sm:p-2 group/slider" id="card_img_wrap_{{ $product->id }}">
+        <div class="relative block aspect-square studio-card-box rounded-2xl overflow-hidden mb-2 sm:mb-3 flex items-center justify-center p-2 group/slider" id="card_img_wrap_{{ $product->id }}">
             <a href="{{ route('minisite.product', ['sellerPage' => $sellerPage->slug, 'productSlug' => $product->slug]) }}" class="w-full h-full flex items-center justify-center">
                 @if(!empty($cardImages))
                     <img src="{{ $cardImages[0] }}" alt="{{ $product->name }}" id="prod_img_{{ $product->id }}" class="w-full h-full object-contain crisp-img group-hover:scale-105 transition-all duration-300">

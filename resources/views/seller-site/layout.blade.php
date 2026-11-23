@@ -40,6 +40,13 @@
         .crisp-img {
             image-rendering: -webkit-optimize-contrast;
             object-fit: contain;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.06));
+        }
+        /* Amazon & Meesho Studio Catalog Backdrop for White & Transparent Items */
+        .studio-card-box {
+            background: radial-gradient(circle at center, #ffffff 45%, #f1f5f9 100%);
+            border: 1px solid rgba(226, 232, 240, 0.95);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
         }
     </style>
 
@@ -78,19 +85,23 @@
 
     @if(Auth::check() && Auth::id() === $sellerPage->user_id)
         <!-- 👑 Store Owner Quick Control Bar -->
-        <div class="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-900 text-xs font-bold py-2 px-4 shadow-sm border-b border-amber-600 flex flex-wrap items-center justify-between gap-2">
+        <div class="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-900 text-xs font-bold py-2 px-4 shadow-sm border-b border-amber-600 flex flex-wrap items-center justify-between gap-2 sticky top-0 z-50">
             <div class="flex items-center gap-2">
                 <span class="bg-slate-900 text-amber-300 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full tracking-wider shadow-2xs">👑 Store Owner</span>
                 <span class="text-xs">आप अपनी दुकान <strong>{{ $sellerPage->page_title }}</strong> देख रहे हैं।</span>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
-                <a href="{{ route('seller.minisite.edit') }}" class="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3 py-1 rounded-lg text-xs font-bold transition shadow-xs">
-                    <i class="fa-solid fa-pen-to-square text-amber-400"></i>
-                    <span>दुकान का नाम, लोगो व प्रोफाइल बदलें</span>
+                <a href="{{ route('seller.dashboard') }}" class="inline-flex items-center gap-1.5 bg-indigo-900 hover:bg-indigo-800 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold transition shadow-xs border border-indigo-700">
+                    <i class="fa-solid fa-gauge-high text-indigo-300"></i>
+                    <span>📊 सेलर डैशबोर्ड (Tools)</span>
                 </a>
-                <a href="{{ route('seller.products.index') }}" class="inline-flex items-center gap-1.5 bg-white hover:bg-gray-100 text-slate-900 px-3 py-1 rounded-lg text-xs font-bold transition shadow-xs border border-amber-600/30">
+                <a href="{{ route('seller.minisite.edit') }}" class="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs">
+                    <i class="fa-solid fa-pen-to-square text-amber-400"></i>
+                    <span>✏️ दुकान का नाम, पता व लिंक्स एडिट करें</span>
+                </a>
+                <a href="{{ route('seller.products.index') }}" class="inline-flex items-center gap-1.5 bg-white hover:bg-gray-100 text-slate-900 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs border border-amber-600/30">
                     <i class="fa-solid fa-boxes-stacked text-blue-600"></i>
-                    <span>Products Manage</span>
+                    <span>📦 Products Manage</span>
                 </a>
             </div>
         </div>
@@ -540,9 +551,12 @@
                         <li><a href="{{ route('minisite.contact', $sellerPage->slug) }}" class="hover:text-brand-custom flex items-center gap-1.5"><i class="fa-solid fa-address-card text-[10px] text-gray-400"></i> Contact & About Store</a></li>
                         <li><a href="{{ route('minisite.contact', $sellerPage->slug) }}#policies" class="hover:text-brand-custom flex items-center gap-1.5"><i class="fa-solid fa-truck text-[10px] text-gray-400"></i> Shipping & Return Policies</a></li>
                         @if(Auth::check() && Auth::id() === $sellerPage->user_id)
-                            <li class="pt-2 border-t border-gray-100">
-                                <a href="{{ route('seller.minisite.edit') }}" class="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1.5">
-                                    <i class="fa-solid fa-pen-to-square text-[10px]"></i> ✏️ Edit Store Profile (नाम, पता व बैनर)
+                            <li class="pt-2 border-t border-gray-100 space-y-1.5">
+                                <a href="{{ route('seller.dashboard') }}" class="text-indigo-600 hover:text-indigo-800 font-extrabold flex items-center gap-1.5">
+                                    <i class="fa-solid fa-gauge-high text-[11px]"></i> 📊 मुख्य सेलर डैशबोर्ड (Seller Tools)
+                                </a>
+                                <a href="{{ route('seller.minisite.edit') }}" class="text-emerald-700 hover:text-emerald-900 font-extrabold flex items-center gap-1.5">
+                                    <i class="fa-solid fa-pen-to-square text-[11px]"></i> ✏️ दुकान का नाम, पता व लिंक्स एडिट करें
                                 </a>
                             </li>
                         @endif
@@ -1179,7 +1193,162 @@
         document.addEventListener('DOMContentLoaded', () => {
             updateCartUI();
         });
+
+        // 📷 Universal Photo Swapper Functions
+        function openPhotoSwapper(prodId, prodName, currentImg) {
+            const idInput = document.getElementById('swap_product_id');
+            if (!idInput) return;
+            idInput.value = prodId;
+            const nameLbl = document.getElementById('swap_product_name_label');
+            if (nameLbl) nameLbl.innerText = prodName;
+            const urlInput = document.getElementById('swap_image_url');
+            if (urlInput) urlInput.value = currentImg || '';
+            const prevImg = document.getElementById('swap_preview_img');
+            if (prevImg) prevImg.src = currentImg || '';
+            const modal = document.getElementById('photo-swapper-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closePhotoSwapper() {
+            const modal = document.getElementById('photo-swapper-modal');
+            if (modal) modal.classList.add('hidden');
+            const form = document.getElementById('photo-swapper-form');
+            if (form) form.reset();
+        }
+
+        function previewSwapFile(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const prev = document.getElementById('swap_preview_img');
+                    if (prev) prev.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function previewSwapUrl(url) {
+            if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+                const prev = document.getElementById('swap_preview_img');
+                if (prev) prev.src = url;
+            }
+        }
+
+        async function submitPhotoSwap(e) {
+            e.preventDefault();
+            const prodId = document.getElementById('swap_product_id').value;
+            const imgUrl = document.getElementById('swap_image_url').value;
+            const fileInput = document.getElementById('swap_image_file');
+            const saveBtn = document.getElementById('btn-save-photo-swap');
+
+            if (!imgUrl && (!fileInput.files || fileInput.files.length === 0)) {
+                alert('कृपया इमेज फ़ाइल चुनें या इमेज URL डालें।');
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
+
+            const formData = new FormData();
+            if (imgUrl) formData.append('image_url', imgUrl);
+            if (fileInput.files && fileInput.files[0]) formData.append('image_file', fileInput.files[0]);
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+                const resp = await fetch(`/seller/products/${prodId}/quick-image-update`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: formData
+                });
+
+                const data = await resp.json();
+                if (data.success) {
+                    const imgEl = document.getElementById(`prod_img_${prodId}`);
+                    if (imgEl && imgEl.tagName === 'IMG') {
+                        imgEl.src = data.image_url;
+                    } else if (imgEl) {
+                        imgEl.outerHTML = `<img src="${data.image_url}" id="prod_img_${prodId}" class="w-full h-full object-contain crisp-img group-hover:scale-105 transition-transform duration-300">`;
+                    }
+                    closePhotoSwapper();
+                } else {
+                    alert(data.message || 'फोटो अपडेट नहीं हो सकी।');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('फोटो अपडेट करते समय त्रुटि हुई।');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = `<i class="fa-solid fa-check"></i> <span>सेव करें (Save Photo)</span>`;
+            }
+        }
     </script>
+
+    @if(Auth::check() && Auth::id() === $sellerPage->user_id)
+        <!-- 👑 Floating Quick Switcher for Store Owner -->
+        <div class="fixed bottom-5 left-5 z-40 flex flex-col gap-2 print:hidden">
+            <div class="bg-slate-900/95 backdrop-blur-md text-white p-2 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-2">
+                <a href="{{ route('seller.dashboard') }}" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs flex items-center gap-1.5 shadow-sm transition" title="Go to Multi-channel Seller Dashboard">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <span>डैशबोर्ड</span>
+                </a>
+                <a href="{{ route('seller.minisite.edit') }}" class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-black text-xs flex items-center gap-1.5 shadow-sm transition" title="Edit Store Name, Address, Tagline & Policies">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    <span>प्रोफ़ाइल एडिट</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- 📸 Universal Photo Swapper Modal for Store Owner -->
+        <div id="photo-swapper-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-200">
+                <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                    <h3 class="text-sm font-black text-gray-900 flex items-center gap-2">
+                        <i class="fa-solid fa-camera text-indigo-600"></i>
+                        <span>Change Product Photo • फोटो बदलें</span>
+                    </h3>
+                    <button type="button" onclick="closePhotoSwapper()" class="text-gray-400 hover:text-gray-600 text-sm">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <form id="photo-swapper-form" onsubmit="submitPhotoSwap(event)" class="mt-4 space-y-4">
+                    <input type="hidden" id="swap_product_id">
+                    
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1" id="swap_product_name_label">Product Name</label>
+                        
+                        <!-- Live Preview on Studio Backdrop -->
+                        <div class="mb-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
+                            <div class="h-16 w-16 rounded-xl studio-card-box p-1.5 flex items-center justify-center shrink-0 overflow-hidden">
+                                <img id="swap_preview_img" src="" alt="Preview" class="max-w-full max-h-full object-contain crisp-img">
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-black uppercase text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">Amazon / Meesho Studio Backdrop</span>
+                                <p class="text-[11px] text-gray-500 mt-0.5">सफेद या किसी भी रंग का प्रोडक्ट बैकग्राउंड के साथ स्पष्ट दिखेगा।</p>
+                            </div>
+                        </div>
+
+                        <div class="text-xs text-gray-600 mb-2 font-medium">गैलरी से फ़ाइल चुनें या इमेज URL डालें:</div>
+                        <input type="file" id="swap_image_file" accept="image/*" onchange="previewSwapFile(event)" class="w-full text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 mb-2">
+                        <input type="text" id="swap_image_url" placeholder="या इमेज URL पेस्ट करें: https://..." oninput="previewSwapUrl(this.value)" class="w-full text-xs font-mono border border-gray-300 rounded-xl px-3 py-2 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                        <button type="button" onclick="closePhotoSwapper()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition">
+                            रद्द करें (Cancel)
+                        </button>
+                        <button type="submit" id="btn-save-photo-swap" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/20 transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-check"></i>
+                            <span>सेव करें (Save Photo)</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
     @stack('scripts')
     @include('components.ai-copilot-widget')
 </body>

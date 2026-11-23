@@ -83,6 +83,14 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::post('/{customDomain}/verify', [CustomDomainController::class, 'verify'])->name('verify');
     });
 
+    // 🏛️ GST & Tax Compliance Center
+    Route::prefix('tax-compliance')->name('tax_compliance.')->group(function () {
+        Route::get('/', [TaxComplianceController::class, 'index'])->name('index');
+        Route::get('/export-ca-package', [TaxComplianceController::class, 'exportCaPackage'])->name('export_ca_package');
+        Route::get('/export-gstr1', [TaxComplianceController::class, 'exportGstr1'])->name('export_gstr1');
+        Route::get('/export-itc', [TaxComplianceController::class, 'exportItc'])->name('export_itc');
+    });
+
     // 📦 Dropshipper Routes & UPI Payouts
     Route::prefix('dropship')->name('dropship.')->group(function () {
         Route::get('/hub', [DropshipController::class, 'hub'])->name('hub');

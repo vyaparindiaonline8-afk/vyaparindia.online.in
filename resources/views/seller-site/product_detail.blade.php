@@ -72,7 +72,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
             <!-- Product Image Left -->
             <div class="space-y-4">
-                <div class="aspect-square bg-slate-50 rounded-3xl overflow-hidden border border-slate-200 p-4 sm:p-6 flex items-center justify-center relative shadow-xs">
+                <div class="aspect-square studio-card-box rounded-3xl overflow-hidden p-4 sm:p-6 flex items-center justify-center relative shadow-xs">
                     <img id="main-product-image" src="{{ $product->image_url }}" alt="{{ $product->name }}" class="max-w-full max-h-full object-contain crisp-img transition-all duration-300">
                     @if($product->category)
                         <span class="absolute top-4 left-4 bg-white/95 backdrop-blur-xs text-gray-800 text-xs font-bold px-3 py-1 rounded-xl shadow-xs border border-gray-100">
