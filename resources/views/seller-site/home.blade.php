@@ -17,6 +17,49 @@
         <div class="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-900/90 to-transparent z-10 pointer-events-none"></div>
     </div>
 
+    <!-- Multi-Banner Carousel Engine (Immediately Available) -->
+    <script>
+        window.heroCurrentIndex = 0;
+        window.heroTimer = null;
+
+        window.goToHeroSlide = function(idx) {
+            const slides = document.querySelectorAll('.hero-slide');
+            const dots = document.querySelectorAll('.hero-dot');
+            const count = slides.length;
+            if (count <= 1) return;
+            window.heroCurrentIndex = (idx + count) % count;
+            slides.forEach((slide, i) => {
+                if (i === window.heroCurrentIndex) {
+                    slide.classList.remove('opacity-0', 'pointer-events-none', 'z-0');
+                    slide.classList.add('opacity-40', 'z-10');
+                } else {
+                    slide.classList.remove('opacity-40', 'z-10');
+                    slide.classList.add('opacity-0', 'pointer-events-none', 'z-0');
+                }
+            });
+            dots.forEach((dot, i) => {
+                if (i === window.heroCurrentIndex) {
+                    dot.className = 'hero-dot transition-all duration-300 rounded-full w-6 h-2 bg-amber-400';
+                } else {
+                    dot.className = 'hero-dot transition-all duration-300 rounded-full w-2 h-2 bg-white/40 hover:bg-white';
+                }
+            });
+        };
+
+        window.stepHeroSlide = function(dir) {
+            window.goToHeroSlide(window.heroCurrentIndex + dir);
+            if (window.heroTimer) clearInterval(window.heroTimer);
+            window.heroTimer = setInterval(() => {
+                window.goToHeroSlide(window.heroCurrentIndex + 1);
+            }, 5000);
+        };
+
+        if (window.heroTimer) clearInterval(window.heroTimer);
+        window.heroTimer = setInterval(() => {
+            window.goToHeroSlide(window.heroCurrentIndex + 1);
+        }, 5000);
+    </script>
+
     <!-- 📷 Store Owner Quick Banner Swapper Button -->
     @if(Auth::check() && Auth::id() === $sellerPage->user_id)
         <div class="absolute top-4 right-4 z-30">
@@ -769,55 +812,8 @@
 </div>
 
 <script>
-    /* Multi-Banner Carousel Controller */
-    let heroCurrentIndex = 0;
-    let heroTimer = null;
-    const heroSlides = document.querySelectorAll('.hero-slide');
-    const heroDots = document.querySelectorAll('.hero-dot');
-    const heroSlideCount = heroSlides.length;
-
-    function goToHeroSlide(idx) {
-        if (heroSlideCount <= 1) return;
-        heroCurrentIndex = (idx + heroSlideCount) % heroSlideCount;
-        heroSlides.forEach((slide, i) => {
-            if (i === heroCurrentIndex) {
-                slide.classList.remove('opacity-0', 'pointer-events-none', 'z-0');
-                slide.classList.add('opacity-40', 'z-10');
-            } else {
-                slide.classList.remove('opacity-40', 'z-10');
-                slide.classList.add('opacity-0', 'pointer-events-none', 'z-0');
-            }
-        });
-        heroDots.forEach((dot, i) => {
-            if (i === heroCurrentIndex) {
-                dot.className = 'hero-dot transition-all duration-300 rounded-full w-6 h-2 bg-amber-400';
-            } else {
-                dot.className = 'hero-dot transition-all duration-300 rounded-full w-2 h-2 bg-white/40 hover:bg-white';
-            }
-        });
-    }
-
-    function stepHeroSlide(dir) {
-        goToHeroSlide(heroCurrentIndex + dir);
-        resetHeroTimer();
-    }
-
-    function startHeroTimer() {
-        if (heroSlideCount > 1) {
-            heroTimer = setInterval(() => {
-                goToHeroSlide(heroCurrentIndex + 1);
-            }, 5000);
-        }
-    }
-
-    function resetHeroTimer() {
-        if (heroTimer) clearInterval(heroTimer);
-        startHeroTimer();
-    }
-
     // Touch swipe support for mobile
     document.addEventListener('DOMContentLoaded', () => {
-        startHeroTimer();
         const heroSection = document.getElementById('hero-banner-section');
         if (heroSection) {
             let touchStartX = 0;
@@ -828,16 +824,19 @@
             heroSection.addEventListener('touchend', (e) => {
                 touchEndX = e.changedTouches[0].screenX;
                 if (touchStartX - touchEndX > 45) {
-                    stepHeroSlide(1);
+                    if (typeof window.stepHeroSlide === 'function') window.stepHeroSlide(1);
                 } else if (touchEndX - touchStartX > 45) {
-                    stepHeroSlide(-1);
+                    if (typeof window.stepHeroSlide === 'function') window.stepHeroSlide(-1);
                 }
             }, { passive: true });
             heroSection.addEventListener('mouseenter', () => {
-                if (heroTimer) clearInterval(heroTimer);
+                if (window.heroTimer) clearInterval(window.heroTimer);
             });
             heroSection.addEventListener('mouseleave', () => {
-                startHeroTimer();
+                if (window.heroTimer) clearInterval(window.heroTimer);
+                window.heroTimer = setInterval(() => {
+                    if (typeof window.goToHeroSlide === 'function') window.goToHeroSlide(window.heroCurrentIndex + 1);
+                }, 5000);
             });
         }
     });

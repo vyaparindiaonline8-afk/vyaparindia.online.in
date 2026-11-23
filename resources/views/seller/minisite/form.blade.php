@@ -665,12 +665,52 @@
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div class="sm:col-span-2 bg-emerald-50/60 border border-emerald-200 rounded-2xl p-4">
-                        <label class="block text-xs font-bold text-emerald-900 mb-1">
-                            <i class="fa-solid fa-mobile-screen mr-1"></i> Storefront UPI ID (GPay / PhonePe / Paytm / BHIM)
-                        </label>
-                        <input type="text" name="upi_id" value="{{ old('upi_id', $minisite->upi_id ?? '') }}" placeholder="e.g. 9876543210@paytm or shop@okhdfcbank" class="w-full px-4 py-2.5 text-xs font-bold bg-white border border-emerald-300 rounded-xl focus:border-emerald-500 focus:outline-hidden">
-                        <span class="text-[11px] text-emerald-700 block mt-1">This UPI ID will be shown with a 1-click Pay button on the Order Success page & WhatsApp message.</span>
+                    <!-- 🔒 Multi-channel Isolation Notice -->
+                    <div class="sm:col-span-2 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-start gap-3">
+                        <i class="fa-solid fa-shield-halved text-indigo-600 mt-0.5 text-base"></i>
+                        <div class="text-xs text-slate-700 leading-relaxed">
+                            <strong>🔒 मल्टी-चैनल सुरक्षा गारंटी:</strong> यहाँ दर्ज किया गया UPI ID व बैंक खाता केवल आपकी इस डायरेक्ट वेबसाइट और WhatsApp ऑर्डर भुगतान के लिए है। यह <strong>Meesho, Amazon या Flipkart</strong> के बैंक खातों से बिल्कुल अलग (isolated) रहेगा और उसमें कोई बदलाव नहीं करेगा।
+                        </div>
+                    </div>
+
+                    <div class="sm:col-span-2 bg-emerald-50/70 border-2 border-emerald-300 rounded-3xl p-5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-xs font-black text-emerald-950">
+                                <i class="fa-solid fa-mobile-screen mr-1 text-emerald-600"></i> दुकान का UPI ID (Google Pay / PhonePe / Paytm / BHIM)
+                            </label>
+                            <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-200/70 text-emerald-900">Direct Customer Payment</span>
+                        </div>
+
+                        <div class="relative">
+                            <input type="text" name="upi_id" id="minisite_upi_id_input" value="{{ old('upi_id', $minisite->upi_id ?? '') }}" placeholder="उदा. 9244906069@ybl या ganeshtraders@okaxis" oninput="updateUpiPreview(this.value)" class="w-full px-4 py-3 text-sm font-bold bg-white border border-emerald-400 rounded-2xl focus:border-emerald-600 focus:outline-hidden shadow-xs">
+                        </div>
+
+                        <!-- Live Verified Name & UPI Link Preview -->
+                        <div id="upi_preview_box" class="p-3 rounded-xl bg-white border border-emerald-200 flex items-center justify-between text-xs">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                                <div>
+                                    <span class="text-slate-500 text-[11px]">ग्राहक को दिखने वाला नाम (Payee Name):</span>
+                                    <span class="font-extrabold text-slate-900 ml-1" id="upi_preview_name">{{ $minisite->page_title ?: 'Ganesh Traders' }}</span>
+                                </div>
+                            </div>
+                            <div class="text-[11px] font-mono font-bold text-emerald-700" id="upi_preview_id">
+                                {{ $minisite->upi_id ?: 'UPI ID दर्ज करें...' }}
+                            </div>
+                        </div>
+
+                        <!-- 💡 Where to find UPI ID Guide & QR Scanner Help -->
+                        <div class="bg-emerald-100/60 rounded-2xl p-3.5 text-xs text-emerald-900 space-y-2 border border-emerald-200">
+                            <div class="font-black flex items-center gap-1.5 text-emerald-950">
+                                <i class="fa-solid fa-qrcode text-emerald-700"></i>
+                                <span>💡 यदि आपको सिर्फ QR कोड मिला है और UPI ID नहीं पता, तो ऐसे देखें:</span>
+                            </div>
+                            <ul class="list-disc list-inside space-y-1 text-[11px] text-emerald-900 leading-relaxed pl-1">
+                                <li><strong>QR कोड के नीचे देखें:</strong> आपके दुकान के PhonePe / GPay / Paytm QR कोड स्टैंडी के नीचे छोटे अक्षरों में UPI ID (उदा. <code>98XXXXXXXX@ybl</code> या <code>ganeshtraders@okaxis</code>) लिखी होती है।</li>
+                                <li><strong>Google Lens से फोटो खींचे:</strong> अपने फ़ोन के Google Lens से अपने QR कोड की फोटो खींचें, वह ऊपर लिंक में <code>pa=...</code> के बाद आपकी पूरी UPI ID दिखा देगा।</li>
+                                <li><strong>PhonePe / GPay ऐप में:</strong> ऐप खोलें -> ऊपर प्रोफाइल फोटो पर दबाएं -> "QR Codes" या "UPI ID" चुनें, वही आपका UPI ID है।</li>
+                            </ul>
+                        </div>
                     </div>
 
                     <div>
@@ -781,6 +821,13 @@
         function setRadius(km) {
             const input = document.getElementById('dispatch_radius_input');
             if (input) input.value = km;
+        }
+
+        function updateUpiPreview(val) {
+            const previewEl = document.getElementById('upi_preview_id');
+            if (previewEl) {
+                previewEl.innerText = val.trim() ? val.trim() : 'UPI ID दर्ज करें...';
+            }
         }
 
         function appendServicedCity(city) {
