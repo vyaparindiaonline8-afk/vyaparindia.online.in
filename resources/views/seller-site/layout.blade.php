@@ -522,19 +522,21 @@
                             <span class="font-bold text-gray-900">{{ $firmProfile->gst_number }}</span>
                         </div>
                     @endif
-                    @if($sellerPage->address || ($firmProfile && ($firmProfile->address || $firmProfile->city)))
-                        @php
-                            $fullAddr = $sellerPage->address ?: ($firmProfile ? ($firmProfile->address . ', ' . $firmProfile->city . ', ' . $firmProfile->state) : '');
-                            $cityPin = ($sellerPage->city ? $sellerPage->city : '') . ($sellerPage->pincode ? ' - ' . $sellerPage->pincode : '');
-                            $dispAddr = trim($fullAddr . ' ' . $cityPin);
-                            $mapLink = $sellerPage->google_map_link ?: ('https://www.google.com/maps/search/?api=1&query=' . urlencode($sellerPage->page_title . ' ' . $dispAddr));
-                        @endphp
-                        <div class="text-xs text-gray-600 flex items-start gap-2 pt-1">
-                            <i class="fa-solid fa-location-dot mt-0.5 text-rose-500 shrink-0"></i>
-                            <span>{{ $dispAddr }}</span>
-                        </div>
-                        <div class="pt-1">
-                            <a href="{{ $mapLink }}" target="_blank" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-lg border border-blue-200 transition">
+                    @php
+                        $fullAddr = $sellerPage->address ?: ($firmProfile ? ($firmProfile->address . ', ' . $firmProfile->city . ', ' . $firmProfile->state) : '');
+                        $cityPin = ($sellerPage->city ? $sellerPage->city : '') . ($sellerPage->pincode ? ' - ' . $sellerPage->pincode : '');
+                        $dispAddr = trim($fullAddr . ' ' . $cityPin);
+                        $mapLink = $sellerPage->google_map_link ?: ('https://www.google.com/maps/search/?api=1&query=' . urlencode($sellerPage->page_title . ' ' . $dispAddr));
+                    @endphp
+                    @if($sellerPage->address || ($firmProfile && ($firmProfile->address || $firmProfile->city)) || $sellerPage->google_map_link)
+                        @if(!empty($dispAddr))
+                            <div class="text-xs text-gray-600 flex items-start gap-2 pt-1">
+                                <i class="fa-solid fa-location-dot mt-0.5 text-rose-500 shrink-0"></i>
+                                <span>{{ $dispAddr }}</span>
+                            </div>
+                        @endif
+                        <div class="pt-1.5">
+                            <a href="{{ $mapLink }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-3.5 py-1.5 rounded-xl border border-blue-200 transition shadow-2xs hover:shadow-xs">
                                 <i class="fa-solid fa-map-location-dot text-blue-600"></i>
                                 <span>Google Maps GPS Location</span>
                             </a>

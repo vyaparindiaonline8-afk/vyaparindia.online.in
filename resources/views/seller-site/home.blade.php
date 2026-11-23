@@ -460,7 +460,7 @@
                     @php
                         $mapUrl = $sellerPage->google_map_link ?: ('https://www.google.com/maps/search/?api=1&query=' . urlencode($sellerPage->page_title . ' ' . $sellerPage->address . ' ' . $sellerPage->city));
                     @endphp
-                    <a href="{{ $mapUrl }}" target="_blank" class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-full border border-blue-200 shadow-xs transition">
+                    <a href="{{ $mapUrl }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-full border border-blue-200 shadow-xs transition">
                         <i class="fa-solid fa-map-location-dot text-blue-600"></i>
                         <span>📍 Open GPS on Google Maps</span>
                     </a>
