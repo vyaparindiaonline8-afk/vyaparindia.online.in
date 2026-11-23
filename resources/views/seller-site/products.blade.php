@@ -137,9 +137,10 @@
                     </label>
                     <div class="flex items-center gap-1.5">
                         <select name="sort" onchange="document.getElementById('catalog-filter-form').submit()" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 font-bold text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
-                            @php $s = request('sort', 'latest'); @endphp
+                            @php $s = request('sort', 'smart'); @endphp
+                            <option value="smart" {{ $s === 'smart' ? 'selected' : '' }}>⭐ AI Smart (सर्वाधिक सर्च व ऑर्डर)</option>
+                            <option value="popular" {{ $s === 'popular' ? 'selected' : '' }}>🔥 Top Selling (सबसे ज्यादा बिकने वाले)</option>
                             <option value="latest" {{ $s === 'latest' ? 'selected' : '' }}>🆕 Newly Added First</option>
-                            <option value="popular" {{ $s === 'popular' ? 'selected' : '' }}>🔥 Top Selling</option>
                             <option value="price_asc" {{ $s === 'price_asc' ? 'selected' : '' }}>💰 Price: Low to High</option>
                             <option value="price_desc" {{ $s === 'price_desc' ? 'selected' : '' }}>💎 Price: High to Low</option>
                             <option value="oldest" {{ $s === 'oldest' ? 'selected' : '' }}>📅 Oldest First</option>

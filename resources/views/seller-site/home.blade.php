@@ -269,7 +269,7 @@
                             <h3 class="text-base sm:text-lg font-black text-gray-900">
                                 {{ $groupName }}
                             </h3>
-                            <span class="text-xs font-bold text-gray-500">({{ $groupCount }} items)</span>
+                            <span class="text-xs font-bold text-gray-700 bg-gray-100 border border-gray-200/80 px-2.5 py-0.5 rounded-full">({{ $groupCount }} items उपलब्ध)</span>
                         </div>
 
                         <!-- Brand Pills under Group Header -->
@@ -304,9 +304,9 @@
                     </div>
                 </div>
 
-                <!-- 2-Row / 1-Row Compact Horizontal Product Scroller (2 Rows on desktop/tablets, 1-2 on mobile) -->
+                <!-- 2-Row / 1-Row Compact Horizontal Product Scroller (Shows ALL items in group) -->
                 <div id="scroller-{{ $groupSlug }}" class="grid grid-rows-1 sm:grid-rows-2 grid-flow-col auto-cols-[165px] sm:auto-cols-[220px] gap-2.5 sm:gap-3.5 overflow-x-auto pb-3 snap-x no-scrollbar scroll-smooth">
-                    @foreach($groupProducts->take(24) as $product)
+                    @foreach($groupProducts as $product)
                         <div class="snap-start h-full">
                             @include($cardComponent, ['product' => $product, 'sellerPage' => $sellerPage])
                         </div>

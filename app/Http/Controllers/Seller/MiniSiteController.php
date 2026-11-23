@@ -564,8 +564,12 @@ class MiniSiteController extends Controller
         $businessModule = BusinessModuleManager::forSellerPage($sellerPage);
 
         // 📂 Dynamic Real-time Catalog Groups with Products (Auto-synced by Group Name, Category & Brand)
+        // 🧠 Smart Ranking Algorithm: Heavily ordered & viewed/searched products automatically rank first!
         $allProducts = $sellerPage->user->products()
             ->with(['variants', 'category', 'images'])
+            ->withCount('orders')
+            ->orderByDesc('orders_count')
+            ->orderByDesc('views_count')
             ->latest()
             ->get();
 
@@ -589,8 +593,20 @@ class MiniSiteController extends Controller
     {
         $query = $sellerPage->user->products()->with(['variants', 'category', 'pricingTiers', 'images']);
 
+        // 🧠 Smart Ranking & Search Boost Algorithm
         if ($request->filled('search')) {
-            $search = $request->input('search');
+            $search = trim($request->input('search'));
+
+            // Auto-boost search popularity score for matched items in algorithm
+            try {
+                $sellerPage->user->products()
+                    ->where(function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                          ->orWhere('brand', 'like', "%{$search}%")
+                          ->orWhere('group_name', 'like', "%{$search}%");
+                    })->increment('views_count');
+            } catch (\Throwable $e) {}
+
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%")
@@ -636,21 +652,33 @@ class MiniSiteController extends Controller
             }
         }
 
-        // Smart Category & Sales Sorting
-        $sort = $request->input('sort', 'latest');
+        // 🧠 Smart Category, Order & Search Popularity Ranking Algorithm
+        $sort = $request->input('sort', 'smart');
         if ($sort === 'popular') {
-            $query->withCount('orders')->orderByDesc('orders_count');
+            $query->withCount('orders')->orderByDesc('orders_count')->orderByDesc('views_count');
         } elseif ($sort === 'price_asc') {
             $query->orderBy('price', 'asc');
         } elseif ($sort === 'price_desc') {
             $query->orderBy('price', 'desc');
         } elseif ($sort === 'oldest') {
             $query->oldest();
-        } else {
+        } elseif ($sort === 'latest') {
             $query->latest();
+        } else {
+            // Default 'smart': Prioritizes frequently ordered items + heavily searched/viewed items
+            $query->withCount('orders')
+                  ->orderByDesc('orders_count')
+                  ->orderByDesc('views_count')
+                  ->latest();
         }
 
-        $products = $query->paginate(16)->withQueryString();
+        // Show up to 60 products per page so 50-60 product catalog groups are fully visible
+        $perPage = intval($request->input('per_page', 60));
+        if ($perPage < 12 || $perPage > 120) {
+            $perPage = 60;
+        }
+
+        $products = $query->paginate($perPage)->withQueryString();
 
         // Extract available brands, groups, and categories for dynamic dropdown filters
         $availableBrands = $sellerPage->user->products()
@@ -802,6 +830,11 @@ class MiniSiteController extends Controller
 
         $order->products()->attach($orderItems);
 
+        // 🧠 Smart Algorithm: Boost popularity on ordered items so they automatically rank at top!
+        try {
+            \App\Models\Product::whereIn('id', array_keys($orderItems))->increment('views_count', 5);
+        } catch (\Throwable $e) {}
+
         // Deduct inventory stock if tracked ("dale to thik, na dale to thik")
         foreach ($validated['cart'] as $item) {
             $prod = \App\Models\Product::find($item['id']);
@@ -927,6 +960,11 @@ class MiniSiteController extends Controller
         ]);
 
         $order->products()->attach($orderItems);
+
+        // 🧠 Smart Algorithm: Boost popularity on ordered items so they automatically rank at top!
+        try {
+            \App\Models\Product::whereIn('id', array_keys($orderItems))->increment('views_count', 5);
+        } catch (\Throwable $e) {}
 
         // Deduct inventory stock if tracked
         foreach ($validated['cart'] as $item) {
