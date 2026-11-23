@@ -108,14 +108,27 @@
     @endif
 
     <!-- Top Announcement Bar -->
-    <div class="bg-slate-900 text-white text-xs py-1.5 px-4 text-center flex items-center justify-center gap-4">
-        <span>✨ Welcome to {{ $sellerPage->page_title }}</span>
-        @if($sellerPage->enable_cod)
-            <span class="hidden sm:inline">• 💵 Cash on Delivery Available</span>
-        @endif
-        @if($sellerPage->enable_whatsapp_order && $sellerPage->whatsapp_number)
-            <span class="hidden md:inline">• 📲 Fast WhatsApp Ordering</span>
-        @endif
+    <div class="bg-slate-900 text-white text-xs py-1.5 px-4 flex items-center justify-between gap-4">
+        <div class="truncate text-left">
+            <span>✨ Welcome to {{ $sellerPage->page_title }}</span>
+            @if($sellerPage->enable_cod)
+                <span class="hidden sm:inline">• 💵 Cash on Delivery Available</span>
+            @endif
+            @if($sellerPage->enable_whatsapp_order && $sellerPage->whatsapp_number)
+                <span class="hidden md:inline">• 📲 Fast WhatsApp Ordering</span>
+            @endif
+        </div>
+        <div class="shrink-0 flex items-center gap-2">
+            @if(Auth::check() && Auth::id() === $sellerPage->user_id)
+                <a href="{{ route('seller.minisite.edit') }}" class="text-amber-400 hover:text-amber-300 font-extrabold text-[11px] flex items-center gap-1 bg-slate-800 px-2 py-0.5 rounded-md border border-amber-400/40" title="दुकान की जानकारी व सेटिंग्स बदलें">
+                    <i class="fa-solid fa-pen-to-square"></i> <span>दुकान एडिट करें</span>
+                </a>
+            @else
+                <a href="{{ route('seller.minisite.edit') }}" class="text-amber-300 hover:text-white font-extrabold text-[11px] flex items-center gap-1 bg-slate-800/90 hover:bg-slate-700 px-2.5 py-0.5 rounded-md border border-amber-400/50 shadow-xs" title="दुकान मालिक लॉगिन / दुकान एडिट करें">
+                    <i class="fa-solid fa-pen-to-square text-amber-400 text-[10px]"></i> <span>दुकान एडिट करें (Login)</span>
+                </a>
+            @endif
+        </div>
     </div>
 
     <!-- Main Navigation -->
@@ -123,7 +136,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16 gap-4">
                 <!-- Store Brand / Logo -->
-                <a href="{{ route('minisite.show', $sellerPage->slug) }}" class="flex items-center gap-3 shrink-0">
+                <a href="{{ route('minisite.show', $sellerPage->slug) }}" class="flex items-center gap-3 shrink-0 group">
                     @if($sellerPage->logo_url)
                         <img src="{{ $sellerPage->logo_url }}" alt="{{ $sellerPage->page_title }}" class="h-10 w-10 object-contain rounded-lg border border-gray-100 shadow-sm">
                     @else
@@ -132,7 +145,12 @@
                         </div>
                     @endif
                     <div>
-                        <div class="font-extrabold text-lg text-gray-900 tracking-tight leading-tight">{{ $sellerPage->page_title }}</div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-extrabold text-lg text-gray-900 tracking-tight leading-tight group-hover:text-brand-custom transition-colors">{{ $sellerPage->page_title }}</span>
+                            <span class="text-[10px] text-amber-600 font-bold bg-amber-50 hover:bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300/80 inline-flex items-center gap-1" title="दुकान एडिट करने हेतु ऊपर या नीचे एडिट बटन दबाएं">
+                                <i class="fa-solid fa-pen-to-square text-[9px]"></i> एडिट
+                            </span>
+                        </div>
                         @if($sellerPage->tagline)
                             <div class="text-xs text-gray-500 truncate max-w-[180px] sm:max-w-xs">{{ $sellerPage->tagline }}</div>
                         @endif
@@ -144,6 +162,10 @@
                     <a href="{{ route('minisite.show', $sellerPage->slug) }}" class="hover:text-brand-custom transition-colors {{ request()->routeIs('minisite.show') ? 'text-brand-custom' : '' }}">Home</a>
                     <a href="{{ route('minisite.products', $sellerPage->slug) }}" class="hover:text-brand-custom transition-colors {{ request()->routeIs('minisite.products') ? 'text-brand-custom' : '' }}">All Products</a>
                     <a href="{{ route('minisite.contact', $sellerPage->slug) }}" class="hover:text-brand-custom transition-colors {{ request()->routeIs('minisite.contact') ? 'text-brand-custom' : '' }}">Contact & About</a>
+                    <a href="{{ route('seller.minisite.edit') }}" class="text-amber-700 hover:text-amber-900 font-bold flex items-center gap-1 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-200 transition" title="दुकान का नाम, पता या सेटिंग्स एडिट करें">
+                        <i class="fa-solid fa-pen-to-square text-xs text-amber-600"></i>
+                        <span>दुकान एडिट करें</span>
+                    </a>
                 </nav>
 
                 <!-- Search Bar (Desktop) -->
@@ -559,6 +581,13 @@
                                 </a>
                                 <a href="{{ route('seller.minisite.edit') }}" class="text-emerald-700 hover:text-emerald-900 font-extrabold flex items-center gap-1.5">
                                     <i class="fa-solid fa-pen-to-square text-[11px]"></i> ✏️ दुकान का नाम, पता व लिंक्स एडिट करें
+                                </a>
+                            </li>
+                        @else
+                            <li class="pt-2 border-t border-gray-100">
+                                <a href="{{ route('seller.minisite.edit') }}" class="text-amber-700 hover:text-amber-900 font-black flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 p-2 rounded-xl border border-amber-200 transition" title="दुकान मालिक: यहाँ से लॉगिन कर अपनी दुकान एडिट करें">
+                                    <i class="fa-solid fa-lock text-amber-600"></i>
+                                    <span>🔐 दुकान मालिक लॉगिन / दुकान एडिट करें</span>
                                 </a>
                             </li>
                         @endif
@@ -1302,7 +1331,17 @@
                 </a>
             </div>
         </div>
+    @else
+        <!-- 🔐 Floating Direct Edit / Owner Login Button for Store Owner -->
+        <div class="fixed bottom-5 left-5 z-40 print:hidden">
+            <a href="{{ route('seller.minisite.edit') }}" class="px-3.5 py-2.5 rounded-2xl bg-slate-900/95 hover:bg-black text-white font-black text-xs shadow-2xl border border-amber-400 backdrop-blur-md flex items-center gap-2 transition transform hover:scale-105" title="दुकान मालिक: दुकान का नाम, पता या सेटिंग्स एडिट करें">
+                <i class="fa-solid fa-pen-to-square text-amber-400 text-sm"></i>
+                <span class="text-amber-300">✏️ दुकान एडिट करें</span>
+            </a>
+        </div>
+    @endif
 
+    @if(Auth::check() && Auth::id() === $sellerPage->user_id)
         <!-- 📸 Universal Photo Swapper Modal for Store Owner -->
         <div id="photo-swapper-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
             <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-200">

@@ -3,22 +3,44 @@
 @section('content')
 <!-- Hero Section -->
 <section class="relative bg-gray-900 text-white overflow-hidden group/hero" id="hero-banner-section">
-    @if($sellerPage->banner_image_url)
-        <div class="absolute inset-0 z-0">
-            <img src="{{ $sellerPage->banner_image_url }}" alt="{{ $sellerPage->page_title }}" id="live_hero_banner_img" class="w-full h-full object-cover opacity-40 filter blur-xs transition duration-500">
-            <div class="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-900/90 to-transparent"></div>
-        </div>
-    @else
-        <div class="absolute inset-0 z-0 bg-gradient-to-r from-gray-950 via-gray-900 to-gray-800" id="live_hero_banner_img"></div>
-    @endif
+    @php
+        $bannerSlides = $sellerPage->banner_slides;
+    @endphp
+
+    <!-- Multi-Banner Carousel Background -->
+    <div class="absolute inset-0 z-0 overflow-hidden" id="hero-carousel-container">
+        @foreach($bannerSlides as $bIndex => $slideUrl)
+            <div class="hero-slide absolute inset-0 transition-opacity duration-1000 ease-in-out {{ $bIndex === 0 ? 'opacity-40 z-10' : 'opacity-0 z-0 pointer-events-none' }}" data-index="{{ $bIndex }}">
+                <img src="{{ $slideUrl }}" alt="{{ $sellerPage->page_title }} Slide {{ $bIndex + 1 }}" class="w-full h-full object-cover filter blur-xs">
+            </div>
+        @endforeach
+        <div class="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-900/90 to-transparent z-10 pointer-events-none"></div>
+    </div>
 
     <!-- 📷 Store Owner Quick Banner Swapper Button -->
     @if(Auth::check() && Auth::id() === $sellerPage->user_id)
-        <div class="absolute top-4 right-4 z-20">
+        <div class="absolute top-4 right-4 z-30">
             <button type="button" onclick="openBannerSwapper()" class="px-3.5 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-900 text-white font-black text-xs backdrop-blur-md border border-amber-400/50 shadow-xl flex items-center gap-2 transition transform hover:scale-105" title="Change Hero Banner directly on this page">
                 <i class="fa-solid fa-camera text-amber-400"></i>
-                <span>बैनर बदलें / Change Banner</span>
+                <span>बैनर बदलें / Manage Banners</span>
             </button>
+        </div>
+    @endif
+
+    <!-- Carousel Navigation Arrows -->
+    @if(count($bannerSlides) > 1)
+        <button type="button" onclick="stepHeroSlide(-1)" class="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-slate-900/60 hover:bg-slate-900 text-white flex items-center justify-center backdrop-blur-md transition border border-white/20 shadow-xl opacity-80 hover:opacity-100 hover:scale-110" title="पिछला बैनर / Previous Slide">
+            <i class="fa-solid fa-chevron-left text-sm"></i>
+        </button>
+        <button type="button" onclick="stepHeroSlide(1)" class="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-slate-900/60 hover:bg-slate-900 text-white flex items-center justify-center backdrop-blur-md transition border border-white/20 shadow-xl opacity-80 hover:opacity-100 hover:scale-110" title="अगला बैनर / Next Slide">
+            <i class="fa-solid fa-chevron-right text-sm"></i>
+        </button>
+
+        <!-- Carousel Dots Indicator (बिंदु-बिंदु) -->
+        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/70 backdrop-blur-md border border-white/20 shadow-2xl" id="hero-dots-container">
+            @foreach($bannerSlides as $bIndex => $slideUrl)
+                <button type="button" onclick="goToHeroSlide({{ $bIndex }})" class="hero-dot transition-all duration-300 rounded-full {{ $bIndex === 0 ? 'w-6 h-2 bg-amber-400' : 'w-2 h-2 bg-white/40 hover:bg-white' }}" aria-label="Slide {{ $bIndex + 1 }}"></button>
+            @endforeach
         </div>
     @endif
 
@@ -536,22 +558,43 @@
 
 <!-- 📷 1-Click Banner Swapper Modal for Store Owner -->
 <div id="banner-swapper-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-200">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between pb-3 border-b border-gray-100">
             <h3 class="text-sm font-black text-gray-900 flex items-center gap-2">
                 <i class="fa-solid fa-camera text-indigo-600"></i>
-                <span>Change Hero Banner Image (बैनर बदलें)</span>
+                <span>Hero Banners Management (मल्टीपल बैनर प्रबंधित करें)</span>
             </h3>
             <button type="button" onclick="closeBannerSwapper()" class="text-gray-400 hover:text-gray-600 text-sm">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
 
+        @if(count($bannerSlides) > 0)
+            <div class="mt-4">
+                <label class="block text-[11px] font-black text-gray-700 uppercase tracking-wider mb-2">
+                    वर्तमान एक्टिव बैनर स्लाइड्स (Active Carousel Slides):
+                </label>
+                <div class="grid grid-cols-2 gap-2">
+                    @foreach($bannerSlides as $sIndex => $slide)
+                        <div class="relative group rounded-xl overflow-hidden border border-gray-200 shadow-xs h-20 bg-gray-100">
+                            <img src="{{ $slide }}" class="w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-between p-2">
+                                <span class="text-[10px] text-white font-bold bg-black/60 px-1.5 py-0.5 rounded">#{{ $sIndex + 1 }}</span>
+                                <button type="button" onclick="removeBannerSlide('{{ $slide }}')" class="w-7 h-7 rounded-lg bg-red-600 hover:bg-red-700 text-white flex items-center justify-center text-xs shadow-md transition" title="इस स्लाइड को हटाएं">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <form id="banner-swapper-form" onsubmit="submitBannerSwap(event)" class="mt-4 space-y-4">
             <!-- Preset Luxury Templates -->
             <div>
                 <label class="block text-[11px] font-black text-gray-700 uppercase tracking-wider mb-1.5">
-                    1. Or Choose a Curated HD Template (तैयार टेम्पलेट चुनें):
+                    ➕ नया बैनर जोड़ें: तैयार टेम्पलेट चुनें
                 </label>
                 <div class="grid grid-cols-2 gap-2 text-left">
                     <button type="button" onclick="selectBannerTemplate('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1400&q=80')" class="p-2 rounded-xl border border-gray-200 hover:border-indigo-500 hover:bg-indigo-50/50 flex items-center gap-2 text-xs font-bold text-gray-800 transition">
@@ -571,21 +614,21 @@
 
             <!-- Paste Image URL -->
             <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">2. Paste Image URL (वेब लिंक डालें):</label>
+                <label class="block text-xs font-bold text-gray-700 mb-1">या वेब इमेज लिंक पेस्ट करें (Image URL):</label>
                 <input type="url" id="swap_banner_url" placeholder="https://..." class="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-hidden focus:border-indigo-500">
             </div>
 
             <!-- Upload File -->
             <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">3. Or Upload from Phone/Computer (फ़ाइल चुनें):</label>
+                <label class="block text-xs font-bold text-gray-700 mb-1">या फ़ोन / गैलरी से फ़ोटो अपलोड करें:</label>
                 <input type="file" id="swap_banner_file" accept="image/*" class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
             </div>
 
             <div class="pt-2 flex items-center justify-end gap-2">
-                <button type="button" onclick="closeBannerSwapper()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs">Cancel</button>
+                <button type="button" onclick="closeBannerSwapper()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs">रद्द करें</button>
                 <button type="submit" id="btn_submit_banner" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs flex items-center gap-1.5 shadow-sm">
-                    <i class="fa-solid fa-check"></i>
-                    <span>Apply Banner</span>
+                    <i class="fa-solid fa-plus"></i>
+                    <span>स्लाइड जोड़ें (Add Slide)</span>
                 </button>
             </div>
         </form>
@@ -726,6 +769,79 @@
 </div>
 
 <script>
+    /* Multi-Banner Carousel Controller */
+    let heroCurrentIndex = 0;
+    let heroTimer = null;
+    const heroSlides = document.querySelectorAll('.hero-slide');
+    const heroDots = document.querySelectorAll('.hero-dot');
+    const heroSlideCount = heroSlides.length;
+
+    function goToHeroSlide(idx) {
+        if (heroSlideCount <= 1) return;
+        heroCurrentIndex = (idx + heroSlideCount) % heroSlideCount;
+        heroSlides.forEach((slide, i) => {
+            if (i === heroCurrentIndex) {
+                slide.classList.remove('opacity-0', 'pointer-events-none', 'z-0');
+                slide.classList.add('opacity-40', 'z-10');
+            } else {
+                slide.classList.remove('opacity-40', 'z-10');
+                slide.classList.add('opacity-0', 'pointer-events-none', 'z-0');
+            }
+        });
+        heroDots.forEach((dot, i) => {
+            if (i === heroCurrentIndex) {
+                dot.className = 'hero-dot transition-all duration-300 rounded-full w-6 h-2 bg-amber-400';
+            } else {
+                dot.className = 'hero-dot transition-all duration-300 rounded-full w-2 h-2 bg-white/40 hover:bg-white';
+            }
+        });
+    }
+
+    function stepHeroSlide(dir) {
+        goToHeroSlide(heroCurrentIndex + dir);
+        resetHeroTimer();
+    }
+
+    function startHeroTimer() {
+        if (heroSlideCount > 1) {
+            heroTimer = setInterval(() => {
+                goToHeroSlide(heroCurrentIndex + 1);
+            }, 5000);
+        }
+    }
+
+    function resetHeroTimer() {
+        if (heroTimer) clearInterval(heroTimer);
+        startHeroTimer();
+    }
+
+    // Touch swipe support for mobile
+    document.addEventListener('DOMContentLoaded', () => {
+        startHeroTimer();
+        const heroSection = document.getElementById('hero-banner-section');
+        if (heroSection) {
+            let touchStartX = 0;
+            let touchEndX = 0;
+            heroSection.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+            heroSection.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                if (touchStartX - touchEndX > 45) {
+                    stepHeroSlide(1);
+                } else if (touchEndX - touchStartX > 45) {
+                    stepHeroSlide(-1);
+                }
+            }, { passive: true });
+            heroSection.addEventListener('mouseenter', () => {
+                if (heroTimer) clearInterval(heroTimer);
+            });
+            heroSection.addEventListener('mouseleave', () => {
+                startHeroTimer();
+            });
+        }
+    });
+
     function openBannerSwapper() {
         document.getElementById('banner-swapper-modal').classList.remove('hidden');
     }
@@ -736,6 +852,33 @@
         document.getElementById('swap_banner_url').value = url;
     }
 
+    function removeBannerSlide(url) {
+        if (!confirm('क्या आप यह बैनर स्लाइड हटाना चाहते हैं?')) return;
+        const formData = new FormData();
+        formData.append('action', 'remove');
+        formData.append('remove_url', url);
+
+        fetch("{{ route('seller.minisite.quick_banner_update') }}", {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message || 'स्लाइड सफलतापूर्वक हटा दी गई!');
+                window.location.reload();
+            } else {
+                alert(data.message || 'स्लाइड हटाने में त्रुटि हुई।');
+            }
+        })
+        .catch(err => {
+            alert('Error: ' + err.message);
+        });
+    }
+
     function submitBannerSwap(e) {
         e.preventDefault();
         const urlInput = document.getElementById('swap_banner_url');
@@ -743,17 +886,18 @@
         const submitBtn = document.getElementById('btn_submit_banner');
 
         const formData = new FormData();
+        formData.append('action', 'add');
         if (fileInput.files.length > 0) {
             formData.append('banner_image', fileInput.files[0]);
         } else if (urlInput.value.trim()) {
             formData.append('banner_url', urlInput.value.trim());
         } else {
-            alert('Please select a template, enter URL or choose a photo file.');
+            alert('कृपया कोई टेम्पलेट चुनें, इमेज URL डालें या गैलरी से फ़ोटो चुनें।');
             return;
         }
 
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> अपलोड हो रहा है...';
 
         fetch("{{ route('seller.minisite.quick_banner_update') }}", {
             method: 'POST',
@@ -765,25 +909,18 @@
         .then(res => res.json())
         .then(data => {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Apply Banner';
+            submitBtn.innerHTML = '<i class="fa-solid fa-plus"></i> <span>स्लाइड जोड़ें (Add Slide)</span>';
             if (data.success) {
                 closeBannerSwapper();
-                const bannerEl = document.getElementById('live_hero_banner_img');
-                if (bannerEl) {
-                    if (bannerEl.tagName.toLowerCase() === 'img') {
-                        bannerEl.src = data.banner_url;
-                    } else {
-                        bannerEl.innerHTML = `<img src="${data.banner_url}" class="w-full h-full object-cover opacity-40 filter blur-xs">`;
-                    }
-                }
-                alert(data.message || 'Banner updated successfully!');
+                alert(data.message || 'बैनर स्लाइड सफलतापूर्वक जोड़ी गई! ✨');
+                window.location.reload();
             } else {
-                alert(data.message || 'Failed to update banner.');
+                alert(data.message || 'बैनर अपडेट करने में विफल।');
             }
         })
         .catch(err => {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Apply Banner';
+            submitBtn.innerHTML = '<i class="fa-solid fa-plus"></i> <span>स्लाइड जोड़ें (Add Slide)</span>';
             alert('Error updating banner: ' + err.message);
         });
     }

@@ -240,6 +240,34 @@ class MiniSiteController extends Controller
             return response()->json(['success' => false, 'message' => 'Store not found.'], 404);
         }
 
+        $settings = $minisite->business_settings ?? [];
+        if (is_string($settings)) {
+            $settings = json_decode($settings, true) ?: [];
+        }
+        $slides = $settings['banner_slides'] ?? [];
+        if (!is_array($slides)) {
+            $slides = [];
+        }
+
+        $action = $request->input('action', 'add');
+
+        if ($action === 'remove') {
+            $removeUrl = $request->input('remove_url');
+            $slides = array_values(array_filter($slides, fn($item) => $item !== $removeUrl));
+            $settings['banner_slides'] = $slides;
+            $primaryBanner = !empty($slides) ? $slides[0] : null;
+            $minisite->update([
+                'banner_image' => $primaryBanner,
+                'business_settings' => $settings,
+            ]);
+            return response()->json([
+                'success' => true,
+                'banner_slides' => $minisite->banner_slides,
+                'banner_url' => $minisite->banner_url,
+                'message' => 'बैनर स्लाइड हटा दी गई।'
+            ]);
+        }
+
         $url = null;
         if ($request->hasFile('banner_image')) {
             $url = CloudinaryService::upload($request->file('banner_image'), 'vyaparindia/minisite/banners');
@@ -251,12 +279,21 @@ class MiniSiteController extends Controller
             return response()->json(['success' => false, 'message' => 'Please provide a banner photo or valid URL.'], 422);
         }
 
-        $minisite->update(['banner_image' => $url]);
+        if (!in_array($url, $slides)) {
+            $slides[] = $url;
+        }
+        $settings['banner_slides'] = array_values(array_filter($slides));
+
+        $minisite->update([
+            'banner_image' => $url,
+            'business_settings' => $settings,
+        ]);
 
         return response()->json([
             'success' => true,
-            'banner_url' => $minisite->banner_url,
-            'message' => 'Store banner updated successfully! ✨'
+            'banner_url' => $url,
+            'banner_slides' => $minisite->banner_slides,
+            'message' => 'नया बैनर सफलतापूर्वक जोड़ा गया! ✨'
         ]);
     }
 

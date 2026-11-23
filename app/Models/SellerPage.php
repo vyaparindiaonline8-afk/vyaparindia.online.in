@@ -104,6 +104,30 @@ class SellerPage extends Model
         return $this->banner_url;
     }
 
+    public function getBannerSlidesAttribute()
+    {
+        $settings = $this->business_settings ?? [];
+        if (is_string($settings)) {
+            $settings = json_decode($settings, true) ?: [];
+        }
+
+        $slides = $settings['banner_slides'] ?? [];
+        if (!empty($slides) && is_array($slides)) {
+            return array_values(array_filter($slides));
+        }
+
+        if (!empty($this->banner_url)) {
+            return [$this->banner_url];
+        }
+
+        return [
+            'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=1600&q=80',
+            'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1600&q=80',
+            'https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&w=1600&q=80',
+            'https://images.unsplash.com/photo-1507652313519-d4e9174996dd?auto=format&fit=crop&w=1600&q=80',
+        ];
+    }
+
     public function getCleanWhatsappNumberAttribute()
     {
         $num = preg_replace('/[^0-9]/', '', $this->whatsapp_number ?? '');
