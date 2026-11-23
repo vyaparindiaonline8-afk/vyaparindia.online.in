@@ -31,6 +31,15 @@ class MiniSiteController extends Controller
 
     public function store(Request $request)
     {
+        foreach (['google_map_link', 'google_review_link', 'instagram_link', 'facebook_link', 'youtube_link'] as $urlField) {
+            if ($request->filled($urlField)) {
+                $val = trim($request->input($urlField));
+                if (!preg_match('/^https?:\/\//i', $val)) {
+                    $request->merge([$urlField => 'https://' . $val]);
+                }
+            }
+        }
+
         $validated = $request->validate([
             'page_title' => 'required|string|max:255',
             'slug' => 'required|string|max:255|unique:seller_pages|alpha_dash',
@@ -97,6 +106,15 @@ class MiniSiteController extends Controller
         $minisite = Auth::user()->sellerPage;
         if (!$minisite) {
             return redirect()->route('seller.minisite.create');
+        }
+
+        foreach (['google_map_link', 'google_review_link', 'instagram_link', 'facebook_link', 'youtube_link'] as $urlField) {
+            if ($request->filled($urlField)) {
+                $val = trim($request->input($urlField));
+                if (!preg_match('/^https?:\/\//i', $val)) {
+                    $request->merge([$urlField => 'https://' . $val]);
+                }
+            }
         }
 
         $validated = $request->validate([
