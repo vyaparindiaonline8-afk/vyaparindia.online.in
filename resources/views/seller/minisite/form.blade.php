@@ -632,13 +632,21 @@
                     </div>
                 </div>
 
-                <!-- Optional Payment & Bill Toggle (मालिक के लिए पेमेंट/बिल ऑप्शनल रखने की सुविधा) -->
-                <div class="pt-2 border-t border-amber-200/80">
-                    <label class="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-amber-200 cursor-pointer">
-                        <input type="checkbox" name="food_show_bill_and_upi" value="1" {{ !empty($foodModes['show_bill_and_upi'] ?? true) ? 'checked' : '' }} class="h-4 w-4 text-emerald-600 rounded">
+                <!-- Optional Payment & Bill Toggles (बिल और UPI दोनों अलग-अलग टिक करने का सिस्टम) -->
+                <div class="pt-2 border-t border-amber-200/80 space-y-2.5">
+                    <label class="flex items-start gap-3 p-3.5 rounded-2xl bg-white border border-amber-200 cursor-pointer hover:bg-amber-50/40 transition">
+                        <input type="checkbox" name="food_show_bill_amount" value="1" {{ !empty($foodModes['show_bill_amount'] ?? true) ? 'checked' : '' }} class="h-4 w-4 mt-0.5 text-amber-600 rounded">
                         <div>
-                            <div class="text-xs font-black text-gray-900">व्हाट्सएप ऑर्डर में कुल बिल राशि व UPI पेमेंट लिंक दिखाएं (Show Bill & UPI Payment)</div>
-                            <div class="text-[11px] text-gray-500">यदि आप इसे बंद रखेंगे, तो ग्राहक को सिर्फ डिशेज और क्वांटिटी की सूची दिखेगी, कोई फिक्स बिल या UPI लिंक नहीं भेजा जाएगा (दुकानदार बाद में तय करेंगे)।</div>
+                            <div class="text-xs font-black text-gray-900">1. व्हाट्सएप ऑर्डर में कुल बिल राशि (Bill Amount) दिखाएं</div>
+                            <div class="text-[11px] text-gray-500">यदि चालू रखेंगे तो हर डिश का रेट, क्वांटिटी और कुल बिल दिखेगा। यदि बंद रखेंगे तो सिर्फ आइटम के नाम व संख्या जाएगी (मालिक खुद रेट तय करेंगे)।</div>
+                        </div>
+                    </label>
+
+                    <label class="flex items-start gap-3 p-3.5 rounded-2xl bg-white border border-amber-200 cursor-pointer hover:bg-amber-50/40 transition">
+                        <input type="checkbox" name="food_show_upi_payment" value="1" {{ !empty($foodModes['show_upi_payment'] ?? true) ? 'checked' : '' }} class="h-4 w-4 mt-0.5 text-emerald-600 rounded">
+                        <div>
+                            <div class="text-xs font-black text-gray-900">2. व्हाट्सएप में तुरंत UPI भुगतान लिंक (GPay / PhonePe / Paytm) भेजें</div>
+                            <div class="text-[11px] text-gray-500">यदि चालू रखेंगे तो ग्राहक को मैसेज के नीचे 1-क्लिक UPI पे लिंक मिलेगा। यदि बंद रखेंगे तो कोई पेमेंट लिंक नहीं जाएगा (कैश/काउंटर पेमेंट हेतु)।</div>
                         </div>
                     </label>
                 </div>

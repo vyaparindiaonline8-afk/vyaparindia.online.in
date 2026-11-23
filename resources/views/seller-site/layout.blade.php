@@ -388,7 +388,10 @@
 
                     <input type="hidden" id="selected_order_mode" value="{{ $defaultMode }}">
                     <input type="hidden" id="store_packaging_charge" value="{{ $pkgCharge }}">
-                    <input type="hidden" id="store_show_bill_and_upi" value="{{ !empty($fModes['show_bill_and_upi'] ?? true) ? '1' : '0' }}">
+                    <input type="hidden" id="store_show_bill_amount" value="{{ !empty($fModes['show_bill_amount'] ?? true) ? '1' : '0' }}">
+                    <input type="hidden" id="store_show_upi_payment" value="{{ !empty($fModes['show_upi_payment'] ?? true) ? '1' : '0' }}">
+                    <input type="hidden" id="store_google_review_link" value="{{ $sellerPage->google_review_link ?? '' }}">
+                    <input type="hidden" id="store_instagram_link" value="{{ $sellerPage->instagram_link ?? '' }}">
 
                     <!-- Fields for Dine-In -->
                     <div id="mode_fields_dine_in" class="{{ $defaultMode === 'dine_in' ? '' : 'hidden' }} space-y-2">
@@ -460,6 +463,24 @@
                             <span>Direct Online Checkout</span>
                             <i class="fa-solid fa-arrow-right text-[10px]"></i>
                         </a>
+
+                        <!-- Google Review & Instagram Social Badges in Cart -->
+                        @if($sellerPage->google_review_link || $sellerPage->instagram_link)
+                            <div class="pt-2 flex items-center justify-center gap-3 text-[11px] font-bold text-gray-500 border-t border-gray-200/60">
+                                @if($sellerPage->google_review_link)
+                                    <a href="{{ $sellerPage->google_review_link }}" target="_blank" class="hover:text-amber-700 flex items-center gap-1.5 transition">
+                                        <i class="fa-brands fa-google text-amber-500"></i>
+                                        <span>Google Review ⭐</span>
+                                    </a>
+                                @endif
+                                @if($sellerPage->instagram_link)
+                                    <a href="{{ $sellerPage->instagram_link }}" target="_blank" class="hover:text-rose-600 flex items-center gap-1.5 transition">
+                                        <i class="fa-brands fa-instagram text-rose-500"></i>
+                                        <span>Follow on Instagram 📸</span>
+                                    </a>
+                                @endif
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -983,9 +1004,12 @@
             });
 
             const grandTotal = subtotal + appliedPkgCharge;
-            const showBillAndUpi = document.getElementById('store_show_bill_and_upi')?.value === '1';
+            const showBillAmount = document.getElementById('store_show_bill_amount')?.value === '1';
+            const showUpiPayment = document.getElementById('store_show_upi_payment')?.value === '1';
+            const googleReviewLink = document.getElementById('store_google_review_link')?.value.trim();
+            const instagramLink = document.getElementById('store_instagram_link')?.value.trim();
 
-            if (showBillAndUpi) {
+            if (showBillAmount) {
                 text += `━━━━━━━━━━━━━━━━━━━━━\n`;
                 text += `🧾 *Items Subtotal:* ₹${subtotal.toFixed(2)}\n`;
                 if (appliedPkgCharge > 0) {
@@ -993,13 +1017,28 @@
                 }
                 text += `💵 *Final Bill Amount (कुल राशि):* ₹${grandTotal.toFixed(2)}\n`;
                 text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+            } else {
+                text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+                text += `ℹ️ *नोट:* कुल बिल राशि व भुगतान की जानकारी दुकान द्वारा सीधे कन्फर्म की जाएगी।\n`;
+                text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+            }
 
+            if (showUpiPayment && showBillAmount) {
                 const upiId = '{{ $sellerPage->upi_id ?: "7828289433@upi" }}';
                 const upiPayUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(STORE_NAME)}&am=${grandTotal.toFixed(2)}&cu=INR`;
                 text += `💳 *तुरंत UPI भुगतान लिंक (PhonePe / GPay / Paytm):*\n${upiPayUrl}\n\n`;
-            } else {
-                text += `━━━━━━━━━━━━━━━━━━━━━\n`;
-                text += `ℹ️ *नोट:* कुल बिल राशि व भुगतान की जानकारी दुकान द्वारा सीधे कन्फर्म की जाएगी।\n\n`;
+            }
+
+            // Google Review & Instagram Follow integration
+            if (googleReviewLink || instagramLink) {
+                text += `⭐ *कस्टमर कनेक्ट व स्पेशल ऑफर्स:*\n`;
+                if (googleReviewLink) {
+                    text += `🌟 Google पर हमें 5-Star रिव्यू अवश्य दें:\n${googleReviewLink}\n`;
+                }
+                if (instagramLink) {
+                    text += `📸 Instagram पर हमें फॉलो करें:\n${instagramLink}\n`;
+                }
+                text += `\n`;
             }
 
             text += `कृपया ऑर्डर कन्फर्म करें। धन्यवाद! 🙏`;
