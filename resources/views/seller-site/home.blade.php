@@ -101,9 +101,28 @@
             </h1>
 
             @if($sellerPage->dealership_text)
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-blue-900/60 border border-blue-400/40 text-blue-200 text-xs font-bold">
-                    <i class="fa-solid fa-certificate text-amber-400"></i>
-                    <span>{{ $sellerPage->dealership_text }}</span>
+                @php
+                    $dText = $sellerPage->dealership_text;
+                    $cleanDText = preg_replace('/^(Authorized\s+(Distributor|Dealer)\s+of\s+)/i', '', $dText);
+                    $brandsList = array_map('trim', preg_split('/[,&]/', $cleanDText));
+                    $brandsList = array_filter($brandsList, function($b) { 
+                        return !empty($b) && !in_array(strtolower($b), ['authorized distributor', 'authorized dealer', 'dealer of', 'distributor of']); 
+                    });
+                @endphp
+                <div class="flex items-center gap-2 flex-wrap">
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-900/80 border border-blue-400/40 text-amber-300 text-xs font-black shadow-xs">
+                        <i class="fa-solid fa-certificate text-amber-400"></i>
+                        <span>Authorized Distributor:</span>
+                    </div>
+                    @if(count($brandsList) > 0)
+                        @foreach($brandsList as $b)
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition shadow-2xs backdrop-blur-xs">
+                                <i class="fa-solid fa-check text-emerald-400 text-[10px]"></i> {{ $b }}
+                            </span>
+                        @endforeach
+                    @else
+                        <span class="text-xs font-bold text-blue-200">{{ $sellerPage->dealership_text }}</span>
+                    @endif
                 </div>
             @endif
 
@@ -658,7 +677,7 @@
             <!-- Paste Image URL -->
             <div>
                 <label class="block text-xs font-bold text-gray-700 mb-1">या वेब इमेज लिंक पेस्ट करें (Image URL):</label>
-                <input type="url" id="swap_banner_url" placeholder="https://..." class="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-hidden focus:border-indigo-500">
+                <input type="text" id="swap_banner_url" placeholder="https://..." class="w-full px-3 py-2 text-xs rounded-xl border border-gray-300 focus:outline-hidden focus:border-indigo-500">
             </div>
 
             <!-- Upload File -->
@@ -763,7 +782,7 @@
         <form id="project-photo-form" onsubmit="submitProjectPhoto(event)" class="mt-4 space-y-4">
             <div>
                 <label class="block text-xs font-bold text-gray-700 mb-1">Paste Image URL (Bathroom, Plumbing, Fittings):</label>
-                <input type="url" id="project_photo_url" placeholder="https://..." class="w-full px-3 py-2 text-xs rounded-xl border border-gray-300">
+                <input type="text" id="project_photo_url" placeholder="https://..." class="w-full px-3 py-2 text-xs rounded-xl border border-gray-300">
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-700 mb-1">Or Choose Photo File from Device:</label>
@@ -795,7 +814,7 @@
         <form id="shop-photo-form" onsubmit="submitShopPhoto(event)" class="mt-4 space-y-4">
             <div>
                 <label class="block text-xs font-bold text-gray-700 mb-1">Paste Image URL:</label>
-                <input type="url" id="shop_photo_url" placeholder="https://..." class="w-full px-3 py-2 text-xs rounded-xl border border-gray-300">
+                <input type="text" id="shop_photo_url" placeholder="https://..." class="w-full px-3 py-2 text-xs rounded-xl border border-gray-300">
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-700 mb-1">Or Choose Photo File:</label>

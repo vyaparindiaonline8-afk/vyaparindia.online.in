@@ -217,16 +217,16 @@ class SellerPage extends Model
 
     public function getGoogleMapLinkAttribute($value)
     {
-        if (!empty($value)) return $value;
+        if (!empty($value) && !str_contains($value, 'maps.app.goo.gl') && !str_contains($value, 'goo.gl/maps')) return $value;
         $link = $this->business_settings['google_map_link'] ?? ($this->user?->sellerProfile?->google_map_url ?? '');
-        if (!empty($link)) return $link;
+        if (!empty($link) && !str_contains($link, 'maps.app.goo.gl') && !str_contains($link, 'goo.gl/maps')) return $link;
         return $this->universal_map_link;
     }
 
     public function getUniversalMapLinkAttribute()
     {
         $link = $this->attributes['google_map_link'] ?? ($this->business_settings['google_map_link'] ?? ($this->user?->sellerProfile?->google_map_url ?? ''));
-        if (!empty($link) && !str_contains($link, 'maps.app.goo.gl')) {
+        if (!empty($link) && !str_contains($link, 'maps.app.goo.gl') && !str_contains($link, 'goo.gl/maps')) {
             return $link;
         }
 

@@ -103,41 +103,121 @@
                         </div>
                     </div>
 
-                    <!-- Business Category / Shop Type -->
-                    <div class="sm:col-span-2 bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                        <div class="flex items-center justify-between mb-1.5">
+                    <!-- Business Category / Shop Type (Multi-Category Selector) -->
+                    <div class="sm:col-span-2 bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5">
+                        <div class="flex items-center justify-between mb-2">
                             <label class="block text-xs font-black text-slate-900">
-                                <i class="fa-solid fa-store text-indigo-600 mr-1"></i> Business Category / किस चीज़ की दुकान है?
+                                <i class="fa-solid fa-store text-indigo-600 mr-1"></i> Business Categories (दुकान की श्रेणियां — एक से अधिक चुन सकते हैं)
                             </label>
-                            <span class="text-[10px] text-slate-500 font-semibold">Click to quick-fill</span>
+                            <button type="button" onclick="clearBusinessCategories()" class="text-[10px] text-rose-600 hover:text-rose-800 font-bold transition">
+                                <i class="fa-solid fa-trash-can mr-0.5"></i> रीसेट
+                            </button>
                         </div>
-                        <input type="text" id="business_cat_input" name="business_category_custom" value="{{ old('business_category_custom', $minisite->business_category_custom ?? '') }}" placeholder="e.g. Sanitaryware, Tiles & Bathroom Fittings" class="w-full px-4 py-2 text-xs font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none mb-2">
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                            <button type="button" onclick="setBusinessCat('Sanitaryware, Bath Fittings & Tiles')" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 text-[11px] font-bold text-slate-700 transition shadow-2xs">🚽 Sanitaryware & Tiles</button>
-                            <button type="button" onclick="setBusinessCat('Hardware, CPVC Pipes & Paint Store')" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 text-[11px] font-bold text-slate-700 transition shadow-2xs">🔧 Hardware & Pipes</button>
-                            <button type="button" onclick="setBusinessCat('Fashion, Clothing & Saree Showroom')" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 text-[11px] font-bold text-slate-700 transition shadow-2xs">👗 Fashion & Cloth Store</button>
-                            <button type="button" onclick="setBusinessCat('Electricals, Fans & LED Lighting')" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 text-[11px] font-bold text-slate-700 transition shadow-2xs">⚡ Electricals & Lights</button>
-                            <button type="button" onclick="setBusinessCat('Building Materials, Cement & TMT Steel')" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 text-[11px] font-bold text-slate-700 transition shadow-2xs">🏗️ Cement & TMT Steel</button>
+                        <input type="text" id="business_cat_input" name="business_category_custom" value="{{ old('business_category_custom', $minisite->business_category_custom ?? '') }}" placeholder="उदा. Sanitaryware, Tiles & Bathroom Fittings, Hardware & Pipes" class="w-full px-4 py-2.5 text-xs font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none mb-3">
+                        
+                        <div class="space-y-2">
+                            <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">क्लिक करके कैटेगरी जोड़ें या हटाएं (Multi-Select):</div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button type="button" data-cat-name="Sanitaryware & Tiles" onclick="toggleBusinessCategory('Sanitaryware & Tiles', this)" class="cat-chip-btn px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-indigo-500 text-[11px] font-bold text-slate-700 transition shadow-2xs flex items-center gap-1">
+                                    <span>🚽 Sanitaryware & Tiles</span>
+                                </button>
+                                <button type="button" data-cat-name="Hardware & Pipes" onclick="toggleBusinessCategory('Hardware & Pipes', this)" class="cat-chip-btn px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-indigo-500 text-[11px] font-bold text-slate-700 transition shadow-2xs flex items-center gap-1">
+                                    <span>🔧 Hardware & Pipes</span>
+                                </button>
+                                <button type="button" data-cat-name="Bathroom Fittings & CPVC" onclick="toggleBusinessCategory('Bathroom Fittings & CPVC', this)" class="cat-chip-btn px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-indigo-500 text-[11px] font-bold text-slate-700 transition shadow-2xs flex items-center gap-1">
+                                    <span>🚿 Bathroom Fittings & CPVC</span>
+                                </button>
+                                <button type="button" data-cat-name="Water Tanks & Plumbing" onclick="toggleBusinessCategory('Water Tanks & Plumbing', this)" class="cat-chip-btn px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-indigo-500 text-[11px] font-bold text-slate-700 transition shadow-2xs flex items-center gap-1">
+                                    <span>🚰 Water Tanks & Plumbing</span>
+                                </button>
+                                <button type="button" data-cat-name="Electricals & Lights" onclick="toggleBusinessCategory('Electricals & Lights', this)" class="cat-chip-btn px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-indigo-500 text-[11px] font-bold text-slate-700 transition shadow-2xs flex items-center gap-1">
+                                    <span>⚡ Electricals & Lights</span>
+                                </button>
+                                <button type="button" data-cat-name="Paints & Waterproofing" onclick="toggleBusinessCategory('Paints & Waterproofing', this)" class="cat-chip-btn px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-indigo-500 text-[11px] font-bold text-slate-700 transition shadow-2xs flex items-center gap-1">
+                                    <span>🎨 Paints & Waterproofing</span>
+                                </button>
+                                <button type="button" data-cat-name="Building Materials & Cement" onclick="toggleBusinessCategory('Building Materials & Cement', this)" class="cat-chip-btn px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-indigo-500 text-[11px] font-bold text-slate-700 transition shadow-2xs flex items-center gap-1">
+                                    <span>🏗️ Cement & TMT Steel</span>
+                                </button>
+                                <button type="button" data-cat-name="Fashion & Clothing" onclick="toggleBusinessCategory('Fashion & Clothing', this)" class="cat-chip-btn px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-indigo-500 text-[11px] font-bold text-slate-700 transition shadow-2xs flex items-center gap-1">
+                                    <span>👗 Fashion & Clothes</span>
+                                </button>
+                                <button type="button" data-cat-name="Grocery & Daily Needs" onclick="toggleBusinessCategory('Grocery & Daily Needs', this)" class="cat-chip-btn px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-indigo-500 text-[11px] font-bold text-slate-700 transition shadow-2xs flex items-center gap-1">
+                                    <span>🛒 Grocery & FMCG</span>
+                                </button>
+                            </div>
+
+                            <div class="flex items-center gap-2 pt-1">
+                                <input type="text" id="custom_cat_input" placeholder="अन्य कोई कैटेगरी (उदा. Solar Panels, Modular Kitchen)" class="px-3 py-1.5 text-xs font-bold bg-white border border-slate-300 rounded-xl focus:border-indigo-500 focus:outline-none flex-1 max-w-xs" onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomCategory();}">
+                                <button type="button" onclick="addCustomCategory()" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-2xs">
+                                    <i class="fa-solid fa-plus text-[10px]"></i> कैटेगरी जोड़ें
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Authorized Dealerships / Distributorships -->
-                    <div class="sm:col-span-2 bg-blue-50/60 border border-blue-200 rounded-2xl p-4">
-                        <div class="flex items-center justify-between mb-1.5">
+                    <!-- Authorized Dealerships / Distributorships (Multi-Brand Support) -->
+                    <div class="sm:col-span-2 bg-blue-50/60 border border-blue-200 rounded-2xl p-4 sm:p-5">
+                        <div class="flex items-center justify-between mb-2">
                             <label class="block text-xs font-black text-blue-900">
-                                <i class="fa-solid fa-certificate text-blue-600 mr-1"></i> Authorized Dealership / Distributor of (किन कंपनियों के अधिकृत डीलर हैं?)
+                                <i class="fa-solid fa-certificate text-blue-600 mr-1"></i> Authorized Dealerships & Distributorships (किन-किन कंपनियों के अधिकृत डीलर हैं?)
                             </label>
-                            <span class="text-[10px] text-blue-600 font-semibold">Add brand chips</span>
+                            <button type="button" onclick="clearDealershipBrands()" class="text-[10px] text-rose-600 hover:text-rose-800 font-bold transition">
+                                <i class="fa-solid fa-trash-can mr-0.5"></i> रीसेट
+                            </button>
                         </div>
-                        <input type="text" id="dealership_input" name="dealership_text" value="{{ old('dealership_text', $minisite->dealership_text ?? '') }}" placeholder="e.g. Authorized Distributor of Cava Sanitaryware, Cera, Plasto & Jaquar" class="w-full px-4 py-2 text-xs font-bold bg-white border border-blue-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none mb-2">
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                            <button type="button" onclick="appendDealership('Cava Sanitaryware')" class="px-2.5 py-1 rounded-lg bg-white border border-blue-200 hover:border-blue-500 text-blue-700 text-[11px] font-bold transition shadow-2xs">+ Cava Sanitary</button>
-                            <button type="button" onclick="appendDealership('Cera')" class="px-2.5 py-1 rounded-lg bg-white border border-blue-200 hover:border-blue-500 text-blue-700 text-[11px] font-bold transition shadow-2xs">+ Cera</button>
-                            <button type="button" onclick="appendDealership('Jaquar')" class="px-2.5 py-1 rounded-lg bg-white border border-blue-200 hover:border-blue-500 text-blue-700 text-[11px] font-bold transition shadow-2xs">+ Jaquar</button>
-                            <button type="button" onclick="appendDealership('Plasto Pipes')" class="px-2.5 py-1 rounded-lg bg-white border border-blue-200 hover:border-blue-500 text-blue-700 text-[11px] font-bold transition shadow-2xs">+ Plasto Pipes</button>
-                            <button type="button" onclick="appendDealership('Supreme')" class="px-2.5 py-1 rounded-lg bg-white border border-blue-200 hover:border-blue-500 text-blue-700 text-[11px] font-bold transition shadow-2xs">+ Supreme</button>
-                            <button type="button" onclick="appendDealership('Ashirvad')" class="px-2.5 py-1 rounded-lg bg-white border border-blue-200 hover:border-blue-500 text-blue-700 text-[11px] font-bold transition shadow-2xs">+ Ashirvad</button>
-                            <button type="button" onclick="appendDealership('Kajaria Tiles')" class="px-2.5 py-1 rounded-lg bg-white border border-blue-200 hover:border-blue-500 text-blue-700 text-[11px] font-bold transition shadow-2xs">+ Kajaria</button>
+                        <input type="text" id="dealership_input" name="dealership_text" value="{{ old('dealership_text', $minisite->dealership_text ?? '') }}" placeholder="उदा. Authorized Distributor of Plasto Pipes, Cera, Jaquar, Supreme, Ashirvad" class="w-full px-4 py-2.5 text-xs font-bold bg-white border border-blue-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none mb-3">
+                        
+                        <div class="space-y-2">
+                            <div class="text-[10px] text-blue-800 font-bold uppercase tracking-wider">क्लिक करके ब्रांड्स जोड़ें या हटाएं (Multi-Select):</div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button type="button" data-brand-name="Plasto Pipes" onclick="toggleDealershipBrand('Plasto Pipes')" class="brand-chip-btn px-3 py-1.5 rounded-xl bg-white border border-blue-200 hover:border-blue-500 text-blue-800 text-[11px] font-bold transition shadow-2xs flex items-center gap-1">
+                                    <span>💧 Plasto Pipes & Tanks</span>
+                                </button>
+                                <button type="button" data-brand-name="Cera" onclick="toggleDealershipBrand('Cera')" class="brand-chip-btn px-3 py-1.5 rounded-xl bg-white border border-blue-200 hover:border-blue-500 text-blue-800 text-[11px] font-bold transition shadow-2xs flex items-center gap-1">
+                                    <span>🚽 Cera</span>
+                                </button>
+                                <button type="button" data-brand-name="Jaquar" onclick="toggleDealershipBrand('Jaquar')" class="brand-chip-btn px-3 py-1.5 rounded-xl bg-white border border-blue-200 hover:border-blue-500 text-blue-800 text-[11px] font-bold transition shadow-2xs flex items-center gap-1">
+                                    <span>🚿 Jaquar</span>
+                                </button>
+                                <button type="button" data-brand-name="Supreme" onclick="toggleDealershipBrand('Supreme')" class="brand-chip-btn px-3 py-1.5 rounded-xl bg-white border border-blue-200 hover:border-blue-500 text-blue-800 text-[11px] font-bold transition shadow-2xs flex items-center gap-1">
+                                    <span>🚰 Supreme</span>
+                                </button>
+                                <button type="button" data-brand-name="Ashirvad" onclick="toggleDealershipBrand('Ashirvad')" class="brand-chip-btn px-3 py-1.5 rounded-xl bg-white border border-blue-200 hover:border-blue-500 text-blue-800 text-[11px] font-bold transition shadow-2xs flex items-center gap-1">
+                                    <span>🛡️ Ashirvad</span>
+                                </button>
+                                <button type="button" data-brand-name="Astral" onclick="toggleDealershipBrand('Astral')" class="brand-chip-btn px-3 py-1.5 rounded-xl bg-white border border-blue-200 hover:border-blue-500 text-blue-800 text-[11px] font-bold transition shadow-2xs flex items-center gap-1">
+                                    <span>🌟 Astral</span>
+                                </button>
+                                <button type="button" data-brand-name="Finolex" onclick="toggleDealershipBrand('Finolex')" class="brand-chip-btn px-3 py-1.5 rounded-xl bg-white border border-blue-200 hover:border-blue-500 text-blue-800 text-[11px] font-bold transition shadow-2xs flex items-center gap-1">
+                                    <span>⚡ Finolex</span>
+                                </button>
+                                <button type="button" data-brand-name="Kajaria" onclick="toggleDealershipBrand('Kajaria')" class="brand-chip-btn px-3 py-1.5 rounded-xl bg-white border border-blue-200 hover:border-blue-500 text-blue-800 text-[11px] font-bold transition shadow-2xs flex items-center gap-1">
+                                    <span>🧱 Kajaria</span>
+                                </button>
+                                <button type="button" data-brand-name="Somany" onclick="toggleDealershipBrand('Somany')" class="brand-chip-btn px-3 py-1.5 rounded-xl bg-white border border-blue-200 hover:border-blue-500 text-blue-800 text-[11px] font-bold transition shadow-2xs flex items-center gap-1">
+                                    <span>🛁 Somany</span>
+                                </button>
+                                <button type="button" data-brand-name="Hindware" onclick="toggleDealershipBrand('Hindware')" class="brand-chip-btn px-3 py-1.5 rounded-xl bg-white border border-blue-200 hover:border-blue-500 text-blue-800 text-[11px] font-bold transition shadow-2xs flex items-center gap-1">
+                                    <span>💎 Hindware</span>
+                                </button>
+                                <button type="button" data-brand-name="Sintex" onclick="toggleDealershipBrand('Sintex')" class="brand-chip-btn px-3 py-1.5 rounded-xl bg-white border border-blue-200 hover:border-blue-500 text-blue-800 text-[11px] font-bold transition shadow-2xs flex items-center gap-1">
+                                    <span>🛢️ Sintex</span>
+                                </button>
+                                <button type="button" data-brand-name="Prince Pipes" onclick="toggleDealershipBrand('Prince Pipes')" class="brand-chip-btn px-3 py-1.5 rounded-xl bg-white border border-blue-200 hover:border-blue-500 text-blue-800 text-[11px] font-bold transition shadow-2xs flex items-center gap-1">
+                                    <span>🔧 Prince Pipes</span>
+                                </button>
+                                <button type="button" data-brand-name="Cava Sanitaryware" onclick="toggleDealershipBrand('Cava Sanitaryware')" class="brand-chip-btn px-3 py-1.5 rounded-xl bg-white border border-blue-200 hover:border-blue-500 text-blue-800 text-[11px] font-bold transition shadow-2xs flex items-center gap-1">
+                                    <span>🚿 Cava Sanitary</span>
+                                </button>
+                            </div>
+
+                            <div class="flex items-center gap-2 pt-1">
+                                <input type="text" id="custom_brand_input" placeholder="अन्य ब्रांड या कंपनी का नाम लिखें (उदा. Vectus, Asian Paints, Berger)" class="px-3 py-1.5 text-xs font-bold bg-white border border-blue-300 rounded-xl focus:border-blue-600 focus:outline-none flex-1 max-w-xs" onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomBrand();}">
+                                <button type="button" onclick="addCustomBrand()" class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-2xs">
+                                    <i class="fa-solid fa-plus text-[10px]"></i> कंपनी जोड़ें
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -603,8 +683,9 @@
                     'packaging_charge' => 0,
                     'min_order_delivery' => 0,
                 ];
+                $isFoodDining = (isset($minisite) && $minisite->business_type === 'food_dining');
             @endphp
-            <div class="bg-gradient-to-br from-amber-50/70 via-white to-orange-50/60 rounded-3xl border-2 border-amber-200 p-6 sm:p-8 shadow-xs space-y-6">
+            <div id="restaurant_service_section" class="{{ $isFoodDining ? '' : 'hidden' }} bg-gradient-to-br from-amber-50/70 via-white to-orange-50/60 rounded-3xl border-2 border-amber-200 p-6 sm:p-8 shadow-xs space-y-6">
                 <input type="hidden" name="food_settings_submitted" value="1">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-amber-200/80">
                     <div class="flex items-center gap-2.5">
@@ -836,7 +917,7 @@
                     <label class="block text-xs font-bold text-slate-800 mb-1">
                         <i class="fa-solid fa-camera text-indigo-600 mr-1"></i> Add Showroom / Warehouse Photo Link (या सीधे स्टोर पेज से अपलोड करें)
                     </label>
-                    <input type="url" name="new_shop_photo_url" placeholder="https://... (Shop board, rack display or warehouse photo)" class="w-full px-4 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:border-indigo-500 focus:outline-none">
+                    <input type="text" name="new_shop_photo_url" placeholder="उदा. https://... (Shop board, rack display or warehouse photo)" class="w-full px-4 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:border-indigo-500 focus:outline-none">
                     <span class="text-[11px] text-slate-500 mt-1 block">Tip: You can also click "Add Shop Photo" directly on your storefront page anytime!</span>
                 </div>
             </div>
@@ -855,20 +936,117 @@
     </div>
 
     <script>
-        function setBusinessCat(catName) {
+        function toggleBusinessCategory(catName) {
             const input = document.getElementById('business_cat_input');
-            if (input) input.value = catName;
+            if (!input) return;
+            let current = input.value.trim();
+            let items = current ? current.split(',').map(s => s.trim()).filter(Boolean) : [];
+            
+            const existingIdx = items.findIndex(item => item.toLowerCase() === catName.toLowerCase());
+            if (existingIdx >= 0) {
+                items.splice(existingIdx, 1);
+            } else {
+                items.push(catName);
+            }
+            input.value = items.join(', ');
+            syncCategoryChips();
         }
 
-        function appendDealership(brandName) {
+        function addCustomCategory() {
+            const customInput = document.getElementById('custom_cat_input');
+            const catName = customInput ? customInput.value.trim() : '';
+            if (!catName) return;
+            toggleBusinessCategory(catName);
+            customInput.value = '';
+        }
+
+        function clearBusinessCategories() {
+            const input = document.getElementById('business_cat_input');
+            if (input) input.value = '';
+            syncCategoryChips();
+        }
+
+        function syncCategoryChips() {
+            const input = document.getElementById('business_cat_input');
+            if (!input) return;
+            const current = input.value.toLowerCase();
+            document.querySelectorAll('.cat-chip-btn').forEach(btn => {
+                const name = btn.getAttribute('data-cat-name')?.toLowerCase();
+                if (name && current.includes(name)) {
+                    btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
+                    btn.classList.remove('bg-white', 'text-slate-700', 'border-slate-200');
+                } else {
+                    btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600');
+                    btn.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
+                }
+            });
+        }
+
+        function toggleDealershipBrand(brandName) {
             const input = document.getElementById('dealership_input');
             if (!input) return;
             let current = input.value.trim();
-            if (!current) {
-                input.value = 'Authorized Dealer of ' + brandName;
-            } else if (!current.includes(brandName)) {
-                input.value = current + ', ' + brandName;
+            let prefix = "Authorized Distributor of ";
+            let rawList = current;
+            if (current.toLowerCase().startsWith('authorized distributor of ')) {
+                rawList = current.substring('authorized distributor of '.length).trim();
+            } else if (current.toLowerCase().startsWith('authorized dealer of ')) {
+                rawList = current.substring('authorized dealer of '.length).trim();
             }
+
+            let brands = rawList ? rawList.split(',').map(s => s.trim()).filter(Boolean) : [];
+            const idx = brands.findIndex(b => b.toLowerCase() === brandName.toLowerCase());
+            if (idx >= 0) {
+                brands.splice(idx, 1);
+            } else {
+                brands.push(brandName);
+            }
+
+            if (brands.length === 0) {
+                input.value = '';
+            } else {
+                input.value = prefix + brands.join(', ');
+            }
+            syncBrandChips();
+        }
+
+        function addCustomBrand() {
+            const customInput = document.getElementById('custom_brand_input');
+            const brandName = customInput ? customInput.value.trim() : '';
+            if (!brandName) return;
+            toggleDealershipBrand(brandName);
+            customInput.value = '';
+        }
+
+        function clearDealershipBrands() {
+            const input = document.getElementById('dealership_input');
+            if (input) input.value = '';
+            syncBrandChips();
+        }
+
+        function syncBrandChips() {
+            const input = document.getElementById('dealership_input');
+            if (!input) return;
+            const current = input.value.toLowerCase();
+            document.querySelectorAll('.brand-chip-btn').forEach(btn => {
+                const name = btn.getAttribute('data-brand-name')?.toLowerCase();
+                if (name && current.includes(name)) {
+                    btn.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
+                    btn.classList.remove('bg-white', 'text-blue-800', 'border-blue-200');
+                } else {
+                    btn.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
+                    btn.classList.add('bg-white', 'text-blue-800', 'border-blue-200');
+                }
+            });
+        }
+
+        // Backward compatibility wrappers
+        function setBusinessCat(catName) {
+            toggleBusinessCategory(catName);
+        }
+
+        function appendDealership(brandName) {
+            toggleDealershipBrand(brandName);
         }
 
         function setTagline(taglineText) {
@@ -1042,7 +1220,22 @@
                     }
                 }
             });
+
+            // Dynamically show or hide Restaurant section based on business type
+            const restaurantSection = document.getElementById('restaurant_service_section');
+            if (restaurantSection) {
+                if (selectedRadio && selectedRadio.value === 'food_dining') {
+                    restaurantSection.classList.remove('hidden');
+                } else {
+                    restaurantSection.classList.add('hidden');
+                }
+            }
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            syncCategoryChips();
+            syncBrandChips();
+        });
 
         // 📸 AI Snap-to-Menu Modal Functions
         let parsedMenuItems = [];

@@ -229,11 +229,12 @@ class MiniSiteController extends Controller
         if ($request->filled('longitude')) {
             $currentSettings['longitude'] = floatval($request->input('longitude'));
         }
-        if ($request->filled('business_category_custom')) {
+        if ($request->has('business_category_custom')) {
             $currentSettings['business_category_custom'] = trim($request->input('business_category_custom'));
         }
-        if ($request->filled('dealership_text')) {
+        if ($request->has('dealership_text')) {
             $currentSettings['dealership_text'] = trim($request->input('dealership_text'));
+            $validated['dealership_text'] = trim($request->input('dealership_text'));
         }
         if ($request->filled('serviced_cities')) {
             $currentSettings['serviced_cities'] = trim($request->input('serviced_cities'));

@@ -118,14 +118,10 @@
                 <span class="hidden md:inline">• 📲 Fast WhatsApp Ordering</span>
             @endif
         </div>
-        <div class="shrink-0 flex items-center gap-2">
-            @if(Auth::check() && Auth::id() === $sellerPage->user_id)
-                <a href="{{ route('seller.minisite.edit') }}" class="text-amber-400 hover:text-amber-300 font-extrabold text-[11px] flex items-center gap-1 bg-slate-800 px-2 py-0.5 rounded-md border border-amber-400/40" title="दुकान की जानकारी व सेटिंग्स बदलें">
-                    <i class="fa-solid fa-pen-to-square"></i> <span>दुकान एडिट करें</span>
-                </a>
-            @else
-                <a href="{{ route('seller.minisite.edit') }}" class="text-amber-300 hover:text-white font-extrabold text-[11px] flex items-center gap-1 bg-slate-800/90 hover:bg-slate-700 px-2.5 py-0.5 rounded-md border border-amber-400/50 shadow-xs" title="दुकान मालिक लॉगिन / दुकान एडिट करें">
-                    <i class="fa-solid fa-pen-to-square text-amber-400 text-[10px]"></i> <span>दुकान एडिट करें (Login)</span>
+        <div class="shrink-0 flex items-center gap-3 text-slate-300 text-[11px]">
+            @if($sellerPage->phone)
+                <a href="tel:{{ $sellerPage->phone }}" class="hover:text-amber-300 transition-colors flex items-center gap-1">
+                    <i class="fa-solid fa-phone text-xs"></i> <span>{{ $sellerPage->phone }}</span>
                 </a>
             @endif
         </div>
@@ -147,9 +143,6 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <span class="font-extrabold text-lg text-gray-900 tracking-tight leading-tight group-hover:text-brand-custom transition-colors">{{ $sellerPage->page_title }}</span>
-                            <span class="text-[10px] text-amber-600 font-bold bg-amber-50 hover:bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300/80 inline-flex items-center gap-1" title="दुकान एडिट करने हेतु ऊपर या नीचे एडिट बटन दबाएं">
-                                <i class="fa-solid fa-pen-to-square text-[9px]"></i> एडिट
-                            </span>
                         </div>
                         @if($sellerPage->tagline)
                             <div class="text-xs text-gray-500 truncate max-w-[180px] sm:max-w-xs">{{ $sellerPage->tagline }}</div>
@@ -162,10 +155,6 @@
                     <a href="{{ route('minisite.show', $sellerPage->slug) }}" class="hover:text-brand-custom transition-colors {{ request()->routeIs('minisite.show') ? 'text-brand-custom' : '' }}">Home</a>
                     <a href="{{ route('minisite.products', $sellerPage->slug) }}" class="hover:text-brand-custom transition-colors {{ request()->routeIs('minisite.products') ? 'text-brand-custom' : '' }}">All Products</a>
                     <a href="{{ route('minisite.contact', $sellerPage->slug) }}" class="hover:text-brand-custom transition-colors {{ request()->routeIs('minisite.contact') ? 'text-brand-custom' : '' }}">Contact & About</a>
-                    <a href="{{ route('seller.minisite.edit') }}" class="text-amber-700 hover:text-amber-900 font-bold flex items-center gap-1 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-200 transition" title="दुकान का नाम, पता या सेटिंग्स एडिट करें">
-                        <i class="fa-solid fa-pen-to-square text-xs text-amber-600"></i>
-                        <span>दुकान एडिट करें</span>
-                    </a>
                 </nav>
 
                 <!-- Search Bar (Desktop) -->

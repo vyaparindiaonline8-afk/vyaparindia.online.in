@@ -50,6 +50,8 @@ class SellerProfileController extends Controller
             $validated['background_image'] = \App\Services\CloudinaryService::upload($request->file('background_image'), 'vyaparindia/seller/backgrounds');
         }
 
+        $validated = $this->sanitizeSocialLinks($validated);
+
         $profile = Auth::user()->sellerProfile()->create($validated);
 
         // Sync with SellerPage if exists
@@ -57,10 +59,10 @@ class SellerProfileController extends Controller
         if ($sellerPage) {
             $updates = [
                 'support_phone' => $request->office_phone ?? $sellerPage->support_phone,
-                'google_map_link' => $request->google_map_url ?? $sellerPage->google_map_link,
-                'facebook_link' => $request->facebook_url ?? $sellerPage->facebook_link,
-                'instagram_link' => $request->instagram_url ?? $sellerPage->instagram_link,
-                'youtube_link' => $request->youtube_url ?? $sellerPage->youtube_link,
+                'google_map_link' => $validated['google_map_url'] ?? $sellerPage->google_map_link,
+                'facebook_link' => $validated['facebook_url'] ?? $sellerPage->facebook_link,
+                'instagram_link' => $validated['instagram_url'] ?? $sellerPage->instagram_link,
+                'youtube_link' => $validated['youtube_url'] ?? $sellerPage->youtube_link,
             ];
             if (!empty($validated['whatsapp_number'])) {
                 $updates['whatsapp_number'] = $validated['whatsapp_number'];
@@ -127,6 +129,8 @@ class SellerProfileController extends Controller
             $validated['background_image'] = \App\Services\CloudinaryService::upload($request->file('background_image'), 'vyaparindia/seller/backgrounds');
         }
 
+        $validated = $this->sanitizeSocialLinks($validated);
+
         $profile->update($validated);
 
         // 🛍️ Sync / Save Multi-Channel Store Display Names
@@ -152,10 +156,10 @@ class SellerProfileController extends Controller
         if ($sellerPage) {
             $updates = [
                 'support_phone' => $request->office_phone ?? $sellerPage->support_phone,
-                'google_map_link' => $request->google_map_url ?? $sellerPage->google_map_link,
-                'facebook_link' => $request->facebook_url ?? $sellerPage->facebook_link,
-                'instagram_link' => $request->instagram_url ?? $sellerPage->instagram_link,
-                'youtube_link' => $request->youtube_url ?? $sellerPage->youtube_link,
+                'google_map_link' => $validated['google_map_url'] ?? $sellerPage->google_map_link,
+                'facebook_link' => $validated['facebook_url'] ?? $sellerPage->facebook_link,
+                'instagram_link' => $validated['instagram_url'] ?? $sellerPage->instagram_link,
+                'youtube_link' => $validated['youtube_url'] ?? $sellerPage->youtube_link,
             ];
             if (!empty($validated['whatsapp_number'])) {
                 $updates['whatsapp_number'] = $validated['whatsapp_number'];
@@ -167,5 +171,42 @@ class SellerProfileController extends Controller
         }
 
         return redirect()->route('seller.dashboard')->with('success', 'Seller profile updated successfully.');
+    }
+
+    /**
+     * Auto sanitize handle or raw username inputs to full HTTPS URLs
+     */
+    protected function sanitizeSocialLinks(array $data): array
+    {
+        if (!empty($data['instagram_url'])) {
+            $handle = trim($data['instagram_url']);
+            $handle = preg_replace('#^https?://(www\.)?instagram\.com/#i', '', $handle);
+            $handle = ltrim($handle, '@');
+            $handle = rtrim($handle, '/');
+            if (!empty($handle)) {
+                $data['instagram_url'] = 'https://instagram.com/' . $handle;
+            }
+        }
+        if (!empty($data['facebook_url'])) {
+            $handle = trim($data['facebook_url']);
+            $handle = preg_replace('#^https?://(www\.)?facebook\.com/#i', '', $handle);
+            $handle = ltrim($handle, '@');
+            $handle = rtrim($handle, '/');
+            if (!empty($handle)) {
+                $data['facebook_url'] = 'https://facebook.com/' . $handle;
+            }
+        }
+        if (!empty($data['youtube_url'])) {
+            $handle = trim($data['youtube_url']);
+            $handle = preg_replace('#^https?://(www\.)?youtube\.com/#i', '', $handle);
+            $handle = rtrim($handle, '/');
+            if (!empty($handle)) {
+                if (!str_starts_with($handle, '@') && !str_starts_with($handle, 'channel/') && !str_starts_with($handle, 'c/')) {
+                    $handle = '@' . $handle;
+                }
+                $data['youtube_url'] = 'https://youtube.com/' . $handle;
+            }
+        }
+        return $data;
     }
 }
