@@ -19,7 +19,15 @@
     }
     $totalCardImages = count($cardImages);
 @endphp
-<div class="bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden group p-2.5 sm:p-3.5 space-y-2 sm:space-y-3 relative" id="card_box_{{ $product->id }}">
+<div class="bg-white rounded-2xl border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden group p-2.5 sm:p-3.5 space-y-2 sm:space-y-3 relative" 
+     id="card_box_{{ $product->id }}"
+     data-prod-id="{{ $product->id }}"
+     data-prod-name="{{ $product->name }}"
+     data-prod-price="{{ $initPrice }}"
+     data-prod-image="{{ $product->image_url }}"
+     data-prod-slug="{{ $product->slug }}"
+     data-prod-group="{{ $product->group_name }}"
+     data-prod-diet="general">
     
     <!-- Top Image & Quick Badges -->
     <div>

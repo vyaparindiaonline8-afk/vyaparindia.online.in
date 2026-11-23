@@ -167,4 +167,32 @@ class SellerPage extends Model
     {
         return $this->business_settings['serviced_pincodes'] ?? '496445, 496001, 495001, 492001';
     }
+
+    public function getFoodServiceModesAttribute(): array
+    {
+        $settings = $this->business_settings ?? [];
+        return $settings['food_service_modes'] ?? [
+            'dine_in' => true,
+            'takeaway' => true,
+            'delivery' => true,
+            'tables_count' => 10,
+            'packaging_charge' => 0,
+            'min_order_delivery' => 0,
+        ];
+    }
+
+    public function isDineInActive(): bool
+    {
+        return !empty($this->food_service_modes['dine_in']);
+    }
+
+    public function isTakeawayActive(): bool
+    {
+        return !empty($this->food_service_modes['takeaway']);
+    }
+
+    public function isDeliveryActive(): bool
+    {
+        return !empty($this->food_service_modes['delivery']);
+    }
 }

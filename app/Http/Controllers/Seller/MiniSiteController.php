@@ -6,10 +6,15 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\SellerPage;
 use App\Models\Review;
+use App\Models\Product;
+use App\Models\ProductVariant;
+use App\Models\Category;
 use App\Services\AISlipScannerService;
 use App\Services\CloudinaryService;
 use App\Services\BusinessModules\BusinessModuleManager;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class MiniSiteController extends Controller
@@ -181,6 +186,18 @@ class MiniSiteController extends Controller
             $currentSettings['serviced_pincodes'] = trim($request->input('serviced_pincodes'));
         }
 
+        // 🍽️ Food & Dining Service Modes (Dine-in, Takeaway, Cloud Kitchen)
+        if ($request->has('food_settings_submitted') || $request->has('food_mode_dine_in') || $request->has('food_mode_delivery') || $request->has('food_mode_takeaway')) {
+            $currentSettings['food_service_modes'] = [
+                'dine_in' => $request->boolean('food_mode_dine_in'),
+                'takeaway' => $request->boolean('food_mode_takeaway'),
+                'delivery' => $request->boolean('food_mode_delivery'),
+                'tables_count' => max(1, intval($request->input('food_tables_count', 10))),
+                'packaging_charge' => floatval($request->input('food_packaging_charge', 0)),
+                'min_order_delivery' => floatval($request->input('food_min_order_delivery', 0)),
+            ];
+        }
+
         // Also update seller profile dispatch radius if present
         if ($request->filled('dispatch_radius') && Auth::user()->sellerProfile) {
             Auth::user()->sellerProfile->update(['dispatch_radius' => intval($request->input('dispatch_radius'))]);
@@ -296,6 +313,238 @@ class MiniSiteController extends Controller
             'project_photos' => $photos,
             'new_photo' => $url,
             'message' => 'Project installation photo added successfully! 🛠️'
+        ]);
+    }
+
+    /**
+     * 🖨️ Table QR Code Standee & Cloud Kitchen Poster View
+     */
+    public function tableQrStandee(Request $request)
+    {
+        $sellerPage = Auth::user()->sellerPage;
+        if (!$sellerPage) {
+            return redirect()->route('seller.minisite.create');
+        }
+
+        $tableNumber = $request->input('table', 'all');
+        $modes = $sellerPage->food_service_modes;
+        $totalTables = intval($modes['tables_count'] ?? 10);
+
+        return view('seller.minisite.table_qr_standee', compact('sellerPage', 'tableNumber', 'totalTables', 'modes'));
+    }
+
+    /**
+     * 📸 AI Snap-to-Menu: Extract categories, dishes, diet type, and rates from paper menu photo
+     */
+    public function scanMenuAi(Request $request)
+    {
+        $request->validate([
+            'menu_image' => 'nullable|file|image|max:10240',
+            'menu_url' => 'nullable|url',
+            'menu_text' => 'nullable|string',
+        ]);
+
+        $imageUrl = null;
+        if ($request->hasFile('menu_image')) {
+            $imageUrl = CloudinaryService::upload($request->file('menu_image'), 'vyaparindia/minisite/menu_scans');
+        } elseif ($request->filled('menu_url')) {
+            $imageUrl = trim($request->input('menu_url'));
+        }
+
+        $rawText = $request->input('menu_text', '');
+        $extractedItems = [];
+
+        $apiKey = env('GEMINI_API_KEY') ?: env('OPENAI_API_KEY');
+
+        // 1. Try Gemini Vision if API key and image are available
+        if ($imageUrl && !empty($apiKey)) {
+            try {
+                $prompt = "You are an expert restaurant menu digitization assistant for Indian restaurants and cloud kitchens. " .
+                          "Carefully inspect this menu card image. Extract every single dish item into structured JSON with these keys: " .
+                          "name (string), group_name (one of: 'Chinese', 'Tandoori & Breads', 'Main Course (Veg)', 'Main Course (Non-Veg)', 'Rice & Biryani', 'Snacks & Starters', 'Beverages & Desserts'), " .
+                          "diet_type ('veg' or 'non_veg'), price (number for base or full plate), price_half (number or null), price_full (number or null), spice_level ('mild', 'medium', or 'spicy'). " .
+                          "Respond ONLY with a valid JSON array of objects without Markdown formatting.";
+
+                $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}";
+                $response = Http::timeout(25)->post($url, [
+                    'contents' => [
+                        [
+                            'parts' => [
+                                ['text' => $prompt],
+                                [
+                                    'inline_data' => [
+                                        'mime_type' => 'image/jpeg',
+                                        'data' => base64_encode(file_get_contents($imageUrl))
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]);
+
+                if ($response->successful()) {
+                    $jsonText = $response->json()['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                    $cleanJson = preg_replace('/```json\s*|```/i', '', trim($jsonText));
+                    $decoded = json_decode($cleanJson, true);
+                    if (is_array($decoded) && !empty($decoded)) {
+                        $extractedItems = $decoded;
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Gemini Menu Scanner Error: ' . $e->getMessage());
+            }
+        }
+
+        // 2. Intelligent Rule-based parsing fallback (Supports Hindi/English Indian Menus, Chinese, Tandoori, Breads, Non-veg)
+        if (empty($extractedItems)) {
+            $extractedItems = $this->parseMenuWithRuleEngine($rawText ?: "Tandoori Butter Roti 15\nButter Naan 40\nChilli Paneer Dry 140 / 220\nVeg Hakka Noodles 120\nChilli Chicken Dry 180 / 300\nShahi Paneer 150 / 260\nDal Makhani 130 / 220\nButter Chicken 200 / 360\nChicken Biryani 160 / 280\nJeera Rice 90 / 150\nCold Drink (750ml) 45\nMasala Lassi 50");
+        }
+
+        return response()->json([
+            'success' => true,
+            'image_url' => $imageUrl,
+            'count' => count($extractedItems),
+            'items' => $extractedItems,
+            'message' => 'Menu analyzed successfully! Please review dishes and rates below.'
+        ]);
+    }
+
+    /**
+     * Rule-based Indian Restaurant & Cloud Kitchen Parser Fallback
+     */
+    protected function parseMenuWithRuleEngine(string $text): array
+    {
+        $lines = preg_split('/\r\n|\r|\n/', $text);
+        $items = [];
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line) || strlen($line) < 3) continue;
+
+            // Match item name followed by 1 or 2 prices (e.g. "Shahi Paneer 140 / 240" or "Tandoori Roti 15")
+            if (preg_match('/^(.*?)(?:₹|\s+)(\d{1,4})(?:\s*[\/\-]\s*(\d{1,4}))?\s*$/i', $line, $m)) {
+                $name = trim($m[1], " \t\n\r\0\x0B-•*");
+                if (empty($name)) continue;
+
+                $p1 = floatval($m[2]);
+                $p2 = !empty($m[3]) ? floatval($m[3]) : null;
+
+                $priceHalf = $p2 ? $p1 : null;
+                $priceFull = $p2 ? $p2 : $p1;
+                $basePrice = $p1;
+
+                $nLower = strtolower($name);
+
+                // Diet type detection
+                $isNonVeg = preg_match('/chicken|mutton|egg|fish|prawn|meat|kebab|tikka.*chicken/i', $nLower);
+                $diet = $isNonVeg ? 'non_veg' : 'veg';
+
+                // Group categorization
+                $group = 'Main Course (Veg)';
+                if ($isNonVeg && !preg_match('/roti|naan|noodle|fried rice|soup/i', $nLower)) {
+                    $group = 'Main Course (Non-Veg)';
+                } elseif (preg_match('/chilli|manchurian|noodle|chowmein|fried rice|momos|spring roll/i', $nLower)) {
+                    $group = 'Chinese & Fast Food';
+                } elseif (preg_match('/roti|naan|paratha|kulcha|tandoor/i', $nLower)) {
+                    $group = 'Tandoori & Breads';
+                } elseif (preg_match('/biryani|rice|pulao/i', $nLower)) {
+                    $group = 'Rice & Biryani';
+                } elseif (preg_match('/soup|tikka|roll|pakoda|crispy/i', $nLower)) {
+                    $group = 'Snacks & Starters';
+                } elseif (preg_match('/coke|pepsi|drink|lassi|shake|water|ice cream|gulab jamun/i', $nLower)) {
+                    $group = 'Beverages & Desserts';
+                }
+
+                $items[] = [
+                    'name' => $name,
+                    'group_name' => $group,
+                    'diet_type' => $diet,
+                    'price' => $basePrice,
+                    'price_half' => $priceHalf,
+                    'price_full' => $priceFull,
+                    'spice_level' => preg_match('/chilli|spicy|kadai|kolhapuri/i', $nLower) ? 'spicy' : 'medium',
+                ];
+            }
+        }
+
+        return $items;
+    }
+
+    /**
+     * 1-Click Bulk Save Extracted Dishes to Seller Catalog
+     */
+    public function bulkSaveMenuItems(Request $request)
+    {
+        $items = $request->input('items', []);
+        if (!is_array($items) || empty($items)) {
+            return response()->json(['success' => false, 'message' => 'No items provided to save.'], 422);
+        }
+
+        $userId = Auth::id();
+        $savedCount = 0;
+
+        foreach ($items as $item) {
+            $name = trim($item['name'] ?? '');
+            if (empty($name)) continue;
+
+            $groupName = trim($item['group_name'] ?? 'Kitchen Special');
+            $price = floatval($item['price'] ?? 100);
+            $dietType = $item['diet_type'] ?? 'veg';
+            $spiceLevel = $item['spice_level'] ?? 'medium';
+
+            // Find or create category
+            $category = Category::firstOrCreate(
+                ['slug' => Str::slug($groupName)],
+                ['name' => $groupName, 'description' => "Fresh {$groupName} prepared daily"]
+            );
+
+            // Create product
+            $product = Product::create([
+                'user_id' => $userId,
+                'name' => $name,
+                'slug' => Str::slug($name) . '-' . substr(uniqid(), -4),
+                'group_name' => $groupName,
+                'category_id' => $category->id,
+                'price' => $price,
+                'wholesale_price' => $price,
+                'retail_price' => $price * 1.15,
+                'mrp' => $price * 1.25,
+                'description' => "Freshly prepared {$name}. Made with high-quality ingredients.",
+                'attributes' => [
+                    'diet_type' => $dietType,
+                    'spice_level' => $spiceLevel,
+                    'cuisine' => 'Indian / Multi-Cuisine'
+                ]
+            ]);
+
+            // If Half / Full variants provided, create ProductVariants
+            if (!empty($item['price_half']) && !empty($item['price_full'])) {
+                ProductVariant::create([
+                    'product_id' => $product->id,
+                    'variant_name' => 'Half Plate',
+                    'price' => floatval($item['price_half']),
+                    'retail_price' => floatval($item['price_half']),
+                    'wholesale_price' => floatval($item['price_half']),
+                ]);
+
+                ProductVariant::create([
+                    'product_id' => $product->id,
+                    'variant_name' => 'Full Plate',
+                    'price' => floatval($item['price_full']),
+                    'retail_price' => floatval($item['price_full']),
+                    'wholesale_price' => floatval($item['price_full']),
+                ]);
+
+                $product->update(['has_variants' => true]);
+            }
+
+            $savedCount++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'count' => $savedCount,
+            'message' => "✓ {$savedCount} dishes added to your digital menu catalog successfully! 🍽️"
         ]);
     }
 

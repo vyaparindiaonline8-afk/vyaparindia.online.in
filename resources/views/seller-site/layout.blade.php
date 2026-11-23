@@ -341,29 +341,115 @@
                     <!-- Populated by JavaScript -->
                 </div>
 
-                <!-- Cart Footer & Checkout -->
-                <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 space-y-3" id="cart-footer">
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="text-gray-500">Subtotal:</span>
-                        <span id="cart-subtotal" class="font-extrabold text-gray-900 text-lg">₹0.00</span>
+                <!-- 🍽️ Food & Dining / Retail Order Service Mode Selector -->
+                @php
+                    $fModes = $sellerPage->food_service_modes;
+                    $hasDineIn = !empty($fModes['dine_in']);
+                    $hasTakeaway = !empty($fModes['takeaway']);
+                    $hasDelivery = !empty($fModes['delivery']);
+                    $modeCount = ($hasDineIn ? 1 : 0) + ($hasTakeaway ? 1 : 0) + ($hasDelivery ? 1 : 0);
+                    $defaultMode = $hasDineIn ? 'dine_in' : ($hasDelivery ? 'delivery' : ($hasTakeaway ? 'takeaway' : 'delivery'));
+                    $pkgCharge = floatval($fModes['packaging_charge'] ?? 0);
+                    $tablesCount = intval($fModes['tables_count'] ?? 10);
+                @endphp
+
+                <div class="px-6 py-3 bg-amber-50/70 border-t border-amber-200/80 text-xs" id="cart-service-mode-box">
+                    <!-- Mode Tabs (Hidden if only 1 mode is enabled by owner) -->
+                    @if($modeCount > 1)
+                        <div class="flex items-center gap-1.5 p-1 rounded-xl bg-amber-100/70 border border-amber-200 mb-3 text-[11px] font-black">
+                            @if($hasDineIn)
+                                <button type="button" onclick="selectCartOrderMode('dine_in')" id="btn_mode_dine_in" class="flex-1 py-1.5 rounded-lg transition text-center flex items-center justify-center gap-1 {{ $defaultMode === 'dine_in' ? 'bg-amber-600 text-white shadow-xs' : 'text-amber-900 hover:bg-amber-200/60' }}">
+                                    <span>🪑 डाइन-इन (Table)</span>
+                                </button>
+                            @endif
+                            @if($hasDelivery)
+                                <button type="button" onclick="selectCartOrderMode('delivery')" id="btn_mode_delivery" class="flex-1 py-1.5 rounded-lg transition text-center flex items-center justify-center gap-1 {{ $defaultMode === 'delivery' ? 'bg-amber-600 text-white shadow-xs' : 'text-amber-900 hover:bg-amber-200/60' }}">
+                                    <span>🛵 डिलीवरी (Home)</span>
+                                </button>
+                            @endif
+                            @if($hasTakeaway)
+                                <button type="button" onclick="selectCartOrderMode('takeaway')" id="btn_mode_takeaway" class="flex-1 py-1.5 rounded-lg transition text-center flex items-center justify-center gap-1 {{ $defaultMode === 'takeaway' ? 'bg-amber-600 text-white shadow-xs' : 'text-amber-900 hover:bg-amber-200/60' }}">
+                                    <span>🥡 पार्सल (Pickup)</span>
+                                </button>
+                            @endif
+                        </div>
+                    @else
+                        <!-- Single Mode Badge (Zero timepass for customer) -->
+                        <div class="mb-2 text-[11px] font-black text-amber-900 flex items-center gap-1.5">
+                            @if($hasDineIn)
+                                <span class="px-2 py-0.5 rounded-md bg-amber-200/70 text-amber-950">🪑 टेबल डाइन-इन ऑर्डर (Table Dine-In Only)</span>
+                            @elseif($hasDelivery)
+                                <span class="px-2 py-0.5 rounded-md bg-amber-200/70 text-amber-950">🛵 क्लाउड किचन होम डिलीवरी (Home Delivery Only)</span>
+                            @elseif($hasTakeaway)
+                                <span class="px-2 py-0.5 rounded-md bg-amber-200/70 text-amber-950">🥡 काउंटर टेकअवे पार्सल (Takeaway Only)</span>
+                            @endif
+                        </div>
+                    @endif
+
+                    <input type="hidden" id="selected_order_mode" value="{{ $defaultMode }}">
+                    <input type="hidden" id="store_packaging_charge" value="{{ $pkgCharge }}">
+
+                    <!-- Fields for Dine-In -->
+                    <div id="mode_fields_dine_in" class="{{ $defaultMode === 'dine_in' ? '' : 'hidden' }} space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="text-[11px] font-bold text-gray-700">अपनी टेबल चुनें (Table No.):</label>
+                            <select id="order_table_number" class="px-2.5 py-1 text-xs font-black border border-amber-300 rounded-lg bg-white text-gray-900 focus:outline-none">
+                                @for($t = 1; $t <= $tablesCount; $t++)
+                                    <option value="{{ $t }}">Table #{{ $t }}</option>
+                                @endfor
+                            </select>
+                        </div>
                     </div>
-                    <div class="flex items-center justify-between text-xs text-gray-500">
-                        <span>Shipping Delivery:</span>
-                        <span class="text-emerald-600 font-semibold">Free Delivery</span>
+
+                    <!-- Fields for Cloud Kitchen / Delivery -->
+                    <div id="mode_fields_delivery" class="{{ $defaultMode === 'delivery' ? '' : 'hidden' }} space-y-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="order_delivery_name" placeholder="आपका नाम (Name)" class="w-full px-2.5 py-1.5 text-xs font-bold border border-amber-300 rounded-lg bg-white">
+                            <input type="tel" id="order_delivery_phone" placeholder="मोबाइल नंबर (Phone)" class="w-full px-2.5 py-1.5 text-xs font-bold font-mono border border-amber-300 rounded-lg bg-white">
+                        </div>
+                        <input type="text" id="order_delivery_address" placeholder="डिलीवरी पता / मकान नं., कालोनी (Full Address)" class="w-full px-2.5 py-1.5 text-xs font-bold border border-amber-300 rounded-lg bg-white">
+                    </div>
+
+                    <!-- Fields for Takeaway / Pickup -->
+                    <div id="mode_fields_takeaway" class="{{ $defaultMode === 'takeaway' ? '' : 'hidden' }} space-y-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="order_takeaway_name" placeholder="आपका नाम (Name)" class="w-full px-2.5 py-1.5 text-xs font-bold border border-amber-300 rounded-lg bg-white">
+                            <input type="text" id="order_takeaway_time" value="20 मिनट में (In 20 mins)" placeholder="पिकअप का समय" class="w-full px-2.5 py-1.5 text-xs font-bold border border-amber-300 rounded-lg bg-white">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cart Footer & Checkout -->
+                <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 space-y-2.5" id="cart-footer">
+                    <div class="flex items-center justify-between text-xs text-gray-600">
+                        <span>Items Subtotal:</span>
+                        <span id="cart-subtotal" class="font-extrabold text-gray-900">₹0.00</span>
+                    </div>
+
+                    @if($pkgCharge > 0)
+                        <div class="flex items-center justify-between text-xs text-gray-600" id="cart-packaging-row">
+                            <span>Packing / Delivery Fee:</span>
+                            <span class="font-bold text-gray-800">₹{{ number_format($pkgCharge, 2) }}</span>
+                        </div>
+                    @endif
+
+                    <div class="flex items-center justify-between text-sm pt-1 border-t border-gray-200">
+                        <span class="font-black text-gray-900">Final Total Bill (कुल बिल):</span>
+                        <span id="cart-grandtotal" class="font-black text-emerald-700 text-lg">₹0.00</span>
                     </div>
 
                     <div class="pt-2 space-y-2">
-                        <a href="{{ route('minisite.checkout', $sellerPage->slug) }}" class="w-full py-3 px-4 rounded-xl bg-brand-custom text-white font-bold text-sm shadow-md hover:opacity-90 active:scale-98 transition-all flex items-center justify-center gap-2">
-                            <span>Proceed to Checkout</span>
-                            <i class="fa-solid fa-arrow-right"></i>
-                        </a>
-
                         @if($sellerPage->whatsapp_number)
-                            <button onclick="orderCartViaWhatsapp()" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 text-white font-semibold text-xs shadow-sm hover:bg-emerald-700 transition-all flex items-center justify-center gap-2">
-                                <i class="fa-brands fa-whatsapp text-sm"></i>
-                                <span>Order Cart via WhatsApp</span>
+                            <button onclick="orderCartViaWhatsapp()" class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-2">
+                                <i class="fa-brands fa-whatsapp text-base"></i>
+                                <span>Confirm Order & Send to WhatsApp</span>
                             </button>
                         @endif
+
+                        <a href="{{ route('minisite.checkout', $sellerPage->slug) }}" class="w-full py-2 px-4 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2">
+                            <span>Direct Online Checkout</span>
+                            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -494,18 +580,132 @@
             updateCartUI();
         }
 
+        function stepCardQty(prodId, delta) {
+            const qtyEl = document.getElementById(`card_qty_${prodId}`);
+            if (!qtyEl) return;
+            let val = Math.max(1, (parseInt(qtyEl.value) || 1) + delta);
+            qtyEl.value = val;
+            recalcCardTotal(prodId);
+        }
+
+        function onCardQtyInput(prodId) {
+            const qtyEl = document.getElementById(`card_qty_${prodId}`);
+            if (qtyEl) {
+                qtyEl.value = Math.max(1, parseInt(qtyEl.value) || 1);
+            }
+            recalcCardTotal(prodId);
+        }
+
+        function onCardVariantChanged(prodId) {
+            recalcCardTotal(prodId);
+        }
+
+        function recalcCardTotal(prodId) {
+            const box = document.getElementById(`card_box_${prodId}`);
+            const qtyEl = document.getElementById(`card_qty_${prodId}`);
+            const qty = Math.max(1, parseInt(qtyEl?.value || 1));
+            
+            let unitPrice = parseFloat(box?.getAttribute('data-prod-price') || 0);
+            let variantName = '';
+            let variantId = null;
+
+            const varSelect = document.getElementById(`card_variant_${prodId}`);
+            if (varSelect) {
+                if (varSelect.tagName === 'SELECT') {
+                    const opt = varSelect.options[varSelect.selectedIndex];
+                    if (opt) {
+                        unitPrice = parseFloat(opt.getAttribute('data-price') || unitPrice);
+                        variantName = opt.getAttribute('data-name') || '';
+                        variantId = parseInt(opt.value);
+                    }
+                } else if (varSelect.tagName === 'INPUT') {
+                    unitPrice = parseFloat(varSelect.getAttribute('data-price') || unitPrice);
+                    variantName = varSelect.getAttribute('data-name') || '';
+                    variantId = parseInt(varSelect.value);
+                }
+            }
+
+            const totalEl = document.getElementById(`card_total_price_${prodId}`);
+            const unitEl = document.getElementById(`card_unit_price_${prodId}`);
+            if (totalEl) totalEl.innerText = '₹' + (unitPrice * qty).toFixed(2);
+            if (unitEl) unitEl.innerText = '₹' + unitPrice.toFixed(2);
+        }
+
+        function addCardToBag(prodId) {
+            const box = document.getElementById(`card_box_${prodId}`);
+            const qtyEl = document.getElementById(`card_qty_${prodId}`);
+            const qty = Math.max(1, parseInt(qtyEl?.value || 1));
+
+            let basePrice = parseFloat(box?.getAttribute('data-prod-price') || 0);
+            let prodName = box?.getAttribute('data-prod-name') || 'Item';
+            let prodImage = box?.getAttribute('data-prod-image') || '';
+            let prodSlug = box?.getAttribute('data-prod-slug') || '';
+            let groupName = box?.getAttribute('data-prod-group') || '';
+            let dietType = box?.getAttribute('data-prod-diet') || 'veg';
+            let variantId = null;
+            let variantName = '';
+
+            const varSelect = document.getElementById(`card_variant_${prodId}`);
+            if (varSelect) {
+                if (varSelect.tagName === 'SELECT') {
+                    const opt = varSelect.options[varSelect.selectedIndex];
+                    if (opt) {
+                        basePrice = parseFloat(opt.getAttribute('data-price') || basePrice);
+                        variantName = opt.getAttribute('data-name') || '';
+                        variantId = parseInt(opt.value);
+                    }
+                } else if (varSelect.tagName === 'INPUT') {
+                    basePrice = parseFloat(varSelect.getAttribute('data-price') || basePrice);
+                    variantName = varSelect.getAttribute('data-name') || '';
+                    variantId = parseInt(varSelect.value);
+                }
+            }
+
+            const cartItem = {
+                id: prodId,
+                cart_key: `${prodId}_${variantId || 'base'}`,
+                name: prodName,
+                price: basePrice,
+                image: prodImage,
+                slug: prodSlug,
+                variant_id: variantId,
+                variant_name: variantName,
+                group_name: groupName,
+                diet_type: dietType,
+            };
+
+            addToCart(cartItem, qty, true);
+
+            const btn = document.getElementById(`btn_add_bag_${prodId}`);
+            if (btn) {
+                const orig = btn.innerHTML;
+                btn.innerHTML = `<i class="fa-solid fa-check text-emerald-600"></i> Added!`;
+                setTimeout(() => { btn.innerHTML = orig; }, 1600);
+            }
+        }
+
         function addToCart(product, quantity = 1, openDrawer = true) {
             let cart = getCart();
-            let index = cart.findIndex(item => item.id == product.id);
+            const cartKey = product.cart_key || (product.id + (product.variant_id ? '_' + product.variant_id : '_base'));
+            let index = cart.findIndex(item => (item.cart_key || (item.id + (item.variant_id ? '_' + item.variant_id : '_base'))) === cartKey);
+            
             if (index > -1) {
                 cart[index].quantity += quantity;
             } else {
+                const nameLower = (product.name || '').toLowerCase();
+                const isNonVeg = product.diet_type === 'non_veg' || nameLower.includes('chicken') || nameLower.includes('mutton') || nameLower.includes('egg') || nameLower.includes('fish') || nameLower.includes('prawn');
+                
                 cart.push({
                     id: product.id,
+                    cart_key: cartKey,
                     name: product.name,
                     price: parseFloat(product.price),
-                    image: product.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300',
+                    image: product.image_url || product.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300',
                     slug: product.slug,
+                    variant_id: product.variant_id || null,
+                    variant_name: product.variant_name || '',
+                    group_name: product.group_name || '',
+                    diet_type: isNonVeg ? 'non_veg' : 'veg',
                     quantity: quantity
                 });
             }
@@ -515,9 +715,9 @@
             }
         }
 
-        function updateQuantity(productId, delta) {
+        function updateQuantity(cartKey, delta) {
             let cart = getCart();
-            let index = cart.findIndex(item => item.id == productId);
+            let index = cart.findIndex(item => (item.cart_key || (item.id + (item.variant_id ? '_' + item.variant_id : '_base'))) == cartKey);
             if (index > -1) {
                 cart[index].quantity += delta;
                 if (cart[index].quantity <= 0) {
@@ -527,9 +727,32 @@
             }
         }
 
-        function removeFromCart(productId) {
-            let cart = getCart().filter(item => item.id != productId);
+        function removeFromCart(cartKey) {
+            let cart = getCart().filter(item => (item.cart_key || (item.id + (item.variant_id ? '_' + item.variant_id : '_base'))) != cartKey);
             saveCart(cart);
+        }
+
+        function selectCartOrderMode(mode) {
+            const modeInput = document.getElementById('selected_order_mode');
+            if (modeInput) modeInput.value = mode;
+
+            ['dine_in', 'delivery', 'takeaway'].forEach(m => {
+                const btn = document.getElementById(`btn_mode_${m}`);
+                const fields = document.getElementById(`mode_fields_${m}`);
+                if (btn) {
+                    if (m === mode) {
+                        btn.className = "flex-1 py-1.5 rounded-lg transition text-center flex items-center justify-center gap-1 bg-amber-600 text-white shadow-xs font-black";
+                    } else {
+                        btn.className = "flex-1 py-1.5 rounded-lg transition text-center flex items-center justify-center gap-1 text-amber-900 hover:bg-amber-200/60 font-black";
+                    }
+                }
+                if (fields) {
+                    if (m === mode) fields.classList.remove('hidden');
+                    else fields.classList.add('hidden');
+                }
+            });
+
+            updateCartUI();
         }
 
         function toggleCartDrawer(show) {
@@ -548,7 +771,9 @@
             const badge = document.getElementById('cart-badge');
             const container = document.getElementById('cart-items-container');
             const subtotalEl = document.getElementById('cart-subtotal');
+            const grandtotalEl = document.getElementById('cart-grandtotal');
             const footer = document.getElementById('cart-footer');
+            const modeBox = document.getElementById('cart-service-mode-box');
 
             let totalCount = 0;
             let subtotal = 0;
@@ -557,6 +782,12 @@
                 totalCount += item.quantity;
                 subtotal += item.price * item.quantity;
             });
+
+            // Calculate packaging fee based on selected mode
+            const currentMode = document.getElementById('selected_order_mode')?.value || 'dine_in';
+            const basePkgCharge = parseFloat(document.getElementById('store_packaging_charge')?.value || 0);
+            const appliedPkgCharge = (currentMode === 'delivery' || currentMode === 'takeaway') ? basePkgCharge : 0;
+            const grandTotal = subtotal + appliedPkgCharge;
 
             if (badge) {
                 if (totalCount > 0) {
@@ -570,6 +801,9 @@
             if (subtotalEl) {
                 subtotalEl.innerText = '₹' + subtotal.toFixed(2);
             }
+            if (grandtotalEl) {
+                grandtotalEl.innerText = '₹' + grandTotal.toFixed(2);
+            }
 
             // Update Sticky Bottom Quick Bar
             const stickyBar = document.getElementById('sticky-bottom-cart-bar');
@@ -579,11 +813,19 @@
             if (stickyBar && stickyCount && stickyTotal) {
                 if (totalCount > 0) {
                     stickyCount.innerText = totalCount;
-                    stickyTotal.innerText = '₹' + subtotal.toFixed(2);
+                    stickyTotal.innerText = '₹' + grandTotal.toFixed(2);
                     stickyBar.classList.remove('hidden');
                 } else {
                     stickyBar.classList.add('hidden');
                 }
+            }
+
+            // Auto-detect table from URL parameter (e.g. ?table=3)
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('table')) {
+                const tableVal = urlParams.get('table');
+                const tableSelect = document.getElementById('order_table_number');
+                if (tableSelect) tableSelect.value = tableVal;
             }
 
             if (container) {
@@ -592,30 +834,44 @@
                         <div class="flex flex-col items-center justify-center h-64 text-center text-gray-400">
                             <i class="fa-solid fa-cart-shopping text-4xl mb-3 text-gray-300"></i>
                             <p class="text-sm font-semibold text-gray-600">Your shopping bag is empty</p>
-                            <p class="text-xs text-gray-400 mt-1">Browse our store and add items you love</p>
-                            <a href="{{ route('minisite.products', $sellerPage->slug) }}" onclick="toggleCartDrawer(false)" class="mt-4 px-4 py-2 rounded-lg bg-gray-900 text-white text-xs font-semibold hover:bg-gray-800">
-                                Explore Products
+                            <p class="text-xs text-gray-400 mt-1">Browse our menu and add items to order</p>
+                            <a href="{{ route('minisite.products', $sellerPage->slug) }}" onclick="toggleCartDrawer(false)" class="mt-4 px-4 py-2 rounded-xl bg-gray-900 text-white text-xs font-semibold hover:bg-gray-800">
+                                Explore Menu & Dishes
                             </a>
                         </div>
                     `;
                     if (footer) footer.classList.add('opacity-50', 'pointer-events-none');
+                    if (modeBox) modeBox.classList.add('opacity-50', 'pointer-events-none');
                 } else {
                     if (footer) footer.classList.remove('opacity-50', 'pointer-events-none');
+                    if (modeBox) modeBox.classList.remove('opacity-50', 'pointer-events-none');
                     let html = '<div class="divide-y divide-gray-100">';
                     cart.forEach(item => {
+                        const itemKey = item.cart_key || (item.id + (item.variant_id ? '_' + item.variant_id : '_base'));
+                        const isVeg = item.diet_type === 'veg';
+                        const portionTxt = item.variant_name ? `<span class="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-black">${item.variant_name}</span>` : '';
+                        const groupTxt = item.group_name ? `<span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded font-medium">${item.group_name}</span>` : '';
+
                         html += `
                             <div class="py-3.5 flex items-center gap-3">
-                                <img src="${item.image}" alt="${item.name}" class="h-14 w-14 object-cover rounded-lg border border-gray-100 shrink-0">
+                                <div class="relative shrink-0">
+                                    <img src="${item.image}" alt="${item.name}" class="h-14 w-14 object-cover rounded-xl border border-gray-100">
+                                    <span class="absolute -top-1 -left-1 h-3.5 w-3.5 rounded-full ${isVeg ? 'bg-emerald-600' : 'bg-rose-600'} border-2 border-white shadow-2xs" title="${isVeg ? 'Veg' : 'Non-Veg'}"></span>
+                                </div>
                                 <div class="flex-1 min-w-0">
-                                    <div class="font-semibold text-xs text-gray-900 truncate">${item.name}</div>
-                                    <div class="text-xs font-bold text-gray-900 mt-0.5">₹${item.price.toFixed(2)}</div>
+                                    <div class="font-bold text-xs text-gray-900 truncate">${item.name}</div>
+                                    <div class="flex items-center gap-1.5 mt-0.5">
+                                        ${portionTxt}
+                                        ${groupTxt}
+                                    </div>
+                                    <div class="text-xs font-black text-gray-900 mt-1">₹${(item.price * item.quantity).toFixed(2)} <span class="text-[10px] text-gray-400 font-normal">(₹${item.price.toFixed(2)} ea)</span></div>
                                     <div class="flex items-center gap-2 mt-1.5">
-                                        <div class="flex items-center border border-gray-200 rounded-md bg-white">
-                                            <button onclick="updateQuantity(${item.id}, -1)" class="px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-100">-</button>
-                                            <span class="px-2 text-xs font-bold text-gray-800">${item.quantity}</span>
-                                            <button onclick="updateQuantity(${item.id}, 1)" class="px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-100">+</button>
+                                        <div class="flex items-center border border-gray-200 rounded-lg bg-gray-50">
+                                            <button onclick="updateQuantity('${itemKey}', -1)" class="px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-200 font-black">-</button>
+                                            <span class="px-2 text-xs font-bold text-gray-900">${item.quantity}</span>
+                                            <button onclick="updateQuantity('${itemKey}', 1)" class="px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-200 font-black">+</button>
                                         </div>
-                                        <button onclick="removeFromCart(${item.id})" class="text-xs text-red-500 hover:text-red-700 ml-auto">
+                                        <button onclick="removeFromCart('${itemKey}')" class="text-xs text-red-500 hover:text-red-700 ml-auto p-1">
                                             <i class="fa-solid fa-trash-can"></i>
                                         </button>
                                     </div>
@@ -636,18 +892,80 @@
                 return;
             }
 
-            let text = `*New Order Inquiry from ${STORE_NAME}*\n\n`;
+            const mode = document.getElementById('selected_order_mode')?.value || 'dine_in';
+            const basePkgCharge = parseFloat(document.getElementById('store_packaging_charge')?.value || 0);
+            const appliedPkgCharge = (mode === 'delivery' || mode === 'takeaway') ? basePkgCharge : 0;
+
+            let modeTitle = '';
+            let customerDetails = '';
+
+            if (mode === 'dine_in') {
+                const tableNo = document.getElementById('order_table_number')?.value || '1';
+                modeTitle = `🪑 *Dine-In (डाइन-इन टेबल ऑर्डर)*\n🪑 *Table Number:* Table #${tableNo}`;
+            } else if (mode === 'delivery') {
+                const name = document.getElementById('order_delivery_name')?.value.trim();
+                const phone = document.getElementById('order_delivery_phone')?.value.trim();
+                const addr = document.getElementById('order_delivery_address')?.value.trim();
+
+                if (!name || !phone || !addr) {
+                    alert('कृपया होम डिलीवरी हेतु अपना नाम, मोबाइल नंबर और पूरा पता अवश्य भरें!');
+                    return;
+                }
+                modeTitle = `🛵 *Cloud Kitchen / Home Delivery (होम डिलीवरी)*`;
+                customerDetails = `👤 *Customer Name:* ${name}\n📞 *Phone:* ${phone}\n📍 *Delivery Address:* ${addr}\n`;
+            } else {
+                const name = document.getElementById('order_takeaway_name')?.value.trim() || 'ग्राहक';
+                const time = document.getElementById('order_takeaway_time')?.value.trim() || '20 मिनट में';
+                modeTitle = `🥡 *Takeaway / Parcel Pickup (काउंटर पिकअप)*`;
+                customerDetails = `👤 *Customer Name:* ${name}\n⏱️ *Pickup Time:* ${time}\n`;
+            }
+
+            let text = `🛎️ *नया ऑर्डर प्राप्त हुआ - ${STORE_NAME}!*\n━━━━━━━━━━━━━━━━━━━━━\n${modeTitle}\n${customerDetails}━━━━━━━━━━━━━━━━━━━━━\n📋 *ऑर्डर किए गए आइटम्स:*\n`;
+
             let subtotal = 0;
             cart.forEach((item, index) => {
                 let itemTotal = item.price * item.quantity;
                 subtotal += itemTotal;
-                text += `${index + 1}. *${item.name}*\n   Qty: ${item.quantity} x ₹${item.price} = ₹${itemTotal.toFixed(2)}\n`;
+                const dietMarker = item.diet_type === 'non_veg' ? '🔴' : '🟢';
+                const varTxt = item.variant_name ? ` (${item.variant_name})` : '';
+                const groupTxt = item.group_name ? ` [${item.group_name}]` : '';
+                text += `${index + 1}. ${dietMarker} *${item.name}*${varTxt}${groupTxt}\n   ${item.quantity} × ₹${item.price.toFixed(2)} = ₹${itemTotal.toFixed(2)}\n`;
             });
-            text += `\n*Total Amount:* ₹${subtotal.toFixed(2)}`;
-            text += `\n\nPlease share payment & delivery instructions.`;
 
-            const url = `https://wa.me/${WHATSAPP_NUM}?text=${encodeURIComponent(text)}`;
-            window.open(url, '_blank');
+            const grandTotal = subtotal + appliedPkgCharge;
+
+            text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+            text += `🧾 *Items Subtotal:* ₹${subtotal.toFixed(2)}\n`;
+            if (appliedPkgCharge > 0) {
+                text += `📦 *Packaging Fee:* ₹${appliedPkgCharge.toFixed(2)}\n`;
+            }
+            text += `💵 *Final Bill Amount (कुल राशि):* ₹${grandTotal.toFixed(2)}\n`;
+            text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+
+            const upiId = '{{ $sellerPage->upi_id ?: "7828289433@upi" }}';
+            const upiPayUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(STORE_NAME)}&am=${grandTotal.toFixed(2)}&cu=INR`;
+            text += `💳 *तुरंत UPI भुगतान लिंक (PhonePe / GPay / Paytm):*\n${upiPayUrl}\n\n`;
+            text += `कृपया ऑर्डर कन्फर्म करें। धन्यवाद! 🙏`;
+
+            const cleanNum = WHATSAPP_NUM.replace(/[^0-9]/g, '');
+            const finalNum = cleanNum.length === 10 ? ('91' + cleanNum) : cleanNum;
+            const waUrl = `https://wa.me/${finalNum}?text=${encodeURIComponent(text)}`;
+
+            // Optional background order logging
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            fetch("{{ route('minisite.quickOrder', $sellerPage->slug) }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": csrfToken },
+                body: JSON.stringify({
+                    customer_name: (mode === 'delivery' ? document.getElementById('order_delivery_name')?.value : (mode === 'takeaway' ? document.getElementById('order_takeaway_name')?.value : 'Dine-In Customer')),
+                    customer_phone: (mode === 'delivery' ? document.getElementById('order_delivery_phone')?.value : '9999999999'),
+                    customer_address: (mode === 'delivery' ? document.getElementById('order_delivery_address')?.value : (mode === 'dine_in' ? ('Table #' + (document.getElementById('order_table_number')?.value || '1')) : 'Takeaway Pickup')),
+                    payment_method: 'whatsapp',
+                    items: cart
+                })
+            }).catch(e => console.log('Order log silent catch:', e));
+
+            window.open(waUrl, '_blank');
         }
 
         function buySingleOnWhatsapp(productName, productPrice, productUrl) {

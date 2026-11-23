@@ -4,7 +4,15 @@
     $initPrice = $firstVar ? ($firstVar->retail_price ?: ($firstVar->wholesale_price ?: $product->price)) : $product->price;
     $isNonVeg = stripos($product->name, 'chicken') !== false || stripos($product->name, 'mutton') !== false || stripos($product->name, 'egg') !== false || stripos($product->name, 'fish') !== false;
 @endphp
-<div class="bg-white rounded-3xl border border-amber-100 hover:border-amber-300 hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group p-3.5 space-y-3 relative" id="card_box_{{ $product->id }}">
+<div class="bg-white rounded-3xl border border-amber-100 hover:border-amber-300 hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group p-3.5 space-y-3 relative" 
+     id="card_box_{{ $product->id }}"
+     data-prod-id="{{ $product->id }}"
+     data-prod-name="{{ $product->name }}"
+     data-prod-price="{{ $initPrice }}"
+     data-prod-image="{{ $product->image_url }}"
+     data-prod-slug="{{ $product->slug }}"
+     data-prod-group="{{ $product->group_name }}"
+     data-prod-diet="{{ $isNonVeg ? 'non_veg' : 'veg' }}">
     
     <!-- Dish Image with Veg/Non-Veg Marker -->
     <div>

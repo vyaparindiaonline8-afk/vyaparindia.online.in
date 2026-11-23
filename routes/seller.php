@@ -71,6 +71,11 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
     Route::post('minisite/quick-shop-photo-upload', [MiniSiteController::class, 'quickShopPhotoUpload'])->name('minisite.quick_shop_photo_upload');
     Route::post('minisite/quick-project-photo-upload', [MiniSiteController::class, 'quickProjectPhotoUpload'])->name('minisite.quick_project_photo_upload');
 
+    // 🍽️ Food & Dining: Table QR Standee & AI Menu Scanner Routes
+    Route::get('minisite/table-qr', [MiniSiteController::class, 'tableQrStandee'])->name('minisite.table_qr');
+    Route::post('minisite/ai-menu-scan', [MiniSiteController::class, 'scanMenuAi'])->name('minisite.ai_menu_scan');
+    Route::post('minisite/bulk-save-menu', [MiniSiteController::class, 'bulkSaveMenuItems'])->name('minisite.bulk_save_menu');
+
     // 🌐 Custom Domain Linking Routes
     Route::prefix('minisite/custom-domain')->name('minisite.custom_domain.')->group(function () {
         Route::get('/', [CustomDomainController::class, 'index'])->name('index');

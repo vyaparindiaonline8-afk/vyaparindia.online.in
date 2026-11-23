@@ -535,6 +535,104 @@
                 </div>
             </div>
 
+            <!-- 5. 🍽️ Restaurant, Cafe & Cloud Kitchen Service Modes (Food Service Controls) -->
+            @php
+                $foodModes = isset($minisite) ? $minisite->food_service_modes : [
+                    'dine_in' => true,
+                    'takeaway' => true,
+                    'delivery' => true,
+                    'tables_count' => 10,
+                    'packaging_charge' => 0,
+                    'min_order_delivery' => 0,
+                ];
+            @endphp
+            <div class="bg-gradient-to-br from-amber-50/70 via-white to-orange-50/60 rounded-3xl border-2 border-amber-200 p-6 sm:p-8 shadow-xs space-y-6">
+                <input type="hidden" name="food_settings_submitted" value="1">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-amber-200/80">
+                    <div class="flex items-center gap-2.5">
+                        <div class="h-9 w-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-base shadow-xs">
+                            <i class="fa-solid fa-utensils"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-black text-base text-gray-900 flex items-center gap-2">
+                                <span>Restaurant & Cloud Kitchen Service Modes</span>
+                                <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-black uppercase">भोजन सेवा सेटिंग्स</span>
+                            </h2>
+                            <p class="text-xs text-gray-600 mt-0.5">तय करें कि ग्राहक सिर्फ टेबल पर ऑर्डर करेंगे, टेकअवे पार्सल लेंगे, या होम डिलीवरी मंगाएंगे।</p>
+                        </div>
+                    </div>
+
+                    <!-- Quick Tools: AI Scanner & Table QR Buttons -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button type="button" onclick="openAiMenuScannerModal()" class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition">
+                            <i class="fa-solid fa-wand-magic-sparkles text-amber-200"></i>
+                            <span>📸 AI Snap-to-Menu</span>
+                        </button>
+                        <a href="{{ route('seller.minisite.table_qr') }}" target="_blank" class="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition">
+                            <i class="fa-solid fa-qrcode text-amber-400"></i>
+                            <span>🖨️ टेबल QR स्टैंडी डाउनलोड</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 3 Service Mode Toggles -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <!-- Dine-In -->
+                    <label class="p-4 rounded-2xl bg-white border-2 border-amber-200 hover:border-amber-400 cursor-pointer transition shadow-2xs flex items-start gap-3">
+                        <input type="checkbox" name="food_mode_dine_in" value="1" {{ !empty($foodModes['dine_in']) ? 'checked' : '' }} class="h-4 w-4 mt-0.5 text-amber-600 rounded">
+                        <div>
+                            <div class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                                <span>🪑 Dine-In (डाइन-इन / टेबल)</span>
+                            </div>
+                            <p class="text-[11px] text-gray-500 mt-0.5 leading-relaxed">ग्राहक टेबल पर बैठकर QR स्कैन कर सीधे टेबल पर आर्डर करेंगे।</p>
+                        </div>
+                    </label>
+
+                    <!-- Takeaway -->
+                    <label class="p-4 rounded-2xl bg-white border-2 border-amber-200 hover:border-amber-400 cursor-pointer transition shadow-2xs flex items-start gap-3">
+                        <input type="checkbox" name="food_mode_takeaway" value="1" {{ !empty($foodModes['takeaway']) ? 'checked' : '' }} class="h-4 w-4 mt-0.5 text-amber-600 rounded">
+                        <div>
+                            <div class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                                <span>🥡 Takeaway (टेकअवे / पार्सल)</span>
+                            </div>
+                            <p class="text-[11px] text-gray-500 mt-0.5 leading-relaxed">ग्राहक आर्डर कर काउंटर से खुद पार्सल पिक कर सकेंगे।</p>
+                        </div>
+                    </label>
+
+                    <!-- Cloud Kitchen / Home Delivery -->
+                    <label class="p-4 rounded-2xl bg-white border-2 border-amber-200 hover:border-amber-400 cursor-pointer transition shadow-2xs flex items-start gap-3">
+                        <input type="checkbox" name="food_mode_delivery" value="1" {{ !empty($foodModes['delivery']) ? 'checked' : '' }} class="h-4 w-4 mt-0.5 text-amber-600 rounded">
+                        <div>
+                            <div class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                                <span>🛵 Cloud Kitchen (होम डिलीवरी)</span>
+                            </div>
+                            <p class="text-[11px] text-gray-500 mt-0.5 leading-relaxed">ग्राहक घर पर डिलीवरी हेतु पता व मोबाइल डालकर आर्डर करेंगे।</p>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Parameters: Tables Count, Packaging, Min Delivery Order -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">कुल डाइन-इन टेबल संख्या (Total Tables)</label>
+                        <input type="number" name="food_tables_count" value="{{ old('food_tables_count', $foodModes['tables_count'] ?? 10) }}" min="1" max="100" class="w-full px-3 py-2 text-xs font-black border border-amber-300 rounded-xl bg-white">
+                        <span class="text-[10px] text-gray-400 block mt-0.5">टेबल 1 से लेकर इस संख्या तक QR जनरेट होंगे</span>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">पार्सल / पैकेजिंग शुल्क (Packaging Charge ₹)</label>
+                        <input type="number" name="food_packaging_charge" value="{{ old('food_packaging_charge', $foodModes['packaging_charge'] ?? 0) }}" min="0" step="1" class="w-full px-3 py-2 text-xs font-black border border-amber-300 rounded-xl bg-white">
+                        <span class="text-[10px] text-gray-400 block mt-0.5">टेकअवे/डिलीवरी पर ऑटोमैटिक जुड़ेगा (0 = मुफ़्त)</span>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">न्यूनतम होम डिलीवरी ऑर्डर (Min Order ₹)</label>
+                        <input type="number" name="food_min_order_delivery" value="{{ old('food_min_order_delivery', $foodModes['min_order_delivery'] ?? 0) }}" min="0" step="10" class="w-full px-3 py-2 text-xs font-black border border-amber-300 rounded-xl bg-white">
+                        <span class="text-[10px] text-gray-400 block mt-0.5">इससे कम बिल पर सिर्फ टेकअवे/डाइन-इन मिलेगा</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- 6. Payment & Banking Setup (UPI / Bank Transfer) -->
             <div class="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
                 <div class="flex items-center gap-2.5 pb-4 border-b border-gray-100">
@@ -787,7 +885,217 @@
                 }
             });
         }
+
+        // 📸 AI Snap-to-Menu Modal Functions
+        let parsedMenuItems = [];
+
+        function openAiMenuScannerModal() {
+            document.getElementById('ai-menu-modal')?.classList.remove('hidden');
+        }
+        function closeAiMenuScannerModal() {
+            document.getElementById('ai-menu-modal')?.classList.add('hidden');
+        }
+
+        async function submitMenuAiScan() {
+            const fileInput = document.getElementById('ai_menu_file');
+            const textInput = document.getElementById('ai_menu_text');
+            const btn = document.getElementById('btn_start_ai_scan');
+            const spinner = document.getElementById('ai_scan_spinner');
+            const resultsBox = document.getElementById('ai_menu_results_box');
+
+            const formData = new FormData();
+            if (fileInput && fileInput.files[0]) {
+                formData.append('menu_image', fileInput.files[0]);
+            }
+            if (textInput && textInput.value.trim()) {
+                formData.append('menu_text', textInput.value.trim());
+            }
+
+            formData.append('_token', '{{ csrf_token() }}');
+
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+
+            try {
+                const res = await fetch("{{ route('seller.minisite.ai_menu_scan') }}", {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (data.success && data.items && data.items.length > 0) {
+                    parsedMenuItems = data.items;
+                    renderExtractedItemsTable();
+                    resultsBox.classList.remove('hidden');
+                } else {
+                    alert(data.message || 'Menu could not be extracted. Please check text or image.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('AI Menu scanning failed: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        }
+
+        function renderExtractedItemsTable() {
+            const tbody = document.getElementById('ai_extracted_tbody');
+            if (!tbody) return;
+
+            let html = '';
+            parsedMenuItems.forEach((item, idx) => {
+                const isVeg = item.diet_type === 'veg';
+                html += `
+                    <tr class="border-b border-gray-100 hover:bg-gray-50/80 text-xs font-bold" id="ai_row_${idx}">
+                        <td class="p-2.5 text-center">
+                            <span class="inline-block h-3.5 w-3.5 rounded-full ${isVeg ? 'bg-emerald-600' : 'bg-rose-600'}" title="${isVeg ? 'Pure Veg' : 'Non-Veg'}"></span>
+                        </td>
+                        <td class="p-2.5">
+                            <input type="text" value="${item.name}" onchange="parsedMenuItems[${idx}].name = this.value" class="w-full px-2 py-1 text-xs font-black border border-gray-200 rounded-lg bg-white">
+                        </td>
+                        <td class="p-2.5">
+                            <input type="text" value="${item.group_name}" onchange="parsedMenuItems[${idx}].group_name = this.value" class="w-full px-2 py-1 text-xs font-semibold border border-gray-200 rounded-lg bg-white">
+                        </td>
+                        <td class="p-2.5 w-24">
+                            <input type="number" value="${item.price_half || ''}" placeholder="—" onchange="parsedMenuItems[${idx}].price_half = parseFloat(this.value) || null" class="w-full px-2 py-1 text-xs font-mono font-bold border border-gray-200 rounded-lg bg-white text-center">
+                        </td>
+                        <td class="p-2.5 w-24">
+                            <input type="number" value="${item.price_full || item.price}" onchange="parsedMenuItems[${idx}].price_full = parseFloat(this.value); parsedMenuItems[${idx}].price = parseFloat(this.value);" class="w-full px-2 py-1 text-xs font-mono font-black border border-gray-200 rounded-lg bg-white text-center text-emerald-800">
+                        </td>
+                        <td class="p-2.5 text-center">
+                            <button type="button" onclick="deleteExtractedRow(${idx})" class="text-rose-500 hover:text-rose-700 text-xs" title="Remove Item">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+            document.getElementById('ai_items_badge').innerText = `${parsedMenuItems.length} Dishes Detected`;
+        }
+
+        function deleteExtractedRow(idx) {
+            parsedMenuItems.splice(idx, 1);
+            renderExtractedItemsTable();
+        }
+
+        async function saveAllExtractedMenu() {
+            if (!parsedMenuItems || parsedMenuItems.length === 0) {
+                alert('No dishes to save.');
+                return;
+            }
+
+            const btn = document.getElementById('btn_save_all_menu');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving to catalog...';
+
+            try {
+                const res = await fetch("{{ route('seller.minisite.bulk_save_menu') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ items: parsedMenuItems })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    alert(data.message || 'Dishes successfully added to your catalog!');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Failed to save dishes: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Save All Items to Live Menu';
+            }
+        }
     </script>
+
+    <!-- 📸 AI Snap-to-Menu Modal for Restaurant / Cloud Kitchen Owner -->
+    <div id="ai-menu-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="h-8 w-8 rounded-xl bg-amber-500 text-white flex items-center justify-center text-sm shadow-xs">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black text-gray-900">AI Snap-to-Menu: मेनू कार्ड से 1-क्लिक में डिजिटल मेनू बनाएं</h3>
+                        <p class="text-[11px] text-gray-500">फोटो खींचकर अपलोड करें — AI चाइनीज, तंदूर रोटी, वेज, नॉनवेज व हाफ/फुल रेट अलग कर देगा।</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAiMenuScannerModal()" class="text-gray-400 hover:text-gray-600 text-sm p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="overflow-y-auto py-4 space-y-4 flex-1">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">1. मेनू कार्ड की फ़ोटो चुनें (Upload Photo):</label>
+                        <input type="file" id="ai_menu_file" accept="image/*" class="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-100 file:text-amber-900 hover:file:bg-amber-200">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">2. या मेनू टेक्स्ट यहाँ पेस्ट करें (Paste Text):</label>
+                        <textarea id="ai_menu_text" rows="2" placeholder="e.g. Tandoori Butter Roti 15, Chilli Chicken 180 / 300, Shahi Paneer 140 / 240..." class="w-full px-3 py-2 text-xs font-mono border border-gray-300 rounded-xl"></textarea>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between gap-2 pt-2">
+                    <span class="text-[11px] text-gray-400">💡 फोटो साफ हो तो AI 5 सेकंड में पूरा मेनू पढ़ लेता है।</span>
+                    <button type="button" onclick="submitMenuAiScan()" id="btn_start_ai_scan" class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs flex items-center gap-2 shadow-md transition shrink-0">
+                        <span id="ai_scan_spinner" class="hidden"><i class="fa-solid fa-spinner fa-spin"></i></span>
+                        <i class="fa-solid fa-robot"></i>
+                        <span>AI से मेनू स्कैन करें</span>
+                    </button>
+                </div>
+
+                <!-- Results Box -->
+                <div id="ai_menu_results_box" class="hidden mt-4 pt-4 border-t border-gray-100 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black text-gray-900" id="ai_items_badge">0 Dishes Detected</span>
+                        <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">✓ आप किसी भी रेट या नाम को यहीं बदल सकते हैं</span>
+                    </div>
+
+                    <div class="overflow-x-auto border border-gray-200 rounded-2xl max-h-64 overflow-y-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-gray-50 text-[10px] font-black uppercase text-gray-500 tracking-wider sticky top-0 border-b border-gray-200">
+                                <tr>
+                                    <th class="p-2.5 text-center w-8">डाइट</th>
+                                    <th class="p-2.5">डिश का नाम</th>
+                                    <th class="p-2.5">कैटेगरी (ग्रुप)</th>
+                                    <th class="p-2.5 text-center">हाफ रेट (₹)</th>
+                                    <th class="p-2.5 text-center">फुल रेट (₹)</th>
+                                    <th class="p-2.5 text-center w-8">हटाएं</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ai_extracted_tbody" class="divide-y divide-gray-100">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-2">
+                        <button type="button" onclick="closeAiMenuScannerModal()" class="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-bold text-xs">
+                            रद्द करें
+                        </button>
+                        <button type="button" onclick="saveAllExtractedMenu()" id="btn_save_all_menu" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-2 shadow-md transition">
+                            <i class="fa-solid fa-check"></i>
+                            <span>Save All Items to Live Menu</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     @include('components.ai-copilot-widget')
 </body>
 </html>
