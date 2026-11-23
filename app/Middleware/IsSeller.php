@@ -17,10 +17,14 @@ class IsSeller
      */
     public function handle(Request $request, Closure $next)
     {
-        if (Auth::check() && Auth::user()->is_seller()) {
+        if (!Auth::check()) {
+            return redirect()->guest(route('login'))->with('info', 'कृपया सेलर डैशबोर्ड या दुकान एडिट करने के लिए पहले लॉगिन करें।');
+        }
+
+        if (Auth::user()->is_seller()) {
             return $next($request);
         }
 
-        return redirect('/');
+        return redirect('/')->with('error', 'आपके पास सेलर अनुमतियां नहीं हैं।');
     }
 }
