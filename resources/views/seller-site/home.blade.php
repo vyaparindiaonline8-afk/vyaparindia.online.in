@@ -156,61 +156,85 @@
 </section>
 @endif
 
-<!-- 📂 Hierarchical Group -> Category -> Brand Explorer -->
+<!-- 📂 Dynamic Group -> Category -> Brand Explorer (Auto-synced with Live Products) -->
+@if(isset($catalogGroups) && $catalogGroups->isNotEmpty())
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-2">
     <div class="bg-white rounded-3xl border border-gray-200/90 p-5 sm:p-7 shadow-2xs">
         <div class="flex items-center justify-between pb-4 border-b border-gray-100 mb-5">
             <div>
                 <h3 class="text-sm sm:text-base font-black text-gray-900 flex items-center gap-2">
                     <span class="h-2 w-2 rounded-full bg-indigo-600"></span>
-                    <span>Browse by Group & Category (ग्रुप व कैटेगरी अनुसार उत्पाद देखें)</span>
+                    <span>Browse by Group & Category (ग्रुप, कैटेगरी व ब्रांड अनुसार देखें)</span>
                 </h3>
-                <p class="text-xs text-gray-500 mt-0.5">Explore our wide selection structured by Department, Category and Brand</p>
+                <p class="text-xs text-gray-500 mt-0.5">Explore our complete catalog dynamically organized by Group, Brand and Category</p>
             </div>
             <a href="{{ route('minisite.products', $sellerPage->slug) }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
-                <span>View Full Catalog</span>
+                <span>View Full Catalog ({{ $totalProducts }})</span>
                 <i class="fa-solid fa-arrow-right text-[10px]"></i>
             </a>
         </div>
 
-        <!-- Department / Group Cards -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
-            <a href="{{ route('minisite.products', ['sellerPage' => $sellerPage->slug, 'search' => 'commode']) }}" class="group p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-indigo-50/70 to-blue-50/70 border border-indigo-100 hover:border-indigo-400 hover:shadow-sm transition">
-                <div class="h-9 w-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-base mb-2 group-hover:scale-105 transition">
-                    <i class="fa-solid fa-toilet"></i>
-                </div>
-                <div class="font-black text-xs text-gray-900 group-hover:text-indigo-600 transition">Sanitaryware</div>
-                <div class="text-[10px] text-gray-500 mt-0.5">One-Piece, Wall Hung, Pan</div>
-            </a>
+        <!-- 📂 Dynamic Group / Department Cards (Auto-syncs when new items are added) -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 mb-2">
+            @foreach($catalogGroups as $gName => $gProducts)
+                @php
+                    $gSlug = Str::slug($gName);
+                    $gCount = $gProducts->count();
+                    $gBrands = $gProducts->pluck('brand')->filter()->unique()->values();
+                    $gBrandText = $gBrands->take(2)->implode(', ');
+                    $gLower = strtolower($gName);
 
-            <a href="{{ route('minisite.products', ['sellerPage' => $sellerPage->slug, 'search' => 'basin']) }}" class="group p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-emerald-50/70 to-teal-50/70 border border-emerald-100 hover:border-emerald-400 hover:shadow-sm transition">
-                <div class="h-9 w-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-base mb-2 group-hover:scale-105 transition">
-                    <i class="fa-solid fa-sink"></i>
-                </div>
-                <div class="font-black text-xs text-gray-900 group-hover:text-emerald-700 transition">Wash Basins</div>
-                <div class="text-[10px] text-gray-500 mt-0.5">Table Top, Pedestal & Bowl</div>
-            </a>
+                    // Dynamic Theme Styling by Group Name
+                    $iconClass = 'fa-boxes-stacked';
+                    $bgGrad = 'from-indigo-50/80 to-blue-50/80 border-indigo-100 hover:border-indigo-400 text-indigo-700';
+                    $iconBg = 'bg-indigo-600';
 
-            <a href="{{ route('minisite.products', ['sellerPage' => $sellerPage->slug, 'search' => 'cock']) }}" class="group p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-cyan-50/70 to-sky-50/70 border border-cyan-100 hover:border-cyan-400 hover:shadow-sm transition">
-                <div class="h-9 w-9 rounded-xl bg-cyan-600 text-white flex items-center justify-center text-base mb-2 group-hover:scale-105 transition">
-                    <i class="fa-solid fa-faucet-drip"></i>
-                </div>
-                <div class="font-black text-xs text-gray-900 group-hover:text-cyan-700 transition">Bath Fittings & Taps</div>
-                <div class="text-[10px] text-gray-500 mt-0.5">Diverter, Bib Cock, Showers</div>
-            </a>
-
-            <a href="{{ route('minisite.products', ['sellerPage' => $sellerPage->slug, 'group' => 'Plumbing']) }}" class="group p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-amber-50/70 to-orange-50/70 border border-amber-100 hover:border-amber-400 hover:shadow-sm transition">
-                <div class="h-9 w-9 rounded-xl bg-amber-600 text-white flex items-center justify-center text-base mb-2 group-hover:scale-105 transition">
-                    <i class="fa-solid fa-wrench"></i>
-                </div>
-                <div class="font-black text-xs text-gray-900 group-hover:text-amber-700 transition">Pipes & Plumbing</div>
-                <div class="text-[10px] text-gray-500 mt-0.5">CPVC, UPVC, SWR & Fittings</div>
-            </a>
+                    if (str_contains($gLower, 'bath') || str_contains($gLower, 'sanitary') || str_contains($gLower, 'florex') || str_contains($gLower, 'cava') || str_contains($gLower, 'commode') || str_contains($gLower, 'basin') || str_contains($gLower, 'ptmt') || str_contains($gLower, 'toilet')) {
+                        $iconClass = 'fa-toilet';
+                        $bgGrad = 'from-blue-50/80 to-cyan-50/80 border-blue-100 hover:border-blue-400 text-blue-700';
+                        $iconBg = 'bg-blue-600';
+                    } elseif (str_contains($gLower, 'ply') || str_contains($gLower, 'door') || str_contains($gLower, 'board') || str_contains($gLower, 'wood') || str_contains($gLower, 'timber')) {
+                        $iconClass = 'fa-door-open';
+                        $bgGrad = 'from-amber-50/80 to-orange-50/80 border-amber-100 hover:border-amber-400 text-amber-800';
+                        $iconBg = 'bg-amber-600';
+                    } elseif (str_contains($gLower, 'pipe') || str_contains($gLower, 'cpvc') || str_contains($gLower, 'upvc') || str_contains($gLower, 'swr') || str_contains($gLower, 'plumb') || str_contains($gLower, 'fitting')) {
+                        $iconClass = 'fa-faucet-drip';
+                        $bgGrad = 'from-emerald-50/80 to-teal-50/80 border-emerald-100 hover:border-emerald-400 text-emerald-800';
+                        $iconBg = 'bg-emerald-600';
+                    } elseif (str_contains($gLower, 'hardware') || str_contains($gLower, 'tool')) {
+                        $iconClass = 'fa-screwdriver-wrench';
+                        $bgGrad = 'from-slate-50/80 to-gray-100 border-slate-200 hover:border-slate-400 text-slate-800';
+                        $iconBg = 'bg-slate-700';
+                    } elseif (str_contains($gLower, 'tile') || str_contains($gLower, 'ceramic') || str_contains($gLower, 'marble')) {
+                        $iconClass = 'fa-border-all';
+                        $bgGrad = 'from-violet-50/80 to-purple-50/80 border-violet-100 hover:border-violet-400 text-violet-800';
+                        $iconBg = 'bg-violet-600';
+                    }
+                @endphp
+                <a href="#group-section-{{ $gSlug }}" class="group p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br {{ $bgGrad }} border hover:shadow-md transition text-left flex flex-col justify-between">
+                    <div>
+                        <div class="h-9 w-9 rounded-xl text-white flex items-center justify-center text-base mb-2 group-hover:scale-110 transition shadow-2xs {{ $iconBg }}">
+                            <i class="fa-solid {{ $iconClass }}"></i>
+                        </div>
+                        <div class="font-black text-xs text-gray-900 group-hover:text-indigo-600 transition line-clamp-1">
+                            {{ $gName }}
+                        </div>
+                        <div class="text-[10px] text-gray-500 mt-0.5 line-clamp-1">
+                            {{ $gBrandText ? ('Brands: ' . $gBrandText) : ($gCount . ' Items') }}
+                        </div>
+                    </div>
+                    <div class="mt-2 text-[10px] font-bold text-indigo-600 flex items-center justify-between">
+                        <span>{{ $gCount }} आइटम्स</span>
+                        <i class="fa-solid fa-arrow-down text-[8px] group-hover:translate-y-0.5 transition"></i>
+                    </div>
+                </a>
+            @endforeach
         </div>
     </div>
 </section>
+@endif
 
-<!-- 📂 Structured Group-Wise Product Showcase with 2-Row Scroller -->
+<!-- 📂 Dynamic Group-Wise 2-Row Product Scrollers (Auto-Synced by Group, Brand & Category) -->
 @php
     $cardComponent = isset($businessModule) ? $businessModule->getCardComponent() : 'seller-site.modules.card_hardware_pipes';
 @endphp
@@ -218,16 +242,28 @@
 @if(isset($catalogGroups) && $catalogGroups->isNotEmpty())
     @foreach($catalogGroups as $groupName => $groupProducts)
         @php
+            $groupSlug = Str::slug($groupName);
             $groupBrands = $groupProducts->pluck('brand')->filter()->unique()->values();
             $groupCount = $groupProducts->count();
+            $gLower = strtolower($groupName);
+
+            // Group badge styling
+            $badgeBg = 'bg-indigo-100 text-indigo-800';
+            if (str_contains($gLower, 'bath') || str_contains($gLower, 'sanitary') || str_contains($gLower, 'florex') || str_contains($gLower, 'cava') || str_contains($gLower, 'ptmt')) {
+                $badgeBg = 'bg-blue-100 text-blue-800';
+            } elseif (str_contains($gLower, 'ply') || str_contains($gLower, 'door') || str_contains($gLower, 'board')) {
+                $badgeBg = 'bg-amber-100 text-amber-900';
+            } elseif (str_contains($gLower, 'pipe') || str_contains($gLower, 'cpvc') || str_contains($gLower, 'upvc')) {
+                $badgeBg = 'bg-emerald-100 text-emerald-800';
+            }
         @endphp
-        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+        <section id="group-section-{{ $groupSlug }}" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 scroll-mt-20">
             <div class="bg-white rounded-3xl border border-gray-200/90 p-5 sm:p-7 shadow-2xs">
                 <!-- Group Header Row -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100 mb-4">
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span class="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] sm:text-[11px] font-black uppercase tracking-wider">
+                            <span class="px-2.5 py-0.5 rounded-full {{ $badgeBg }} text-[10px] sm:text-[11px] font-black uppercase tracking-wider">
                                 📂 Department / Group
                             </span>
                             <h3 class="text-base sm:text-lg font-black text-gray-900">
@@ -235,26 +271,42 @@
                             </h3>
                             <span class="text-xs font-bold text-gray-500">({{ $groupCount }} items)</span>
                         </div>
+
+                        <!-- Brand Pills under Group Header -->
                         @if($groupBrands->isNotEmpty())
                             <div class="flex items-center gap-1.5 mt-2 flex-wrap text-xs">
-                                <span class="text-[11px] font-bold text-gray-400">Brands:</span>
+                                <span class="text-[11px] font-bold text-gray-400">Available Brands:</span>
                                 @foreach($groupBrands as $gBrand)
-                                    <a href="{{ route('minisite.products', ['sellerPage' => $sellerPage->slug, 'group' => $groupName, 'brand' => $gBrand]) }}" class="px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold border border-blue-200 transition">
-                                        🏢 {{ $gBrand }}
+                                    <a href="{{ route('minisite.products', ['sellerPage' => $sellerPage->slug, 'group' => $groupName, 'brand' => $gBrand]) }}" class="px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold border border-blue-200 transition flex items-center gap-1">
+                                        <i class="fa-solid fa-tag text-[8px]"></i>
+                                        <span>{{ $gBrand }}</span>
                                     </a>
                                 @endforeach
                             </div>
                         @endif
                     </div>
 
-                    <a href="{{ route('minisite.products', ['sellerPage' => $sellerPage->slug, 'group' => $groupName]) }}" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs shadow-xs transition shrink-0">
-                        <span>View Full {{ $groupName }} Range ({{ $groupCount }}) &rarr;</span>
-                    </a>
+                    <!-- Right Controls: View Full Range + Horizontal Scroll Arrows -->
+                    <div class="flex items-center gap-2 shrink-0">
+                        <a href="{{ route('minisite.products', ['sellerPage' => $sellerPage->slug, 'group' => $groupName]) }}" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs shadow-xs transition">
+                            <span>पूरा {{ $groupName }} रेंज देखें ({{ $groupCount }}) &rarr;</span>
+                        </a>
+
+                        <!-- Desktop Scroll Arrows -->
+                        <div class="hidden sm:flex items-center gap-1">
+                            <button type="button" onclick="document.getElementById('scroller-{{ $groupSlug }}').scrollBy({ left: -320, behavior: 'smooth' })" class="h-8 w-8 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center text-xs transition" title="Scroll Left">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </button>
+                            <button type="button" onclick="document.getElementById('scroller-{{ $groupSlug }}').scrollBy({ left: 320, behavior: 'smooth' })" class="h-8 w-8 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center text-xs transition" title="Scroll Right">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- 2-Row / 1-Row Compact Horizontal Product Scroller -->
-                <div class="grid grid-rows-1 sm:grid-rows-2 grid-flow-col auto-cols-[165px] sm:auto-cols-[220px] gap-2.5 sm:gap-3.5 overflow-x-auto pb-3 snap-x no-scrollbar">
-                    @foreach($groupProducts->take(16) as $product)
+                <!-- 2-Row / 1-Row Compact Horizontal Product Scroller (2 Rows on desktop/tablets, 1-2 on mobile) -->
+                <div id="scroller-{{ $groupSlug }}" class="grid grid-rows-1 sm:grid-rows-2 grid-flow-col auto-cols-[165px] sm:auto-cols-[220px] gap-2.5 sm:gap-3.5 overflow-x-auto pb-3 snap-x no-scrollbar scroll-smooth">
+                    @foreach($groupProducts->take(24) as $product)
                         <div class="snap-start h-full">
                             @include($cardComponent, ['product' => $product, 'sellerPage' => $sellerPage])
                         </div>

@@ -84,10 +84,6 @@
                 <span class="text-xs">आप अपनी दुकान <strong>{{ $sellerPage->page_title }}</strong> देख रहे हैं।</span>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
-                <button type="button" onclick="openKhataReminderGeneratorModal()" class="inline-flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-900 text-white px-3 py-1 rounded-lg text-xs font-black transition shadow-xs">
-                    <i class="fa-solid fa-file-invoice text-amber-300"></i>
-                    <span>📒 ग्राहक खाता व WhatsApp तकादा</span>
-                </button>
                 <a href="{{ route('seller.minisite.edit') }}" class="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3 py-1 rounded-lg text-xs font-bold transition shadow-xs">
                     <i class="fa-solid fa-pen-to-square text-amber-400"></i>
                     <span>दुकान का नाम, लोगो व प्रोफाइल बदलें</span>
@@ -769,108 +765,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             updateCartUI();
         });
-
-        function openKhataReminderGeneratorModal() {
-            const modal = document.getElementById('khata-reminder-modal');
-            if (modal) modal.classList.remove('hidden');
-            updateKhataPreview();
-        }
-        function closeKhataReminderGeneratorModal() {
-            const modal = document.getElementById('khata-reminder-modal');
-            if (modal) modal.classList.add('hidden');
-        }
-
-        function updateKhataPreview() {
-            const name = document.getElementById('khata_cust_name')?.value.trim() || 'ग्राहक';
-            const amt = document.getElementById('khata_cust_amount')?.value.trim() || '0';
-            const date = document.getElementById('khata_cust_date')?.value.trim() || '{{ date("d/m/Y") }}';
-            const storeTitle = '{{ addslashes($sellerPage->page_title) }}';
-            const phone = '{{ $sellerPage->support_phone ?: ($sellerPage->whatsapp_number ?: "7828289433") }}';
-            const city = '{{ $sellerPage->city ?: "सारंगढ़" }}';
-
-            const stmtUrl = `{{ url('/khata/statement') }}?seller={{ $sellerPage->slug }}&name=${encodeURIComponent(name)}&amount=${amt}&date=${encodeURIComponent(date)}`;
-
-            const msg = `नमस्ते ${name} जी,\n\n${storeTitle} से आपका खाता विवरण:\n━━━━━━━━━━━━━━━━━━━━━\n⚖️ वर्तमान बकाया राशि: ₹${amt} (लेने हैं / Debit)\n📅 दिनांक: ${date}\n━━━━━━━━━━━━━━━━━━━━━\n👉 डिजिटल खाता बिल, UPI ऑनलाइन पेमेंट व अपनी साइट का GPS लोकेशन लिंक करने हेतु नीचे लिंक खोलें:\n${stmtUrl}\n\n📍 (वैकल्पिक): साइट की लोकेशन लिंक करने हेतु ऊपर दिए गए लिंक पर जाएं।\n\nकृपया हिसाब का मिलान कर लें।\nकिसी भी जानकारी हेतु संपर्क करें: ${phone}\n\nधन्यवाद! 🙏\n- ${storeTitle}, ${city}`;
-
-            const previewEl = document.getElementById('khata_msg_preview');
-            if (previewEl) previewEl.textContent = msg;
-        }
-
-        function sendKhataReminderOnWhatsapp() {
-            const previewEl = document.getElementById('khata_msg_preview');
-            const targetPhone = document.getElementById('khata_cust_phone')?.value.trim() || '';
-            const msg = previewEl ? previewEl.textContent : '';
-
-            let waUrl = '';
-            if (targetPhone) {
-                const cleanNum = targetPhone.replace(/[^0-9]/g, '');
-                const finalNum = cleanNum.length === 10 ? ('91' + cleanNum) : cleanNum;
-                waUrl = `https://wa.me/${finalNum}?text=${encodeURIComponent(msg)}`;
-            } else {
-                waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
-            }
-
-            window.open(waUrl, '_blank');
-        }
     </script>
-
-    <!-- 📒 Khata Reminder & WhatsApp Statement Modal for Store Owner -->
-    <div id="khata-reminder-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-200 text-left">
-            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-                <h3 class="text-sm font-black text-gray-900 flex items-center gap-2">
-                    <i class="fa-solid fa-file-invoice text-emerald-600"></i>
-                    <span>ग्राहक खाता व WhatsApp तकादा (GPS लिंक सहित)</span>
-                </h3>
-                <button type="button" onclick="closeKhataReminderGeneratorModal()" class="text-gray-400 hover:text-gray-600 text-sm">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <div class="mt-4 space-y-3.5">
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="col-span-2 sm:col-span-1">
-                        <label class="block text-xs font-bold text-gray-700 mb-1">ग्राहक का नाम</label>
-                        <input type="text" id="khata_cust_name" value="Shanti Prasad yadav" oninput="updateKhataPreview()" placeholder="e.g. Shanti Prasad yadav" class="w-full px-3 py-2 text-xs font-bold border border-gray-300 rounded-xl focus:border-indigo-500">
-                    </div>
-                    <div class="col-span-2 sm:col-span-1">
-                        <label class="block text-xs font-bold text-gray-700 mb-1">ग्राहक का मोबाइल नंबर</label>
-                        <input type="tel" id="khata_cust_phone" value="" oninput="updateKhataPreview()" placeholder="9876543210" class="w-full px-3 py-2 text-xs font-bold font-mono border border-gray-300 rounded-xl focus:border-indigo-500">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">बकाया राशि (₹)</label>
-                        <input type="number" id="khata_cust_amount" value="6450" oninput="updateKhataPreview()" class="w-full px-3 py-2 text-xs font-black font-mono border border-gray-300 rounded-xl focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">दिनांक</label>
-                        <input type="text" id="khata_cust_date" value="{{ date('d/m/Y') }}" oninput="updateKhataPreview()" class="w-full px-3 py-2 text-xs font-bold border border-gray-300 rounded-xl">
-                    </div>
-                </div>
-
-                <!-- Preview of message -->
-                <div>
-                    <label class="block text-[11px] font-black text-gray-500 uppercase tracking-wider mb-1">
-                        WhatsApp मैसेज प्रीव्यू (भेजने से पहले देखें):
-                    </label>
-                    <div id="khata_msg_preview" class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-sans text-slate-800 whitespace-pre-line leading-relaxed max-h-48 overflow-y-auto font-mono text-[11px]">
-                    </div>
-                </div>
-
-                <div class="pt-2 flex items-center justify-end gap-2">
-                    <button type="button" onclick="closeKhataReminderGeneratorModal()" class="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-bold text-xs">
-                        बंद करें
-                    </button>
-                    <button type="button" onclick="sendKhataReminderOnWhatsapp()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1.5 shadow-md">
-                        <i class="fa-brands fa-whatsapp text-sm"></i>
-                        <span>WhatsApp पर तकादा भेजें</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
     @stack('scripts')
     @include('components.ai-copilot-widget')
 </body>

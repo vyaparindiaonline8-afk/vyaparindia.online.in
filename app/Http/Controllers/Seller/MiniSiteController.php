@@ -312,84 +312,27 @@ class MiniSiteController extends Controller
         $authorizedBrands = $sellerPage->authorized_brands ?? [];
         $businessModule = BusinessModuleManager::forSellerPage($sellerPage);
 
-        // 📂 Real Catalog Groups with Products for Structured Showcase (Sanitary, Plywood, CPVC, etc.)
-        $catalogGroups = $sellerPage->user->products()
+        // 📂 Dynamic Real-time Catalog Groups with Products (Auto-synced by Group Name, Category & Brand)
+        $allProducts = $sellerPage->user->products()
             ->with(['variants', 'category', 'images'])
-            ->whereNotNull('group_name')
-            ->where('group_name', '!=', '')
-            ->get()
-            ->groupBy('group_name');
+            ->latest()
+            ->get();
+
+        $catalogGroups = $allProducts->groupBy(function ($item) {
+            $grp = trim($item->group_name ?? '');
+            if (!empty($grp)) {
+                return $grp;
+            }
+            if ($item->category && !empty($item->category->name)) {
+                return trim($item->category->name);
+            }
+            return 'General Products';
+        });
 
         return view('seller-site.home', compact('sellerPage', 'products', 'totalProducts', 'authorizedBrands', 'businessModule', 'catalogGroups'));
     }
 
-    /**
-     * 📒 Public Digital Khata & Customer Udhar Statement View
-     */
-    public function khataStatement(Request $request)
-    {
-        $sellerSlug = $request->input('seller', 'ganesh-tradersh');
-        $sellerPage = SellerPage::where('slug', $sellerSlug)->first() ?: SellerPage::first();
 
-        $customerName = $request->input('name', 'Shanti Prasad yadav');
-        $customerPhone = $request->input('phone', '');
-        $amountDue = floatval($request->input('amount', 6450));
-        $date = $request->input('date', date('d/m/Y'));
-        $balanceType = $request->input('type', 'Debit (लेने हैं)');
-        $ref = $request->input('ref', 'KHATA-' . date('Ymd'));
-
-        return view('public.khata_statement', compact(
-            'sellerPage',
-            'customerName',
-            'customerPhone',
-            'amountDue',
-            'date',
-            'balanceType',
-            'ref'
-        ));
-    }
-
-    /**
-     * 📍 Optional Customer Site/Shop GPS Location Lock & Linking
-     */
-    public function saveCustomerGps(Request $request)
-    {
-        $validated = $request->validate([
-            'seller_slug' => 'nullable|string',
-            'customer_name' => 'required|string|max:150',
-            'customer_phone' => 'nullable|string|max:20',
-            'latitude' => 'required|numeric',
-            'longitude' => 'required|numeric',
-            'landmark' => 'nullable|string|max:255',
-        ]);
-
-        $sellerSlug = $validated['seller_slug'] ?? 'ganesh-tradersh';
-        $sellerPage = SellerPage::where('slug', $sellerSlug)->first();
-
-        if ($sellerPage) {
-            $settings = $sellerPage->business_settings ?? [];
-            $records = $settings['customer_gps_records'] ?? [];
-
-            $mapLink = "https://www.google.com/maps?q={$validated['latitude']},{$validated['longitude']}";
-            $records[] = [
-                'name' => $validated['customer_name'],
-                'phone' => $validated['customer_phone'] ?? '',
-                'latitude' => $validated['latitude'],
-                'longitude' => $validated['longitude'],
-                'map_link' => $mapLink,
-                'landmark' => $validated['landmark'] ?? '',
-                'saved_at' => now()->toDateTimeString(),
-            ];
-
-            $settings['customer_gps_records'] = array_slice($records, -50); // Keep last 50
-            $sellerPage->update(['business_settings' => $settings]);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'GPS location locked & successfully linked to customer profile! 📍'
-        ]);
-    }
 
     public function products(SellerPage $sellerPage, Request $request)
     {
