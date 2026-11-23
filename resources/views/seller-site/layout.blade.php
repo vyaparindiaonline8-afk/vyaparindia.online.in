@@ -394,15 +394,22 @@
                             <span class="font-bold text-gray-900">{{ $firmProfile->gst_number }}</span>
                         </div>
                     @endif
-                    @if($firmProfile && ($firmProfile->address || $firmProfile->city))
-                        <div class="text-xs text-gray-500 flex items-start gap-2 pt-1">
-                            <i class="fa-solid fa-location-dot mt-0.5 text-rose-500"></i>
-                            <span>{{ $firmProfile->address ? $firmProfile->address . ', ' : '' }}{{ $firmProfile->city }}{{ $firmProfile->state ? ', ' . $firmProfile->state : '' }}</span>
+                    @if($sellerPage->address || ($firmProfile && ($firmProfile->address || $firmProfile->city)))
+                        @php
+                            $fullAddr = $sellerPage->address ?: ($firmProfile ? ($firmProfile->address . ', ' . $firmProfile->city . ', ' . $firmProfile->state) : '');
+                            $cityPin = ($sellerPage->city ? $sellerPage->city : '') . ($sellerPage->pincode ? ' - ' . $sellerPage->pincode : '');
+                            $dispAddr = trim($fullAddr . ' ' . $cityPin);
+                            $mapLink = $sellerPage->google_map_link ?: ('https://www.google.com/maps/search/?api=1&query=' . urlencode($sellerPage->page_title . ' ' . $dispAddr));
+                        @endphp
+                        <div class="text-xs text-gray-600 flex items-start gap-2 pt-1">
+                            <i class="fa-solid fa-location-dot mt-0.5 text-rose-500 shrink-0"></i>
+                            <span>{{ $dispAddr }}</span>
                         </div>
-                    @elseif($sellerPage->address)
-                        <div class="text-xs text-gray-500 flex items-start gap-2 pt-1">
-                            <i class="fa-solid fa-location-dot mt-0.5 text-gray-400"></i>
-                            <span>{{ $sellerPage->address }}{{ $sellerPage->city ? ', ' . $sellerPage->city : '' }}{{ $sellerPage->pincode ? ' - ' . $sellerPage->pincode : '' }}</span>
+                        <div class="pt-1">
+                            <a href="{{ $mapLink }}" target="_blank" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-lg border border-blue-200 transition">
+                                <i class="fa-solid fa-map-location-dot text-blue-600"></i>
+                                <span>Google Maps GPS Location</span>
+                            </a>
                         </div>
                     @endif
                 </div>
@@ -411,23 +418,36 @@
                 <div>
                     <h3 class="text-xs font-bold uppercase tracking-wider text-gray-900 mb-3">Quick Navigation</h3>
                     <ul class="space-y-2 text-xs text-gray-600 font-medium">
-                        <li><a href="{{ route('minisite.show', $sellerPage->slug) }}" class="hover:text-brand-custom">Store Home</a></li>
-                        <li><a href="{{ route('minisite.products', $sellerPage->slug) }}" class="hover:text-brand-custom">All Products</a></li>
-                        <li><a href="{{ route('minisite.contact', $sellerPage->slug) }}" class="hover:text-brand-custom">Contact & About Store</a></li>
-                        <li><a href="{{ route('minisite.contact', $sellerPage->slug) }}#policies" class="hover:text-brand-custom">Shipping & Return Policies</a></li>
+                        <li><a href="{{ route('minisite.show', $sellerPage->slug) }}" class="hover:text-brand-custom flex items-center gap-1.5"><i class="fa-solid fa-house text-[10px] text-gray-400"></i> Store Home</a></li>
+                        <li><a href="{{ route('minisite.products', $sellerPage->slug) }}" class="hover:text-brand-custom flex items-center gap-1.5"><i class="fa-solid fa-boxes-stacked text-[10px] text-gray-400"></i> All Products Catalog</a></li>
+                        <li><a href="{{ route('minisite.contact', $sellerPage->slug) }}" class="hover:text-brand-custom flex items-center gap-1.5"><i class="fa-solid fa-address-card text-[10px] text-gray-400"></i> Contact & About Store</a></li>
+                        <li><a href="{{ route('minisite.contact', $sellerPage->slug) }}#policies" class="hover:text-brand-custom flex items-center gap-1.5"><i class="fa-solid fa-truck text-[10px] text-gray-400"></i> Shipping & Return Policies</a></li>
+                        @if(Auth::check() && Auth::id() === $sellerPage->user_id)
+                            <li class="pt-2 border-t border-gray-100">
+                                <a href="{{ route('seller.minisite.edit') }}" class="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1.5">
+                                    <i class="fa-solid fa-pen-to-square text-[10px]"></i> ✏️ Edit Store Profile (नाम, पता व बैनर)
+                                </a>
+                            </li>
+                        @endif
                     </ul>
                 </div>
 
-                <!-- Verified Store / Badges -->
+                <!-- Verified Store / Badges & Payment -->
                 <div class="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
                     <div class="flex items-center gap-2 text-emerald-600 font-bold text-xs">
                         <i class="fa-solid fa-shield-check text-sm"></i>
                         <span>Verified Store on VyaparIndia</span>
                     </div>
                     <p class="text-[11px] text-gray-500 leading-normal">
-                        Orders are directly fulfilled and dispatched with full invoice and genuine guarantee.
+                        Orders are directly fulfilled by {{ $sellerPage->page_title }} with genuine warranty and verified dispatch.
                     </p>
-                    <div class="flex items-center gap-3 pt-2 text-gray-400 text-sm">
+                    @if($sellerPage->upi_id)
+                        <div class="text-[11px] font-mono bg-white p-2 rounded-lg border border-gray-200">
+                            <span class="text-gray-400 font-sans block text-[9px] uppercase">Official UPI ID</span>
+                            <span class="font-bold text-gray-900">{{ $sellerPage->upi_id }}</span>
+                        </div>
+                    @endif
+                    <div class="flex items-center gap-3 pt-1 text-gray-400 text-sm">
                         @if($sellerPage->instagram_link)
                             <a href="{{ $sellerPage->instagram_link }}" target="_blank" class="hover:text-pink-600"><i class="fa-brands fa-instagram"></i></a>
                         @endif

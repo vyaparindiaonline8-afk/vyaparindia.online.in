@@ -89,26 +89,88 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Store / Business Name <span class="text-red-500">*</span></label>
-                        <input type="text" name="page_title" value="{{ old('page_title', $minisite->page_title ?? '') }}" required placeholder="e.g. Royal Handlooms & Crafts" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">
+                            Store / Business Name (दुकान का मुख्य नाम) <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="store_title_input" name="page_title" value="{{ old('page_title', $minisite->page_title ?? '') }}" required placeholder="e.g. Ganesh Sanitaryware & Tiles" class="w-full px-4 py-2.5 text-sm font-bold bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Store URL Slug <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Store URL Slug (वेबसाइट लिंक) <span class="text-red-500">*</span></label>
                         <div class="flex items-center">
                             <span class="px-3 py-2.5 text-xs bg-gray-200 border border-r-0 border-gray-300 rounded-l-xl text-gray-500 font-mono">/</span>
-                            <input type="text" name="slug" value="{{ old('slug', $minisite->slug ?? '') }}" required placeholder="royal-handlooms" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-r-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">
+                            <input type="text" name="slug" value="{{ old('slug', $minisite->slug ?? '') }}" required placeholder="ganesh-sanitary" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-r-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">
                         </div>
                     </div>
 
+                    <!-- Business Category / Shop Type -->
+                    <div class="sm:col-span-2 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-xs font-black text-slate-900">
+                                <i class="fa-solid fa-store text-indigo-600 mr-1"></i> Business Category / किस चीज़ की दुकान है?
+                            </label>
+                            <span class="text-[10px] text-slate-500 font-semibold">Click to quick-fill</span>
+                        </div>
+                        <input type="text" id="business_cat_input" name="business_category_custom" value="{{ old('business_category_custom', $minisite->business_category_custom ?? '') }}" placeholder="e.g. Sanitaryware, Tiles & Bathroom Fittings" class="w-full px-4 py-2 text-xs font-bold bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none mb-2">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <button type="button" onclick="setBusinessCat('Sanitaryware, Bath Fittings & Tiles')" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 text-[11px] font-bold text-slate-700 transition shadow-2xs">🚽 Sanitaryware & Tiles</button>
+                            <button type="button" onclick="setBusinessCat('Hardware, CPVC Pipes & Paint Store')" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 text-[11px] font-bold text-slate-700 transition shadow-2xs">🔧 Hardware & Pipes</button>
+                            <button type="button" onclick="setBusinessCat('Fashion, Clothing & Saree Showroom')" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 text-[11px] font-bold text-slate-700 transition shadow-2xs">👗 Fashion & Cloth Store</button>
+                            <button type="button" onclick="setBusinessCat('Electricals, Fans & LED Lighting')" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 text-[11px] font-bold text-slate-700 transition shadow-2xs">⚡ Electricals & Lights</button>
+                            <button type="button" onclick="setBusinessCat('Building Materials, Cement & TMT Steel')" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 text-[11px] font-bold text-slate-700 transition shadow-2xs">🏗️ Cement & TMT Steel</button>
+                        </div>
+                    </div>
+
+                    <!-- Authorized Dealerships / Distributorships -->
+                    <div class="sm:col-span-2 bg-blue-50/60 border border-blue-200 rounded-2xl p-4">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-xs font-black text-blue-900">
+                                <i class="fa-solid fa-certificate text-blue-600 mr-1"></i> Authorized Dealership / Distributor of (किन कंपनियों के अधिकृत डीलर हैं?)
+                            </label>
+                            <span class="text-[10px] text-blue-600 font-semibold">Add brand chips</span>
+                        </div>
+                        <input type="text" id="dealership_input" name="dealership_text" value="{{ old('dealership_text', $minisite->dealership_text ?? '') }}" placeholder="e.g. Authorized Distributor of Cava Sanitaryware, Cera, Plasto & Jaquar" class="w-full px-4 py-2 text-xs font-bold bg-white border border-blue-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none mb-2">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <button type="button" onclick="appendDealership('Cava Sanitaryware')" class="px-2.5 py-1 rounded-lg bg-white border border-blue-200 hover:border-blue-500 text-blue-700 text-[11px] font-bold transition shadow-2xs">+ Cava Sanitary</button>
+                            <button type="button" onclick="appendDealership('Cera')" class="px-2.5 py-1 rounded-lg bg-white border border-blue-200 hover:border-blue-500 text-blue-700 text-[11px] font-bold transition shadow-2xs">+ Cera</button>
+                            <button type="button" onclick="appendDealership('Jaquar')" class="px-2.5 py-1 rounded-lg bg-white border border-blue-200 hover:border-blue-500 text-blue-700 text-[11px] font-bold transition shadow-2xs">+ Jaquar</button>
+                            <button type="button" onclick="appendDealership('Plasto Pipes')" class="px-2.5 py-1 rounded-lg bg-white border border-blue-200 hover:border-blue-500 text-blue-700 text-[11px] font-bold transition shadow-2xs">+ Plasto Pipes</button>
+                            <button type="button" onclick="appendDealership('Supreme')" class="px-2.5 py-1 rounded-lg bg-white border border-blue-200 hover:border-blue-500 text-blue-700 text-[11px] font-bold transition shadow-2xs">+ Supreme</button>
+                            <button type="button" onclick="appendDealership('Ashirvad')" class="px-2.5 py-1 rounded-lg bg-white border border-blue-200 hover:border-blue-500 text-blue-700 text-[11px] font-bold transition shadow-2xs">+ Ashirvad</button>
+                            <button type="button" onclick="appendDealership('Kajaria Tiles')" class="px-2.5 py-1 rounded-lg bg-white border border-blue-200 hover:border-blue-500 text-blue-700 text-[11px] font-bold transition shadow-2xs">+ Kajaria</button>
+                        </div>
+                    </div>
+
+                    <!-- Tagline with 1-Click Suggestions -->
                     <div class="sm:col-span-2">
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Tagline / Subheading</label>
-                        <input type="text" name="tagline" value="{{ old('tagline', $minisite->tagline ?? '') }}" placeholder="e.g. Direct Wholesaler of Authentic Handcrafted Silk & Cotton" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-bold text-gray-700">Tagline / Subheading (दुकान का मुख्य स्लोगन)</label>
+                            <span class="text-[10px] text-gray-400 font-bold">Click chip to apply</span>
+                        </div>
+                        <input type="text" id="tagline_input" name="tagline" value="{{ old('tagline', $minisite->tagline ?? '') }}" placeholder="e.g. Authorized Dealer of Cava Sanitaryware & Fittings" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none mb-2">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <button type="button" onclick="setTagline('Authorized Dealer of Cava Sanitaryware & Luxury Bath Fittings')" class="px-2 py-0.5 rounded-md bg-gray-100 hover:bg-indigo-50 hover:text-indigo-700 text-[10px] font-bold text-gray-600 transition">💡 Cava Sanitaryware Dealer</button>
+                            <button type="button" onclick="setTagline('Complete Range of One-Piece Commode, Basin & Tiles at Wholesale Rates')" class="px-2 py-0.5 rounded-md bg-gray-100 hover:bg-indigo-50 hover:text-indigo-700 text-[10px] font-bold text-gray-600 transition">💡 Wholesale Commode & Basin</button>
+                            <button type="button" onclick="setTagline('Direct Factory Wholesale Distributor with Prompt Site Delivery')" class="px-2 py-0.5 rounded-md bg-gray-100 hover:bg-indigo-50 hover:text-indigo-700 text-[10px] font-bold text-gray-600 transition">💡 Direct Site Delivery</button>
+                            <button type="button" onclick="setTagline('100% Genuine Branded Quality at Lowest Market Price')" class="px-2 py-0.5 rounded-md bg-gray-100 hover:bg-indigo-50 hover:text-indigo-700 text-[10px] font-bold text-gray-600 transition">💡 100% Genuine Guarantee</button>
+                        </div>
+                    </div>
+
+                    <!-- Welcome Message + AI Button -->
+                    <div class="sm:col-span-2">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-bold text-gray-700">Welcome Message (Hero Banner Greeting)</label>
+                            <button type="button" onclick="generateAiStory()" class="inline-flex items-center gap-1 text-[11px] font-black text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition shadow-2xs">
+                                <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
+                                <span>✨ AI से विवरण लिखवाएं (1-Click Auto Fill)</span>
+                            </button>
+                        </div>
+                        <textarea id="welcome_msg_input" name="welcome_message" rows="2" placeholder="Welcome buyers with a compelling greeting or discount notice" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">{{ old('welcome_message', $minisite->welcome_message ?? '') }}</textarea>
                     </div>
 
                     <div class="sm:col-span-2">
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Welcome Message (Hero Banner)</label>
-                        <textarea name="welcome_message" rows="2" placeholder="Welcome buyers with a compelling greeting or discount notice" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">{{ old('welcome_message', $minisite->welcome_message ?? '') }}</textarea>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">About Our Store (हमारी दुकान के बारे में - Footer / Story)</label>
+                        <textarea id="about_text_input" name="about_text" rows="3" placeholder="Explain your history, experience, genuine guarantees, and wholesale terms" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">{{ old('about_text', $minisite->about_text ?? '') }}</textarea>
                     </div>
                 </div>
             </div>
@@ -321,19 +383,88 @@
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    <div class="sm:col-span-3">
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Street Address</label>
-                        <input type="text" name="address" value="{{ old('address', $minisite->address ?? '') }}" placeholder="Plot 12, Industrial Area, Phase 2" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <!-- GPS Quick Locator Button -->
+                    <div class="sm:col-span-3 bg-gradient-to-r from-blue-50 via-indigo-50 to-emerald-50 border border-blue-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                        <div class="flex items-center gap-3">
+                            <div class="h-10 w-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-lg shadow-xs shrink-0">
+                                <i class="fa-solid fa-location-crosshairs"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-black text-gray-900">Live GPS Location Picker (लाइव लोकेशन सेट करें)</h4>
+                                <p class="text-[11px] text-gray-600 mt-0.5">Click to automatically grab your exact store latitude, longitude & Google Maps Pin.</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="detectGpsLocation()" id="btn_detect_gps" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition shrink-0">
+                            <i class="fa-solid fa-crosshairs text-amber-300"></i>
+                            <span>📍 मेरा लाइव GPS लोकेशन लें</span>
+                        </button>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Full Shop / Warehouse Street Address (दुकान का पूरा पता)</label>
+                        <input type="text" id="store_address_input" name="address" value="{{ old('address', $minisite->address ?? '') }}" placeholder="Plot 12, Main Market, Shop No. 4" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">City</label>
-                        <input type="text" name="city" value="{{ old('city', $minisite->city ?? '') }}" placeholder="Jaipur / Surat" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Landmark / Area (लैंडमार्क / नज़दीकी पहचान)</label>
+                        <input type="text" id="store_landmark_input" name="landmark" value="{{ old('landmark', $minisite->landmark ?? '') }}" placeholder="Opposite State Bank / Near Bus Stand" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">City (शहर)</label>
+                        <input type="text" id="store_city_input" name="city" value="{{ old('city', $minisite->city ?? '') }}" placeholder="Jaipur / Surat / Raipur" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">State (राज्य)</label>
+                        <input type="text" id="store_state_input" name="state" value="{{ old('state', $minisite->state ?? '') }}" placeholder="Rajasthan / Gujarat / Chhattisgarh" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
 
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">PIN Code</label>
-                        <input type="text" name="pincode" value="{{ old('pincode', $minisite->pincode ?? '') }}" placeholder="302001" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <input type="text" id="store_pincode_input" name="pincode" value="{{ old('pincode', $minisite->pincode ?? '') }}" placeholder="492001" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <!-- Delivery / Dispatch Radius -->
+                    <div class="sm:col-span-3 bg-indigo-50/50 border border-indigo-200 rounded-2xl p-4">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-xs font-black text-indigo-950">
+                                <i class="fa-solid fa-truck-fast text-indigo-600 mr-1"></i> Delivery & Dispatch Radius (डिलिवरी दायरा - कितने KM तक माल भेजते हैं?)
+                            </label>
+                            <span class="text-[10px] text-indigo-600 font-bold">Quick set radius</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="relative w-48">
+                                <input type="number" id="dispatch_radius_input" name="dispatch_radius" value="{{ old('dispatch_radius', $minisite->dispatch_radius ?? 500) }}" min="1" max="5000" class="w-full px-4 py-2 text-sm font-black bg-white border border-indigo-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <span class="absolute right-3 top-2.5 text-xs font-bold text-gray-500">KM</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button type="button" onclick="setRadius(25)" class="px-2.5 py-1 rounded-lg bg-white border border-indigo-200 hover:bg-indigo-600 hover:text-white text-[11px] font-bold text-indigo-700 transition">25 KM (Local City)</button>
+                                <button type="button" onclick="setRadius(100)" class="px-2.5 py-1 rounded-lg bg-white border border-indigo-200 hover:bg-indigo-600 hover:text-white text-[11px] font-bold text-indigo-700 transition">100 KM (District)</button>
+                                <button type="button" onclick="setRadius(500)" class="px-2.5 py-1 rounded-lg bg-white border border-indigo-200 hover:bg-indigo-600 hover:text-white text-[11px] font-bold text-indigo-700 transition">500 KM (Statewide)</button>
+                                <button type="button" onclick="setRadius(2000)" class="px-2.5 py-1 rounded-lg bg-white border border-indigo-200 hover:bg-indigo-600 hover:text-white text-[11px] font-bold text-indigo-700 transition">All India (Transport)</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hidden GPS Lat/Lng -->
+                    <input type="hidden" id="store_latitude" name="latitude" value="{{ old('latitude', $minisite->latitude ?? '') }}">
+                    <input type="hidden" id="store_longitude" name="longitude" value="{{ old('longitude', $minisite->longitude ?? '') }}">
+
+                    <!-- Google Maps Link -->
+                    <div class="sm:col-span-3">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">
+                            <i class="fa-solid fa-map-location-dot text-rose-500"></i> Google Maps Pin / Location Link
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <input type="url" id="google_map_link_input" name="google_map_link" value="{{ old('google_map_link', $minisite->google_map_link ?? '') }}" placeholder="https://maps.google.com/?q=..." class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            @if(isset($minisite) && $minisite->google_map_link)
+                                <a href="{{ $minisite->google_map_link }}" target="_blank" class="px-3 py-2.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 font-bold text-xs shrink-0 flex items-center gap-1 transition" title="Verify Google Maps Location">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                    <span>Check Pin</span>
+                                </a>
+                            @endif
+                        </div>
                     </div>
 
                     <div>
@@ -428,6 +559,44 @@
                 </div>
             </div>
 
+            <!-- 7. Shop & Showroom Photos (दुकान व शोरूम की तस्वीरें) -->
+            <div class="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
+                <div class="flex items-center gap-2.5 pb-4 border-b border-gray-100">
+                    <div class="h-8 w-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">
+                        7
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-base text-gray-900">Shop & Showroom Photos (दुकान व गोदाम की तस्वीरें)</h2>
+                        <p class="text-xs text-gray-500">Add photos of your shop front board, showroom display counter & warehouse to build trust</p>
+                    </div>
+                </div>
+
+                @php
+                    $shopPhotos = isset($minisite) ? ($minisite->shop_photos ?? []) : [];
+                @endphp
+
+                @if(!empty($shopPhotos) && count($shopPhotos) > 0)
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-2">Current Shop Showcase Photos:</label>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            @foreach($shopPhotos as $pIdx => $photo)
+                                <div class="relative aspect-video rounded-xl overflow-hidden border border-gray-200 group">
+                                    <img src="{{ $photo }}" alt="Shop Photo" class="w-full h-full object-cover">
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                    <label class="block text-xs font-bold text-slate-800 mb-1">
+                        <i class="fa-solid fa-camera text-indigo-600 mr-1"></i> Add Showroom / Warehouse Photo Link (या सीधे स्टोर पेज से अपलोड करें)
+                    </label>
+                    <input type="url" name="new_shop_photo_url" placeholder="https://... (Shop board, rack display or warehouse photo)" class="w-full px-4 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:border-indigo-500 focus:outline-none">
+                    <span class="text-[11px] text-slate-500 mt-1 block">Tip: You can also click "Add Shop Photo" directly on your storefront page anytime!</span>
+                </div>
+            </div>
+
             <!-- Submit Action -->
             <div class="flex items-center justify-end gap-4 pt-4">
                 <a href="{{ route('seller.dashboard') }}" class="px-6 py-3 rounded-2xl bg-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-300 transition-colors">
@@ -442,6 +611,96 @@
     </div>
 
     <script>
+        function setBusinessCat(catName) {
+            const input = document.getElementById('business_cat_input');
+            if (input) input.value = catName;
+        }
+
+        function appendDealership(brandName) {
+            const input = document.getElementById('dealership_input');
+            if (!input) return;
+            let current = input.value.trim();
+            if (!current) {
+                input.value = 'Authorized Dealer of ' + brandName;
+            } else if (!current.includes(brandName)) {
+                input.value = current + ', ' + brandName;
+            }
+        }
+
+        function setTagline(taglineText) {
+            const input = document.getElementById('tagline_input');
+            if (input) input.value = taglineText;
+        }
+
+        function setRadius(km) {
+            const input = document.getElementById('dispatch_radius_input');
+            if (input) input.value = km;
+        }
+
+        function detectGpsLocation() {
+            const btn = document.getElementById('btn_detect_gps');
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser.');
+                return;
+            }
+
+            if (btn) {
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Detecting GPS...';
+                btn.disabled = true;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+
+                    const latEl = document.getElementById('store_latitude');
+                    const lngEl = document.getElementById('store_longitude');
+                    const mapEl = document.getElementById('google_map_link_input');
+
+                    if (latEl) latEl.value = lat;
+                    if (lngEl) lngEl.value = lng;
+                    if (mapEl) {
+                        mapEl.value = `https://www.google.com/maps?q=${lat},${lng}`;
+                    }
+
+                    if (btn) {
+                        btn.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-300"></i> Location Captured!';
+                        btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                        btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+                    }
+                },
+                function(error) {
+                    if (btn) {
+                        btn.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> Retry GPS';
+                        btn.disabled = false;
+                    }
+                    alert('Could not get GPS location: ' + error.message + '. Please ensure location permission is allowed.');
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+
+        function generateAiStory() {
+            const title = document.getElementById('store_title_input')?.value || 'Our Store';
+            const cat = document.getElementById('business_cat_input')?.value || 'Sanitaryware, Bath Fittings & Quality Goods';
+            const dealer = document.getElementById('dealership_input')?.value || 'Authorized Dealer of Leading Brands';
+            const city = document.getElementById('store_city_input')?.value || 'our city';
+
+            const welcomeEl = document.getElementById('welcome_msg_input');
+            const aboutEl = document.getElementById('about_text_input');
+
+            if (welcomeEl) {
+                welcomeEl.value = `Namaste! Welcome to ${title} (${city}). ${dealer}. Browse our entire wholesale and retail catalog with 100% genuine warranty and direct express delivery.`;
+            }
+
+            if (aboutEl) {
+                aboutEl.value = `${title} is your trusted distributor and dealer for ${cat}. With direct factory sourcing, we guarantee authentic branded products, transparent wholesale rates, and fast doorstep delivery across our service network. Whether you are building a new house, renovating a bathroom, or fulfilling large contractor project requirements, our dedicated team is always ready to assist you on WhatsApp and phone.`;
+            }
+
+            alert('✨ AI Store Story & Welcome Message generated and filled successfully!');
+        }
+
         function highlightSelectedModule(selectedRadio) {
             const grid = document.getElementById('businessModuleGrid');
             if (!grid) return;

@@ -151,9 +151,108 @@ class MiniSiteController extends Controller
             }
         }
 
+        // Store custom business settings (GPS, landmark, dispatch radius, state, dealership, shop photos)
+        $currentSettings = $minisite->business_settings ?? [];
+        if ($request->filled('dispatch_radius')) {
+            $currentSettings['dispatch_radius'] = intval($request->input('dispatch_radius'));
+        }
+        if ($request->filled('state')) {
+            $currentSettings['state'] = trim($request->input('state'));
+        }
+        if ($request->filled('landmark')) {
+            $currentSettings['landmark'] = trim($request->input('landmark'));
+        }
+        if ($request->filled('latitude')) {
+            $currentSettings['latitude'] = floatval($request->input('latitude'));
+        }
+        if ($request->filled('longitude')) {
+            $currentSettings['longitude'] = floatval($request->input('longitude'));
+        }
+        if ($request->filled('business_category_custom')) {
+            $currentSettings['business_category_custom'] = trim($request->input('business_category_custom'));
+        }
+        if ($request->filled('dealership_text')) {
+            $currentSettings['dealership_text'] = trim($request->input('dealership_text'));
+        }
+
+        // Also update seller profile dispatch radius if present
+        if ($request->filled('dispatch_radius') && Auth::user()->sellerProfile) {
+            Auth::user()->sellerProfile->update(['dispatch_radius' => intval($request->input('dispatch_radius'))]);
+        }
+
+        $validated['business_settings'] = $currentSettings;
+
         $minisite->update($validated);
 
         return redirect()->route('seller.minisite.edit')->with('success', 'Mini-Storefront settings updated successfully.');
+    }
+
+    /**
+     * 1-Click Banner Swapper (Direct from Storefront)
+     */
+    public function quickBannerUpdate(Request $request)
+    {
+        $minisite = Auth::user()->sellerPage;
+        if (!$minisite) {
+            return response()->json(['success' => false, 'message' => 'Store not found.'], 404);
+        }
+
+        $url = null;
+        if ($request->hasFile('banner_image')) {
+            $url = CloudinaryService::upload($request->file('banner_image'), 'vyaparindia/minisite/banners');
+        } elseif ($request->filled('banner_url')) {
+            $url = trim($request->input('banner_url'));
+        }
+
+        if (!$url) {
+            return response()->json(['success' => false, 'message' => 'Please provide a banner photo or valid URL.'], 422);
+        }
+
+        $minisite->update(['banner_image' => $url]);
+
+        return response()->json([
+            'success' => true,
+            'banner_url' => $minisite->banner_url,
+            'message' => 'Store banner updated successfully! ✨'
+        ]);
+    }
+
+    /**
+     * 1-Click Shop / Showroom Photos Uploader
+     */
+    public function quickShopPhotoUpload(Request $request)
+    {
+        $minisite = Auth::user()->sellerPage;
+        if (!$minisite) {
+            return response()->json(['success' => false, 'message' => 'Store not found.'], 404);
+        }
+
+        $url = null;
+        if ($request->hasFile('shop_photo')) {
+            $url = CloudinaryService::upload($request->file('shop_photo'), 'vyaparindia/minisite/shop_photos');
+        } elseif ($request->filled('photo_url')) {
+            $url = trim($request->input('photo_url'));
+        }
+
+        if (!$url) {
+            return response()->json(['success' => false, 'message' => 'Please provide a valid image.'], 422);
+        }
+
+        $settings = $minisite->business_settings ?? [];
+        $photos = $settings['shop_photos'] ?? [];
+        if (!in_array($url, $photos)) {
+            $photos[] = $url;
+        }
+        $settings['shop_photos'] = $photos;
+
+        $minisite->update(['business_settings' => $settings]);
+
+        return response()->json([
+            'success' => true,
+            'shop_photos' => $photos,
+            'new_photo' => $url,
+            'message' => 'Shop photo added successfully! 📸'
+        ]);
     }
 
     // Public Storefront methods

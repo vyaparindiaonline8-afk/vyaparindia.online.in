@@ -99,6 +99,11 @@ class SellerPage extends Model
         return null;
     }
 
+    public function getBannerImageUrlAttribute()
+    {
+        return $this->banner_url;
+    }
+
     public function getCleanWhatsappNumberAttribute()
     {
         $num = preg_replace('/[^0-9]/', '', $this->whatsapp_number ?? '');
@@ -110,6 +115,41 @@ class SellerPage extends Model
 
     public function getDispatchRadiusAttribute()
     {
-        return $this->user?->sellerProfile?->dispatch_radius;
+        return $this->business_settings['dispatch_radius'] ?? ($this->user?->sellerProfile?->dispatch_radius ?? 500);
+    }
+
+    public function getShopPhotosAttribute()
+    {
+        return $this->business_settings['shop_photos'] ?? [];
+    }
+
+    public function getStateAttribute()
+    {
+        return $this->business_settings['state'] ?? ($this->user?->sellerProfile?->state ?? '');
+    }
+
+    public function getLandmarkAttribute()
+    {
+        return $this->business_settings['landmark'] ?? '';
+    }
+
+    public function getLatitudeAttribute()
+    {
+        return $this->business_settings['latitude'] ?? null;
+    }
+
+    public function getLongitudeAttribute()
+    {
+        return $this->business_settings['longitude'] ?? null;
+    }
+
+    public function getBusinessCategoryCustomAttribute()
+    {
+        return $this->business_settings['business_category_custom'] ?? '';
+    }
+
+    public function getDealershipTextAttribute()
+    {
+        return $this->business_settings['dealership_text'] ?? '';
     }
 }
