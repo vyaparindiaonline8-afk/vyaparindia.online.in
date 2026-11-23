@@ -195,6 +195,7 @@ class MiniSiteController extends Controller
                 'tables_count' => max(1, intval($request->input('food_tables_count', 10))),
                 'packaging_charge' => floatval($request->input('food_packaging_charge', 0)),
                 'min_order_delivery' => floatval($request->input('food_min_order_delivery', 0)),
+                'show_bill_and_upi' => $request->boolean('food_show_bill_and_upi', true),
             ];
         }
 

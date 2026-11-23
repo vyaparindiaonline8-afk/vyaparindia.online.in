@@ -388,6 +388,7 @@
 
                     <input type="hidden" id="selected_order_mode" value="{{ $defaultMode }}">
                     <input type="hidden" id="store_packaging_charge" value="{{ $pkgCharge }}">
+                    <input type="hidden" id="store_show_bill_and_upi" value="{{ !empty($fModes['show_bill_and_upi'] ?? true) ? '1' : '0' }}">
 
                     <!-- Fields for Dine-In -->
                     <div id="mode_fields_dine_in" class="{{ $defaultMode === 'dine_in' ? '' : 'hidden' }} space-y-2">
@@ -408,6 +409,15 @@
                             <input type="tel" id="order_delivery_phone" placeholder="मोबाइल नंबर (Phone)" class="w-full px-2.5 py-1.5 text-xs font-bold font-mono border border-amber-300 rounded-lg bg-white">
                         </div>
                         <input type="text" id="order_delivery_address" placeholder="डिलीवरी पता / मकान नं., कालोनी (Full Address)" class="w-full px-2.5 py-1.5 text-xs font-bold border border-amber-300 rounded-lg bg-white">
+
+                        <!-- 📍 Live GPS Pinning for Delivery Rider -->
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="detectCustomerDeliveryGps()" id="btn_cust_delivery_gps" class="w-full py-1.5 px-3 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-900 text-[11px] font-bold flex items-center justify-center gap-1.5 transition">
+                                <i class="fa-solid fa-crosshairs text-emerald-600"></i>
+                                <span id="cust_gps_label">📍 मेरा लाइव GPS लोकेशन जोड़ें (Maps Pin)</span>
+                            </button>
+                            <input type="hidden" id="order_delivery_gps" value="">
+                        </div>
                     </div>
 
                     <!-- Fields for Takeaway / Pickup -->
@@ -885,6 +895,42 @@
             }
         }
 
+        function detectCustomerDeliveryGps() {
+            const btn = document.getElementById('btn_cust_delivery_gps');
+            const label = document.getElementById('cust_gps_label');
+            const hiddenGps = document.getElementById('order_delivery_gps');
+            const addrInput = document.getElementById('order_delivery_address');
+
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser.');
+                return;
+            }
+
+            if (label) label.innerText = 'GPS ढूँढा जा रहा है...';
+
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+                    if (hiddenGps) hiddenGps.value = mapsUrl;
+
+                    if (label) label.innerText = `✓ GPS Pin Locked (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+                    if (btn) {
+                        btn.className = "w-full py-1.5 px-3 rounded-lg bg-emerald-600 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-xs";
+                    }
+                    if (addrInput && !addrInput.value) {
+                        addrInput.value = `Live GPS Pin (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+                    }
+                },
+                function(err) {
+                    alert('Location access denied or unavailable: ' + err.message);
+                    if (label) label.innerText = '📍 मेरा लाइव GPS लोकेशन जोड़ें';
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+
         function orderCartViaWhatsapp() {
             const cart = getCart();
             if (!WHATSAPP_NUM || cart.length === 0) {
@@ -901,26 +947,30 @@
 
             if (mode === 'dine_in') {
                 const tableNo = document.getElementById('order_table_number')?.value || '1';
-                modeTitle = `🪑 *Dine-In (डाइन-इन टेबल ऑर्डर)*\n🪑 *Table Number:* Table #${tableNo}`;
+                modeTitle = `🪑 *Dine-In (डाइन-इन टेबल ऑर्डर)*\n🪑 *Table Number:* Table #${tableNo}\n`;
             } else if (mode === 'delivery') {
                 const name = document.getElementById('order_delivery_name')?.value.trim();
                 const phone = document.getElementById('order_delivery_phone')?.value.trim();
                 const addr = document.getElementById('order_delivery_address')?.value.trim();
+                const gpsLink = document.getElementById('order_delivery_gps')?.value || '';
 
                 if (!name || !phone || !addr) {
                     alert('कृपया होम डिलीवरी हेतु अपना नाम, मोबाइल नंबर और पूरा पता अवश्य भरें!');
                     return;
                 }
-                modeTitle = `🛵 *Cloud Kitchen / Home Delivery (होम डिलीवरी)*`;
+                modeTitle = `🛵 *Cloud Kitchen / Home Delivery (होम डिलीवरी)*\n`;
                 customerDetails = `👤 *Customer Name:* ${name}\n📞 *Phone:* ${phone}\n📍 *Delivery Address:* ${addr}\n`;
+                if (gpsLink) {
+                    customerDetails += `🗺️ *Google Maps GPS Pin:* ${gpsLink}\n`;
+                }
             } else {
                 const name = document.getElementById('order_takeaway_name')?.value.trim() || 'ग्राहक';
                 const time = document.getElementById('order_takeaway_time')?.value.trim() || '20 मिनट में';
-                modeTitle = `🥡 *Takeaway / Parcel Pickup (काउंटर पिकअप)*`;
+                modeTitle = `🥡 *Takeaway / Parcel Pickup (काउंटर पिकअप)*\n`;
                 customerDetails = `👤 *Customer Name:* ${name}\n⏱️ *Pickup Time:* ${time}\n`;
             }
 
-            let text = `🛎️ *नया ऑर्डर प्राप्त हुआ - ${STORE_NAME}!*\n━━━━━━━━━━━━━━━━━━━━━\n${modeTitle}\n${customerDetails}━━━━━━━━━━━━━━━━━━━━━\n📋 *ऑर्डर किए गए आइटम्स:*\n`;
+            let text = `🛎️ *नया ऑर्डर प्राप्त हुआ - ${STORE_NAME}!*\n━━━━━━━━━━━━━━━━━━━━━\n${modeTitle}${customerDetails}━━━━━━━━━━━━━━━━━━━━━\n📋 *ऑर्डर किए गए आइटम्स:*\n`;
 
             let subtotal = 0;
             cart.forEach((item, index) => {
@@ -933,18 +983,25 @@
             });
 
             const grandTotal = subtotal + appliedPkgCharge;
+            const showBillAndUpi = document.getElementById('store_show_bill_and_upi')?.value === '1';
 
-            text += `━━━━━━━━━━━━━━━━━━━━━\n`;
-            text += `🧾 *Items Subtotal:* ₹${subtotal.toFixed(2)}\n`;
-            if (appliedPkgCharge > 0) {
-                text += `📦 *Packaging Fee:* ₹${appliedPkgCharge.toFixed(2)}\n`;
+            if (showBillAndUpi) {
+                text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+                text += `🧾 *Items Subtotal:* ₹${subtotal.toFixed(2)}\n`;
+                if (appliedPkgCharge > 0) {
+                    text += `📦 *Packaging Fee:* ₹${appliedPkgCharge.toFixed(2)}\n`;
+                }
+                text += `💵 *Final Bill Amount (कुल राशि):* ₹${grandTotal.toFixed(2)}\n`;
+                text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+
+                const upiId = '{{ $sellerPage->upi_id ?: "7828289433@upi" }}';
+                const upiPayUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(STORE_NAME)}&am=${grandTotal.toFixed(2)}&cu=INR`;
+                text += `💳 *तुरंत UPI भुगतान लिंक (PhonePe / GPay / Paytm):*\n${upiPayUrl}\n\n`;
+            } else {
+                text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+                text += `ℹ️ *नोट:* कुल बिल राशि व भुगतान की जानकारी दुकान द्वारा सीधे कन्फर्म की जाएगी।\n\n`;
             }
-            text += `💵 *Final Bill Amount (कुल राशि):* ₹${grandTotal.toFixed(2)}\n`;
-            text += `━━━━━━━━━━━━━━━━━━━━━\n`;
 
-            const upiId = '{{ $sellerPage->upi_id ?: "7828289433@upi" }}';
-            const upiPayUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(STORE_NAME)}&am=${grandTotal.toFixed(2)}&cu=INR`;
-            text += `💳 *तुरंत UPI भुगतान लिंक (PhonePe / GPay / Paytm):*\n${upiPayUrl}\n\n`;
             text += `कृपया ऑर्डर कन्फर्म करें। धन्यवाद! 🙏`;
 
             const cleanNum = WHATSAPP_NUM.replace(/[^0-9]/g, '');

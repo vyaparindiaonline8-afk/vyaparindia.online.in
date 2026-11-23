@@ -631,6 +631,17 @@
                         <span class="text-[10px] text-gray-400 block mt-0.5">इससे कम बिल पर सिर्फ टेकअवे/डाइन-इन मिलेगा</span>
                     </div>
                 </div>
+
+                <!-- Optional Payment & Bill Toggle (मालिक के लिए पेमेंट/बिल ऑप्शनल रखने की सुविधा) -->
+                <div class="pt-2 border-t border-amber-200/80">
+                    <label class="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-amber-200 cursor-pointer">
+                        <input type="checkbox" name="food_show_bill_and_upi" value="1" {{ !empty($foodModes['show_bill_and_upi'] ?? true) ? 'checked' : '' }} class="h-4 w-4 text-emerald-600 rounded">
+                        <div>
+                            <div class="text-xs font-black text-gray-900">व्हाट्सएप ऑर्डर में कुल बिल राशि व UPI पेमेंट लिंक दिखाएं (Show Bill & UPI Payment)</div>
+                            <div class="text-[11px] text-gray-500">यदि आप इसे बंद रखेंगे, तो ग्राहक को सिर्फ डिशेज और क्वांटिटी की सूची दिखेगी, कोई फिक्स बिल या UPI लिंक नहीं भेजा जाएगा (दुकानदार बाद में तय करेंगे)।</div>
+                        </div>
+                    </label>
+                </div>
             </div>
 
             <!-- 6. Payment & Banking Setup (UPI / Bank Transfer) -->
@@ -981,6 +992,19 @@
             renderExtractedItemsTable();
         }
 
+        function addNewBlankDishRow() {
+            parsedMenuItems.unshift({
+                name: 'New Special Dish',
+                group_name: 'Main Course (Veg)',
+                diet_type: 'veg',
+                price: 120,
+                price_half: 70,
+                price_full: 120,
+                spice_level: 'medium'
+            });
+            renderExtractedItemsTable();
+        }
+
         async function saveAllExtractedMenu() {
             if (!parsedMenuItems || parsedMenuItems.length === 0) {
                 alert('No dishes to save.');
@@ -1062,7 +1086,13 @@
                 <div id="ai_menu_results_box" class="hidden mt-4 pt-4 border-t border-gray-100 space-y-3">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-black text-gray-900" id="ai_items_badge">0 Dishes Detected</span>
-                        <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">✓ आप किसी भी रेट या नाम को यहीं बदल सकते हैं</span>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="addNewBlankDishRow()" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 text-[11px] font-bold flex items-center gap-1 transition">
+                                <i class="fa-solid fa-plus text-[10px]"></i>
+                                <span>+ नई डिश जोड़ें</span>
+                            </button>
+                            <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">✓ आप किसी भी रेट या नाम को यहीं बदल सकते हैं</span>
+                        </div>
                     </div>
 
                     <div class="overflow-x-auto border border-gray-200 rounded-2xl max-h-64 overflow-y-auto">
