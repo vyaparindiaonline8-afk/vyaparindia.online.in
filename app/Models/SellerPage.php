@@ -174,7 +174,105 @@ class SellerPage extends Model
 
     public function getDealershipTextAttribute()
     {
-        return $this->business_settings['dealership_text'] ?? '';
+        $val = $this->business_settings['dealership_text'] ?? null;
+        if (!empty($val)) return $val;
+        return $this->attributes['dealership_text'] ?? '';
+    }
+
+    public function getWhatsappNumberAttribute($value)
+    {
+        if (!empty($value)) return $value;
+        return $this->user?->sellerProfile?->whatsapp_number ?? ($this->user?->mobile_number ?? '');
+    }
+
+    public function getSupportPhoneAttribute($value)
+    {
+        if (!empty($value)) return $value;
+        return $this->user?->sellerProfile?->office_phone ?? ($this->user?->mobile_number ?? '');
+    }
+
+    public function getSupportEmailAttribute($value)
+    {
+        if (!empty($value)) return $value;
+        return $this->user?->email ?? '';
+    }
+
+    public function getAddressAttribute($value)
+    {
+        if (!empty($value)) return $value;
+        return $this->user?->sellerProfile?->address ?? '';
+    }
+
+    public function getCityAttribute($value)
+    {
+        if (!empty($value)) return $value;
+        return $this->user?->sellerProfile?->city ?? '';
+    }
+
+    public function getPincodeAttribute($value)
+    {
+        if (!empty($value)) return $value;
+        return $this->user?->sellerProfile?->pincode ?? '';
+    }
+
+    public function getGoogleMapLinkAttribute($value)
+    {
+        if (!empty($value)) return $value;
+        return $this->business_settings['google_map_link'] ?? ($this->user?->sellerProfile?->google_map_url ?? '');
+    }
+
+    public function getGoogleReviewLinkAttribute($value)
+    {
+        if (!empty($value)) return $value;
+        return $this->business_settings['google_review_link'] ?? ($this->user?->sellerProfile?->google_business_url ?? '');
+    }
+
+    public function getInstagramLinkAttribute($value)
+    {
+        if (!empty($value)) return $value;
+        return $this->business_settings['instagram_link'] ?? ($this->user?->sellerProfile?->instagram_url ?? '');
+    }
+
+    public function getFacebookLinkAttribute($value)
+    {
+        if (!empty($value)) return $value;
+        return $this->business_settings['facebook_link'] ?? ($this->user?->sellerProfile?->facebook_url ?? '');
+    }
+
+    public function getYoutubeLinkAttribute($value)
+    {
+        if (!empty($value)) return $value;
+        return $this->business_settings['youtube_link'] ?? ($this->user?->sellerProfile?->youtube_url ?? '');
+    }
+
+    public function getUpiIdAttribute($value)
+    {
+        if (!empty($value)) return $value;
+        return $this->user?->sellerProfile?->upi_id ?? '';
+    }
+
+    public function getBankNameAttribute($value)
+    {
+        if (!empty($value)) return $value;
+        return $this->user?->sellerProfile?->bank_name ?? '';
+    }
+
+    public function getBankAccountNumberAttribute($value)
+    {
+        if (!empty($value)) return $value;
+        return $this->user?->sellerProfile?->bank_account_number ?? '';
+    }
+
+    public function getBankIfscAttribute($value)
+    {
+        if (!empty($value)) return $value;
+        return $this->user?->sellerProfile?->bank_ifsc ?? '';
+    }
+
+    public function getBankAccountHolderAttribute($value)
+    {
+        if (!empty($value)) return $value;
+        return $this->user?->sellerProfile?->bank_account_holder ?? '';
     }
 
     public function getProjectPhotosAttribute()

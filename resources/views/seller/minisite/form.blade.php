@@ -417,13 +417,6 @@
                         </label>
                         <input type="text" name="google_review_link" value="{{ old('google_review_link', $minisite->google_review_link ?? '') }}" placeholder="उदा. https://g.page/r/.../review या Review Link" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
-
-                    <div class="sm:col-span-2">
-                        <label class="block text-xs font-bold text-gray-700 mb-1">
-                            <i class="fa-solid fa-map-location-dot text-rose-500"></i> Google Maps GPS Location Link
-                        </label>
-                        <input type="text" name="google_map_link" value="{{ old('google_map_link', $minisite->google_map_link ?? '') }}" placeholder="उदा. https://maps.app.goo.gl/... या Google Maps Link" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    </div>
                 </div>
             </div>
 
@@ -543,7 +536,7 @@
                             <i class="fa-solid fa-map-location-dot text-rose-500"></i> Google Maps Pin / Location Link
                         </label>
                         <div class="flex items-center gap-2">
-                            <input type="url" id="google_map_link_input" name="google_map_link" value="{{ old('google_map_link', $minisite->google_map_link ?? '') }}" placeholder="https://maps.google.com/?q=..." class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <input type="text" id="google_map_link_input" name="google_map_link" value="{{ old('google_map_link', $minisite->google_map_link ?? '') }}" placeholder="उदा. https://maps.app.goo.gl/... या Google Maps लिंक" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                             @if(isset($minisite) && $minisite->google_map_link)
                                 <a href="{{ $minisite->google_map_link }}" target="_blank" class="px-3 py-2.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 font-bold text-xs shrink-0 flex items-center gap-1 transition" title="Verify Google Maps Location">
                                     <i class="fa-solid fa-arrow-up-right-from-square"></i>
