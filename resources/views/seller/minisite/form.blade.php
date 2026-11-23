@@ -340,32 +340,89 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Instagram Profile URL</label>
-                        <input type="url" name="instagram_link" value="{{ old('instagram_link', $minisite->instagram_link ?? '') }}" placeholder="https://instagram.com/yourhandle" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">
+                            <i class="fa-brands fa-instagram text-pink-600 mr-1"></i> Instagram ID (हैंडल या लिंक)
+                        </label>
+                        <div class="relative flex items-center">
+                            <span class="inline-flex items-center px-3 py-2.5 rounded-l-xl border border-r-0 border-gray-300 bg-pink-50 text-pink-700 font-bold text-xs select-none">
+                                <i class="fa-brands fa-instagram mr-1 text-pink-600"></i> instagram.com/
+                            </span>
+                            @php
+                                $igRaw = old('instagram_link', $minisite->instagram_link ?? '');
+                                $igClean = preg_replace('/^https?:\/\/(www\.)?instagram\.com\//i', '', $igRaw);
+                                $igClean = ltrim($igClean, '@');
+                                $igClean = rtrim($igClean, '/');
+                            @endphp
+                            <input type="text" name="instagram_link" id="instagram_link_input" 
+                                value="{{ $igClean }}" 
+                                placeholder="ganeshtraders" 
+                                oninput="formatSocialHandle(this, 'instagram')"
+                                onblur="formatSocialHandle(this, 'instagram')"
+                                class="w-full px-3 py-2.5 text-sm font-bold bg-gray-50 border border-gray-300 rounded-r-xl focus:bg-white focus:outline-none">
+                        </div>
+                        <span class="text-[11px] text-gray-500 mt-1 block">सिर्फ अपनी ID (उदा. <strong>ganeshtraders</strong>) डालें; पूरा लिंक अपने-आप बन जाएगा।</span>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Facebook Page URL</label>
-                        <input type="url" name="facebook_link" value="{{ old('facebook_link', $minisite->facebook_link ?? '') }}" placeholder="https://facebook.com/yourbusiness" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">
+                            <i class="fa-brands fa-facebook text-blue-600 mr-1"></i> Facebook ID (पेज या लिंक)
+                        </label>
+                        <div class="relative flex items-center">
+                            <span class="inline-flex items-center px-3 py-2.5 rounded-l-xl border border-r-0 border-gray-300 bg-blue-50 text-blue-700 font-bold text-xs select-none">
+                                <i class="fa-brands fa-facebook mr-1 text-blue-600"></i> facebook.com/
+                            </span>
+                            @php
+                                $fbRaw = old('facebook_link', $minisite->facebook_link ?? '');
+                                $fbClean = preg_replace('/^https?:\/\/(www\.)?facebook\.com\//i', '', $fbRaw);
+                                $fbClean = ltrim($fbClean, '@');
+                                $fbClean = rtrim($fbClean, '/');
+                            @endphp
+                            <input type="text" name="facebook_link" id="facebook_link_input" 
+                                value="{{ $fbClean }}" 
+                                placeholder="ganeshtraders" 
+                                oninput="formatSocialHandle(this, 'facebook')"
+                                onblur="formatSocialHandle(this, 'facebook')"
+                                class="w-full px-3 py-2.5 text-sm font-bold bg-gray-50 border border-gray-300 rounded-r-xl focus:bg-white focus:outline-none">
+                        </div>
+                        <span class="text-[11px] text-gray-500 mt-1 block">सिर्फ अपना फेसबुक नाम/पेज ID डालें।</span>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">YouTube Channel URL</label>
-                        <input type="url" name="youtube_link" value="{{ old('youtube_link', $minisite->youtube_link ?? '') }}" placeholder="https://youtube.com/@yourchannel" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">
+                            <i class="fa-brands fa-youtube text-red-600 mr-1"></i> YouTube Channel Handle
+                        </label>
+                        <div class="relative flex items-center">
+                            <span class="inline-flex items-center px-3 py-2.5 rounded-l-xl border border-r-0 border-gray-300 bg-red-50 text-red-700 font-bold text-xs select-none">
+                                <i class="fa-brands fa-youtube mr-1 text-red-600"></i> youtube.com/@
+                            </span>
+                            @php
+                                $ytRaw = old('youtube_link', $minisite->youtube_link ?? '');
+                                $ytClean = preg_replace('/^https?:\/\/(www\.)?youtube\.com\/(@)?/i', '', $ytRaw);
+                                $ytClean = ltrim($ytClean, '@');
+                                $ytClean = rtrim($ytClean, '/');
+                            @endphp
+                            <input type="text" name="youtube_link" id="youtube_link_input" 
+                                value="{{ $ytClean }}" 
+                                placeholder="ganeshtraders" 
+                                oninput="formatSocialHandle(this, 'youtube')"
+                                onblur="formatSocialHandle(this, 'youtube')"
+                                class="w-full px-3 py-2.5 text-sm font-bold bg-gray-50 border border-gray-300 rounded-r-xl focus:bg-white focus:outline-none">
+                        </div>
+                        <span class="text-[11px] text-gray-500 mt-1 block">सिर्फ अपना चैनल नाम (उदा. <strong>ganeshtraders</strong>) डालें।</span>
                     </div>
 
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-bold text-gray-700 mb-1">
                             <i class="fa-brands fa-google text-amber-500"></i> Google Business Review Link
                         </label>
-                        <input type="url" name="google_review_link" value="{{ old('google_review_link', $minisite->google_review_link ?? '') }}" placeholder="https://g.page/r/.../review (Buyers can directly view & leave Google reviews)" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <input type="text" name="google_review_link" value="{{ old('google_review_link', $minisite->google_review_link ?? '') }}" placeholder="उदा. https://g.page/r/.../review या Review Link" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
 
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-bold text-gray-700 mb-1">
-                            <i class="fa-solid fa-map-location-dot text-rose-500"></i> Google Maps / Warehouse Location Link
+                            <i class="fa-solid fa-map-location-dot text-rose-500"></i> Google Maps GPS Location Link
                         </label>
-                        <input type="url" name="google_map_link" value="{{ old('google_map_link', $minisite->google_map_link ?? '') }}" placeholder="https://maps.google.com/?q=..." class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <input type="text" name="google_map_link" value="{{ old('google_map_link', $minisite->google_map_link ?? '') }}" placeholder="उदा. https://maps.app.goo.gl/... या Google Maps Link" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
                 </div>
             </div>
@@ -828,6 +885,23 @@
             if (previewEl) {
                 previewEl.innerText = val.trim() ? val.trim() : 'UPI ID दर्ज करें...';
             }
+        }
+
+        function formatSocialHandle(input, platform) {
+            let val = input.value.trim();
+            if (!val) return;
+            val = val.replace(/^@/, '');
+            if (platform === 'instagram') {
+                const match = val.match(/instagram\.com\/([^\/\?#]+)/i);
+                if (match) val = match[1];
+            } else if (platform === 'facebook') {
+                const match = val.match(/facebook\.com\/([^\/\?#]+)/i);
+                if (match) val = match[1];
+            } else if (platform === 'youtube') {
+                const match = val.match(/youtube\.com\/(@)?([^\/\?#]+)/i);
+                if (match) val = match[2];
+            }
+            input.value = val.replace(/^@/, '').replace(/\/$/, '');
         }
 
         function appendServicedCity(city) {

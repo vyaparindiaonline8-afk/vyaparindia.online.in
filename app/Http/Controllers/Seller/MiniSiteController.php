@@ -29,9 +29,49 @@ class MiniSiteController extends Controller
         return view('seller.minisite.form', compact('businessModules'));
     }
 
-    public function store(Request $request)
+    protected function sanitizeSocialLinks(Request $request): void
     {
-        foreach (['google_map_link', 'google_review_link', 'instagram_link', 'facebook_link', 'youtube_link'] as $urlField) {
+        // 1. Instagram Link / Handle
+        if ($request->filled('instagram_link')) {
+            $val = trim($request->input('instagram_link'));
+            $handle = preg_replace('/^https?:\/\/(www\.)?instagram\.com\//i', '', $val);
+            $handle = ltrim($handle, '@');
+            $handle = trim($handle, '/');
+            if (!empty($handle)) {
+                $request->merge(['instagram_link' => 'https://instagram.com/' . $handle]);
+            } else {
+                $request->merge(['instagram_link' => null]);
+            }
+        }
+
+        // 2. Facebook Link / Handle
+        if ($request->filled('facebook_link')) {
+            $val = trim($request->input('facebook_link'));
+            $handle = preg_replace('/^https?:\/\/(www\.)?facebook\.com\//i', '', $val);
+            $handle = ltrim($handle, '@');
+            $handle = trim($handle, '/');
+            if (!empty($handle)) {
+                $request->merge(['facebook_link' => 'https://facebook.com/' . $handle]);
+            } else {
+                $request->merge(['facebook_link' => null]);
+            }
+        }
+
+        // 3. YouTube Link / Handle
+        if ($request->filled('youtube_link')) {
+            $val = trim($request->input('youtube_link'));
+            $handle = preg_replace('/^https?:\/\/(www\.)?youtube\.com\/(@)?/i', '', $val);
+            $handle = ltrim($handle, '@');
+            $handle = trim($handle, '/');
+            if (!empty($handle)) {
+                $request->merge(['youtube_link' => 'https://youtube.com/@' . $handle]);
+            } else {
+                $request->merge(['youtube_link' => null]);
+            }
+        }
+
+        // 4. Google Maps & Reviews
+        foreach (['google_map_link', 'google_review_link'] as $urlField) {
             if ($request->filled($urlField)) {
                 $val = trim($request->input($urlField));
                 if (!preg_match('/^https?:\/\//i', $val)) {
@@ -39,6 +79,11 @@ class MiniSiteController extends Controller
                 }
             }
         }
+    }
+
+    public function store(Request $request)
+    {
+        $this->sanitizeSocialLinks($request);
 
         $validated = $request->validate([
             'page_title' => 'required|string|max:255',
@@ -49,11 +94,11 @@ class MiniSiteController extends Controller
             'whatsapp_number' => 'nullable|string|max:20',
             'support_phone' => 'nullable|string|max:20',
             'support_email' => 'nullable|email|max:255',
-            'instagram_link' => 'nullable|url|max:255',
-            'facebook_link' => 'nullable|url|max:255',
-            'youtube_link' => 'nullable|url|max:255',
-            'google_review_link' => 'nullable|url|max:500',
-            'google_map_link' => 'nullable|url|max:500',
+            'instagram_link' => 'nullable|string|max:255',
+            'facebook_link' => 'nullable|string|max:255',
+            'youtube_link' => 'nullable|string|max:255',
+            'google_review_link' => 'nullable|string|max:500',
+            'google_map_link' => 'nullable|string|max:500',
             'address' => 'nullable|string',
             'city' => 'nullable|string|max:100',
             'pincode' => 'nullable|string|max:20',
@@ -108,14 +153,7 @@ class MiniSiteController extends Controller
             return redirect()->route('seller.minisite.create');
         }
 
-        foreach (['google_map_link', 'google_review_link', 'instagram_link', 'facebook_link', 'youtube_link'] as $urlField) {
-            if ($request->filled($urlField)) {
-                $val = trim($request->input($urlField));
-                if (!preg_match('/^https?:\/\//i', $val)) {
-                    $request->merge([$urlField => 'https://' . $val]);
-                }
-            }
-        }
+        $this->sanitizeSocialLinks($request);
 
         $validated = $request->validate([
             'page_title' => 'required|string|max:255',
@@ -126,11 +164,11 @@ class MiniSiteController extends Controller
             'whatsapp_number' => 'nullable|string|max:20',
             'support_phone' => 'nullable|string|max:20',
             'support_email' => 'nullable|email|max:255',
-            'instagram_link' => 'nullable|url|max:255',
-            'facebook_link' => 'nullable|url|max:255',
-            'youtube_link' => 'nullable|url|max:255',
-            'google_review_link' => 'nullable|url|max:500',
-            'google_map_link' => 'nullable|url|max:500',
+            'instagram_link' => 'nullable|string|max:255',
+            'facebook_link' => 'nullable|string|max:255',
+            'youtube_link' => 'nullable|string|max:255',
+            'google_review_link' => 'nullable|string|max:500',
+            'google_map_link' => 'nullable|string|max:500',
             'address' => 'nullable|string',
             'city' => 'nullable|string|max:100',
             'pincode' => 'nullable|string|max:20',
