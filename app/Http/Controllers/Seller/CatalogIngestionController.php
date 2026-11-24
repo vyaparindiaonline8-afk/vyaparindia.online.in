@@ -1156,6 +1156,68 @@ class CatalogIngestionController extends Controller
     }
 
     /**
+     * 1-Click Bulk Stock Reset (Set All to 0) or Bulk Restock (Set All to X pieces).
+     */
+    public function bulkStockAction(Request $request)
+    {
+        $sellerId = Auth::id();
+        $action = $request->input('bulk_action'); // 'set_zero' or 'set_fixed'
+        $targetQty = ($action === 'set_zero') ? 0 : max(0, intval($request->input('target_quantity', 50)));
+        $categoryId = $request->filled('category_id') ? intval($request->input('category_id')) : null;
+
+        $query = Product::where('user_id', $sellerId);
+        if ($categoryId) {
+            $query->where('category_id', $categoryId);
+        }
+
+        $products = $query->with('variants')->get();
+        $updatedProductsCount = 0;
+        $updatedVariantsCount = 0;
+
+        DB::transaction(function () use ($products, $targetQty, &$updatedProductsCount, &$updatedVariantsCount) {
+            foreach ($products as $prod) {
+                $prod->update([
+                    'stock_quantity' => $targetQty,
+                    'track_inventory' => true,
+                ]);
+                $updatedProductsCount++;
+
+                if ($prod->variants && $prod->variants->isNotEmpty()) {
+                    foreach ($prod->variants as $var) {
+                        $var->update([
+                            'stock_quantity' => $targetQty,
+                            'track_inventory' => true,
+                        ]);
+                        $updatedVariantsCount++;
+                    }
+                }
+            }
+        });
+
+        // Trigger AI Catalog Health re-score
+        try {
+            $engine = new \App\Services\AiCatalogHealthEngine();
+            $engine->auditSeller($sellerId, true);
+        } catch (\Throwable $e) {}
+
+        $msg = ($action === 'set_zero')
+            ? "⚠️ कुल {$updatedProductsCount} प्रोडक्ट्स (व {$updatedVariantsCount} वेरिएंट्स) का स्टॉक 0 (Out of Stock) कर दिया गया है।"
+            : "✅ कुल {$updatedProductsCount} प्रोडक्ट्स (व {$updatedVariantsCount} वेरिएंट्स) में स्टॉक {$targetQty} यूनिट्स सेट कर दिया गया है!";
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $msg,
+                'target_quantity' => $targetQty,
+                'updated_products' => $updatedProductsCount,
+                'updated_variants' => $updatedVariantsCount,
+            ]);
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    /**
      * JSON Registry Helpers for persisting Cloudinary and Custom Crops across deploys.
      */
     public static function getCropsRegistry($userId): array

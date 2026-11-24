@@ -362,6 +362,11 @@
                             ₹0 भाव ({{ $stats['missing_prices_count'] ?? 0 }})
                         </button>
                     </div>
+
+                    <a href="{{ route('seller.inventory.index') }}" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs transition flex items-center gap-1.5 shadow-2xs">
+                        <i class="fa-solid fa-sliders"></i>
+                        <span>बल्क स्टॉक टूल्स</span>
+                    </a>
                 </div>
             </div>
 

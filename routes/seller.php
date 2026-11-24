@@ -266,6 +266,7 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
     Route::prefix('inventory')->name('inventory.')->group(function () {
         Route::get('/', [CatalogIngestionController::class, 'inventory'])->name('index');
         Route::post('/restock', [CatalogIngestionController::class, 'restock'])->name('restock');
+        Route::post('/bulk-stock-action', [CatalogIngestionController::class, 'bulkStockAction'])->name('bulk_stock_action');
         Route::post('/quick-update-rates', [CatalogIngestionController::class, 'quickUpdateRates'])->name('quick_update_rates');
         Route::post('/bulk-rate-update', [CatalogIngestionController::class, 'bulkRateUpdate'])->name('bulk_rate_update');
         Route::post('/category-bulk-margin', [CatalogIngestionController::class, 'categoryBulkMargin'])->name('category_bulk_margin');

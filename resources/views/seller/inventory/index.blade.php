@@ -26,6 +26,10 @@
                 </div>
 
                 <div class="flex items-center gap-3">
+                    <button type="button" onclick="openBulkStockModal()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-black transition flex items-center gap-1.5 shadow-md shadow-amber-500/20 active:scale-95">
+                        <i class="fa-solid fa-sliders"></i>
+                        <span>बल्क स्टॉक टूल्स (0 करें / भरें)</span>
+                    </button>
                     <button type="button" onclick="openRateUpdateModal()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black transition flex items-center gap-1.5 shadow-md shadow-indigo-600/20 active:scale-95">
                         <i class="fa-solid fa-file-invoice-dollar"></i>
                         <span>Update Rates via Excel</span>
@@ -835,6 +839,90 @@
         </div>
     </div>
 
+    <!-- ⚡ Bulk Stock Action Modal (Set All to 0 or Set Uniform Stock) -->
+    <div id="bulkStockModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm font-bold">
+                        <i class="fa-solid fa-sliders"></i>
+                    </div>
+                    <h3 class="font-black text-gray-900 text-sm">बल्क स्टॉक टूल्स (Bulk Stock Actions)</h3>
+                </div>
+                <button type="button" onclick="closeBulkStockModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form action="{{ route('seller.inventory.bulk_stock_action') }}" method="POST" id="bulkStockForm" class="space-y-4">
+                @csrf
+                
+                <!-- Action Type Selector -->
+                <div class="space-y-2">
+                    <label class="text-xs font-black text-gray-800 block">क्या करना चाहते हैं?</label>
+                    <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+                        <label class="flex flex-col p-3 rounded-2xl border-2 border-rose-200 bg-rose-50/50 cursor-pointer hover:border-rose-400 transition has-checked:border-rose-600 has-checked:bg-rose-50">
+                            <div class="flex items-center gap-2">
+                                <input type="radio" name="bulk_action" value="set_zero" checked onchange="toggleBulkFields(this.value)">
+                                <span class="text-rose-900 font-black">सबका स्टॉक 0 करें</span>
+                            </div>
+                            <span class="text-[10px] text-rose-700 mt-1 font-medium">सभी प्रोडक्ट्स को Out of Stock (0) बनाएं</span>
+                        </label>
+
+                        <label class="flex flex-col p-3 rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 cursor-pointer hover:border-emerald-400 transition has-checked:border-emerald-600 has-checked:bg-emerald-50">
+                            <div class="flex items-center gap-2">
+                                <input type="radio" name="bulk_action" value="set_fixed" onchange="toggleBulkFields(this.value)">
+                                <span class="text-emerald-900 font-black">एक साथ स्टॉक डालें</span>
+                            </div>
+                            <span class="text-[10px] text-emerald-700 mt-1 font-medium">सब में एक समान संख्या भरें (जैसे 50 या 100)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Quantity Field (shown when set_fixed is selected) -->
+                <div id="bulkQuantityField" class="hidden space-y-1">
+                    <label class="text-xs font-bold text-gray-700 block">कितनी संख्या (Quantity) डालनी है? <span class="text-rose-500">*</span></label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" name="target_quantity" id="bulkTargetQty" value="50" min="0" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 font-black text-sm focus:border-indigo-500 focus:outline-none">
+                        <div class="flex gap-1">
+                            <button type="button" onclick="document.getElementById('bulkTargetQty').value=10" class="px-2 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-bold">10</button>
+                            <button type="button" onclick="document.getElementById('bulkTargetQty').value=50" class="px-2 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-bold">50</button>
+                            <button type="button" onclick="document.getElementById('bulkTargetQty').value=100" class="px-2 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-bold">100</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scope / Category Selector -->
+                <div>
+                    <label class="text-xs font-bold text-gray-700 block mb-1">किन प्रोडक्ट्स पर लागू करना है?</label>
+                    <select name="category_id" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-bold text-gray-800 focus:outline-none">
+                        <option value="">पूरे स्टोर के सभी प्रोडक्ट्स (All Products)</option>
+                        @if(isset($sellerCategories))
+                            @foreach($sellerCategories as $c)
+                                <option value="{{ $c->id }}">सिर्फ कैटेगरी: {{ $c->name }} ({{ $c->products_count ?? '' }})</option>
+                            @endforeach
+                        @endif
+                    </select>
+                </div>
+
+                <!-- Warning box -->
+                <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] flex items-start gap-2">
+                    <i class="fa-solid fa-triangle-exclamation mt-0.5 text-amber-600"></i>
+                    <span>यह एक्शन लाइव कैटलॉग और AI हेल्थ स्कोर को तुरंत अपडेट कर देगा।</span>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                    <button type="button" onclick="closeBulkStockModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold">
+                        रद्द करें (Cancel)
+                    </button>
+                    <button type="submit" id="btnSubmitBulkStock" class="px-5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 text-white text-xs font-black shadow-md">
+                        लागू करें (Confirm Action)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- 🎯 Floating Curated Selection Bar (3-6 items WhatsApp Share) -->
     <div id="curatedFloatingBar" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white px-5 py-3.5 rounded-3xl shadow-2xl border border-gray-700 flex items-center gap-4 transition-all duration-300 hidden">
         <div class="flex items-center gap-2.5">
@@ -1107,6 +1195,33 @@
             const modal = document.getElementById('restockModal');
             modal.classList.add('hidden');
             modal.classList.remove('flex');
+        }
+
+        // ⚡ Bulk Stock Modal Controls
+        function openBulkStockModal() {
+            const modal = document.getElementById('bulkStockModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeBulkStockModal() {
+            const modal = document.getElementById('bulkStockModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function toggleBulkFields(action) {
+            const qtyField = document.getElementById('bulkQuantityField');
+            const submitBtn = document.getElementById('btnSubmitBulkStock');
+            if (action === 'set_fixed') {
+                qtyField.classList.remove('hidden');
+                submitBtn.className = "px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black shadow-md";
+                submitBtn.textContent = "स्टॉक लागू करें (Set Stock)";
+            } else {
+                qtyField.classList.add('hidden');
+                submitBtn.className = "px-5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 text-white text-xs font-black shadow-md";
+                submitBtn.textContent = "सबका स्टॉक 0 करें (Set All 0)";
+            }
         }
 
         // ==========================================
