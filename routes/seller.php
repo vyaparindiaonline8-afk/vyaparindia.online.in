@@ -58,6 +58,12 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
     Route::get('enquiries', [EnquiryController::class, 'index'])->name('enquiries.index');
     Route::post('enquiries/{enquiry}/reply', [EnquiryController::class, 'reply'])->name('enquiries.reply');
 
+    // 📄 Quotations Management & Owner Approval
+    Route::get('quotations', [\App\Http\Controllers\Seller\SellerQuotationController::class, 'index'])->name('quotations.index');
+    Route::get('quotations/{quotationNumber}', [\App\Http\Controllers\Seller\SellerQuotationController::class, 'show'])->name('quotations.show');
+    Route::post('quotations/{quotationNumber}/approve', [\App\Http\Controllers\Seller\SellerQuotationController::class, 'approve'])->name('quotations.approve');
+    Route::post('quotations/{quotationNumber}/reject', [\App\Http\Controllers\Seller\SellerQuotationController::class, 'reject'])->name('quotations.reject');
+
     Route::get('profile/create', [SellerProfileController::class, 'create'])->name('profile.create');
     Route::post('profile', [SellerProfileController::class, 'store'])->name('profile.store');
     Route::get('profile/edit', [SellerProfileController::class, 'edit'])->name('profile.edit');

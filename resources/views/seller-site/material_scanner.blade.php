@@ -169,10 +169,15 @@
                     All matched products can be ordered directly through WhatsApp or Mini-Website cart.
                 </div>
 
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <button type="button" onclick="createOfficialQuotationFromSlip()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-xs font-black shadow-md transition flex items-center gap-2">
+                        <i class="fa-solid fa-file-invoice text-amber-300"></i>
+                        <span>📄 AI कोटेशन बनाएं व अप्रूवल भेजें</span>
+                    </button>
+
                     <button type="button" onclick="addMatchedItemsToCart()" class="px-5 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold transition flex items-center gap-2">
                         <i class="fa-solid fa-cart-plus"></i>
-                        <span>Add Matched Items to Bag</span>
+                        <span>Add Items to Bag</span>
                     </button>
 
                     @if($sellerPage->whatsapp_number)
@@ -209,6 +214,15 @@
                 } else {
                     alert('No direct catalog matches found to add automatically.');
                 }
+            }
+
+            function createOfficialQuotationFromSlip() {
+                addMatchedItemsToCart();
+                setTimeout(() => {
+                    if (typeof openQuotationModal === 'function') {
+                        openQuotationModal();
+                    }
+                }, 150);
             }
 
             function sendSlipQuotationViaWhatsApp() {

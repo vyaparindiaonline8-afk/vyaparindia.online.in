@@ -464,6 +464,17 @@
                         <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
                     </a>
 
+                    <a href="{{ route('seller.quotations.index') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-indigo-50/60 hover:bg-indigo-100/70 border border-indigo-200 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-file-invoice-dollar text-indigo-600 text-lg"></i>
+                            <div>
+                                <div class="text-xs font-black text-indigo-950">कोटेशन व एस्टीमेट (Quotations)</div>
+                                <div class="text-[11px] text-indigo-700">ठेकेदार / ग्राहक कोटेशन रिव्यू व अप्रूवल</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-indigo-400"></i>
+                    </a>
+
                     <a href="{{ route('seller.profile.edit') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-gray-100 transition-colors">
                         <div class="flex items-center gap-3">
                             <i class="fa-solid fa-building text-slate-600 text-lg"></i>

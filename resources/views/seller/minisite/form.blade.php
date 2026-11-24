@@ -621,7 +621,7 @@
                             </button>
                         </div>
                         <div class="flex items-center gap-2">
-                            <input type="text" id="google_map_link_input" name="google_map_link" value="{{ old('google_map_link', $minisite->google_map_link ?? '') }}" placeholder="उदा. https://maps.app.goo.gl/... या Google Maps लिंक" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <input type="text" id="google_map_link_input" name="google_map_link" value="{{ old('google_map_link', $minisite->google_map_link ?? '') }}" oninput="sanitizeMapLinkInput(this)" onpaste="setTimeout(() => sanitizeMapLinkInput(this), 50)" placeholder="उदा. https://www.google.com/maps/... या Google Maps लिंक" class="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                             @if(isset($minisite) && $minisite->universal_map_link)
                                 <a href="{{ $minisite->universal_map_link }}" target="_blank" class="px-3 py-2.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 font-bold text-xs shrink-0 flex items-center gap-1 transition" title="Verify Google Maps Location">
                                     <i class="fa-solid fa-arrow-up-right-from-square"></i>
@@ -630,7 +630,7 @@
                             @endif
                         </div>
                         <p class="text-[11px] text-gray-500 mt-1">
-                            💡 <strong>नोट:</strong> अगर <code>maps.app.goo.gl</code> वाला छोटा लिंक आपके फ़ोन पर नहीं खुलता है, तो ऊपर <strong>"1-Click परमानेंट लिंक"</strong> बटन दबाएं। यह एक ऐसा पक्का लिंक बना देगा जो हर फ़ोन पर सीधे Google Maps ऐप में खुलेगा।
+                            💡 <strong>नोट:</strong> <code>maps.app.goo.gl</code> वाला छोटा लिंक भारत में टेलीकॉम कंपनियों द्वारा ब्लॉक रहता है। ऊपर <strong>"✨ 1-Click परमानेंट लिंक"</strong> बटन दबाएं ताकि हर फ़ोन व कंप्यूटर पर दुकान की लोकेशन सीधे खुले।
                         </p>
                     </div>
 
@@ -1108,6 +1108,22 @@
             if (input) {
                 input.value = universalUrl;
                 alert('✅ 100% परमानेंट Google Maps लिंक तैयार हो गया है!\n\nअब नीचे "Save Changes" दबाएं। यह लिंक हर मोबाइल और कंप्यूटर पर हमेशा खुलेगा।');
+            }
+        }
+
+        function sanitizeMapLinkInput(input) {
+            let val = input.value.trim();
+            if (val.includes('maps.app.goo.gl') || val.includes('goo.gl/maps')) {
+                const title = document.getElementById('store_title_input')?.value.trim() || 'Ganesh Traders';
+                const address = document.getElementById('store_address_input')?.value.trim() || 'Main Road, Near Bus Stand';
+                const city = document.getElementById('store_city_input')?.value.trim() || 'Sarangarh';
+                const state = document.getElementById('store_state_input')?.value.trim() || 'Chhattisgarh';
+                const pincode = document.getElementById('store_pincode_input')?.value.trim() || '496445';
+                
+                const query = [title, address, city, state, pincode].filter(Boolean).join(', ');
+                input.value = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query);
+                
+                alert('⚡ maps.app.goo.gl भारत में Jio/Airtel नेटवर्क द्वारा ब्लॉक रहता है और Chrome में नहीं खुलता!\n\nइसलिए हमने इसे 100% चालू यूनिवर्सल Google Maps लिंक में बदल दिया है जो हर मोबाइल और कंप्यूटर पर हमेशा खुलेगा।\n\nकृपया नीचे "Save Changes" दबाकर सेव कर लें।');
             }
         }
 

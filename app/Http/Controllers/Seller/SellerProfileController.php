@@ -207,6 +207,19 @@ class SellerProfileController extends Controller
                 $data['youtube_url'] = 'https://youtube.com/' . $handle;
             }
         }
+        if (!empty($data['google_map_url'])) {
+            $mapVal = trim($data['google_map_url']);
+            if (str_contains($mapVal, 'maps.app.goo.gl') || str_contains($mapVal, 'goo.gl/maps')) {
+                $queryParts = array_filter([
+                    $data['business_name'] ?? 'Ganesh Traders',
+                    $data['address_line1'] ?? 'Main Road, Near Bus Stand',
+                    $data['city'] ?? 'Sarangarh',
+                    $data['state'] ?? 'Chhattisgarh',
+                    $data['pincode'] ?? '496445',
+                ]);
+                $data['google_map_url'] = 'https://www.google.com/maps/search/?api=1&query=' . urlencode(implode(', ', $queryParts));
+            }
+        }
         return $data;
     }
 }

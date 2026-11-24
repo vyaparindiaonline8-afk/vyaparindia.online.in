@@ -71,12 +71,27 @@ class MiniSiteController extends Controller
         }
 
         // 4. Google Maps & Reviews
-        foreach (['google_map_link', 'google_review_link'] as $urlField) {
-            if ($request->filled($urlField)) {
-                $val = trim($request->input($urlField));
-                if (!preg_match('/^https?:\/\//i', $val)) {
-                    $request->merge([$urlField => 'https://' . $val]);
-                }
+        if ($request->filled('google_map_link')) {
+            $val = trim($request->input('google_map_link'));
+            if (str_contains($val, 'maps.app.goo.gl') || str_contains($val, 'goo.gl/maps')) {
+                $queryParts = array_filter([
+                    $request->input('page_title') ?: 'Ganesh Traders',
+                    $request->input('address') ?: 'Main Road, Near Bus Stand',
+                    $request->input('city') ?: 'Sarangarh',
+                    $request->input('state') ?: 'Chhattisgarh',
+                    $request->input('pincode') ?: '496445',
+                ]);
+                $val = 'https://www.google.com/maps/search/?api=1&query=' . urlencode(implode(', ', $queryParts));
+            } elseif (!preg_match('/^https?:\/\//i', $val)) {
+                $val = 'https://' . $val;
+            }
+            $request->merge(['google_map_link' => $val]);
+        }
+
+        if ($request->filled('google_review_link')) {
+            $val = trim($request->input('google_review_link'));
+            if (!preg_match('/^https?:\/\//i', $val)) {
+                $request->merge(['google_review_link' => 'https://' . $val]);
             }
         }
     }
@@ -228,6 +243,9 @@ class MiniSiteController extends Controller
         }
         if ($request->filled('longitude')) {
             $currentSettings['longitude'] = floatval($request->input('longitude'));
+        }
+        if (!empty($validated['google_map_link'])) {
+            $currentSettings['google_map_link'] = $validated['google_map_link'];
         }
         if ($request->has('business_category_custom')) {
             $currentSettings['business_category_custom'] = trim($request->input('business_category_custom'));

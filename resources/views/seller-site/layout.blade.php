@@ -277,6 +277,10 @@
                 <button onclick="toggleCartDrawer(true)" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition">
                     View Bag
                 </button>
+                <button onclick="openQuotationModal()" class="px-3 sm:px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-lg shadow-indigo-600/20 flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-file-invoice text-amber-300"></i>
+                    <span>कोटेशन (Quote)</span>
+                </button>
                 <button onclick="openQuickOrderModal()" class="px-4 sm:px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 transition">
                     <i class="fa-brands fa-whatsapp text-sm"></i>
                     <span>1-Click Order</span>
@@ -324,6 +328,77 @@
                     <button type="submit" id="qo_submit_btn" class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-2">
                         <i class="fa-brands fa-whatsapp text-base"></i>
                         <span id="qo_btn_text">Confirm & Send to WhatsApp</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 📄 AI Quotation / Estimate Request Modal -->
+    <div id="quotation-modal" class="fixed inset-0 z-50 overflow-hidden hidden flex items-center justify-center p-4">
+        <div onclick="closeQuotationModal()" class="absolute inset-0 bg-gray-900/60 backdrop-blur-xs"></div>
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl relative z-10 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="h-9 w-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-base">
+                        <i class="fa-solid fa-file-invoice text-indigo-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-gray-900 text-sm">AI कोटेशन व एस्टीमेट अनुरोध</h3>
+                        <p class="text-[11px] text-gray-500">मालिक द्वारा रेट व डिस्काउंट अप्रूव होकर WhatsApp पर मिलेगा</p>
+                    </div>
+                </div>
+                <button onclick="closeQuotationModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Cart Items Summary in Modal -->
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2">
+                <div class="flex items-center justify-between text-xs font-bold text-slate-800">
+                    <span>चयनित सामग्री (Cart Items):</span>
+                    <span id="quotation-cart-count" class="text-indigo-600">0 Items</span>
+                </div>
+                <div id="quotation-items-preview" class="text-[11px] text-gray-600 max-h-24 overflow-y-auto space-y-1 divide-y divide-gray-100">
+                    <!-- Populated by JS -->
+                </div>
+                <div class="flex items-center justify-between text-xs font-black text-slate-900 pt-1 border-t border-slate-200">
+                    <span>कुल अनुमानित मूल्य:</span>
+                    <span id="quotation-cart-total" class="text-emerald-700 font-black">₹0.00</span>
+                </div>
+            </div>
+
+            <form id="quotationForm" onsubmit="submitQuotationRequest(event)" class="space-y-3">
+                <div>
+                    <label class="text-xs font-bold text-gray-700 block mb-1">आपका नाम (Customer Name) <span class="text-rose-500">*</span></label>
+                    <input type="text" id="quote_name" required placeholder="उदा. राजेश शर्मा / ठेकेदार" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-bold focus:border-indigo-500">
+                </div>
+
+                <div>
+                    <label class="text-xs font-bold text-gray-700 block mb-1">WhatsApp मोबाइल नंबर <span class="text-rose-500">*</span></label>
+                    <input type="tel" id="quote_phone" required placeholder="उदा. 9876543210 (इस पर अप्रूव्ड कोटेशन आएगा)" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-bold focus:border-indigo-500">
+                    <span class="text-[10px] text-gray-400 block mt-0.5">मालिक द्वारा अप्रूव होते ही इसी नंबर पर कोटेशन PDF लिंक भेजा जाएगा</span>
+                </div>
+
+                <div>
+                    <label class="text-xs font-bold text-gray-700 block mb-1">प्रोजेक्ट / साइट का नाम (Project / Site Name)</label>
+                    <input type="text" id="quote_project" placeholder="उदा. शर्मा जी मकान प्लंबिंग, होटल साइट, आदि" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:border-indigo-500">
+                </div>
+
+                <div>
+                    <label class="text-xs font-bold text-gray-700 block mb-1">डिलीवरी पता / शहर (Address)</label>
+                    <input type="text" id="quote_address" placeholder="उदा. मेन रोड, सारंगढ़" class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-medium focus:border-indigo-500">
+                </div>
+
+                <div>
+                    <label class="text-xs font-bold text-gray-700 block mb-1">अन्य सामग्री या विशेष निर्देश (Optional)</label>
+                    <textarea id="quote_notes" rows="2" placeholder="कोई अतिरिक्त पाइप, एल्बो, सॉल्वेंट या फिटिंग जो कार्ट में न मिली हो..." class="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:border-indigo-500"></textarea>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" id="quote_submit_btn" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-black text-xs shadow-md transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-paper-plane text-amber-300"></i>
+                        <span id="quote_btn_text">🚀 कोटेशन बनाएं व स्टोर मालिक को भेजें</span>
                     </button>
                 </div>
             </form>
@@ -480,6 +555,11 @@
                                 <span>Confirm Order & Send to WhatsApp</span>
                             </button>
                         @endif
+
+                        <button onclick="openQuotationModal()" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-file-invoice text-amber-300"></i>
+                            <span>📄 AI कोटेशन / एस्टीमेट बनाएं (Quotation)</span>
+                        </button>
 
                         <a href="{{ route('minisite.checkout', $sellerPage->slug) }}" class="w-full py-2 px-4 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2">
                             <span>Direct Online Checkout</span>
@@ -1207,6 +1287,104 @@
             .finally(() => {
                 submitBtn.disabled = false;
                 btnText.innerText = "Confirm & Send to WhatsApp";
+            });
+        }
+
+        // 📄 AI Quotation Modal Functions
+        function openQuotationModal() {
+            const cart = getCart();
+            if (cart.length === 0) {
+                alert('कृपया पहले कम से कम 1 आइटम बैग में जोड़ें जिसका कोटेशन बनाना है।');
+                return;
+            }
+            toggleCartDrawer(false);
+
+            const countEl = document.getElementById('quotation-cart-count');
+            const totalEl = document.getElementById('quotation-cart-total');
+            const previewEl = document.getElementById('quotation-items-preview');
+
+            let total = 0;
+            let html = '';
+            cart.forEach((item, i) => {
+                const line = item.price * item.quantity;
+                total += line;
+                html += `<div class="flex justify-between py-1 border-b border-gray-100 last:border-b-0">
+                    <span class="truncate max-w-[200px]">${i+1}. ${item.name} <strong class="text-indigo-600">(x${item.quantity})</strong></span>
+                    <span class="font-bold text-gray-900">₹${line.toFixed(2)}</span>
+                </div>`;
+            });
+
+            if (countEl) countEl.innerText = `${cart.length} Items`;
+            if (totalEl) totalEl.innerText = `₹${total.toFixed(2)}`;
+            if (previewEl) previewEl.innerHTML = html;
+
+            document.getElementById('quotation-modal')?.classList.remove('hidden');
+        }
+
+        function closeQuotationModal() {
+            document.getElementById('quotation-modal')?.classList.add('hidden');
+        }
+
+        function submitQuotationRequest(e) {
+            e.preventDefault();
+            const cart = getCart();
+            if (cart.length === 0) {
+                alert('कोटेशन हेतु सामग्री बैग में होना अनिवार्य है।');
+                return;
+            }
+
+            const name = document.getElementById('quote_name').value.trim();
+            const phone = document.getElementById('quote_phone').value.trim();
+            const project = document.getElementById('quote_project').value.trim();
+            const address = document.getElementById('quote_address').value.trim();
+            const notes = document.getElementById('quote_notes').value.trim();
+
+            const submitBtn = document.getElementById('quote_submit_btn');
+            const btnText = document.getElementById('quote_btn_text');
+            submitBtn.disabled = true;
+            btnText.innerText = "कोटेशन बन रहा है...";
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+            fetch("{{ route('minisite.createQuotation', $sellerPage->slug) }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-CSRF-TOKEN": csrfToken
+                },
+                body: JSON.stringify({
+                    customer_name: name,
+                    customer_phone: phone,
+                    project_name: project,
+                    customer_address: address,
+                    customer_notes: notes,
+                    cart: cart
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    saveCart([]);
+                    closeQuotationModal();
+
+                    if (data.owner_wa_url) {
+                        window.open(data.owner_wa_url, '_blank');
+                    }
+
+                    alert(`🎉 कोटेशन #${data.quotation_number} सफलतापूर्वक तैयार हो गया है!\n\nदुकान मालिक को अप्रूवल हेतु भेज दिया गया है। अब आपको कोटेशन पेज पर ले जाया जा रहा है।`);
+                    window.location.href = data.view_url;
+                } else {
+                    alert(data.message || 'कोटेशन बनाने में समस्या आई।');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('कोटेशन सबमिशन असफल रहा। कृपया पुनः प्रयास करें।');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                btnText.innerText = "🚀 कोटेशन बनाएं व स्टोर मालिक को भेजें";
             });
         }
 

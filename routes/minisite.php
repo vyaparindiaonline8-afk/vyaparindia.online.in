@@ -19,4 +19,9 @@ Route::prefix('{sellerPage:slug}')->name('minisite.')->group(function () {
     Route::get('/material-scanner', [MiniSiteController::class, 'materialScannerView'])->name('materialScanner');
     Route::post('/material-scanner', [MiniSiteController::class, 'processMaterialSlip'])->name('processMaterialSlip');
     Route::get('/material-scanner/download-excel', [MiniSiteController::class, 'downloadQuotationExcel'])->name('downloadQuotationExcel');
+
+    // 📄 AI Quotations & Contractor Estimates
+    Route::post('/quotations/create', [\App\Http\Controllers\QuotationController::class, 'createQuotation'])->name('createQuotation');
+    Route::get('/quotation/{quotationNumber}', [\App\Http\Controllers\QuotationController::class, 'showQuotation'])->name('showQuotation');
+    Route::post('/quotation/{quotationNumber}/convert-to-order', [\App\Http\Controllers\QuotationController::class, 'convertQuotationToOrder'])->name('convertQuotationToOrder');
 });
