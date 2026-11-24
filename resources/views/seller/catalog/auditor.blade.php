@@ -30,6 +30,10 @@
                 </div>
 
                 <div class="flex items-center gap-2.5">
+                    <a href="{{ route('seller.catalog.health_auditor') }}" class="px-3.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-black transition flex items-center gap-1.5 border border-indigo-200">
+                        <i class="fa-solid fa-brain text-indigo-600"></i>
+                        <span>AI हेल्थ व 100-अंक स्कोर</span>
+                    </a>
                     <a href="{{ route('seller.products.index') }}" class="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-extrabold transition flex items-center gap-1.5 shadow-2xs">
                         <i class="fa-solid fa-boxes-stacked text-blue-600"></i>
                         <span>वापस प्रोडक्ट कैटलॉग</span>

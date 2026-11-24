@@ -27,6 +27,17 @@ class DashboardController extends Controller
         $sellerProfile = Auth::user()->sellerProfile;
         $myProducts = Auth::user()->products()->with(['variants', 'category'])->latest()->take(12)->get();
 
+        // 🧠 AI Catalog Health & Quality Audit (Dedicated per profile, runs automatically once)
+        $catalogHealth = \App\Models\CatalogHealthAudit::where('user_id', $sellerId)->first();
+        if (!$catalogHealth) {
+            try {
+                $engine = new \App\Services\AiCatalogHealthEngine();
+                $catalogHealth = $engine->auditSeller($sellerId, false);
+            } catch (\Throwable $e) {
+                $catalogHealth = null;
+            }
+        }
+
         return view('seller.dashboard', compact(
             'minisite',
             'sellerProfile',
@@ -35,7 +46,8 @@ class DashboardController extends Controller
             'totalOrders',
             'pendingOrders',
             'totalRevenue',
-            'recentOrders'
+            'recentOrders',
+            'catalogHealth'
         ));
     }
 }

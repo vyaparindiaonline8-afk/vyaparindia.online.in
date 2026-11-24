@@ -256,6 +256,10 @@ Route::middleware(['auth', 'is_seller'])->name('seller.')->prefix('seller')->gro
         Route::get('/auditor', [CatalogAuditController::class, 'index'])->name('auditor');
         Route::post('/auditor/upload', [CatalogAuditController::class, 'uploadMasterSheet'])->name('auditor.upload');
         Route::post('/auditor/sync-mismatches', [CatalogAuditController::class, 'syncMismatches'])->name('auditor.sync_mismatches');
+
+        // 🧠 AI Catalog Health & Quality Score Engine (100-Point Audit & Roadmap)
+        Route::get('/health-auditor', [CatalogAuditController::class, 'healthAudit'])->name('health_auditor');
+        Route::post('/health-auditor/run', [CatalogAuditController::class, 'runHealthAudit'])->name('run_health_audit');
     });
 
     // 📦 Inventory & 1-Click Restock Manager

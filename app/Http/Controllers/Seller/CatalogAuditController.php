@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\CatalogHealthAudit;
+use App\Services\AiCatalogHealthEngine;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -348,5 +350,47 @@ class CatalogAuditController extends Controller
         }
 
         return redirect()->route('seller.catalog.auditor')->with('success', "🎉 बधाई हो! कुल {$updatedCount} आइटम्स के भाव एक्सेल शीट के मुताबिक 1-क्लिक में लाइव अपडेट कर दिए गए हैं। अब पूरा स्टोर 100% सिंक है!");
+    }
+
+    /**
+     * Show the AI Product & Catalog Health Quality Score Dashboard (100-Point Audit Engine).
+     */
+    public function healthAudit(Request $request)
+    {
+        $seller = Auth::user();
+        $engine = new AiCatalogHealthEngine();
+
+        // Dedicated audit per profile: automatically runs if no prior audit or older than 4 hrs
+        $audit = $engine->auditSeller($seller->id, false);
+
+        return view('seller.catalog.health_auditor', compact('audit', 'seller'));
+    }
+
+    /**
+     * Manual Trigger: Run / Re-run the AI Catalog Quality Engine.
+     */
+    public function runHealthAudit(Request $request)
+    {
+        $seller = Auth::user();
+        $engine = new AiCatalogHealthEngine();
+
+        $audit = $engine->auditSeller($seller->id, true);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "AI कैटलॉग ऑडिट पूरा हुआ! नया स्वास्थ्य स्कोर: {$audit->health_score}/100",
+                'health_score' => $audit->health_score,
+                'breakdown' => $audit->breakdown,
+                'stats' => $audit->stats,
+                'recommendations' => $audit->recommendations,
+                'audited_at' => $audit->audited_at?->diffForHumans() ?? 'Just now',
+            ]);
+        }
+
+        return redirect()->route('seller.catalog.health_auditor')->with(
+            'success',
+            "⚡ AI कैटलॉग ऑडिट सफलतापूर्वक पूरा हुआ! आपकी दुकान का नया क्वालिटी स्कोर: {$audit->health_score}/100"
+        );
     }
 }

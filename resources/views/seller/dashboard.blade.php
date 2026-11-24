@@ -188,6 +188,56 @@
             </div>
         </div>
 
+        @if(!empty($catalogHealth))
+            @php
+                $hScore = (int)($catalogHealth->health_score ?? 0);
+                $hStats = $catalogHealth->stats ?? [];
+                $hBreakdown = $catalogHealth->breakdown ?? [];
+                $hColor = $hScore >= 80 ? 'text-emerald-600 bg-emerald-50 border-emerald-200' : ($hScore >= 60 ? 'text-blue-600 bg-blue-50 border-blue-200' : 'text-amber-600 bg-amber-50 border-amber-200');
+            @endphp
+            <!-- 🧠 AI Catalog Health & 100-Point Quality Score Banner -->
+            <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 rounded-3xl p-5 sm:p-6 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden">
+                <div class="flex items-center gap-4 relative z-10">
+                    <div class="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex flex-col items-center justify-center shrink-0 backdrop-blur-xs">
+                        <span class="text-2xl font-black text-amber-300 leading-none">{{ $hScore }}</span>
+                        <span class="text-[9px] font-bold text-slate-300 uppercase mt-0.5">/100 अंक</span>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                🤖 AI कैटलॉग क्वालिटी स्कोर
+                            </span>
+                            <span class="text-[11px] text-slate-400">
+                                {{ $catalogHealth->audited_at ? $catalogHealth->audited_at->diffForHumans() : 'ऑटो-स्कैन' }}
+                            </span>
+                        </div>
+                        <h4 class="text-sm sm:text-base font-black text-white mt-1">
+                            {{ $hScore >= 85 ? 'शानदार! आपका प्रोडक्ट कैटलॉग टॉप स्थिति में है' : 'स्टोर को 100/100 स्कोर पर ले जाने के लिए AI सुझाव देखें' }}
+                        </h4>
+                        <div class="flex flex-wrap items-center gap-3 mt-1 text-[11px] text-slate-300">
+                            <span>📦 <strong>{{ $hStats['in_stock_count'] ?? 0 }}</strong> इन-स्टॉक</span>
+                            <span>📸 <strong>{{ $hStats['missing_images_count'] ?? 0 }}</strong> बिना फोटो</span>
+                            <span>💰 <strong>{{ $hStats['missing_prices_count'] ?? 0 }}</strong> शून्य भाव</span>
+                            <span>⚡ <strong>{{ number_format($hStats['total_stock_units'] ?? 0) }}</strong> कुल यूनिट्स</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2.5 shrink-0 relative z-10">
+                    <a href="{{ route('seller.catalog.health_auditor') }}" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-black text-xs transition flex items-center gap-2 shadow-md hover:scale-102">
+                        <i class="fa-solid fa-bullseye text-amber-300"></i>
+                        <span>100 अंक का AI प्लान देखें</span>
+                    </a>
+                    <form action="{{ route('seller.catalog.run_health_audit') }}" method="POST">
+                        @csrf
+                        <button type="submit" title="अभी AI ऑडिट दोबारा चलाएं" class="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition flex items-center justify-center">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        @endif
+
         <!-- Metrics Grid -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <div class="bg-white rounded-3xl p-6 border border-gray-200 shadow-xs flex items-center justify-between">
@@ -266,6 +316,20 @@
                                     <span class="text-[9px] font-bold bg-purple-600 text-white px-1.5 py-0.5 rounded-full">New</span>
                                 </div>
                                 <div class="text-[11px] text-gray-500">Daily/Monthly views, top products & conversion</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+                    </a>
+
+                    <a href="{{ route('seller.catalog.health_auditor') }}" class="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-blue-500/10 hover:from-indigo-500/20 hover:to-purple-500/20 border border-indigo-200 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-brain text-indigo-600 text-lg"></i>
+                            <div>
+                                <div class="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                                    <span>AI कैटलॉग स्वास्थ्य एवं 100-पॉइंट स्कोर</span>
+                                    <span class="text-[9px] font-bold bg-indigo-600 text-white px-1.5 py-0.5 rounded-full">100-Pts Engine</span>
+                                </div>
+                                <div class="text-[11px] text-gray-500">स्टॉक, क्वांटिटी, फोटो व रेट का AI ऑडिट और 100 अंक पाने का रोडमैप</div>
                             </div>
                         </div>
                         <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>

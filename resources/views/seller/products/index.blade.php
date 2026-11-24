@@ -47,6 +47,10 @@
                         <i class="fa-solid fa-house text-blue-600"></i>
                         <span>Home</span>
                     </a>
+                    <a href="{{ route('seller.catalog.health_auditor') }}" class="px-3.5 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-black transition flex items-center gap-1.5 border border-indigo-200" title="AI कैटलॉग स्वास्थ्य एवं 100-अंक स्कोर">
+                        <i class="fa-solid fa-brain"></i>
+                        <span>AI हेल्थ स्कोर (100)</span>
+                    </a>
                     <a href="{{ route('seller.catalog.upload') }}" class="px-3.5 py-1.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold transition flex items-center gap-1.5">
                         <i class="fa-solid fa-file-pdf"></i> Upload Catalog PDF
                     </a>
